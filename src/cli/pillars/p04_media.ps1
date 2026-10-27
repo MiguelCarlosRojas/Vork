@@ -6,13 +6,16 @@
 function Invoke-PillarMedia {
     param([string[]]$ArgsList)
 
-    $url = if ($ArgsList -and $ArgsList.Length -gt 0) { $ArgsList[0] } else { $null }
-    $fmt = "mp3"
-    $quality = "320"
+    $url = $null
+    $fmt = $null
+    $quality = $null
+    $hasExplicitFormat = $false
+
     if ($ArgsList) {
         for ($i=0; $i -lt $ArgsList.Length; $i++) {
-            if ($ArgsList[$i] -in "-Format", "--format", "-f") { $fmt = $ArgsList[$i+1] }
-            if ($ArgsList[$i] -in "-Quality", "--quality", "-q") { $quality = $ArgsList[$i+1] }
+            if ($ArgsList[$i] -in "-Format", "--format", "-f") { $fmt = $ArgsList[$i+1]; $hasExplicitFormat = $true; $i++ }
+            elseif ($ArgsList[$i] -in "-Quality", "--quality", "-q") { $quality = $ArgsList[$i+1]; $i++ }
+            elseif (-not $url -and -not $ArgsList[$i].StartsWith("-")) { $url = $ArgsList[$i] }
         }
     }
 
@@ -27,16 +30,22 @@ function Invoke-PillarMedia {
             return
         }
         $url = $url.Trim()
+    }
 
-        $chosen = Select-InteractiveMediaFormat -PromptTitle "Selecciona el formato y calidad de salida:" -DefaultFormat "mp4" -DefaultMp4Quality "720p" -DefaultMp3Quality "320k"
+    if (-not $hasExplicitFormat) {
+        $defaultFmt = if ($fmt) { $fmt } else { "mp3" }
+        $chosen = Select-InteractiveMediaFormat -PromptTitle "Selecciona el formato y calidad de salida:" -DefaultFormat $defaultFmt -DefaultMp4Quality "720p" -DefaultMp3Quality "320k"
         if (-not $chosen) {
             Write-Host "  ${Lead}╰─ Conversión cancelada.${Reset}"
             Write-Host ""
             return
         }
-
         $fmt = $chosen.Format
         $quality = $chosen.Quality
+    } else {
+        if (-not $quality) {
+            $quality = if ($fmt -eq "mp3") { "320" } elseif ($fmt -eq "wav") { "lossless" } else { "720p" }
+        }
     }
 
     Write-Host ""
