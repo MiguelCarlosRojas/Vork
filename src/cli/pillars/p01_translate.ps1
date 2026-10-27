@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Pilar 01: Vork Traductor Neuronal en la Nube (+200 Idiomas)
 #>
@@ -66,6 +66,7 @@ function Invoke-PillarTranslate {
         $resolvedOut = (Resolve-Path $outFile).Path
         Write-Host "  $Cyan│$Reset  $Green✓ Guardado local:$Reset $White$resolvedOut$Reset"
         Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
+        Send-VorkNotification -Title "Vork Traductor" -Message "Traducción completada con éxito."
     } catch {
         Write-Host "  $Cyan│$Reset  ${Coral}[Error al traducir]:${Reset} $($_.Exception.Message)"
         Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"

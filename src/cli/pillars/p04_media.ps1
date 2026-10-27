@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Pilar 04: Vork Conversor Multimedia Universal (YouTube, TikTok, IG a MP3/MP4)
 #>
@@ -140,6 +140,7 @@ function Invoke-PillarMedia {
                 Write-Host "  $Cyan│$Reset    Descarga: $Yellow$dlFull$Reset"
             }
             Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
+            Send-VorkNotification -Title "Vork Conversor Multimedia" -Message "Conversión a $fmt ($quality) completada con éxito."
         }
     } catch {
         Write-Host ""

@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Pilar 03: Vork Clonacion de Voz IA (Extraccion Fundamental F0)
 #>
@@ -92,6 +92,7 @@ function Invoke-PillarClone {
             Write-Host "  $Cyan│$Reset    Descarga: $Yellow$dlUrl$Reset"
         }
         Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
+        Send-VorkNotification -Title "Vork Clonación Vocal" -Message "Clonación vocal F0 completada con éxito."
     } catch {
         Write-Host "  $Cyan│$Reset  ${Coral}[Error Clonación]:${Reset} $($_.Exception.Message)"
         Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"

@@ -20,6 +20,7 @@ function Invoke-CmdGoal {
     Write-Host "  $ESC[44;97;1m GOAL MODE $Reset ${Cyan}Iniciando agente autónomo con verificación continua...${Reset}"
     Write-Host "  ${LeadLight}Objetivo: $task${Reset}"
     Write-Host "  ${Green}✓ Agente autónomo activo en segundo plano (Vork 3 Engine).${Reset}"
+    Send-VorkNotification -Title "Vork CLI · /goal" -Message "Agente autónomo iniciado correctamente."
     Write-Host ""
 }
 
@@ -38,6 +39,7 @@ function Invoke-CmdPlan {
     Write-Host "  ${Cyan}  [Paso 2]${Reset} Implementación modular con contratos de interfaz."
     Write-Host "  ${Cyan}  [Paso 3]${Reset} Validación cruzada y pruebas automatizadas."
     Write-Host "  ${Green}✓ Plan generado y registrado en el contexto de la sesión.${Reset}"
+    Send-VorkNotification -Title "Vork CLI · /plan" -Message "Plan de arquitectura generado exitosamente."
     Write-Host ""
 }
 

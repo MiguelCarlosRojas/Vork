@@ -1746,6 +1746,101 @@ function Write-VorkAIResponse {
     $timeStr = if ($ElapsedSec -gt 0) { " ${Lead}$([char]0x00B7)${Reset} ${LeadLight}${ElapsedSec}s${Reset}" } else { "" }
     Write-Host "  ${LeadLight}$elbowChar  $ActiveModel · $TierLabel$timeStr${Reset}"
     Write-Host ""
+
+    Send-VorkNotification -Title "Vork AI ($ActiveModel)" -Message "Respuesta completada en ${ElapsedSec}s."
+}
+
+# ========================================================
+# SISTEMA DE NOTIFICACIONES TOAST & SONORAS DE VORK
+# ========================================================
+
+function Test-VorkNotificationAllowed {
+    # 1. Comprobar configuracion en settings.json
+    try {
+        $settingsFile = Join-Path $HOME ".vork\settings.json"
+        if (Test-Path $settingsFile) {
+            $settings = Get-Content -Path $settingsFile -Raw | ConvertFrom-Json
+            if ($settings.notifications -ne $null) {
+                $val = [string]$settings.notifications
+                if ($val -in @("off", "disabled", "false", "0")) {
+                    return $false
+                }
+            }
+        }
+    } catch { }
+
+    # 2. Comprobar permiso en permissions.json
+    try {
+        $permFile = Join-Path $HOME ".vork\permissions.json"
+        if (Test-Path $permFile) {
+            $perms = Get-Content -Path $permFile -Raw | ConvertFrom-Json
+            if ($perms.notifications -ne $null) {
+                if ($perms.notifications -eq $false -or $perms.notifications -eq "false") {
+                    return $false
+                }
+            }
+        }
+    } catch { }
+
+    return $true
+}
+
+function Send-VorkNotification {
+    param(
+        [string]$Title = "Vork CLI",
+        [string]$Message = "Tarea completada con éxito."
+    )
+
+    if (-not (Test-VorkNotificationAllowed)) {
+        return
+    }
+
+    try {
+        $scriptBlock = {
+            param($t, $m)
+            # 1. Alerta sonora suave
+            try { [System.Media.SystemSounds]::Asterisk.Play() } catch { }
+
+            # 2. Toast Moderno Windows 10/11
+            $shown = $false
+            try {
+                [Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] | Out-Null
+                $template = [Windows.UI.Notifications.ToastNotificationManager]::GetTemplateContent([Windows.UI.Notifications.ToastTemplateType]::ToastText02)
+                $toastXml = [xml]$template.GetXml()
+                $textNodes = $toastXml.GetElementsByTagName("text")
+                if ($textNodes.Count -gt 0) { $textNodes.Item(0).AppendChild($toastXml.CreateTextNode($t)) | Out-Null }
+                if ($textNodes.Count -gt 1) { $textNodes.Item(1).AppendChild($toastXml.CreateTextNode($m)) | Out-Null }
+
+                $toastDoc = New-Object Windows.Data.Xml.Dom.XmlDocument
+                $toastDoc.LoadXml($toastXml.OuterXml)
+
+                $toast = [Windows.UI.Notifications.ToastNotification]::new($toastDoc)
+                $notifier = [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier("Vork CLI")
+                $notifier.Show($toast)
+                $shown = $true
+            } catch { }
+
+            # 3. Fallback a NotifyIcon
+            if (-not $shown) {
+                try {
+                    Add-Type -AssemblyName System.Windows.Forms -ErrorAction SilentlyContinue
+                    Add-Type -AssemblyName System.Drawing -ErrorAction SilentlyContinue
+                    $notify = New-Object System.Windows.Forms.NotifyIcon
+                    $notify.Icon = [System.Drawing.SystemIcons]::Information
+                    $notify.BalloonTipTitle = $t
+                    $notify.BalloonTipText = $m
+                    $notify.Visible = $true
+                    $notify.ShowBalloonTip(3000)
+                    Start-Sleep -Milliseconds 600
+                    $notify.Dispose()
+                } catch { }
+            }
+        }
+
+        Start-Job -ScriptBlock $scriptBlock -ArgumentList $Title, $Message | Out-Null
+    } catch {
+        try { [System.Media.SystemSounds]::Asterisk.Play() } catch { }
+    }
 }
 
 
@@ -3920,6 +4015,7 @@ function Invoke-PillarTranslate {
         $resolvedOut = (Resolve-Path $outFile).Path
         Write-Host "  $Cyan│$Reset  $Green✓ Guardado local:$Reset $White$resolvedOut$Reset"
         Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
+        Send-VorkNotification -Title "Vork Traductor" -Message "Traducción completada con éxito."
     } catch {
         Write-Host "  $Cyan│$Reset  ${Coral}[Error al traducir]:${Reset} $($_.Exception.Message)"
         Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
@@ -4006,6 +4102,7 @@ function Invoke-PillarTTS {
             Write-Host "  $Cyan│$Reset    Descarga: $Yellow$dlUrl$Reset"
         }
         Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
+        Send-VorkNotification -Title "Vork Síntesis TTS" -Message "Audio de voz neuronal generado con éxito."
     } catch {
         Write-Host "  $Cyan│$Reset  ${Coral}[Error TTS]:${Reset} $($_.Exception.Message)"
         Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
@@ -4111,6 +4208,7 @@ function Invoke-PillarClone {
             Write-Host "  $Cyan│$Reset    Descarga: $Yellow$dlUrl$Reset"
         }
         Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
+        Send-VorkNotification -Title "Vork Clonación Vocal" -Message "Clonación vocal F0 completada con éxito."
     } catch {
         Write-Host "  $Cyan│$Reset  ${Coral}[Error Clonación]:${Reset} $($_.Exception.Message)"
         Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
@@ -4264,6 +4362,7 @@ function Invoke-PillarMedia {
                 Write-Host "  $Cyan│$Reset    Descarga: $Yellow$dlFull$Reset"
             }
             Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
+            Send-VorkNotification -Title "Vork Conversor Multimedia" -Message "Conversión a $fmt ($quality) completada con éxito."
         }
     } catch {
         Write-Host ""
@@ -4498,6 +4597,7 @@ function Invoke-PillarSeparate {
             }
         }
         Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
+        Send-VorkNotification -Title "Vork Separador de Stems" -Message "Aislamiento de pistas completado con éxito."
     } catch {
         Write-Host ""
         Write-Host "  $Cyan├───────────────────────────────────────────────────$Reset"
@@ -4727,6 +4827,7 @@ function Invoke-PillarImage {
             Write-Host "  $Cyan│$Reset    Descarga: $Yellow$dlUrl$Reset"
         }
         Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
+        Send-VorkNotification -Title "Vork Conversor de Imagen" -Message "Conversión a $fmt completada con éxito."
     } catch {
         Write-Host "  $Cyan│$Reset  ${Coral}[Error Imagen]:${Reset} $($_.Exception.Message)"
         Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
@@ -4872,6 +4973,7 @@ function Invoke-PillarRemoveBg {
             Write-Host "  $Cyan│$Reset  $Yellow URL de descarga:$Reset $White$dlUrl$Reset"
         }
         Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
+        Send-VorkNotification -Title "Vork Fondo IA" -Message "Modificación de fondo completada con éxito."
     } catch {
         Write-Host "  $Cyan│$Reset  ${Coral}[Error Imagen IA]:${Reset} $($_.Exception.Message)"
         Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
@@ -4929,6 +5031,7 @@ function Invoke-PillarAgents {
     Write-Host "  ${Cyan}│${Reset}  $Green✓ Clúster de agentes sincronizado con éxito.$Reset"
     Write-Host "  ${Cyan}│${Reset}  $Green✓ Guardado local:$Reset $White$resolvedOut$Reset"
     Write-Host "  ${Cyan}╰───────────────────────────────────────────────────${Reset}"
+    Send-VorkNotification -Title "Vork Agentes Autónomos" -Message "Clúster de subagentes sincronizado con éxito."
     Write-Host ""
 }
 
@@ -4958,6 +5061,7 @@ function Invoke-CmdGoal {
     Write-Host "  $ESC[44;97;1m GOAL MODE $Reset ${Cyan}Iniciando agente autónomo con verificación continua...${Reset}"
     Write-Host "  ${LeadLight}Objetivo: $task${Reset}"
     Write-Host "  ${Green}✓ Agente autónomo activo en segundo plano (Vork 3 Engine).${Reset}"
+    Send-VorkNotification -Title "Vork CLI · /goal" -Message "Agente autónomo iniciado correctamente."
     Write-Host ""
 }
 
@@ -4976,6 +5080,7 @@ function Invoke-CmdPlan {
     Write-Host "  ${Cyan}  [Paso 2]${Reset} Implementación modular con contratos de interfaz."
     Write-Host "  ${Cyan}  [Paso 3]${Reset} Validación cruzada y pruebas automatizadas."
     Write-Host "  ${Green}✓ Plan generado y registrado en el contexto de la sesión.${Reset}"
+    Send-VorkNotification -Title "Vork CLI · /plan" -Message "Plan de arquitectura generado exitosamente."
     Write-Host ""
 }
 

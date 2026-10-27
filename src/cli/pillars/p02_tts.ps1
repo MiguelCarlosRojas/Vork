@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Pilar 02: Vork Texto a Voz Neuronal (TTS Studio con 24 voces humanas)
 #>
@@ -73,6 +73,7 @@ function Invoke-PillarTTS {
             Write-Host "  $Cyan│$Reset    Descarga: $Yellow$dlUrl$Reset"
         }
         Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
+        Send-VorkNotification -Title "Vork Síntesis TTS" -Message "Audio de voz neuronal generado con éxito."
     } catch {
         Write-Host "  $Cyan│$Reset  ${Coral}[Error TTS]:${Reset} $($_.Exception.Message)"
         Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"

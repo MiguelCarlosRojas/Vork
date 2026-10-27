@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Pilar 05: Vork Separador de Stems (Acapella y Karaoke con Demucs v4)
 #>
@@ -218,6 +218,7 @@ function Invoke-PillarSeparate {
             }
         }
         Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
+        Send-VorkNotification -Title "Vork Separador de Stems" -Message "Aislamiento de pistas completado con éxito."
     } catch {
         Write-Host ""
         Write-Host "  $Cyan├───────────────────────────────────────────────────$Reset"

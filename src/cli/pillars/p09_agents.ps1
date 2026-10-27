@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Pilar 09: Vork Agentes Autónomos & Modo Interactivo TUI
 #>
@@ -44,5 +44,6 @@ function Invoke-PillarAgents {
     Write-Host "  ${Cyan}│${Reset}  $Green✓ Clúster de agentes sincronizado con éxito.$Reset"
     Write-Host "  ${Cyan}│${Reset}  $Green✓ Guardado local:$Reset $White$resolvedOut$Reset"
     Write-Host "  ${Cyan}╰───────────────────────────────────────────────────${Reset}"
+    Send-VorkNotification -Title "Vork Agentes Autónomos" -Message "Clúster de subagentes sincronizado con éxito."
     Write-Host ""
 }

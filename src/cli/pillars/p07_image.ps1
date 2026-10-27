@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Pilar 07: Vork Conversor Universal de Formatos de Imagen (PNG, JPG, WEBP, ICO, AVIF)
 #>
@@ -214,6 +214,7 @@ function Invoke-PillarImage {
             Write-Host "  $Cyan│$Reset    Descarga: $Yellow$dlUrl$Reset"
         }
         Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
+        Send-VorkNotification -Title "Vork Conversor de Imagen" -Message "Conversión a $fmt completada con éxito."
     } catch {
         Write-Host "  $Cyan│$Reset  ${Coral}[Error Imagen]:${Reset} $($_.Exception.Message)"
         Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"

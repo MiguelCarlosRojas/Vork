@@ -132,6 +132,7 @@ function Invoke-PillarRemoveBg {
             Write-Host "  $Cyan│$Reset  $Yellow URL de descarga:$Reset $White$dlUrl$Reset"
         }
         Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
+        Send-VorkNotification -Title "Vork Fondo IA" -Message "Modificación de fondo completada con éxito."
     } catch {
         Write-Host "  $Cyan│$Reset  ${Coral}[Error Imagen IA]:${Reset} $($_.Exception.Message)"
         Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
