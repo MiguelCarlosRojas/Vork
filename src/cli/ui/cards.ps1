@@ -1,148 +1,430 @@
-<#
+﻿<#
 .SYNOPSIS
-    Vork CLI - Modulo UI: Selectores Interactivos con Flechas (Up/Down) y Enter
+    Vork CLI - Modulo UI: Componentes interactivos responsive.
+
+.DESCRIPTION
+    Todos los selectores comparten el mismo motor de paneles:
+    - Se ajustan al ancho y alto reales de la terminal.
+    - Detectan redimensionado en caliente sin romper la pantalla.
+    - Soportan flechas, Home/End, PageUp/PageDown, Enter, Esc y Ctrl+C.
+    - Recortan texto con ANSI de forma segura para evitar saltos de linea.
 #>
 
 function Wait-VorkGoBack {
     param([string]$CmdName = "")
 
-    if ([Console]::IsInputRedirected) { return }
+    if ([Console]::IsInputRedirected -or [Console]::IsOutputRedirected) { return }
 
-    Write-Host ""
-    Write-Host "  ${LeadLight}Keyboard: ${Cyan}${Bold}esc${Reset} ${LeadLight}Go Back  ${Cyan}${Bold}enter${Reset} ${LeadLight}Select${Reset}"
-
-    # Limpiar buffer de teclado residual
-    while ([Console]::KeyAvailable) {
-        try { [void][Console]::ReadKey($true) } catch { break }
-    }
+    $savedCursor = try { [Console]::CursorVisible } catch { $true }
+    try { [Console]::CursorVisible = $true } catch { }
+    try { [Console]::TreatControlCAsInput = $true } catch { }
 
     try {
         while ($true) {
-            $k = [Console]::ReadKey($true)
-            if ($k.Key -in [ConsoleKey]::Escape, [ConsoleKey]::Enter, [ConsoleKey]::Spacebar) {
-                break
+            $metrics = Get-VorkConsoleMetrics
+            $hint = "  ${LeadLight}enter/espacio${Reset} ${Lead}continuar  ·  ${Reset}${Coral}esc${Reset} ${Lead}volver${Reset}"
+            Write-Host (Limit-VorkAnsiText -Text $hint -MaxWidth ([Math]::Max(10, $metrics.Width - 1)))
+
+            $wait = Wait-VorkConsoleKey
+            if ($wait.Resized) {
+                try {
+                    Write-Host "$ESC[1A$ESC[0J" -NoNewline
+                } catch { }
+                continue
             }
+
+            $key = $wait.Key
+            if (-not $key) { continue }
+            if ($key.Key -in [ConsoleKey]::Escape, [ConsoleKey]::Enter, [ConsoleKey]::Spacebar) { break }
+            if (Test-VorkCtrlC -Key $key) { break }
+            try { Write-Host "$ESC[1A$ESC[0J" -NoNewline } catch { }
         }
-    } catch { }
+    } finally {
+        try { [Console]::TreatControlCAsInput = $false } catch { }
+        try { [Console]::CursorVisible = $savedCursor } catch { }
+    }
 }
 
 function Read-VorkInput {
-    param(
-        [string]$Prompt = ""
-    )
-
-    try { [Console]::TreatControlCAsInput = $false } catch { }
-    try { [Console]::CursorVisible = $true } catch { }
-
-    if ($Prompt) {
-        Write-Host $Prompt -NoNewline
-    }
+    param([string]$Prompt = "")
 
     if ([Console]::IsInputRedirected) {
+        if ($Prompt) { Write-Host $Prompt -NoNewline }
         return [Console]::ReadLine()
     }
 
-    # Limpiar buffer de teclas residuales
-    while ([Console]::KeyAvailable) {
-        try { [void][Console]::ReadKey($true) } catch { break }
+    $savedCursor = try { [Console]::CursorVisible } catch { $true }
+    try { [Console]::CursorVisible = $true } catch { }
+    try { [Console]::TreatControlCAsInput = $true } catch { }
+
+    $buffer = [System.Text.StringBuilder]::new()
+    $position = 0
+
+    try {
+        while ($true) {
+            $metrics = Get-VorkConsoleMetrics
+            $maxPromptWidth = [Math]::Max(8, $metrics.Width - 12)
+            $promptText = Limit-VorkAnsiText -Text $Prompt -MaxWidth $maxPromptWidth
+            $promptWidth = Get-VorkDisplayWidth $promptText
+            $inputWidth = [Math]::Max(4, $metrics.Width - $promptWidth - 1)
+            $view = Get-VorkTextWindow -Text $buffer.ToString() -Cursor $position -Width $inputWidth
+
+            try {
+                Write-Host "`r$ClrLine" -NoNewline
+                Write-Host "$promptText$($view.Text)$ClrToEnd" -NoNewline
+                $column = $promptWidth + $view.Cursor
+                if ($column -ge $metrics.Width) { $column = $metrics.Width - 1 }
+                if ($column -lt 0) { $column = 0 }
+                Write-Host "`r$($CSI)${column}C" -NoNewline
+            } catch { }
+
+            $wait = Wait-VorkConsoleKey
+            if ($wait.Resized) { continue }
+
+            $key = $wait.Key
+            if (-not $key) { continue }
+
+            if (Test-VorkCtrlC -Key $key) {
+                try { Write-Host "`r$ClrLine" -NoNewline; Write-Host "" } catch { }
+                return ""
+            }
+
+            if ($key.Key -eq [ConsoleKey]::Escape) {
+                try { Write-Host "`r$ClrLine" -NoNewline; Write-Host "" } catch { }
+                return ""
+            }
+
+            if ($key.Key -eq [ConsoleKey]::Enter) {
+                try { Write-Host "" } catch { }
+                return $buffer.ToString()
+            }
+
+            if ($key.Key -eq [ConsoleKey]::Backspace -or $key.KeyChar -eq [char]8) {
+                if ($position -gt 0) {
+                    [void]$buffer.Remove($position - 1, 1)
+                    $position--
+                }
+                continue
+            }
+
+            if ($key.Key -eq [ConsoleKey]::Delete) {
+                if ($position -lt $buffer.Length) {
+                    [void]$buffer.Remove($position, 1)
+                }
+                continue
+            }
+
+            if ($key.Key -eq [ConsoleKey]::LeftArrow) {
+                if ($position -gt 0) { $position-- }
+                continue
+            }
+
+            if ($key.Key -eq [ConsoleKey]::RightArrow) {
+                if ($position -lt $buffer.Length) { $position++ }
+                continue
+            }
+
+            if ($key.Key -eq [ConsoleKey]::Home -or (Test-VorkCtrlKey -Key $key -Letter ([ConsoleKey]::A))) {
+                $position = 0
+                continue
+            }
+
+            if ($key.Key -eq [ConsoleKey]::End -or (Test-VorkCtrlKey -Key $key -Letter ([ConsoleKey]::E))) {
+                $position = $buffer.Length
+                continue
+            }
+
+            if (Test-VorkCtrlKey -Key $key -Letter ([ConsoleKey]::U)) {
+                [void]$buffer.Clear()
+                $position = 0
+                continue
+            }
+
+            if (Test-VorkCtrlKey -Key $key -Letter ([ConsoleKey]::K)) {
+                if ($position -lt $buffer.Length) {
+                    [void]$buffer.Remove($position, $buffer.Length - $position)
+                }
+                continue
+            }
+
+            if (Test-VorkCtrlKey -Key $key -Letter ([ConsoleKey]::W)) {
+                if ($position -gt 0) {
+                    $text = $buffer.ToString()
+                    $cut = $position
+                    while ($cut -gt 0 -and [char]::IsWhiteSpace($text[$cut - 1])) { $cut-- }
+                    while ($cut -gt 0 -and -not [char]::IsWhiteSpace($text[$cut - 1])) { $cut-- }
+                    [void]$buffer.Remove($cut, $position - $cut)
+                    $position = $cut
+                }
+                continue
+            }
+
+            $char = $key.KeyChar
+            if (-not [char]::IsControl($char)) {
+                [void]$buffer.Insert($position, $char)
+                $position++
+            }
+        }
+    } finally {
+        try { [Console]::TreatControlCAsInput = $false } catch { }
+        try { [Console]::CursorVisible = $savedCursor } catch { }
+    }
+}
+
+function Get-VorkItemValue {
+    param($Item)
+    if ($null -eq $Item) { return $null }
+    if ($Item -is [hashtable]) {
+        if ($Item.ContainsKey('Value')) { return $Item.Value }
+        if ($Item.ContainsKey('Label')) { return $Item.Label }
+    }
+    return $Item
+}
+
+function Get-VorkItemSearchText {
+    param($Item)
+    if ($Item -is [hashtable] -and $Item.ContainsKey('Search') -and $Item.Search) { return [string]$Item.Search }
+    if ($Item -is [hashtable] -and $Item.ContainsKey('Label')) { return (Get-VorkPlainText ([string]$Item.Label)) }
+    return [string]$Item
+}
+
+function Get-VorkPickerVisibleRows {
+    param(
+        $Metrics,
+        [int]$ItemCount,
+        [int]$ExtraRows = 0
+    )
+    $available = [Math]::Max(1, $Metrics.Height - 5 - $ExtraRows)
+    return [Math]::Max(1, [Math]::Min([Math]::Max(1, $ItemCount), $available))
+}
+
+function Write-VorkPickerFrame {
+    param(
+        $Panel,
+        [string]$Title,
+        [string]$Subtitle,
+        [array]$Items,
+        [int]$Selected,
+        [int]$Top,
+        [int]$Visible,
+        [string]$Search,
+        [string]$Footer,
+        [switch]$ShowSearch
+    )
+
+    $row = 0
+    Write-VorkPanelLine -Panel $Panel -Index $row -Text (Format-VorkBorderTop -Title $Title -RightText $Subtitle -Width $Panel.Width)
+    $row++
+
+    if ($ShowSearch) {
+        $searchText = if ($Search) { $Search } else { "escribe para filtrar" }
+        $searchColor = if ($Search) { "${White}${Bold}$Search${Reset}" } else { "${LeadDark}$searchText${Reset}" }
+        Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${Lead}$([char]0x2502)${Reset} ${LeadLight}Buscar:${Reset} $searchColor"
+        $row++
     }
 
-    $buf = [System.Text.StringBuilder]::new()
-    $pos = 0
-
-    while ($true) {
-        $k = [Console]::ReadKey($true)
-
-        if ($k.Key -eq [ConsoleKey]::Enter) {
-            Write-Host ""
-            return $buf.ToString()
+    for ($i = 0; $i -lt $Visible; $i++) {
+        $itemIndex = $Top + $i
+        if ($itemIndex -lt $Items.Count) {
+            $item = $Items[$itemIndex]
+            $isSelected = $itemIndex -eq $Selected
+            $prefix = if ($isSelected) { "${Cyan}${Bold}$([char]0x25B8)${Reset} " } else { "  " }
+            $badge = if ($item -is [hashtable] -and $item.ContainsKey('Badge') -and $item.Badge) { "$($item.Badge) " } else { "" }
+            $label = if ($item -is [hashtable] -and $item.ContainsKey('Label')) { [string]$item.Label } else { [string]$item }
+            $valueText = if ($item -is [hashtable] -and $item.ContainsKey('ValueText') -and $item.ValueText) { "  ${Cyan}$($item.ValueText)${Reset}" } else { "" }
+            $description = if ($item -is [hashtable] -and $item.ContainsKey('Description') -and $item.Description) { "  ${LeadLight}$($item.Description)${Reset}" } else { "" }
+            $labelText = if ($isSelected) { "${White}${Bold}$label${Reset}" } else { "${White}$label${Reset}" }
+            Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${Lead}$([char]0x2502)${Reset} $prefix$badge$labelText$valueText$description"
+        } else {
+            Write-VorkPanelLine -Panel $Panel -Index $row -Text ""
         }
+        $row++
+    }
 
-        # Ctrl+C o Escape para cancelar
-        $isCtrlC = ($k.KeyChar -eq [char]3) -or ($k.Key -eq [ConsoleKey]::C -and ($k.Modifiers -band [ConsoleModifiers]::Control))
-        if ($isCtrlC -or $k.Key -eq [ConsoleKey]::Escape) {
-            Write-Host ""
-            return ""
-        }
+    $below = [Math]::Max(0, $Items.Count - ($Top + $Visible))
+    $above = $Top
+    $scrollText = ""
+    if ($above -gt 0 -and $below -gt 0) {
+        $scrollText = "$([char]0x2191) $above arriba  ·  $([char]0x2193) $below abajo"
+    } elseif ($below -gt 0) {
+        $scrollText = "$([char]0x2193) $below mas resultados"
+    } elseif ($above -gt 0) {
+        $scrollText = "$([char]0x2191) $above mas resultados"
+    }
+    Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${Lead}$([char]0x2502)${Reset} ${LeadDark}$scrollText${Reset}"
+    $row++
 
-        if ($k.Key -eq [ConsoleKey]::Backspace -or $k.KeyChar -eq [char]8) {
-            if ($pos -gt 0) {
-                $buf.Remove($pos - 1, 1) | Out-Null
-                $pos--
-                Write-Host "${CSI}1D" -NoNewline
-                $tail = if ($pos -lt $buf.Length) { $buf.ToString().Substring($pos) } else { "" }
-                Write-Host "$tail $ClrToEnd" -NoNewline
-                $backCount = $tail.Length + 1
-                if ($backCount -gt 0) {
-                    Write-Host "${CSI}${backCount}D" -NoNewline
-                }
-            }
-            continue
-        }
+    Write-VorkPanelLine -Panel $Panel -Index $row -Text (Format-VorkBorderBottom -LeftText $Footer -Width $Panel.Width)
+}
 
-        if ($k.Key -eq [ConsoleKey]::Delete) {
-            if ($pos -lt $buf.Length) {
-                $buf.Remove($pos, 1) | Out-Null
-                $tail = if ($pos -lt $buf.Length) { $buf.ToString().Substring($pos) } else { "" }
-                Write-Host "$tail $ClrToEnd" -NoNewline
-                $backCount = $tail.Length + 1
-                if ($backCount -gt 0) {
-                    Write-Host "${CSI}${backCount}D" -NoNewline
-                }
-            }
-            continue
-        }
+function Invoke-VorkPicker {
+    param(
+        [string]$Title,
+        [string]$Subtitle = "",
+        [array]$Items,
+        [int]$DefaultIndex = 0,
+        [string]$Footer = "flechas mover  ·  enter seleccionar  ·  esc cancelar",
+        [switch]$Searchable,
+        [switch]$NumericSelect
+    )
 
-        if ($k.Key -eq [ConsoleKey]::LeftArrow) {
-            if ($pos -gt 0) {
-                $pos--
-                Write-Host "${CSI}1D" -NoNewline
-            }
-            continue
-        }
+    if (-not $Items -or $Items.Count -eq 0) { return $null }
 
-        if ($k.Key -eq [ConsoleKey]::RightArrow) {
-            if ($pos -lt $buf.Length) {
-                $pos++
-                Write-Host "${CSI}1C" -NoNewline
-            }
-            continue
-        }
+    if ([Console]::IsInputRedirected -or [Console]::IsOutputRedirected) {
+        $fallback = if ($DefaultIndex -ge 0 -and $DefaultIndex -lt $Items.Count) { $Items[$DefaultIndex] } else { $Items[0] }
+        return (Get-VorkItemValue $fallback)
+    }
 
-        if ($k.Key -eq [ConsoleKey]::Home) {
-            if ($pos -gt 0) {
-                Write-Host "${CSI}${pos}D" -NoNewline
-                $pos = 0
-            }
-            continue
-        }
+    $savedCursor = try { [Console]::CursorVisible } catch { $true }
+    try { [Console]::CursorVisible = $false } catch { }
+    try { [Console]::TreatControlCAsInput = $true } catch { }
 
-        if ($k.Key -eq [ConsoleKey]::End) {
-            if ($pos -lt $buf.Length) {
-                $fwd = $buf.Length - $pos
-                Write-Host "${CSI}${fwd}C" -NoNewline
-                $pos = $buf.Length
-            }
-            continue
-        }
+    $query = ""
+    $selected = [Math]::Max(0, [Math]::Min($DefaultIndex, $Items.Count - 1))
+    $top = 0
+    $panel = $null
+    $searchRows = if ($Searchable) { 1 } else { 0 }
 
-        $ch = $k.KeyChar
-        if (-not [char]::IsControl($ch)) {
-            if ($pos -eq $buf.Length) {
-                $buf.Append($ch) | Out-Null
-                $pos++
-                Write-Host $ch -NoNewline
+    try {
+        while ($true) {
+            $filtered = if ($Searchable -and $query) {
+                @($Items | Where-Object { (Get-VorkItemSearchText $_).ToLower().Contains($query.ToLower()) })
             } else {
-                $buf.Insert($pos, $ch) | Out-Null
-                $pos++
-                $tail = $buf.ToString().Substring($pos)
-                Write-Host "$ch$tail" -NoNewline
-                $backCount = $tail.Length
-                if ($backCount -gt 0) {
-                    Write-Host "${CSI}${backCount}D" -NoNewline
+                @($Items)
+            }
+
+            if ($filtered.Count -eq 0) {
+                $selected = 0
+                $top = 0
+            } else {
+                if ($selected -ge $filtered.Count) { $selected = $filtered.Count - 1 }
+                if ($selected -lt 0) { $selected = 0 }
+            }
+
+            $metrics = Get-VorkConsoleMetrics
+            $visible = Get-VorkPickerVisibleRows -Metrics $metrics -ItemCount ([Math]::Max(1, $filtered.Count)) -ExtraRows $searchRows
+            $panelRows = $visible + 3 + $searchRows
+            $panel = Update-VorkPanel -Panel $panel -Rows $panelRows
+
+            if ($filtered.Count -gt 0) {
+                if ($selected -lt $top) { $top = $selected }
+                if ($selected -ge ($top + $visible)) { $top = $selected - $visible + 1 }
+                if ($top -lt 0) { $top = 0 }
+                $maxTop = [Math]::Max(0, $filtered.Count - $visible)
+                if ($top -gt $maxTop) { $top = $maxTop }
+            }
+
+            $displayItems = if ($filtered.Count -eq 0) {
+                @(@{ Label = "Sin coincidencias"; Description = "prueba con otra busqueda"; Value = $null })
+            } else {
+                $filtered
+            }
+
+            Write-VorkPickerFrame -Panel $panel -Title $Title -Subtitle $Subtitle -Items $displayItems -Selected $selected -Top $top -Visible $visible -Search $query -Footer $Footer -ShowSearch:$Searchable
+
+            $wait = Wait-VorkConsoleKey
+            if ($wait.Resized) { continue }
+
+            $key = $wait.Key
+            if (-not $key) { continue }
+
+            if (Test-VorkCtrlC -Key $key) {
+                Clear-VorkPanel -Panel $panel
+                return $null
+            }
+
+            if ($key.Key -eq [ConsoleKey]::Escape) {
+                if ($Searchable -and $query) {
+                    $query = ""
+                    $selected = 0
+                    $top = 0
+                    continue
+                }
+                Clear-VorkPanel -Panel $panel
+                return $null
+            }
+
+            if ($key.Key -eq [ConsoleKey]::Enter) {
+                if ($filtered.Count -gt 0) {
+                    Clear-VorkPanel -Panel $panel
+                    return (Get-VorkItemValue $filtered[$selected])
+                }
+                continue
+            }
+
+            if ($key.Key -eq [ConsoleKey]::UpArrow) {
+                if ($filtered.Count -gt 0) {
+                    $selected = if ($selected -gt 0) { $selected - 1 } else { $filtered.Count - 1 }
+                }
+                continue
+            }
+
+            if ($key.Key -eq [ConsoleKey]::DownArrow) {
+                if ($filtered.Count -gt 0) {
+                    $selected = if ($selected -lt ($filtered.Count - 1)) { $selected + 1 } else { 0 }
+                }
+                continue
+            }
+
+            if ($key.Key -eq [ConsoleKey]::PageUp) {
+                if ($filtered.Count -gt 0) {
+                    $selected = [Math]::Max(0, $selected - $visible)
+                }
+                continue
+            }
+
+            if ($key.Key -eq [ConsoleKey]::PageDown) {
+                if ($filtered.Count -gt 0) {
+                    $selected = [Math]::Min($filtered.Count - 1, $selected + $visible)
+                }
+                continue
+            }
+
+            if ($key.Key -eq [ConsoleKey]::Home) {
+                $selected = 0
+                continue
+            }
+
+            if ($key.Key -eq [ConsoleKey]::End) {
+                if ($filtered.Count -gt 0) { $selected = $filtered.Count - 1 }
+                continue
+            }
+
+            if ($Searchable -and $key.Key -eq [ConsoleKey]::Backspace) {
+                if ($query.Length -gt 0) {
+                    $query = $query.Substring(0, $query.Length - 1)
+                    $selected = 0
+                    $top = 0
+                }
+                continue
+            }
+
+            if ($Searchable -and (Test-VorkCtrlKey -Key $key -Letter ([ConsoleKey]::U))) {
+                $query = ""
+                $selected = 0
+                $top = 0
+                continue
+            }
+
+            $char = [string]$key.KeyChar
+            if ($NumericSelect -and $char -match '^[1-9]$' -and $filtered.Count -gt 0) {
+                $numericIndex = [int]$char - 1
+                if ($numericIndex -lt $filtered.Count) {
+                    Clear-VorkPanel -Panel $panel
+                    return (Get-VorkItemValue $filtered[$numericIndex])
                 }
             }
+
+            if ($Searchable -and -not [char]::IsControl($key.KeyChar)) {
+                $query += [string]$key.KeyChar
+                $selected = 0
+                $top = 0
+                continue
+            }
         }
+    } finally {
+        try { [Console]::TreatControlCAsInput = $false } catch { }
+        try { [Console]::CursorVisible = $savedCursor } catch { }
     }
 }
 
@@ -155,85 +437,61 @@ function Select-InteractiveOption {
 
     if (-not $Options -or $Options.Count -eq 0) { return $null }
 
-    $sel = if ($DefaultIndex -ge 0 -and $DefaultIndex -lt $Options.Count) { $DefaultIndex } else { 0 }
-    $savedCursor = try { [Console]::CursorVisible } catch { $true }
-    try { [Console]::CursorVisible = $false } catch { }
-
-    Write-Host ""
-    Write-Host "  ${White}${Bold}$PromptTitle${Reset}"
-    Write-Host ""
-
-    # Garantizar líneas disponibles en buffer para evitar desajuste al desplazar
-    $startTop = try { [Console]::CursorTop } catch { 0 }
-    for ($i = 0; $i -lt $Options.Count; $i++) {
-        Write-Host ""
-    }
-    $menuStartRow = try { [Console]::CursorTop - $Options.Count } catch { $startTop }
-
-    # Función de dibujo de opciones
-    $renderMenu = {
-        for ($i = 0; $i -lt $Options.Count; $i++) {
-            $opt = $Options[$i]
-            $label = if ($opt.Label) { $opt.Label } else { $opt.ToString() }
-            try { [Console]::SetCursorPosition(2, $menuStartRow + $i) } catch { }
-
-            if ($i -eq $sel) {
-                Write-Host "${Cyan}${Bold}> ${White}${Bold}$label${Reset}    $ClrToEnd" -NoNewline
-            } else {
-                Write-Host "  ${LeadLight}$label${Reset}    $ClrToEnd" -NoNewline
-            }
+    $items = @()
+    foreach ($option in $Options) {
+        if ($option -is [hashtable]) {
+            $label = if ($option.ContainsKey('Label') -and $option.Label) { [string]$option.Label } else { [string]$option }
+            $value = if ($option.ContainsKey('Value')) { $option.Value } else { $label }
+            $description = if ($option.ContainsKey('Description')) { [string]$option.Description } else { "" }
+            $items += @{ Label = $label; Value = $value; Description = $description; Search = (Get-VorkPlainText $label) }
+        } else {
+            $label = [string]$option
+            $items += @{ Label = $label; Value = $option; Description = ""; Search = $label }
         }
     }
 
-    & $renderMenu
-
-    try {
-        while ($true) {
-            $k = [Console]::ReadKey($true)
-
-            if ($k.Key -eq [ConsoleKey]::UpArrow) {
-                $sel = if ($sel -gt 0) { $sel - 1 } else { $Options.Count - 1 }
-                & $renderMenu
-                continue
-            }
-
-            if ($k.Key -eq [ConsoleKey]::DownArrow) {
-                $sel = if ($sel -lt ($Options.Count - 1)) { $sel + 1 } else { 0 }
-                & $renderMenu
-                continue
-            }
-
-            if ($k.Key -eq [ConsoleKey]::Enter) {
-                try { [Console]::SetCursorPosition(0, $menuStartRow + $Options.Count) } catch { }
-                Write-Host ""
-                $chosen = $Options[$sel]
-                if ($chosen.Value) { return $chosen.Value } else { return $chosen.ToString() }
-            }
-
-            if ($k.Key -eq [ConsoleKey]::Escape) {
-                try { [Console]::SetCursorPosition(0, $menuStartRow + $Options.Count) } catch { }
-                Write-Host ""
-                $def = $Options[$DefaultIndex]
-                if ($def.Value) { return $def.Value } else { return $def.ToString() }
-            }
-
-            # Selección numérica directa (1-9)
-            $ch = [string]$k.KeyChar
-            $numVal = -1
-            if ([int]::TryParse($ch, [ref]$numVal) -and $numVal -ge 1 -and $numVal -le $Options.Count) {
-                $sel = $numVal - 1
-                & $renderMenu
-                try { [Console]::SetCursorPosition(0, $menuStartRow + $Options.Count) } catch { }
-                Write-Host ""
-                $chosen = $Options[$sel]
-                if ($chosen.Value) { return $chosen.Value } else { return $chosen.ToString() }
-            }
-        }
-    } finally {
-        try { [Console]::CursorVisible = $savedCursor } catch { }
-    }
+    return (Invoke-VorkPicker -Title $PromptTitle -Subtitle "Vork CLI" -Items $items -DefaultIndex $DefaultIndex -NumericSelect -Footer "flechas mover  ·  1-9 elegir  ·  enter seleccionar  ·  esc cancelar")
 }
 
+function Write-VorkMediaFormatFrame {
+    param(
+        $Panel,
+        [int]$SelectedFormat,
+        [int]$Mp3Index,
+        [int]$Mp4Index,
+        [array]$Mp3Qualities,
+        [array]$Mp4Qualities
+    )
+
+    $row = 0
+    Write-VorkPanelLine -Panel $Panel -Index $row -Text (Format-VorkBorderTop -Title "Formato y calidad de salida" -RightText "Vork Media" -Width $Panel.Width)
+    $row++
+
+    $mp3 = $Mp3Qualities[$Mp3Index]
+    $mp4 = $Mp4Qualities[$Mp4Index]
+
+    $rows = @(
+        @{ Index = 0; Label = "MP3"; Quality = $mp3.Id; Desc = $mp3.Desc },
+        @{ Index = 1; Label = "MP4"; Quality = $mp4.Id; Desc = $mp4.Desc },
+        @{ Index = 2; Label = "WAV"; Quality = "lossless"; Desc = "Audio PCM sin compresion" }
+    )
+
+    foreach ($item in $rows) {
+        $isSelected = $item.Index -eq $SelectedFormat
+        $prefix = if ($isSelected) { "${Cyan}${Bold}$([char]0x25B8)${Reset} " } else { "  " }
+        $number = "[$($item.Index + 1)]"
+        $quality = if ($isSelected) {
+            "${Yellow}${Bold}$([char]0x2039) $($item.Quality) $([char]0x203A)${Reset}"
+        } else {
+            "${LeadLight}$($item.Quality)${Reset}"
+        }
+        $label = if ($isSelected) { "${White}${Bold}$($item.Label)${Reset}" } else { "${White}$($item.Label)${Reset}" }
+        Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${Lead}$([char]0x2502)${Reset} $prefix${Cyan}$number${Reset}  $label  $quality  ${LeadLight}· $($item.Desc)${Reset}"
+        $row++
+    }
+
+    Write-VorkPanelLine -Panel $Panel -Index $row -Text (Format-VorkBorderBottom -LeftText "flechas formato  ·  izquierda/derecha calidad  ·  enter confirmar  ·  esc cancelar" -Width $Panel.Width)
+}
 
 function Select-InteractiveMediaFormat {
     param(
@@ -243,176 +501,151 @@ function Select-InteractiveMediaFormat {
         [string]$DefaultMp3Quality = "320k"
     )
 
+    if ([Console]::IsInputRedirected -or [Console]::IsOutputRedirected) {
+        return @{ Format = $DefaultFormat; Quality = if ($DefaultFormat -eq "mp3") { $DefaultMp3Quality } elseif ($DefaultFormat -eq "wav") { "lossless" } else { $DefaultMp4Quality } }
+    }
+
+    $mp4Qualities = @(
+        @{ Id = "1080p60HD"; Desc = "Full HD 60fps" },
+        @{ Id = "1080pHD";   Desc = "Full HD 1080p" },
+        @{ Id = "720p60";    Desc = "HD 60fps" },
+        @{ Id = "720p";      Desc = "HD 720p" },
+        @{ Id = "480p";      Desc = "SD 480p" },
+        @{ Id = "360p";      Desc = "Movil 360p" },
+        @{ Id = "240p";      Desc = "Ahorro 240p" },
+        @{ Id = "140p";      Desc = "Ultra ligero 140p" }
+    )
+    $mp3Qualities = @(
+        @{ Id = "320k"; Desc = "Maxima fidelidad" },
+        @{ Id = "256k"; Desc = "Alta fidelidad" },
+        @{ Id = "192k"; Desc = "Balanceado" },
+        @{ Id = "128k"; Desc = "Estandar" },
+        @{ Id = "96k";  Desc = "Ahorro" },
+        @{ Id = "64k";  Desc = "Minimo" }
+    )
+
+    $selectedFormat = if ($DefaultFormat -eq "mp3") { 0 } elseif ($DefaultFormat -eq "wav") { 2 } else { 1 }
+    $mp4Index = 3
+    for ($i = 0; $i -lt $mp4Qualities.Count; $i++) {
+        if ($mp4Qualities[$i].Id -eq $DefaultMp4Quality) { $mp4Index = $i; break }
+    }
+    $mp3Index = 0
+    for ($i = 0; $i -lt $mp3Qualities.Count; $i++) {
+        if ($mp3Qualities[$i].Id -eq $DefaultMp3Quality) { $mp3Index = $i; break }
+    }
+
     $savedCursor = try { [Console]::CursorVisible } catch { $true }
     try { [Console]::CursorVisible = $false } catch { }
+    try { [Console]::TreatControlCAsInput = $true } catch { }
 
-    # Catálogo de calidades multimedia soportadas
-    $mp4Qualities = @(
-        @{ Id = "1080p60HD"; Desc = "Video Full HD 60fps" },
-        @{ Id = "1080pHD";   Desc = "Video Full HD 1080p" },
-        @{ Id = "720p60";     Desc = "Video HD 60fps" },
-        @{ Id = "720p";       Desc = "Video HD 720p" },
-        @{ Id = "480p";       Desc = "Video SD 480p" },
-        @{ Id = "360p";       Desc = "Video Móvil 360p" },
-        @{ Id = "240p";       Desc = "Video Ahorro 240p" },
-        @{ Id = "140p";       Desc = "Video Ultra Ligero 140p" }
-    )
-
-    $mp3Qualities = @(
-        @{ Id = "320k"; Desc = "Audio MP3 Máxima Fidelidad 320 kbps" },
-        @{ Id = "256k"; Desc = "Audio MP3 Alta Fidelidad 256 kbps" },
-        @{ Id = "192k"; Desc = "Audio MP3 Balanceado 192 kbps" },
-        @{ Id = "128k"; Desc = "Audio MP3 Estándar 128 kbps" },
-        @{ Id = "96k";  Desc = "Audio MP3 Ahorro 96 kbps" },
-        @{ Id = "64k";  Desc = "Audio MP3 Mínimo 64 kbps" }
-    )
-
-    # 0 -> mp3, 1 -> mp4, 2 -> wav
-    $selFormat = if ($DefaultFormat -eq "mp3") { 0 } elseif ($DefaultFormat -eq "wav") { 2 } else { 1 }
-
-    $mp4Idx = 3 # 720p por defecto
-    for ($i = 0; $i -lt $mp4Qualities.Count; $i++) {
-        if ($mp4Qualities[$i].Id -eq $DefaultMp4Quality) {
-            $mp4Idx = $i
-            break
-        }
-    }
-
-    $mp3Idx = 0 # 320k por defecto
-    for ($i = 0; $i -lt $mp3Qualities.Count; $i++) {
-        if ($mp3Qualities[$i].Id -eq $DefaultMp3Quality) {
-            $mp3Idx = $i
-            break
-        }
-    }
-
-    Write-Host ""
-    Write-Host "  ${White}${Bold}$PromptTitle${Reset}"
-    Write-Host ""
-
-    # Espacio para 3 opciones + 1 línea de separación + 1 línea de atajos
-    $totalMenuRows = 5
-    $startTop = try { [Console]::CursorTop } catch { 0 }
-    for ($i = 0; $i -lt $totalMenuRows; $i++) {
-        Write-Host ""
-    }
-    $menuStartRow = try { [Console]::CursorTop - $totalMenuRows } catch { $startTop }
-
-    $renderMenu = {
-        $curMp3 = $mp3Qualities[$mp3Idx]
-        $curMp4 = $mp4Qualities[$mp4Idx]
-
-        # Fila 0: MP3
-        try { [Console]::SetCursorPosition(2, $menuStartRow + 0) } catch { }
-        if ($selFormat -eq 0) {
-            Write-Host "${Cyan}${Bold}> [1] mp3  ${Yellow}◂ $($curMp3.Id) ▸${Reset} ${LeadLight}($($curMp3.Desc))${Reset}    $ClrToEnd" -NoNewline
-        } else {
-            Write-Host "  ${LeadLight}[1] mp3  ($($curMp3.Id))${Reset}    $ClrToEnd" -NoNewline
-        }
-
-        # Fila 1: MP4
-        try { [Console]::SetCursorPosition(2, $menuStartRow + 1) } catch { }
-        if ($selFormat -eq 1) {
-            Write-Host "${Cyan}${Bold}> [2] mp4  ${Yellow}◂ $($curMp4.Id) ▸${Reset} ${LeadLight}($($curMp4.Desc))${Reset}    $ClrToEnd" -NoNewline
-        } else {
-            Write-Host "  ${LeadLight}[2] mp4  ($($curMp4.Id))${Reset}    $ClrToEnd" -NoNewline
-        }
-
-        # Fila 2: WAV
-        try { [Console]::SetCursorPosition(2, $menuStartRow + 2) } catch { }
-        if ($selFormat -eq 2) {
-            Write-Host "${Cyan}${Bold}> [3] wav  ${Yellow}◂ lossless ▸${Reset} ${LeadLight}(Audio PCM sin compresión)${Reset}    $ClrToEnd" -NoNewline
-        } else {
-            Write-Host "  ${LeadLight}[3] wav  (Audio PCM sin compresión)${Reset}    $ClrToEnd" -NoNewline
-        }
-
-        # Fila 3: Espaciado
-        try { [Console]::SetCursorPosition(2, $menuStartRow + 3) } catch { }
-        Write-Host "$ClrToEnd" -NoNewline
-
-        # Fila 4: Atajos de teclado
-        try { [Console]::SetCursorPosition(2, $menuStartRow + 4) } catch { }
-        Write-Host "${LeadLight}↑/↓ Navegar  ·  ←/→ Cambiar calidad  ·  enter Confirmar  ·  esc Cancelar${Reset}$ClrToEnd" -NoNewline
-    }
-
-    & $renderMenu
-
+    $panel = $null
     try {
         while ($true) {
-            $k = [Console]::ReadKey($true)
+            $panel = Update-VorkPanel -Panel $panel -Rows 5
+            Write-VorkMediaFormatFrame -Panel $panel -SelectedFormat $selectedFormat -Mp3Index $mp3Index -Mp4Index $mp4Index -Mp3Qualities $mp3Qualities -Mp4Qualities $mp4Qualities
 
-            if ($k.Key -eq [ConsoleKey]::UpArrow) {
-                $selFormat = if ($selFormat -gt 0) { $selFormat - 1 } else { 2 }
-                & $renderMenu
+            $wait = Wait-VorkConsoleKey
+            if ($wait.Resized) { continue }
+            $key = $wait.Key
+            if (-not $key) { continue }
+
+            if (Test-VorkCtrlC -Key $key) { Clear-VorkPanel -Panel $panel; return $null }
+
+            if ($key.Key -eq [ConsoleKey]::Escape) { Clear-VorkPanel -Panel $panel; return $null }
+
+            if ($key.Key -eq [ConsoleKey]::UpArrow) {
+                $selectedFormat = if ($selectedFormat -gt 0) { $selectedFormat - 1 } else { 2 }
                 continue
             }
 
-            if ($k.Key -eq [ConsoleKey]::DownArrow) {
-                $selFormat = if ($selFormat -lt 2) { $selFormat + 1 } else { 0 }
-                & $renderMenu
+            if ($key.Key -eq [ConsoleKey]::DownArrow) {
+                $selectedFormat = if ($selectedFormat -lt 2) { $selectedFormat + 1 } else { 0 }
                 continue
             }
 
-            if ($k.Key -eq [ConsoleKey]::LeftArrow) {
-                if ($selFormat -eq 0) {
-                    $mp3Idx = if ($mp3Idx -gt 0) { $mp3Idx - 1 } else { $mp3Qualities.Count - 1 }
-                } elseif ($selFormat -eq 1) {
-                    $mp4Idx = if ($mp4Idx -gt 0) { $mp4Idx - 1 } else { $mp4Qualities.Count - 1 }
+            if ($key.Key -eq [ConsoleKey]::LeftArrow) {
+                if ($selectedFormat -eq 0) {
+                    $mp3Index = if ($mp3Index -gt 0) { $mp3Index - 1 } else { $mp3Qualities.Count - 1 }
+                } elseif ($selectedFormat -eq 1) {
+                    $mp4Index = if ($mp4Index -gt 0) { $mp4Index - 1 } else { $mp4Qualities.Count - 1 }
                 }
-                & $renderMenu
                 continue
             }
 
-            if ($k.Key -eq [ConsoleKey]::RightArrow) {
-                if ($selFormat -eq 0) {
-                    $mp3Idx = if ($mp3Idx -lt ($mp3Qualities.Count - 1)) { $mp3Idx + 1 } else { 0 }
-                } elseif ($selFormat -eq 1) {
-                    $mp4Idx = if ($mp4Idx -lt ($mp4Qualities.Count - 1)) { $mp4Idx + 1 } else { 0 }
+            if ($key.Key -eq [ConsoleKey]::RightArrow) {
+                if ($selectedFormat -eq 0) {
+                    $mp3Index = if ($mp3Index -lt ($mp3Qualities.Count - 1)) { $mp3Index + 1 } else { 0 }
+                } elseif ($selectedFormat -eq 1) {
+                    $mp4Index = if ($mp4Index -lt ($mp4Qualities.Count - 1)) { $mp4Index + 1 } else { 0 }
                 }
-                & $renderMenu
                 continue
             }
 
-            $ch = [string]$k.KeyChar
-            if ($ch -eq '1') {
-                $selFormat = 0
-                & $renderMenu
-                continue
-            } elseif ($ch -eq '2') {
-                $selFormat = 1
-                & $renderMenu
-                continue
-            } elseif ($ch -eq '3') {
-                $selFormat = 2
-                & $renderMenu
-                continue
-            }
+            $char = [string]$key.KeyChar
+            if ($char -eq '1') { $selectedFormat = 0; continue }
+            if ($char -eq '2') { $selectedFormat = 1; continue }
+            if ($char -eq '3') { $selectedFormat = 2; continue }
 
-            if ($k.Key -eq [ConsoleKey]::Enter) {
-                try { [Console]::SetCursorPosition(0, $menuStartRow + $totalMenuRows) } catch { }
-                Write-Host ""
-
-                if ($selFormat -eq 0) {
-                    return @{ Format = 'mp3'; Quality = $mp3Qualities[$mp3Idx].Id }
-                } elseif ($selFormat -eq 1) {
-                    return @{ Format = 'mp4'; Quality = $mp4Qualities[$mp4Idx].Id }
-                } else {
-                    return @{ Format = 'wav'; Quality = 'lossless' }
-                }
-            }
-
-            $isCtrlC = ($k.KeyChar -eq [char]3) -or ($k.Key -eq [ConsoleKey]::C -and ($k.Modifiers -band [ConsoleModifiers]::Control))
-            if ($k.Key -eq [ConsoleKey]::Escape -or $isCtrlC) {
-                try { [Console]::SetCursorPosition(0, $menuStartRow + $totalMenuRows) } catch { }
-                Write-Host ""
-                return $null
+            if ($key.Key -eq [ConsoleKey]::Enter) {
+                Clear-VorkPanel -Panel $panel
+                if ($selectedFormat -eq 0) { return @{ Format = 'mp3'; Quality = $mp3Qualities[$mp3Index].Id } }
+                if ($selectedFormat -eq 1) { return @{ Format = 'mp4'; Quality = $mp4Qualities[$mp4Index].Id } }
+                return @{ Format = 'wav'; Quality = 'lossless' }
             }
         }
     } finally {
+        try { [Console]::TreatControlCAsInput = $false } catch { }
         try { [Console]::CursorVisible = $savedCursor } catch { }
     }
 }
 
+function Write-VorkTTSFrame {
+    param(
+        $Panel,
+        [array]$Catalog,
+        [array]$VoiceIndices,
+        [int]$SelectedLanguage,
+        [int]$Top,
+        [int]$Visible
+    )
+
+    $row = 0
+    Write-VorkPanelLine -Panel $Panel -Index $row -Text (Format-VorkBorderTop -Title "Idioma y voz neuronal" -RightText "Vork TTS" -Width $Panel.Width)
+    $row++
+
+    for ($i = 0; $i -lt $Visible; $i++) {
+        $index = $Top + $i
+        if ($index -lt $Catalog.Count) {
+            $language = $Catalog[$index]
+            $voiceIndex = $VoiceIndices[$index]
+            if ($voiceIndex -ge $language.Voices.Count) { $voiceIndex = 0 }
+            $voice = $language.Voices[$voiceIndex]
+            $isSelected = $index -eq $SelectedLanguage
+            $prefix = if ($isSelected) { "${Cyan}${Bold}$([char]0x25B8)${Reset} " } else { "  " }
+            $number = if (($index + 1) -lt 10) { "[$($index + 1)]" } else { "[$($index + 1)]" }
+            $languageName = $language.Name
+            $voiceText = if ($isSelected) {
+                "${Yellow}${Bold}$([char]0x2039) $($voice.Name) $([char]0x203A)${Reset}"
+            } else {
+                "${LeadLight}$($voice.Name)${Reset}"
+            }
+            $meta = if ($isSelected) { "  ${LeadLight}· $($voice.Country) · $($voice.Gender)${Reset}" } else { "" }
+            $label = if ($isSelected) { "${White}${Bold}$languageName${Reset}" } else { "${White}$languageName${Reset}" }
+            Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${Lead}$([char]0x2502)${Reset} $prefix${Cyan}$number${Reset} $label  $voiceText$meta"
+        } else {
+            Write-VorkPanelLine -Panel $Panel -Index $row -Text ""
+        }
+        $row++
+    }
+
+    $below = [Math]::Max(0, $Catalog.Count - ($Top + $Visible))
+    $above = $Top
+    $scrollText = if ($below -gt 0 -and $above -gt 0) { "$([char]0x2191) $above  ·  $([char]0x2193) $below" } elseif ($below -gt 0) { "$([char]0x2193) $below idiomas mas" } elseif ($above -gt 0) { "$([char]0x2191) $above idiomas mas" } else { "" }
+    Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${Lead}$([char]0x2502)${Reset} ${LeadDark}$scrollText${Reset}"
+    $row++
+
+    Write-VorkPanelLine -Panel $Panel -Index $row -Text (Format-VorkBorderBottom -LeftText "flechas idioma  ·  izquierda/derecha voz  ·  enter confirmar  ·  esc cancelar" -Width $Panel.Width)
+}
 
 function Select-InteractiveTTSVoice {
     param(
@@ -421,199 +654,153 @@ function Select-InteractiveTTSVoice {
         [string]$DefaultVoiceId = "es-ES-alvaro"
     )
 
-    $savedCursor = try { [Console]::CursorVisible } catch { $true }
-    try { [Console]::CursorVisible = $false } catch { }
-
-    # Catálogo multilingüe con las 28+ voces neuronales de Vork TTS Studio
     $catalog = @(
-        @{
-            Name = "Español";
-            Voices = @(
-                @{ Id = "es-ES-alvaro"; Edge = "es-ES-AlvaroNeural"; Name = "Álvaro"; Country = "España"; Gender = "Masculina"; Desc = "Sobria y madura corporativa" },
-                @{ Id = "es-ES-sofia";  Edge = "es-ES-ElviraNeural"; Name = "Sofía";  Country = "España"; Gender = "Femenina";  Desc = "Castellano impecable y claro" },
-                @{ Id = "es-MX-mateo";  Edge = "es-MX-JorgeNeural";  Name = "Mateo";  Country = "México"; Gender = "Masculina"; Desc = "Cálida para audiolibros" },
-                @{ Id = "es-MX-dalia";  Edge = "es-MX-DaliaNeural";  Name = "Dalia";  Country = "México"; Gender = "Femenina";  Desc = "Articulación y dicción moderna" },
-                @{ Id = "es-PE-diego";  Edge = "es-PE-AlexNeural";   Name = "Diego";  Country = "Perú";   Gender = "Masculina"; Desc = "Andina con articulación precisa" },
-                @{ Id = "es-PE-camila"; Edge = "es-PE-CamilaNeural"; Name = "Camila"; Country = "Perú";   Gender = "Femenina";  Desc = "Entonación neutra para tutoriales" },
-                @{ Id = "es-AR-lucia";  Edge = "es-AR-ElenaNeural";  Name = "Lucía";  Country = "Argentina"; Gender = "Femenina";  Desc = "Cadencia suave rioplatense" },
-                @{ Id = "es-AR-tomas";  Edge = "es-AR-TomasNeural";  Name = "Tomás";  Country = "Argentina"; Gender = "Masculina"; Desc = "Ritmo natural y timbre moderno" },
-                @{ Id = "es-CO-gonzalo";Edge = "es-CO-GonzaloNeural";Name = "Gonzalo";Country = "Colombia";  Gender = "Masculina"; Desc = "Pronunciación cristalina" },
-                @{ Id = "es-CO-salome"; Edge = "es-CO-SalomeNeural"; Name = "Salomé"; Country = "Colombia";  Gender = "Femenina";  Desc = "Timbre dulce y expresivo" },
-                @{ Id = "es-US-paloma"; Edge = "es-US-PalomaNeural"; Name = "Paloma"; Country = "Latinoamérica Neutra"; Gender = "Femenina"; Desc = "Neutral para toda América Latina" },
-                @{ Id = "es-US-alonso"; Edge = "es-US-AlonsoNeural"; Name = "Alonso"; Country = "Latinoamérica Neutra"; Gender = "Masculina"; Desc = "Institucional y sobria para noticias" }
-            )
-        },
-        @{
-            Name = "English";
-            Voices = @(
-                @{ Id = "en-US-emma";   Edge = "en-US-JennyNeural";  Name = "Emma";   Country = "United States"; Gender = "Femenina";  Desc = "Studio Neural clear narration" },
-                @{ Id = "en-US-liam";   Edge = "en-US-GuyNeural";    Name = "Liam";   Country = "United States"; Gender = "Masculina"; Desc = "Engaging and natural inflection" },
-                @{ Id = "en-GB-james";  Edge = "en-GB-RyanNeural";   Name = "James";  Country = "United Kingdom"; Gender = "Masculina"; Desc = "Distinguished BBC British tone" },
-                @{ Id = "en-GB-sonia";  Edge = "en-GB-SoniaNeural";  Name = "Sonia";  Country = "United Kingdom"; Gender = "Femenina";  Desc = "Classical rhythm and soothing timbre" },
-                @{ Id = "en-AU-olivia"; Edge = "en-AU-NatashaNeural";Name = "Olivia"; Country = "Australia"; Gender = "Femenina";  Desc = "Crisp Australian bright voice" }
-            )
-        },
-        @{
-            Name = "Français";
-            Voices = @(
-                @{ Id = "fr-FR-chloe";  Edge = "fr-FR-DeniseNeural"; Name = "Chloé";  Country = "France"; Gender = "Femenina";  Desc = "Parisienne fluide et naturelle" },
-                @{ Id = "fr-FR-henri";  Edge = "fr-FR-HenriNeural";  Name = "Henri";  Country = "France"; Gender = "Masculina"; Desc = "Diction soignée et expressive" }
-            )
-        },
-        @{
-            Name = "Deutsch";
-            Voices = @(
-                @{ Id = "de-DE-hanna";  Edge = "de-DE-KatjaNeural";  Name = "Hanna";  Country = "Deutschland"; Gender = "Femenina";  Desc = "Klare deutsche Aussprache" },
-                @{ Id = "de-DE-lukas";  Edge = "de-DE-ConradNeural"; Name = "Lukas";  Country = "Deutschland"; Gender = "Masculina"; Desc = "Kräftig für formelle Präsentationen" }
-            )
-        },
-        @{
-            Name = "Italiano";
-            Voices = @(
-                @{ Id = "it-IT-giulia"; Edge = "it-IT-ElsaNeural";   Name = "Giulia"; Country = "Italia"; Gender = "Femenina";  Desc = "Calda, espressiva e melodica" },
-                @{ Id = "it-IT-marco";  Edge = "it-IT-DiegoNeural";  Name = "Marco";  Country = "Italia"; Gender = "Masculina"; Desc = "Timbro profondo ed elegante" }
-            )
-        },
-        @{
-            Name = "Português";
-            Voices = @(
-                @{ Id = "pt-BR-isabella"; Edge = "pt-BR-FranciscaNeural"; Name = "Isabella"; Country = "Brasil"; Gender = "Femenina";  Desc = "Voz brasileira calorosa e vibrante" },
-                @{ Id = "pt-BR-antonio";  Edge = "pt-BR-AntonioNeural";   Name = "Antônio";  Country = "Brasil"; Gender = "Masculina"; Desc = "Grave e marcante para tutoriais" }
-            )
-        },
-        @{
-            Name = "日本語";
-            Voices = @(
-                @{ Id = "ja-JP-sakura"; Edge = "ja-JP-NanamiNeural"; Name = "さくら (Sakura)"; Country = "Japón"; Gender = "Femenina";  Desc = "スタジオ品質の自然な女性音声" },
-                @{ Id = "ja-JP-kenji";  Edge = "ja-JP-KeitaNeural";  Name = "健二 (Kenji)";  Country = "Japón"; Gender = "Masculina"; Desc = "落ち着いた深みのある男性音声" }
-            )
-        },
-        @{
-            Name = "中文";
-            Voices = @(
-                @{ Id = "zh-CN-liwei";  Edge = "zh-CN-XiaoxiaoNeural"; Name = "李薇 (Li Wei)"; Country = "China"; Gender = "Femenina";  Desc = "标准普通话自然清晰女声" },
-                @{ Id = "zh-CN-yunxi";  Edge = "zh-CN-YunxiNeural";    Name = "云希 (Yun Xi)"; Country = "China"; Gender = "Masculina"; Desc = "浑厚自然播报新闻专业男声" }
-            )
-        },
-        @{
-            Name = "Русский";
-            Voices = @(
-                @{ Id = "ru-RU-anastasia"; Edge = "ru-RU-SvetlanaNeural"; Name = "Анастасия (Anastasia)"; Country = "Rusia"; Gender = "Femenina";  Desc = "Бархатный тембр и артикуляция" },
-                @{ Id = "ru-RU-dmitry";    Edge = "ru-RU-DmitryNeural";   Name = "Дмитрий (Dmitry)";     Country = "Rusia"; Gender = "Masculina"; Desc = "Четкий мужской голос" }
-            )
-        },
-        @{
-            Name = "한국어";
-            Voices = @(
-                @{ Id = "ko-KR-minji";   Edge = "ko-KR-SunHiNeural";  Name = "민지 (Min-Ji)";  Country = "Corea del Sur"; Gender = "Femenina";  Desc = "맑고 또렷한 표준어 여성 음성" },
-                @{ Id = "ko-KR-injoon";  Edge = "ko-KR-InJoonNeural"; Name = "인준 (In-Joon)"; Country = "Corea del Sur"; Gender = "Masculina"; Desc = "부드럽고 신뢰감을 주는 남성" }
-            )
-        },
-        @{
-            Name = "العربية";
-            Voices = @(
-                @{ Id = "ar-XA-omar";    Edge = "ar-SA-HamedNeural";   Name = "عمر (Omar)";     Country = "Mundo Árabe"; Gender = "Masculina"; Desc = "صوت ذكوري جهوري فصيح ووقور" },
-                @{ Id = "ar-XA-zariyah"; Edge = "ar-SA-ZariyahNeural"; Name = "زارية (Zariyah)"; Country = "Mundo Árabe"; Gender = "Femenina";  Desc = "صوت أنثوي عربي عذب وواضح" }
-            )
-        }
+        @{ Name = "Español"; Voices = @(
+            @{ Id = "es-ES-alvaro"; Edge = "es-ES-AlvaroNeural"; Name = "Alvaro"; Country = "España"; Gender = "Masculina"; Desc = "Sobria y madura" },
+            @{ Id = "es-ES-sofia";  Edge = "es-ES-ElviraNeural"; Name = "Sofia";  Country = "España"; Gender = "Femenina";  Desc = "Castellano claro" },
+            @{ Id = "es-MX-mateo";  Edge = "es-MX-JorgeNeural";  Name = "Mateo";  Country = "Mexico"; Gender = "Masculina"; Desc = "Calida para audiolibros" },
+            @{ Id = "es-MX-dalia";  Edge = "es-MX-DaliaNeural";  Name = "Dalia";  Country = "Mexico"; Gender = "Femenina";  Desc = "Diccion moderna" },
+            @{ Id = "es-PE-diego";  Edge = "es-PE-AlexNeural";   Name = "Diego";  Country = "Peru"; Gender = "Masculina"; Desc = "Articulacion precisa" },
+            @{ Id = "es-PE-camila"; Edge = "es-PE-CamilaNeural"; Name = "Camila"; Country = "Peru"; Gender = "Femenina";  Desc = "Entonacion neutra" },
+            @{ Id = "es-AR-lucia";  Edge = "es-AR-ElenaNeural";  Name = "Lucia";  Country = "Argentina"; Gender = "Femenina"; Desc = "Cadencia rioplatense" },
+            @{ Id = "es-AR-tomas";  Edge = "es-AR-TomasNeural";  Name = "Tomas";  Country = "Argentina"; Gender = "Masculina"; Desc = "Ritmo natural" },
+            @{ Id = "es-CO-gonzalo"; Edge = "es-CO-GonzaloNeural"; Name = "Gonzalo"; Country = "Colombia"; Gender = "Masculina"; Desc = "Pronunciacion cristalina" },
+            @{ Id = "es-CO-salome"; Edge = "es-CO-SalomeNeural"; Name = "Salome"; Country = "Colombia"; Gender = "Femenina"; Desc = "Timbre dulce" },
+            @{ Id = "es-US-paloma"; Edge = "es-US-PalomaNeural"; Name = "Paloma"; Country = "Latinoamerica"; Gender = "Femenina"; Desc = "Neutral" },
+            @{ Id = "es-US-alonso"; Edge = "es-US-AlonsoNeural"; Name = "Alonso"; Country = "Latinoamerica"; Gender = "Masculina"; Desc = "Institucional" }
+        )},
+        @{ Name = "English"; Voices = @(
+            @{ Id = "en-US-emma"; Edge = "en-US-JennyNeural"; Name = "Emma"; Country = "United States"; Gender = "Femenina"; Desc = "Clear narration" },
+            @{ Id = "en-US-liam"; Edge = "en-US-GuyNeural"; Name = "Liam"; Country = "United States"; Gender = "Masculina"; Desc = "Natural inflection" },
+            @{ Id = "en-GB-james"; Edge = "en-GB-RyanNeural"; Name = "James"; Country = "United Kingdom"; Gender = "Masculina"; Desc = "BBC British tone" },
+            @{ Id = "en-GB-sonia"; Edge = "en-GB-SoniaNeural"; Name = "Sonia"; Country = "United Kingdom"; Gender = "Femenina"; Desc = "Soothing timbre" },
+            @{ Id = "en-AU-olivia"; Edge = "en-AU-NatashaNeural"; Name = "Olivia"; Country = "Australia"; Gender = "Femenina"; Desc = "Bright voice" }
+        )},
+        @{ Name = "Français"; Voices = @(
+            @{ Id = "fr-FR-chloe"; Edge = "fr-FR-DeniseNeural"; Name = "Chloe"; Country = "France"; Gender = "Femenina"; Desc = "Fluide et naturelle" },
+            @{ Id = "fr-FR-henri"; Edge = "fr-FR-HenriNeural"; Name = "Henri"; Country = "France"; Gender = "Masculina"; Desc = "Diction soignee" }
+        )},
+        @{ Name = "Deutsch"; Voices = @(
+            @{ Id = "de-DE-hanna"; Edge = "de-DE-KatjaNeural"; Name = "Hanna"; Country = "Deutschland"; Gender = "Femenina"; Desc = "Klare Aussprache" },
+            @{ Id = "de-DE-lukas"; Edge = "de-DE-ConradNeural"; Name = "Lukas"; Country = "Deutschland"; Gender = "Masculina"; Desc = "Kraftig und formell" }
+        )},
+        @{ Name = "Italiano"; Voices = @(
+            @{ Id = "it-IT-giulia"; Edge = "it-IT-ElsaNeural"; Name = "Giulia"; Country = "Italia"; Gender = "Femenina"; Desc = "Calda e melodica" },
+            @{ Id = "it-IT-marco"; Edge = "it-IT-DiegoNeural"; Name = "Marco"; Country = "Italia"; Gender = "Masculina"; Desc = "Timbro profondo" }
+        )},
+        @{ Name = "Português"; Voices = @(
+            @{ Id = "pt-BR-isabella"; Edge = "pt-BR-FranciscaNeural"; Name = "Isabella"; Country = "Brasil"; Gender = "Femenina"; Desc = "Calorosa e vibrante" },
+            @{ Id = "pt-BR-antonio"; Edge = "pt-BR-AntonioNeural"; Name = "Antonio"; Country = "Brasil"; Gender = "Masculina"; Desc = "Grave e marcante" }
+        )},
+        @{ Name = "日本語"; Voices = @(
+            @{ Id = "ja-JP-sakura"; Edge = "ja-JP-NanamiNeural"; Name = "Sakura"; Country = "Japon"; Gender = "Femenina"; Desc = "Natural studio voice" },
+            @{ Id = "ja-JP-kenji"; Edge = "ja-JP-KeitaNeural"; Name = "Kenji"; Country = "Japon"; Gender = "Masculina"; Desc = "Deep calm voice" }
+        )},
+        @{ Name = "中文"; Voices = @(
+            @{ Id = "zh-CN-liwei"; Edge = "zh-CN-XiaoxiaoNeural"; Name = "Li Wei"; Country = "China"; Gender = "Femenina"; Desc = "Mandarin natural" },
+            @{ Id = "zh-CN-yunxi"; Edge = "zh-CN-YunxiNeural"; Name = "Yun Xi"; Country = "China"; Gender = "Masculina"; Desc = "News broadcast" }
+        )},
+        @{ Name = "Русский"; Voices = @(
+            @{ Id = "ru-RU-anastasia"; Edge = "ru-RU-SvetlanaNeural"; Name = "Anastasia"; Country = "Rusia"; Gender = "Femenina"; Desc = "Velvet timbre" },
+            @{ Id = "ru-RU-dmitry"; Edge = "ru-RU-DmitryNeural"; Name = "Dmitry"; Country = "Rusia"; Gender = "Masculina"; Desc = "Clear male voice" }
+        )},
+        @{ Name = "한국어"; Voices = @(
+            @{ Id = "ko-KR-minji"; Edge = "ko-KR-SunHiNeural"; Name = "Min-Ji"; Country = "Corea del Sur"; Gender = "Femenina"; Desc = "Clear standard voice" },
+            @{ Id = "ko-KR-injoon"; Edge = "ko-KR-InJoonNeural"; Name = "In-Joon"; Country = "Corea del Sur"; Gender = "Masculina"; Desc = "Soft and trustworthy" }
+        )},
+        @{ Name = "العربية"; Voices = @(
+            @{ Id = "ar-XA-omar"; Edge = "ar-SA-HamedNeural"; Name = "Omar"; Country = "Mundo Arabe"; Gender = "Masculina"; Desc = "Formal and clear" },
+            @{ Id = "ar-XA-zariyah"; Edge = "ar-SA-ZariyahNeural"; Name = "Zariyah"; Country = "Mundo Arabe"; Gender = "Femenina"; Desc = "Warm and clear" }
+        )}
     )
 
-    $selLang = 0
+    $selectedLanguage = 0
     for ($i = 0; $i -lt $catalog.Count; $i++) {
-        if ($catalog[$i].Name -eq $DefaultLang) {
-            $selLang = $i
-            break
+        if ($catalog[$i].Name -eq $DefaultLang) { $selectedLanguage = $i; break }
+    }
+
+    $voiceIndices = @()
+    for ($i = 0; $i -lt $catalog.Count; $i++) {
+        $voiceIndex = 0
+        for ($v = 0; $v -lt $catalog[$i].Voices.Count; $v++) {
+            if ($catalog[$i].Voices[$v].Id -eq $DefaultVoiceId) { $voiceIndex = $v; break }
         }
+        $voiceIndices += $voiceIndex
     }
 
-    # Inicializar índice de voz por cada idioma
-    $voiceIndices = @(0) * $catalog.Count
-
-    Write-Host ""
-    Write-Host "  ${White}${Bold}$PromptTitle${Reset}"
-    Write-Host ""
-
-    # Espacio para las filas del catálogo + línea separadora + línea de atajos
-    $totalMenuRows = $catalog.Count + 2
-    $startTop = try { [Console]::CursorTop } catch { 0 }
-    for ($i = 0; $i -lt $totalMenuRows; $i++) {
-        Write-Host ""
-    }
-    $menuStartRow = try { [Console]::CursorTop - $totalMenuRows } catch { $startTop }
-
-    $renderMenu = {
-        for ($i = 0; $i -lt $catalog.Count; $i++) {
-            $lang = $catalog[$i]
-            $vIdx = $voiceIndices[$i]
-            $voice = $lang.Voices[$vIdx]
-            $numStr = if (($i + 1) -lt 10) { "[$($i + 1)] " } else { "[$($i + 1)]" }
-            $langPad = $lang.Name.PadRight(10)
-
-            try { [Console]::SetCursorPosition(2, $menuStartRow + $i) } catch { }
-            if ($i -eq $selLang) {
-                Write-Host "${Cyan}${Bold}> $numStr $langPad ${Yellow}◂ $($voice.Name) ▸${Reset} ${LeadLight}($($voice.Country) · $($voice.Gender) · $($voice.Desc))${Reset}    $ClrToEnd" -NoNewline
-            } else {
-                Write-Host "  ${LeadLight}$numStr $langPad ($($voice.Name) · $($voice.Country))${Reset}    $ClrToEnd" -NoNewline
-            }
-        }
-
-        # Separador
-        try { [Console]::SetCursorPosition(2, $menuStartRow + $catalog.Count) } catch { }
-        Write-Host "$ClrToEnd" -NoNewline
-
-        # Barra de atajos
-        try { [Console]::SetCursorPosition(2, $menuStartRow + $catalog.Count + 1) } catch { }
-        Write-Host "${LeadLight}↑/↓ Idioma  ·  ←/→ Cambiar voz  ·  enter Confirmar  ·  esc Cancelar${Reset}$ClrToEnd" -NoNewline
+    if ([Console]::IsInputRedirected -or [Console]::IsOutputRedirected) {
+        $fallbackLang = $catalog[$selectedLanguage]
+        $fallbackVoice = $fallbackLang.Voices[$voiceIndices[$selectedLanguage]]
+        return @{ Language = $fallbackLang.Name; Id = $fallbackVoice.Id; EdgeVoice = $fallbackVoice.Edge; Name = $fallbackVoice.Name; Country = $fallbackVoice.Country; Gender = $fallbackVoice.Gender; Desc = $fallbackVoice.Desc }
     }
 
-    & $renderMenu
+    $savedCursor = try { [Console]::CursorVisible } catch { $true }
+    try { [Console]::CursorVisible = $false } catch { }
+    try { [Console]::TreatControlCAsInput = $true } catch { }
 
+    $top = 0
+    $panel = $null
     try {
         while ($true) {
-            $k = [Console]::ReadKey($true)
+            $metrics = Get-VorkConsoleMetrics
+            $visible = [Math]::Max(1, [Math]::Min($catalog.Count, $metrics.Height - 6))
+            $panelRows = $visible + 3
+            $panel = Update-VorkPanel -Panel $panel -Rows $panelRows
 
-            if ($k.Key -eq [ConsoleKey]::UpArrow) {
-                $selLang = if ($selLang -gt 0) { $selLang - 1 } else { $catalog.Count - 1 }
-                & $renderMenu
+            if ($selectedLanguage -lt $top) { $top = $selectedLanguage }
+            if ($selectedLanguage -ge ($top + $visible)) { $top = $selectedLanguage - $visible + 1 }
+            if ($top -lt 0) { $top = 0 }
+            $maxTop = [Math]::Max(0, $catalog.Count - $visible)
+            if ($top -gt $maxTop) { $top = $maxTop }
+
+            Write-VorkTTSFrame -Panel $panel -Catalog $catalog -VoiceIndices $voiceIndices -SelectedLanguage $selectedLanguage -Top $top -Visible $visible
+
+            $wait = Wait-VorkConsoleKey
+            if ($wait.Resized) { continue }
+            $key = $wait.Key
+            if (-not $key) { continue }
+
+            if (Test-VorkCtrlC -Key $key) { Clear-VorkPanel -Panel $panel; return $null }
+            if ($key.Key -eq [ConsoleKey]::Escape) { Clear-VorkPanel -Panel $panel; return $null }
+
+            if ($key.Key -eq [ConsoleKey]::UpArrow) {
+                $selectedLanguage = if ($selectedLanguage -gt 0) { $selectedLanguage - 1 } else { $catalog.Count - 1 }
                 continue
             }
 
-            if ($k.Key -eq [ConsoleKey]::DownArrow) {
-                $selLang = if ($selLang -lt ($catalog.Count - 1)) { $selLang + 1 } else { 0 }
-                & $renderMenu
+            if ($key.Key -eq [ConsoleKey]::DownArrow) {
+                $selectedLanguage = if ($selectedLanguage -lt ($catalog.Count - 1)) { $selectedLanguage + 1 } else { 0 }
                 continue
             }
 
-            if ($k.Key -eq [ConsoleKey]::LeftArrow) {
-                $curCount = $catalog[$selLang].Voices.Count
-                $voiceIndices[$selLang] = if ($voiceIndices[$selLang] -gt 0) { $voiceIndices[$selLang] - 1 } else { $curCount - 1 }
-                & $renderMenu
+            if ($key.Key -eq [ConsoleKey]::LeftArrow) {
+                $count = $catalog[$selectedLanguage].Voices.Count
+                $voiceIndices[$selectedLanguage] = if ($voiceIndices[$selectedLanguage] -gt 0) { $voiceIndices[$selectedLanguage] - 1 } else { $count - 1 }
                 continue
             }
 
-            if ($k.Key -eq [ConsoleKey]::RightArrow) {
-                $curCount = $catalog[$selLang].Voices.Count
-                $voiceIndices[$selLang] = if ($voiceIndices[$selLang] -lt ($curCount - 1)) { $voiceIndices[$selLang] + 1 } else { 0 }
-                & $renderMenu
+            if ($key.Key -eq [ConsoleKey]::RightArrow) {
+                $count = $catalog[$selectedLanguage].Voices.Count
+                $voiceIndices[$selectedLanguage] = if ($voiceIndices[$selectedLanguage] -lt ($count - 1)) { $voiceIndices[$selectedLanguage] + 1 } else { 0 }
                 continue
             }
 
-            # Selección numérica directa (1-9)
-            $ch = [string]$k.KeyChar
-            $numVal = -1
-            if ([int]::TryParse($ch, [ref]$numVal) -and $numVal -ge 1 -and $numVal -le $catalog.Count) {
-                $selLang = $numVal - 1
-                & $renderMenu
+            if ($key.Key -eq [ConsoleKey]::Home) { $selectedLanguage = 0; continue }
+            if ($key.Key -eq [ConsoleKey]::End) { $selectedLanguage = $catalog.Count - 1; continue }
+
+            $char = [string]$key.KeyChar
+            if ($char -match '^[1-9]$') {
+                $numericIndex = [int]$char - 1
+                if ($numericIndex -lt $catalog.Count) { $selectedLanguage = $numericIndex }
                 continue
             }
 
-            if ($k.Key -eq [ConsoleKey]::Enter) {
-                try { [Console]::SetCursorPosition(0, $menuStartRow + $totalMenuRows) } catch { }
-                Write-Host ""
-                $chosenLang = $catalog[$selLang]
-                $chosenVoice = $chosenLang.Voices[$voiceIndices[$selLang]]
+            if ($key.Key -eq [ConsoleKey]::Enter) {
+                Clear-VorkPanel -Panel $panel
+                $chosenLanguage = $catalog[$selectedLanguage]
+                $chosenVoice = $chosenLanguage.Voices[$voiceIndices[$selectedLanguage]]
                 return @{
-                    Language  = $chosenLang.Name
+                    Language  = $chosenLanguage.Name
                     Id        = $chosenVoice.Id
                     EdgeVoice = $chosenVoice.Edge
                     Name      = $chosenVoice.Name
@@ -622,15 +809,9 @@ function Select-InteractiveTTSVoice {
                     Desc      = $chosenVoice.Desc
                 }
             }
-
-            $isCtrlC = ($k.KeyChar -eq [char]3) -or ($k.Key -eq [ConsoleKey]::C -and ($k.Modifiers -band [ConsoleModifiers]::Control))
-            if ($k.Key -eq [ConsoleKey]::Escape -or $isCtrlC) {
-                try { [Console]::SetCursorPosition(0, $menuStartRow + $totalMenuRows) } catch { }
-                Write-Host ""
-                return $null
-            }
         }
     } finally {
+        try { [Console]::TreatControlCAsInput = $false } catch { }
         try { [Console]::CursorVisible = $savedCursor } catch { }
     }
 }
@@ -643,474 +824,300 @@ function Select-InteractiveTheme {
 
     if (-not $Themes -or $Themes.Count -eq 0) { return $null }
 
-    $savedCursor = try { [Console]::CursorVisible } catch { $true }
-    try { [Console]::CursorVisible = $false } catch { }
-
-    $activeIdx = 0
+    $items = @()
+    $defaultIndex = 0
     for ($i = 0; $i -lt $Themes.Count; $i++) {
-        if ($Themes[$i].Id -eq $ActiveThemeId) {
-            $activeIdx = $i
-            break
+        $theme = $Themes[$i]
+        if ($theme.Id -eq $ActiveThemeId) { $defaultIndex = $i }
+        $badge = if ($theme.Id -eq $ActiveThemeId) { "$($CSI)42;30;1m ACTIVO $Reset" } else { "" }
+        $label = "$($theme.Dot) $($theme.Name)"
+        $description = if ($theme.Acentos) { [string]$theme.Acentos } else { "" }
+        $items += @{ Label = $label; Value = $theme.Id; Badge = $badge; Description = $description; Search = (Get-VorkPlainText "$($theme.Name) $description") }
+    }
+
+    return (Invoke-VorkPicker -Title "Temas visuales de Vork CLI" -Subtitle "$($Themes.Count) temas" -Items $items -DefaultIndex $defaultIndex -NumericSelect -Footer "flechas mover  ·  1-9 elegir  ·  enter aplicar  ·  esc cancelar")
+}
+
+function Write-VorkPermissionsFrame {
+    param(
+        $Panel,
+        [array]$Keys,
+        $PermsHash,
+        [int]$Selected,
+        [int]$Top,
+        [int]$Visible
+    )
+
+    $row = 0
+    Write-VorkPanelLine -Panel $Panel -Index $row -Text (Format-VorkBorderTop -Title "Permisos y sandbox" -RightText "Vork CLI" -Width $Panel.Width)
+    $row++
+
+    for ($i = 0; $i -lt $Visible; $i++) {
+        $index = $Top + $i
+        if ($index -lt $Keys.Count) {
+            $key = $Keys[$index]
+            $item = $PermsHash[$key]
+            $isSelected = $index -eq $Selected
+            $prefix = if ($isSelected) { "${Cyan}${Bold}$([char]0x25B8)${Reset} " } else { "  " }
+            $badge = if ($item.Enabled) { "$($CSI)42;30;1m PERMITIDO $Reset" } else { "$($CSI)41;97;1m DENEGADO  $Reset" }
+            $label = if ($isSelected) { "${White}${Bold}$($item.Name)${Reset}" } else { "${White}$($item.Name)${Reset}" }
+            $description = if ($item.Desc) { "  ${LeadLight}$($item.Desc)${Reset}" } else { "" }
+            Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${Lead}$([char]0x2502)${Reset} $prefix$badge $label$description"
+        } elseif ($index -eq $Keys.Count) {
+            $isSelected = $index -eq $Selected
+            $prefix = if ($isSelected) { "${Cyan}${Bold}$([char]0x25B8)${Reset} " } else { "  " }
+            Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${Lead}$([char]0x2502)${Reset} $prefix${Green}${Bold}Guardar y volver${Reset}"
+        } else {
+            Write-VorkPanelLine -Panel $Panel -Index $row -Text ""
         }
-    }
-    $sel = $activeIdx
-
-    Write-Host ""
-    Write-Host "  ${White}${Bold}CATÁLOGO DE LOS 10 TEMAS VISUALES DE VORK CLI:${Reset}"
-    $currName = if ($global:VorkThemeName) { $global:VorkThemeName } else { "Plomo Oscuro (Lead Slate - Tema Oficial)" }
-    Write-Host "  ${LeadLight}Tema activo actualmente: ${Cyan}${Bold}$currName${Reset}"
-    Write-Host ""
-
-    # Pre-scroll para buffer estable
-    $startTop = try { [Console]::CursorTop } catch { 0 }
-    for ($i = 0; $i -lt ($Themes.Count + 1); $i++) {
-        Write-Host ""
-    }
-    $menuStartRow = try { [Console]::CursorTop - ($Themes.Count + 1) } catch { $startTop }
-
-    $renderThemes = {
-        for ($i = 0; $i -lt $Themes.Count; $i++) {
-            $th = $Themes[$i]
-            $num = if (($i + 1) -lt 10) { "[$($i + 1)] " } else { "[$($i + 1)]" }
-            $isActive = ($th.Id -eq $global:VorkThemeId)
-            $badge = if ($isActive) { "$($CSI)42;30;1m [ACTIVO] $Reset" } else { "         " }
-            $namePad = $th.Name.PadRight(26)
-            $lineContent = "${Cyan}$num${Reset} $badge $($th.Dot) ${White}${Bold}$namePad${Reset} ${LeadLight}· $($th.Acentos)${Reset}"
-
-            try { [Console]::SetCursorPosition(2, $menuStartRow + $i) } catch { }
-
-            if ($i -eq $sel) {
-                Write-Host "${Cyan}${Bold}> ${Reset}$lineContent    $ClrToEnd" -NoNewline
-            } else {
-                Write-Host "  $lineContent    $ClrToEnd" -NoNewline
-            }
-        }
-        try {
-            [Console]::SetCursorPosition(2, $menuStartRow + $Themes.Count)
-            Write-Host "  ${LeadDark}↑/↓ Navegar  Enter Seleccionar tema  Esc Cancelar${Reset}    $ClrToEnd" -NoNewline
-        } catch { }
+        $row++
     }
 
-    & $renderThemes
+    $below = [Math]::Max(0, ($Keys.Count + 1) - ($Top + $Visible))
+    $above = $Top
+    $scrollText = if ($below -gt 0 -and $above -gt 0) { "$([char]0x2191) $above  ·  $([char]0x2193) $below" } elseif ($below -gt 0) { "$([char]0x2193) $below mas" } elseif ($above -gt 0) { "$([char]0x2191) $above mas" } else { "" }
+    Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${Lead}$([char]0x2502)${Reset} ${LeadDark}$scrollText${Reset}"
+    $row++
 
-    try {
-        while ($true) {
-            $k = [Console]::ReadKey($true)
-
-            if ($k.Key -eq [ConsoleKey]::UpArrow) {
-                $sel = if ($sel -gt 0) { $sel - 1 } else { $Themes.Count - 1 }
-                & $renderThemes
-                continue
-            }
-
-            if ($k.Key -eq [ConsoleKey]::DownArrow) {
-                $sel = if ($sel -lt ($Themes.Count - 1)) { $sel + 1 } else { 0 }
-                & $renderThemes
-                continue
-            }
-
-            if ($k.Key -eq [ConsoleKey]::Enter) {
-                try { [Console]::SetCursorPosition(0, $menuStartRow + $Themes.Count + 1) } catch { }
-                Write-Host ""
-                return $Themes[$sel].Id
-            }
-
-            if ($k.Key -eq [ConsoleKey]::Escape) {
-                try { [Console]::SetCursorPosition(0, $menuStartRow + $Themes.Count + 1) } catch { }
-                Write-Host ""
-                return $null
-            }
-
-            # Selección numérica directa (1-9, 0 para 10)
-            $ch = [string]$k.KeyChar
-            $numVal = -1
-            if ($ch -eq '0' -and $Themes.Count -ge 10) {
-                $sel = 9
-                & $renderThemes
-                try { [Console]::SetCursorPosition(0, $menuStartRow + $Themes.Count + 1) } catch { }
-                Write-Host ""
-                return $Themes[$sel].Id
-            } elseif ([int]::TryParse($ch, [ref]$numVal) -and $numVal -ge 1 -and $numVal -le $Themes.Count) {
-                $sel = $numVal - 1
-                & $renderThemes
-                try { [Console]::SetCursorPosition(0, $menuStartRow + $Themes.Count + 1) } catch { }
-                Write-Host ""
-                return $Themes[$sel].Id
-            }
-        }
-    } finally {
-        try { [Console]::CursorVisible = $savedCursor } catch { }
-    }
+    Write-VorkPanelLine -Panel $Panel -Index $row -Text (Format-VorkBorderBottom -LeftText "flechas mover  ·  enter/espacio alternar  ·  esc salir" -Width $Panel.Width)
 }
 
 function Select-InteractivePermissions {
-    param(
-        [hashtable]$PermsHash
-    )
+    param([hashtable]$PermsHash)
 
+    if (-not $PermsHash -or $PermsHash.Count -eq 0) { return $PermsHash }
+    if ([Console]::IsInputRedirected -or [Console]::IsOutputRedirected) { return $PermsHash }
+
+    $keys = @($PermsHash.Keys | Sort-Object)
+    $totalItems = $keys.Count + 1
+    $selected = 0
+    $top = 0
     $savedCursor = try { [Console]::CursorVisible } catch { $true }
     try { [Console]::CursorVisible = $false } catch { }
+    try { [Console]::TreatControlCAsInput = $true } catch { }
 
-    $keys = @($PermsHash.Keys)
-    $totalItems = $keys.Count + 1 # +1 para la opción de Guardar y Salir
-    $sel = 0
-
-    Write-Host ""
-    Write-Host "  ${White}${Bold}PERMISOS DE SEGURIDAD Y SANDBOX · VORK CLI${Reset}"
-    Write-Host "  ${LeadLight}Configuración persistente guardada en ~/.vork/permissions.json${Reset}"
-    Write-Host ""
-
-    # Pre-scroll para buffer estable
-    $startTop = try { [Console]::CursorTop } catch { 0 }
-    for ($i = 0; $i -lt ($totalItems + 1); $i++) {
-        Write-Host ""
-    }
-    $menuStartRow = try { [Console]::CursorTop - ($totalItems + 1) } catch { $startTop }
-
-    $renderPerms = {
-        for ($i = 0; $i -lt $keys.Count; $i++) {
-            $k = $keys[$i]
-            $item = $PermsHash[$k]
-            $num = if (($i + 1) -lt 10) { "[$($i + 1)] " } else { "[$($i + 1)]" }
-            $statusBadge = if ($item.Enabled) {
-                "$($CSI)42;30;1m [OK] PERMITIDO $Reset"
-            } else {
-                "$($CSI)41;97;1m [X] DENEGADO  $Reset"
-            }
-            $title = $item.Name.PadRight(28)
-            $lineContent = "${Cyan}$num${Reset} $statusBadge  ${White}${Bold}$title${Reset} ${LeadLight}· $($item.Desc)${Reset}"
-
-            try { [Console]::SetCursorPosition(2, $menuStartRow + $i) } catch { }
-
-            if ($i -eq $sel) {
-                Write-Host "${Cyan}${Bold}> ${Reset}$lineContent    $ClrToEnd" -NoNewline
-            } else {
-                Write-Host "  $lineContent    $ClrToEnd" -NoNewline
-            }
-        }
-
-        # Opción final: Guardar y Salir
-        $exitIdx = $keys.Count
-        try { [Console]::SetCursorPosition(2, $menuStartRow + $exitIdx) } catch { }
-        if ($sel -eq $exitIdx) {
-            Write-Host ("${Cyan}${Bold}> ${Green}${Bold} " + "[✓] Guardar y Volver al Prompt${Reset}                                                      $ClrToEnd") -NoNewline
-        } else {
-            Write-Host ("  ${LeadLight} " + "[✓] Guardar y Volver al Prompt${Reset}                                                      $ClrToEnd") -NoNewline
-        }
-
-        # Footer con atajos de navegación
-        try {
-            [Console]::SetCursorPosition(2, $menuStartRow + $exitIdx + 1)
-            Write-Host "  ${LeadDark}↑/↓ Navegar  Enter/Espacio Alternar permiso  Esc Salir${Reset}    $ClrToEnd" -NoNewline
-        } catch { }
-    }
-
-    & $renderPerms
-
+    $panel = $null
     try {
         while ($true) {
-            $k = [Console]::ReadKey($true)
+            $metrics = Get-VorkConsoleMetrics
+            $visible = [Math]::Max(1, [Math]::Min($totalItems, $metrics.Height - 6))
+            $panelRows = $visible + 3
+            $panel = Update-VorkPanel -Panel $panel -Rows $panelRows
 
-            if ($k.Key -eq [ConsoleKey]::UpArrow) {
-                $sel = if ($sel -gt 0) { $sel - 1 } else { $totalItems - 1 }
-                & $renderPerms
+            if ($selected -lt $top) { $top = $selected }
+            if ($selected -ge ($top + $visible)) { $top = $selected - $visible + 1 }
+            if ($top -lt 0) { $top = 0 }
+            $maxTop = [Math]::Max(0, $totalItems - $visible)
+            if ($top -gt $maxTop) { $top = $maxTop }
+
+            Write-VorkPermissionsFrame -Panel $panel -Keys $keys -PermsHash $PermsHash -Selected $selected -Top $top -Visible $visible
+
+            $wait = Wait-VorkConsoleKey
+            if ($wait.Resized) { continue }
+            $key = $wait.Key
+            if (-not $key) { continue }
+
+            if (Test-VorkCtrlC -Key $key) { Clear-VorkPanel -Panel $panel; return $PermsHash }
+            if ($key.Key -eq [ConsoleKey]::Escape) { Clear-VorkPanel -Panel $panel; return $PermsHash }
+
+            if ($key.Key -eq [ConsoleKey]::UpArrow) {
+                $selected = if ($selected -gt 0) { $selected - 1 } else { $totalItems - 1 }
                 continue
             }
 
-            if ($k.Key -eq [ConsoleKey]::DownArrow) {
-                $sel = if ($sel -lt ($totalItems - 1)) { $sel + 1 } else { 0 }
-                & $renderPerms
+            if ($key.Key -eq [ConsoleKey]::DownArrow) {
+                $selected = if ($selected -lt ($totalItems - 1)) { $selected + 1 } else { 0 }
                 continue
             }
 
-            # Enter o Espacio: si está sobre un permiso, alternarlo. Si está en [Guardar y Salir], salir.
-            if ($k.Key -eq [ConsoleKey]::Enter -or $k.Key -eq [ConsoleKey]::Spacebar) {
-                if ($sel -eq $keys.Count) {
-                    try { [Console]::SetCursorPosition(0, $menuStartRow + $totalItems + 1) } catch { }
-                    Write-Host ""
+            if ($key.Key -eq [ConsoleKey]::Home) { $selected = 0; continue }
+            if ($key.Key -eq [ConsoleKey]::End) { $selected = $totalItems - 1; continue }
+
+            if ($key.Key -eq [ConsoleKey]::Enter -or $key.Key -eq [ConsoleKey]::Spacebar) {
+                if ($selected -eq $keys.Count) {
+                    Clear-VorkPanel -Panel $panel
                     return $PermsHash
-                } else {
-                    $selectedKey = $keys[$sel]
-                    $PermsHash[$selectedKey].Enabled = -not $PermsHash[$selectedKey].Enabled
-                    Save-VorkPermissions -PermsHash $PermsHash
-                    & $renderPerms
-                    continue
                 }
-            }
-
-            if ($k.Key -eq [ConsoleKey]::Escape) {
-                try { [Console]::SetCursorPosition(0, $menuStartRow + $totalItems + 1) } catch { }
-                Write-Host ""
-                return $PermsHash
-            }
-
-            # Teclado numérico directo (1-9) para saltar y alternar directamente
-            $ch = [string]$k.KeyChar
-            $numVal = -1
-            if ([int]::TryParse($ch, [ref]$numVal) -and $numVal -ge 1 -and $numVal -le $keys.Count) {
-                $sel = $numVal - 1
-                $selectedKey = $keys[$sel]
+                $selectedKey = $keys[$selected]
                 $PermsHash[$selectedKey].Enabled = -not $PermsHash[$selectedKey].Enabled
                 Save-VorkPermissions -PermsHash $PermsHash
-                & $renderPerms
+                continue
+            }
+
+            $char = [string]$key.KeyChar
+            if ($char -match '^[1-9]$') {
+                $numericIndex = [int]$char - 1
+                if ($numericIndex -lt $keys.Count) {
+                    $selected = $numericIndex
+                    $selectedKey = $keys[$selected]
+                    $PermsHash[$selectedKey].Enabled = -not $PermsHash[$selectedKey].Enabled
+                    Save-VorkPermissions -PermsHash $PermsHash
+                }
                 continue
             }
         }
     } finally {
+        try { [Console]::TreatControlCAsInput = $false } catch { }
         try { [Console]::CursorVisible = $savedCursor } catch { }
     }
 }
 
-function Show-InteractiveModelSwitcher {
-    $models = @(
-        "Vork 3"
+function Write-VorkModelFrame {
+    param(
+        $Panel,
+        [int]$EffortIndex,
+        [array]$Efforts,
+        [array]$EffortDescriptions
     )
 
+    $effort = $Efforts[$EffortIndex]
+    $effortColor = switch ($effort) {
+        "low"    { $Green }
+        "medium" { $Yellow }
+        "high"   { $Coral }
+        default  { $Cyan }
+    }
+
+    $row = 0
+    Write-VorkPanelLine -Panel $Panel -Index $row -Text (Format-VorkBorderTop -Title "Modelo y potencia" -RightText "Vork 3" -Width $Panel.Width)
+    $row++
+
+    Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${Lead}$([char]0x2502)${Reset} ${White}${Bold}Vork 3${Reset} ${LeadLight}· Neural AI Engine${Reset}"
+    $row++
+
+    $low = if ($EffortIndex -eq 0) { "${BgSel}${Green}${Bold}  LOW  ${Reset}" } else { "${LeadLight}  low  ${Reset}" }
+    $medium = if ($EffortIndex -eq 1) { "${BgSel}${Yellow}${Bold} MEDIUM ${Reset}" } else { "${LeadLight} medium ${Reset}" }
+    $high = if ($EffortIndex -eq 2) { "${BgSel}${Coral}${Bold}  HIGH  ${Reset}" } else { "${LeadLight}  high  ${Reset}" }
+    Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${Lead}$([char]0x2502)${Reset} ${LeadLight}Potencia${Reset}  $([char]0x2039)  $low  $medium  $high  $([char]0x203A)"
+    $row++
+
+    $description = [string]$EffortDescriptions[$effort]
+    $descriptionLines = Get-VorkWrappedLines -Text $description -Width ([Math]::Max(10, $Panel.Width - 8)) -MaxLines 2
+    foreach ($line in $descriptionLines) {
+        Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${Lead}$([char]0x2502)${Reset} ${effortColor}$line${Reset}"
+        $row++
+    }
+    while ($row -lt 5) {
+        Write-VorkPanelLine -Panel $Panel -Index $row -Text ""
+        $row++
+    }
+
+    Write-VorkPanelLine -Panel $Panel -Index $row -Text (Format-VorkBorderBottom -LeftText "izquierda/derecha o arriba/abajo cambiar  ·  enter aplicar  ·  esc cancelar" -Width $Panel.Width)
+}
+
+function Show-InteractiveModelSwitcher {
     $efforts = @("low", "medium", "high")
-    $effortDescs = @{
-        "low"    = "Fast response times, streamlined reasoning"
-        "medium" = "Balanced speed and reasoning quality for most tasks"
-        "high"   = "Maximum reasoning depth for complex architectural and coding tasks"
+    $descriptions = @{
+        "low"    = "Respuesta rapida y bajo consumo. Ideal para tareas simples."
+        "medium" = "Equilibrio entre velocidad y calidad de razonamiento."
+        "high"   = "Maxima profundidad para arquitectura y codigo complejo."
+    }
+
+    $effortIndex = [Array]::IndexOf($efforts, $(if ($global:VorkTier) { $global:VorkTier.ToLower() } else { "medium" }))
+    if ($effortIndex -lt 0) { $effortIndex = 1 }
+
+    if ([Console]::IsInputRedirected -or [Console]::IsOutputRedirected) {
+        return @{ Action = "selected"; Model = "Vork 3"; Tier = $efforts[$effortIndex] }
     }
 
     $savedCursor = try { [Console]::CursorVisible } catch { $true }
     try { [Console]::CursorVisible = $false } catch { }
+    try { [Console]::TreatControlCAsInput = $true } catch { }
 
-    $activeModel = "Vork 3"
-    $activeTier = if ($global:VorkTier) { $global:VorkTier.ToLower() } else { "medium" }
-
-    $selModelIdx = 0
-    $effortIdx = [Array]::IndexOf($efforts, $activeTier)
-    if ($effortIdx -lt 0) { $effortIdx = 1 }
-
-    $searchBuf = ""
-    $width = try { $Host.UI.RawUI.WindowSize.Width } catch { 120 }
-    if ($width -le 40 -or $width -gt 300) { $width = 120 }
-    $ruleChar = [char]0x2500
-    $rule = [string]::new($ruleChar, ($width - 1))
-
-    # Pre-scroll buffer space for rock-solid stability
-    $neededRows = 14
-    $startTop = try { [Console]::CursorTop } catch { 0 }
-    for ($i = 0; $i -lt $neededRows; $i++) {
-        Write-Host ""
-    }
-    $baseRow = try { [Console]::CursorTop - $neededRows } catch { $startTop }
-
-    $renderAll = {
-        # Filtrar modelos según $searchBuf
-        $filtered = @($models | Where-Object { -not $searchBuf -or $_.ToLower().Contains($searchBuf.ToLower()) })
-        $selModelIdx = 0
-
-        $row = $baseRow
-
-        try { [Console]::SetCursorPosition(0, $row) } catch { }
-        Write-Host "${Coral}${Bold}> ${Reset}$ClrToEnd"
-        $row++
-
-        try { [Console]::SetCursorPosition(0, $row) } catch { }
-        Write-Host "${Lead}$rule${Reset}$ClrToEnd"
-        $row++
-
-        # Título
-        try { [Console]::SetCursorPosition(0, $row) } catch { }
-        Write-Host "${White}${Bold}Switch Model${Reset}$ClrToEnd"
-        $row++
-
-        try { [Console]::SetCursorPosition(0, $row) } catch { }
-        Write-Host "$ClrToEnd"
-        $row++
-
-        # Search Box
-        try { [Console]::SetCursorPosition(0, $row) } catch { }
-        $searchLabel = if ($searchBuf) { "  ${LeadLight}Search: ${White}${Bold}$searchBuf${Reset}" } else { "  ${LeadLight}Search:${Reset}" }
-        Write-Host "$searchLabel$ClrToEnd"
-        $row++
-
-        try { [Console]::SetCursorPosition(0, $row) } catch { }
-        Write-Host "          ${Lead}────────────────────${Reset}$ClrToEnd"
-        $row++
-
-        try { [Console]::SetCursorPosition(0, $row) } catch { }
-        Write-Host "$ClrToEnd"
-        $row++
-
-        if ($filtered.Count -gt 0) {
-            # Único Modelo: Vork 3
-            try { [Console]::SetCursorPosition(0, $row) } catch { }
-            $mName = $filtered[0]
-            $padName = $mName.PadRight(28)
-            Write-Host "${Cyan}${Bold}> ${White}${Bold}$padName ${LeadLight}(current)${Reset}    $ClrToEnd"
-            $row++
-
-            try { [Console]::SetCursorPosition(0, $row) } catch { }
-            Write-Host "$ClrToEnd"
-            $row++
-
-            # Slider de Effort
-            # low:    ◂        ◉──────────────○──────────────○        ▸
-            # medium: ◂        ●━━━━━━━━━━━━━━◉──────────────○        ▸
-            # high:   ◂        ●━━━━━━━━━━━━━━●━━━━━━━━━━━━━━◉        ▸
-            $triL = [char]0x25C2 # ◂
-            $triR = [char]0x25B8 # ▸
-            $dDot = [char]0x25CF # ●
-            $cTar = [char]0x25C9 # ◉
-            $cEmp = [char]0x25CB # ○
-            $bHvy = [string]::new([char]0x2501, 14) # ━━━━━━
-            $bThn = [string]::new([char]0x2500, 14) # ──────
-
-            $currEffort = $efforts[$effortIdx]
-            $effortColor = switch ($currEffort) {
-                "low"    { $Green }
-                "medium" { $Yellow }
-                "high"   { $Coral }
-                default  { $Cyan }
-            }
-
-            $sliderGraphic = ""
-            $labelsGraphic = ""
-            if ($effortIdx -eq 0) {
-                $sliderGraphic = "${Green}${Bold}$cTar${Reset}${LeadDark}$bThn$cEmp$bThn$cEmp${Reset}"
-                $labelsGraphic = "${Green}${Bold}low${Reset}          ${LeadLight}medium          high${Reset}"
-            } elseif ($effortIdx -eq 1) {
-                $sliderGraphic = "${Yellow}${Bold}$dDot$bHvy$cTar${Reset}${LeadDark}$bThn$cEmp${Reset}"
-                $labelsGraphic = "${LeadLight}low          ${Yellow}${Bold}medium${Reset}          ${LeadLight}high${Reset}"
-            } else {
-                $sliderGraphic = "${Coral}${Bold}$dDot$bHvy$dDot$bHvy$cTar${Reset}"
-                $labelsGraphic = "${LeadLight}low          medium          ${Coral}${Bold}high${Reset}"
-            }
-
-            try { [Console]::SetCursorPosition(0, $row) } catch { }
-            Write-Host "  ${LeadLight}Effort  ${effortColor}$triL${Reset}        $sliderGraphic        ${effortColor}$triR${Reset}$ClrToEnd"
-            $row++
-
-            try { [Console]::SetCursorPosition(0, $row) } catch { }
-            Write-Host "                  $labelsGraphic$ClrToEnd"
-            $row++
-
-            try { [Console]::SetCursorPosition(0, $row) } catch { }
-            $effDesc = $effortDescs[$currEffort]
-            Write-Host "            ${effortColor}$effDesc${Reset}$ClrToEnd"
-            $row++
-
-            try { [Console]::SetCursorPosition(0, $row) } catch { }
-            Write-Host "$ClrToEnd"
-            $row++
-
-            # Footer con instrucciones normales
-            try { [Console]::SetCursorPosition(0, $row) } catch { }
-            Write-Host "${LeadLight}Keyboard: ${Cyan}↑/↓${Reset} ${LeadLight}Navigate  ${Cyan}←/→${Reset} ${LeadLight}Effort  ${Cyan}enter${Reset} ${LeadLight}Select  ${Cyan}esc${Reset} ${LeadLight}Go Back${Reset}$ClrToEnd"
-            $row++
-        } else {
-            # Sin coincidencias
-            try { [Console]::SetCursorPosition(0, $row) } catch { }
-            Write-Host "  ${LeadLight}No models match `"$searchBuf`"${Reset}$ClrToEnd"
-            $row++
-
-            # Limpiar filas restantes
-            for ($c = 0; $c -lt 5; $c++) {
-                try { [Console]::SetCursorPosition(0, $row) } catch { }
-                Write-Host "$ClrToEnd"
-                $row++
-            }
-
-            # Footer esc Clear search
-            try { [Console]::SetCursorPosition(0, $row) } catch { }
-            Write-Host "${LeadLight}Keyboard: ${Cyan}esc${Reset} ${LeadLight}Clear search${Reset}$ClrToEnd"
-            $row++
-        }
-
-        # Footer derecho con modelo y potencia actual
-        try { [Console]::SetCursorPosition(0, $row) } catch { }
-        $activeText = "Vork 3 " + [char]0x00B7 + " $($efforts[$effortIdx])"
-        $padLen = [Math]::Max(1, ($width - 1) - $activeText.Length)
-        Write-Host "$([string]::new(' ', $padLen))${effortColor}$activeText${Reset}$ClrToEnd"
-    }
-
-    & $renderAll
-
+    $panel = $null
     try {
         while ($true) {
-            $filtered = @($models | Where-Object { -not $searchBuf -or $_.ToLower().Contains($searchBuf.ToLower()) })
-            $k = [Console]::ReadKey($true)
+            $metrics = Get-VorkConsoleMetrics
+            $panel = Update-VorkPanel -Panel $panel -Rows 6
+            Write-VorkModelFrame -Panel $panel -EffortIndex $effortIndex -Efforts $efforts -EffortDescriptions $descriptions
 
-            if ($filtered.Count -gt 0) {
-                if ($k.Key -eq [ConsoleKey]::LeftArrow) {
-                    $effortIdx = if ($effortIdx -gt 0) { $effortIdx - 1 } else { 0 }
-                    & $renderAll
-                    continue
-                }
+            $wait = Wait-VorkConsoleKey
+            if ($wait.Resized) { continue }
+            $key = $wait.Key
+            if (-not $key) { continue }
 
-                if ($k.Key -eq [ConsoleKey]::RightArrow) {
-                    $effortIdx = if ($effortIdx -lt 2) { $effortIdx + 1 } else { 2 }
-                    & $renderAll
-                    continue
-                }
+            if (Test-VorkCtrlC -Key $key) { Clear-VorkPanel -Panel $panel; return @{ Action = "exited" } }
+            if ($key.Key -eq [ConsoleKey]::Escape) { Clear-VorkPanel -Panel $panel; return @{ Action = "exited" } }
 
-                if ($k.Key -eq [ConsoleKey]::Enter) {
-                    $chosenModel = "Vork 3"
-                    $chosenEffort = $efforts[$effortIdx]
-
-                    $global:VorkModel = "Vork 3"
-                    $global:VorkTier = $chosenEffort
-
-                    try {
-                        $vDir = Join-Path $HOME ".vork"
-                        if (-not (Test-Path $vDir)) { New-Item -ItemType Directory -Path $vDir -Force | Out-Null }
-                        Set-Content -Path (Join-Path $vDir ".model") -Value "Vork 3" -Force -Encoding UTF8
-                        Set-Content -Path (Join-Path $vDir ".tier") -Value $chosenEffort -Force -Encoding UTF8
-                    } catch { }
-
-                    # Limpiar área del switcher
-                    try {
-                        for ($c = 0; $c -lt $neededRows; $c++) {
-                            [Console]::SetCursorPosition(0, $baseRow + $c)
-                            Write-Host ([string]::new(" ", $width - 1)) -NoNewline
-                        }
-                        [Console]::SetCursorPosition(0, $baseRow)
-                    } catch { }
-
-                    return @{ Action = "selected"; Model = "Vork 3"; Tier = $chosenEffort }
-                }
+            if ($key.Key -eq [ConsoleKey]::LeftArrow -or $key.Key -eq [ConsoleKey]::UpArrow) {
+                $effortIndex = if ($effortIndex -gt 0) { $effortIndex - 1 } else { $efforts.Count - 1 }
+                continue
             }
 
-            if ($k.Key -eq [ConsoleKey]::Escape) {
-                if ($searchBuf.Length -gt 0) {
-                    $searchBuf = ""
-                    & $renderAll
-                    continue
-                }
+            if ($key.Key -eq [ConsoleKey]::RightArrow -or $key.Key -eq [ConsoleKey]::DownArrow) {
+                $effortIndex = if ($effortIndex -lt ($efforts.Count - 1)) { $effortIndex + 1 } else { 0 }
+                continue
+            }
 
-                # Limpiar área del switcher
+            if ($key.Key -eq [ConsoleKey]::Enter) {
+                $chosenEffort = $efforts[$effortIndex]
+                $global:VorkModel = "Vork 3"
+                $global:VorkTier = $chosenEffort
+
                 try {
-                    for ($c = 0; $c -lt $neededRows; $c++) {
-                        [Console]::SetCursorPosition(0, $baseRow + $c)
-                        Write-Host ([string]::new(" ", $width - 1)) -NoNewline
-                    }
-                    [Console]::SetCursorPosition(0, $baseRow)
+                    $vorkDir = Join-Path $HOME ".vork"
+                    if (-not (Test-Path $vorkDir)) { New-Item -ItemType Directory -Path $vorkDir -Force | Out-Null }
+                    Set-Content -Path (Join-Path $vorkDir ".model") -Value "Vork 3" -Force -Encoding UTF8
+                    Set-Content -Path (Join-Path $vorkDir ".tier") -Value $chosenEffort -Force -Encoding UTF8
                 } catch { }
 
-                return @{ Action = "exited" }
-            }
-
-            if ($k.Key -eq [ConsoleKey]::Backspace) {
-                if ($searchBuf.Length -gt 0) {
-                    $searchBuf = $searchBuf.Substring(0, $searchBuf.Length - 1)
-                    & $renderAll
-                }
-                continue
-            }
-
-            $ch = $k.KeyChar
-            if (-not [char]::IsControl($ch)) {
-                $searchBuf += $ch
-                & $renderAll
-                continue
+                Clear-VorkPanel -Panel $panel
+                return @{ Action = "selected"; Model = "Vork 3"; Tier = $chosenEffort }
             }
         }
     } finally {
+        try { [Console]::TreatControlCAsInput = $false } catch { }
         try { [Console]::CursorVisible = $savedCursor } catch { }
     }
+}
+
+function Write-VorkSettingsFrame {
+    param(
+        $Panel,
+        $SettingsData,
+        [array]$FilteredKeys,
+        [int]$Selected,
+        [int]$Top,
+        [int]$Visible,
+        [string]$Search
+    )
+
+    $row = 0
+    Write-VorkPanelLine -Panel $Panel -Index $row -Text (Format-VorkBorderTop -Title "Configuracion" -RightText "Vork CLI" -Width $Panel.Width)
+    $row++
+
+    $searchText = if ($Search) { "${White}${Bold}$Search${Reset}" } else { "${LeadDark}escribe para filtrar${Reset}" }
+    Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${Lead}$([char]0x2502)${Reset} ${LeadLight}Buscar:${Reset} $searchText"
+    $row++
+
+    for ($i = 0; $i -lt $Visible; $i++) {
+        $index = $Top + $i
+        if ($index -lt $FilteredKeys.Count) {
+            $key = $FilteredKeys[$index]
+            $item = $SettingsData[$key]
+            $isSelected = $index -eq $Selected
+            $prefix = if ($isSelected) { "${Cyan}${Bold}$([char]0x25B8)${Reset} " } else { "  " }
+            $label = if ($isSelected) { "${White}${Bold}$($item.Label)${Reset}" } else { "${White}$($item.Label)${Reset}" }
+            $value = if ($isSelected) { "${Cyan}${Bold}$($item.Value)${Reset}" } else { "${LeadLight}$($item.Value)${Reset}" }
+            Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${Lead}$([char]0x2502)${Reset} $prefix$label  $value"
+        } else {
+            Write-VorkPanelLine -Panel $Panel -Index $row -Text ""
+        }
+        $row++
+    }
+
+    $description = ""
+    if ($FilteredKeys.Count -gt 0 -and $Selected -lt $FilteredKeys.Count) {
+        $description = [string]$SettingsData[$FilteredKeys[$Selected]].Desc
+    }
+    $descriptionLines = Get-VorkWrappedLines -Text $description -Width ([Math]::Max(10, $Panel.Width - 8)) -MaxLines 2
+    for ($d = 0; $d -lt 2; $d++) {
+        $line = if ($d -lt $descriptionLines.Count) { $descriptionLines[$d] } else { "" }
+        Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${Lead}$([char]0x2502)${Reset} ${LeadLight}$line${Reset}"
+        $row++
+    }
+
+    Write-VorkPanelLine -Panel $Panel -Index $row -Text (Format-VorkBorderBottom -LeftText "flechas mover/cambiar  ·  enter siguiente  ·  esc limpiar/salir" -Width $Panel.Width)
 }
 
 function Show-InteractiveSettings {
@@ -1119,381 +1126,169 @@ function Show-InteractiveSettings {
     if (Test-Path $settingsFile) {
         try {
             $rawJson = Get-Content -Path $settingsFile -Raw | ConvertFrom-Json
-            foreach ($prop in $rawJson.PSObject.Properties) {
-                $savedSettings[$prop.Name] = $prop.Value
+            foreach ($property in $rawJson.PSObject.Properties) {
+                $savedSettings[$property.Name] = $property.Value
             }
         } catch { }
     }
 
     $settingsData = [ordered]@{
-        "agent_mode"           = @{
-            Label = "Agent Mode"
-            Options = @("default", "accept-edits", "auto", "plan")
-            Value = if ($savedSettings["agent_mode"]) { $savedSettings["agent_mode"] } else { "default" }
-            Desc = "'default': standard behavior. 'accept-edits': auto-approve file edits, prompt for commands. 'auto': auto-approve edits and safe commands, prompt on irreversible actions. 'plan': research and plan without making changes"
-        }
-        "animation_speed"      = @{
-            Label = "Animation Speed"
-            Options = @("medium", "fast", "off")
-            Value = if ($savedSettings["animation_speed"]) { $savedSettings["animation_speed"] } else { "medium" }
-            Desc = "Adjust UI animation and spinner speed across all interactive components and progress bars in the terminal."
-        }
-        "artifact_review"      = @{
-            Label = "Artifact Review"
-            Options = @("asks for review", "always-approve", "off")
-            Value = if ($savedSettings["artifact_review"]) { $savedSettings["artifact_review"] } else { "asks for review" }
-            Desc = "Determines whether generated artifacts, diffs, and execution plans require interactive confirmation before execution."
-        }
-        "color_scheme"         = @{
-            Label = "Color Scheme"
-            Options = @("dark", "light", "system")
-            Value = if ($savedSettings["color_scheme"]) { $savedSettings["color_scheme"] } else { "dark" }
-            Desc = "Sets terminal color palette mode. 'dark' enables high contrast slate/coral tones; 'light' optimizes for bright terminal backgrounds."
-        }
-        "conv_grouping"        = @{
-            Label = "Conversation Picker Grouping"
-            Options = @("none", "project", "date")
-            Value = if ($savedSettings["conv_grouping"]) { $savedSettings["conv_grouping"] } else { "none" }
-            Desc = "Grouping strategy for recent chat transcripts and session logs in the history browser."
-        }
-        "copy_on_select"       = @{
-            Label = "Copy on Select"
-            Options = @("on", "off")
-            Value = if ($savedSettings["copy_on_select"]) { $savedSettings["copy_on_select"] } else { "on" }
-            Desc = "Automatically copies selected text in interactive modals and responses straight into the system clipboard."
-        }
-        "editor"               = @{
-            Label = "Editor"
-            Options = @("auto ($EDITOR)", "code", "vim", "nano", "notepad")
-            Value = if ($savedSettings["editor"]) { $savedSettings["editor"] } else { "auto ($EDITOR)" }
-            Desc = "External text editor launched when opening code files, configs, or transcript diffs from Vork CLI."
-        }
-        "editor_mode"          = @{
-            Label = "Editor Mode"
-            Options = @("default", "vim", "emacs")
-            Value = if ($savedSettings["editor_mode"]) { $savedSettings["editor_mode"] } else { "default" }
-            Desc = "Keybindings mode for the interactive prompt and text input fields."
-        }
-        "enable_telemetry"     = @{
-            Label = "Enable Telemetry"
-            Options = @("on", "off")
-            Value = if ($savedSettings["enable_telemetry"]) { $savedSettings["enable_telemetry"] } else { "on" }
-            Desc = "Sends anonymous performance benchmarks and error traces to Vork Cloud to diagnose pillar connectivity."
-        }
-        "non_workspace"        = @{
-            Label = "Non-Workspace Access"
-            Options = @("off", "on")
-            Value = if ($savedSettings["non_workspace"]) { $savedSettings["non_workspace"] } else { "off" }
-            Desc = "Permits subagents and tools to inspect files outside the current project root directory when explicitly requested."
-        }
-        "notifications"        = @{
-            Label = "Notifications"
-            Options = @("on", "off")
-            Value = if ($savedSettings["notifications"]) { $savedSettings["notifications"] } else { "on" }
-            Desc = "Emits system toast notifications and audible chimes upon background job, Demucs stem, or /goal completion."
-        }
-        "queued_messages"      = @{
-            Label = "Queued Messages"
-            Options = @("Queue", "Discard", "Prompt")
-            Value = if ($savedSettings["queued_messages"]) { $savedSettings["queued_messages"] } else { "Queue" }
-            Desc = "Behavior when new commands or messages arrive while a long-running subagent task is currently running."
-        }
-        "rendering_mode"       = @{
-            Label = "Rendering Mode"
-            Options = @("native terminal (inline)", "fullscreen alternate-screen")
-            Value = if ($savedSettings["rendering_mode"]) { $savedSettings["rendering_mode"] } else { "native terminal (inline)" }
-            Desc = "Chooses between standard inline ANSI terminal rendering or switching to the terminal's alternate buffer screen."
-        }
-        "sandbox_mode"         = @{
-            Label = "Sandbox Mode"
-            Options = @("off", "on")
-            Value = if ($savedSettings["sandbox_mode"]) { $savedSettings["sandbox_mode"] } else { "off" }
-            Desc = "Restricts shell commands and file writing strictly to a sandboxed temporary directory."
-        }
-        "seasonal_themes"      = @{
-            Label = "Seasonal Themes"
-            Options = @("off", "on")
-            Value = if ($savedSettings["seasonal_themes"]) { $savedSettings["seasonal_themes"] } else { "off" }
-            Desc = "Enables temporary festive holiday themes and accent colors on matching calendar dates."
-        }
-        "show_active_tasks"    = @{
-            Label = "Show Active Tasks"
-            Options = @("on", "off")
-            Value = if ($savedSettings["show_active_tasks"]) { $savedSettings["show_active_tasks"] } else { "on" }
-            Desc = "Displays a real-time status indicator when background subagent jobs or audio processing tasks are active."
-        }
-        "show_feedback_survey" = @{
-            Label = "Show Feedback Survey"
-            Options = @("on", "off")
-            Value = if ($savedSettings["show_feedback_survey"]) { $savedSettings["show_feedback_survey"] } else { "on" }
-            Desc = "Prompts occasional one-click rating surveys after complex autonomous workflows conclude."
-        }
-        "show_tips"            = @{
-            Label = "Show Tips"
-            Options = @("on", "off")
-            Value = if ($savedSettings["show_tips"]) { $savedSettings["show_tips"] } else { "on" }
-            Desc = "Displays contextual shortcuts and keyboard hints beneath the prompt footer."
-        }
-        "tool_permission"      = @{
-            Label = "Tool Permission"
-            Options = @("always-proceed (overridden by dangerously-skip-permissions)", "ask-each", "deny-unsafe")
-            Value = if ($savedSettings["tool_permission"]) { $savedSettings["tool_permission"] } else { "always-proceed (overridden by dangerously-skip-permissions)" }
-            Desc = "Execution policy for agent tools. 'always-proceed' executes without pausing; 'ask-each' prompts before every tool call."
-        }
-        "use_ai_credits"       = @{
-            Label = "Use AI Credits"
-            Options = @("off", "on")
-            Value = if ($savedSettings["use_ai_credits"]) { $savedSettings["use_ai_credits"] } else { "off" }
-            Desc = "Toggles billing allocation for premium high-tier neural models and Demucs v4 studio separation."
-        }
-        "verbosity"            = @{
-            Label = "Verbosity"
-            Options = @("medium", "quiet", "verbose")
-            Value = if ($savedSettings["verbosity"]) { $savedSettings["verbosity"] } else { "medium" }
-            Desc = "Controls the depth of command outputs, subagent logs, and internal diagnostic traces displayed in the terminal."
-        }
+        "agent_mode"            = @{ Label = "Agent Mode"; Options = @("default", "accept-edits", "auto", "plan"); Value = if ($savedSettings["agent_mode"]) { $savedSettings["agent_mode"] } else { "default" }; Desc = "Comportamiento del agente: default, accept-edits, auto o plan." }
+        "animation_speed"       = @{ Label = "Animation Speed"; Options = @("medium", "fast", "off"); Value = if ($savedSettings["animation_speed"]) { $savedSettings["animation_speed"] } else { "medium" }; Desc = "Velocidad de animaciones, spinners y barras de progreso." }
+        "artifact_review"       = @{ Label = "Artifact Review"; Options = @("asks for review", "always-approve", "off"); Value = if ($savedSettings["artifact_review"]) { $savedSettings["artifact_review"] } else { "asks for review" }; Desc = "Confirma artefactos, diffs y planes antes de ejecutarlos." }
+        "color_scheme"          = @{ Label = "Color Scheme"; Options = @("dark", "light", "system"); Value = if ($savedSettings["color_scheme"]) { $savedSettings["color_scheme"] } else { "dark" }; Desc = "Paleta de color de la terminal: dark, light o system." }
+        "conv_grouping"         = @{ Label = "Conversation Grouping"; Options = @("none", "project", "date"); Value = if ($savedSettings["conv_grouping"]) { $savedSettings["conv_grouping"] } else { "none" }; Desc = "Agrupacion del historial de conversaciones." }
+        "copy_on_select"        = @{ Label = "Copy on Select"; Options = @("on", "off"); Value = if ($savedSettings["copy_on_select"]) { $savedSettings["copy_on_select"] } else { "on" }; Desc = "Copia automaticamente el texto seleccionado al portapapeles." }
+        "editor"                = @{ Label = "Editor"; Options = @("auto ($EDITOR)", "code", "vim", "nano", "notepad"); Value = if ($savedSettings["editor"]) { $savedSettings["editor"] } else { "auto ($EDITOR)" }; Desc = "Editor externo para abrir archivos, configuraciones y diffs." }
+        "editor_mode"           = @{ Label = "Editor Mode"; Options = @("default", "vim", "emacs"); Value = if ($savedSettings["editor_mode"]) { $savedSettings["editor_mode"] } else { "default" }; Desc = "Atajos de edicion del prompt y de los campos de texto." }
+        "enable_telemetry"      = @{ Label = "Enable Telemetry"; Options = @("on", "off"); Value = if ($savedSettings["enable_telemetry"]) { $savedSettings["enable_telemetry"] } else { "on" }; Desc = "Envia metricas anonimas para diagnosticar los pilares." }
+        "non_workspace"         = @{ Label = "Non-Workspace Access"; Options = @("off", "on"); Value = if ($savedSettings["non_workspace"]) { $savedSettings["non_workspace"] } else { "off" }; Desc = "Permite inspeccionar archivos fuera del proyecto actual." }
+        "notifications"         = @{ Label = "Notifications"; Options = @("on", "off"); Value = if ($savedSettings["notifications"]) { $savedSettings["notifications"] } else { "on" }; Desc = "Notificaciones y avisos al terminar tareas en segundo plano." }
+        "queued_messages"       = @{ Label = "Queued Messages"; Options = @("Queue", "Discard", "Prompt"); Value = if ($savedSettings["queued_messages"]) { $savedSettings["queued_messages"] } else { "Queue" }; Desc = "Que hacer con mensajes nuevos mientras corre una tarea." }
+        "rendering_mode"        = @{ Label = "Rendering Mode"; Options = @("native terminal (inline)", "fullscreen alternate-screen"); Value = if ($savedSettings["rendering_mode"]) { $savedSettings["rendering_mode"] } else { "native terminal (inline)" }; Desc = "Modo de renderizado de la interfaz." }
+        "sandbox_mode"          = @{ Label = "Sandbox Mode"; Options = @("off", "on"); Value = if ($savedSettings["sandbox_mode"]) { $savedSettings["sandbox_mode"] } else { "off" }; Desc = "Restringe comandos y escritura a un directorio temporal." }
+        "seasonal_themes"       = @{ Label = "Seasonal Themes"; Options = @("off", "on"); Value = if ($savedSettings["seasonal_themes"]) { $savedSettings["seasonal_themes"] } else { "off" }; Desc = "Activa temas festivos segun la fecha del calendario." }
+        "show_active_tasks"     = @{ Label = "Show Active Tasks"; Options = @("on", "off"); Value = if ($savedSettings["show_active_tasks"]) { $savedSettings["show_active_tasks"] } else { "on" }; Desc = "Muestra tareas activas en segundo plano." }
+        "show_feedback_survey"  = @{ Label = "Show Feedback Survey"; Options = @("on", "off"); Value = if ($savedSettings["show_feedback_survey"]) { $savedSettings["show_feedback_survey"] } else { "on" }; Desc = "Muestra encuestas de opinion ocasionales." }
+        "show_tips"             = @{ Label = "Show Tips"; Options = @("on", "off"); Value = if ($savedSettings["show_tips"]) { $savedSettings["show_tips"] } else { "on" }; Desc = "Muestra atajos y consejos bajo el prompt." }
+        "tool_permission"       = @{ Label = "Tool Permission"; Options = @("always-proceed (overridden by dangerously-skip-permissions)", "ask-each", "deny-unsafe"); Value = if ($savedSettings["tool_permission"]) { $savedSettings["tool_permission"] } else { "always-proceed (overridden by dangerously-skip-permissions)" }; Desc = "Politica de ejecucion de herramientas del agente." }
+        "use_ai_credits"        = @{ Label = "Use AI Credits"; Options = @("off", "on"); Value = if ($savedSettings["use_ai_credits"]) { $savedSettings["use_ai_credits"] } else { "off" }; Desc = "Usa creditos para modelos premium y Demucs v4." }
+        "verbosity"             = @{ Label = "Verbosity"; Options = @("medium", "quiet", "verbose"); Value = if ($savedSettings["verbosity"]) { $savedSettings["verbosity"] } else { "medium" }; Desc = "Nivel de detalle de logs y diagnosticos." }
     }
 
     $keys = @($settingsData.Keys)
+    $selected = 0
+    $top = 0
+    $query = ""
+
+    if ([Console]::IsInputRedirected -or [Console]::IsOutputRedirected) {
+        return @{ Action = "exited" }
+    }
+
     $savedCursor = try { [Console]::CursorVisible } catch { $true }
     try { [Console]::CursorVisible = $false } catch { }
-
-    $selIdx = 0
-    $searchBuf = ""
-    $width = try { $Host.UI.RawUI.WindowSize.Width } catch { 120 }
-    if ($width -le 40 -or $width -gt 300) { $width = 120 }
-    $ruleChar = [char]0x2500
-    $rule = [string]::new($ruleChar, ($width - 1))
-
-    # Pre-scroll buffer space
-    $neededRows = 34
-    $startTop = try { [Console]::CursorTop } catch { 0 }
-    for ($i = 0; $i -lt $neededRows; $i++) {
-        Write-Host ""
-    }
-    $baseRow = try { [Console]::CursorTop - $neededRows } catch { $startTop }
+    try { [Console]::TreatControlCAsInput = $true } catch { }
 
     $saveAll = {
         try {
-            $vDir = Join-Path $HOME ".vork"
-            if (-not (Test-Path $vDir)) { New-Item -ItemType Directory -Path $vDir -Force | Out-Null }
+            $vorkDir = Join-Path $HOME ".vork"
+            if (-not (Test-Path $vorkDir)) { New-Item -ItemType Directory -Path $vorkDir -Force | Out-Null }
             $toExport = @{}
-            foreach ($k in $settingsData.Keys) {
-                $toExport[$k] = $settingsData[$k].Value
-            }
+            foreach ($key in $settingsData.Keys) { $toExport[$key] = $settingsData[$key].Value }
             $toExport | ConvertTo-Json | Set-Content -Path $settingsFile -Encoding UTF8
         } catch { }
     }
 
-    $renderAll = {
-        # Filtrar configuraciones según searchBuf
-        $filteredKeys = @($keys | Where-Object {
-            -not $searchBuf -or
-            $settingsData[$_].Label.ToLower().Contains($searchBuf.ToLower()) -or
-            $settingsData[$_].Value.ToLower().Contains($searchBuf.ToLower())
-        })
-        if ($filteredKeys.Count -eq 0) { $filteredKeys = $keys }
-        if ($selIdx -ge $filteredKeys.Count) { $selIdx = [Math]::Max(0, $filteredKeys.Count - 1) }
-
-        $row = $baseRow
-
-        # Header con rule y prompt
-        try { [Console]::SetCursorPosition(0, $row) } catch { }
-        Write-Host "${Lead}$rule${Reset}$ClrToEnd"
-        $row++
-
-        try { [Console]::SetCursorPosition(0, $row) } catch { }
-        Write-Host "${Coral}${Bold}> ${Reset}$ClrToEnd"
-        $row++
-
-        try { [Console]::SetCursorPosition(0, $row) } catch { }
-        Write-Host "${Lead}$rule${Reset}$ClrToEnd"
-        $row++
-
-        # Título
-        try { [Console]::SetCursorPosition(0, $row) } catch { }
-        Write-Host "${White}${Bold}Settings${Reset}$ClrToEnd"
-        $row++
-
-        try { [Console]::SetCursorPosition(0, $row) } catch { }
-        Write-Host "$ClrToEnd"
-        $row++
-
-        # Search Box
-        try { [Console]::SetCursorPosition(0, $row) } catch { }
-        Write-Host "  ${LeadLight}Search:${Reset}$ClrToEnd"
-        $row++
-
-        try { [Console]::SetCursorPosition(0, $row) } catch { }
-        $searchDisplay = if ($searchBuf) { $searchBuf } else { " " }
-        Write-Host "          ${White}${Bold}$searchDisplay${Reset}$ClrToEnd"
-        $row++
-
-        try { [Console]::SetCursorPosition(0, $row) } catch { }
-        Write-Host "          ${Lead}────────────────────${Reset}$ClrToEnd"
-        $row++
-
-        try { [Console]::SetCursorPosition(0, $row) } catch { }
-        Write-Host "$ClrToEnd"
-        $row++
-
-        # Lista de Configuraciones (21 renglones)
-        for ($i = 0; $i -lt $filteredKeys.Count; $i++) {
-            $k = $filteredKeys[$i]
-            $item = $settingsData[$k]
-            $lblPad = $item.Label.PadRight(29)
-            $val = $item.Value
-
-            try { [Console]::SetCursorPosition(0, $row) } catch { }
-            if ($i -eq $selIdx) {
-                Write-Host "${Cyan}${Bold}> ${White}${Bold}$lblPad${Reset} ${Cyan}${val}${Reset}    $ClrToEnd"
-            } else {
-                Write-Host "  ${White}$lblPad${Reset} ${LeadLight}${val}${Reset}    $ClrToEnd"
-            }
-            $row++
-        }
-
-        # Separador para descripción
-        try { [Console]::SetCursorPosition(0, $row) } catch { }
-        Write-Host "$ClrToEnd"
-        $row++
-
-        # Descripción activa envuelta
-        $activeKey = $filteredKeys[$selIdx]
-        $desc = $settingsData[$activeKey].Desc
-
-        # Envolver en 2 líneas si excede ancho
-        $maxTextW = [Math]::Max(40, $width - 8)
-        $descL1 = $desc
-        $descL2 = ""
-        if ($desc.Length -gt $maxTextW) {
-            $splitPos = $desc.LastIndexOf(" ", $maxTextW)
-            if ($splitPos -le 0) { $splitPos = $maxTextW }
-            $descL1 = $desc.Substring(0, $splitPos)
-            $descL2 = $desc.Substring($splitPos).Trim()
-        }
-
-        try { [Console]::SetCursorPosition(0, $row) } catch { }
-        Write-Host "  ${LeadLight}$descL1${Reset}$ClrToEnd"
-        $row++
-
-        try { [Console]::SetCursorPosition(0, $row) } catch { }
-        if ($descL2) {
-            Write-Host "  ${LeadLight}$descL2${Reset}$ClrToEnd"
-        } else {
-            Write-Host "$ClrToEnd"
-        }
-        $row++
-
-        try { [Console]::SetCursorPosition(0, $row) } catch { }
-        Write-Host "$ClrToEnd"
-        $row++
-
-        # Footer de navegación
-        try { [Console]::SetCursorPosition(0, $row) } catch { }
-        Write-Host "${LeadLight}Keyboard: ${Cyan}↑/↓${Reset} ${LeadLight}Navigate  ${Cyan}←/→${Reset} ${LeadLight}Change  ${Cyan}enter${Reset} ${LeadLight}Select  ${Cyan}esc${Reset} ${LeadLight}Clear Search/Exit${Reset}$ClrToEnd"
-        $row++
-
-        # Footer derecho de modelo y potencia
-        try { [Console]::SetCursorPosition(0, $row) } catch { }
-        $activeModelName = if ($global:VorkModel) { $global:VorkModel } else { "Vork 3" }
-        $activeTierName = if ($global:VorkTier) { $global:VorkTier.ToLower() } else { "medium" }
-        $activeFooterText = "$activeModelName " + [char]0x00B7 + " $activeTierName"
-        $padLen = [Math]::Max(1, ($width - 1) - $activeFooterText.Length)
-        Write-Host "$([string]::new(' ', $padLen))${LeadLight}$activeFooterText${Reset}$ClrToEnd"
-    }
-
-    & $renderAll
-
+    $panel = $null
     try {
         while ($true) {
             $filteredKeys = @($keys | Where-Object {
-                -not $searchBuf -or
-                $settingsData[$_].Label.ToLower().Contains($searchBuf.ToLower()) -or
-                $settingsData[$_].Value.ToLower().Contains($searchBuf.ToLower())
+                -not $query -or
+                $settingsData[$_].Label.ToLower().Contains($query.ToLower()) -or
+                $settingsData[$_].Value.ToLower().Contains($query.ToLower())
             })
-            if ($filteredKeys.Count -eq 0) { $filteredKeys = $keys }
 
-            $k = [Console]::ReadKey($true)
-
-            if ($k.Key -eq [ConsoleKey]::UpArrow) {
-                $selIdx = if ($selIdx -gt 0) { $selIdx - 1 } else { $filteredKeys.Count - 1 }
-                & $renderAll
-                continue
+            if ($filteredKeys.Count -eq 0) {
+                $selected = 0
+                $top = 0
+            } else {
+                if ($selected -ge $filteredKeys.Count) { $selected = $filteredKeys.Count - 1 }
+                if ($selected -lt 0) { $selected = 0 }
             }
 
-            if ($k.Key -eq [ConsoleKey]::DownArrow) {
-                $selIdx = if ($selIdx -lt ($filteredKeys.Count - 1)) { $selIdx + 1 } else { 0 }
-                & $renderAll
-                continue
+            $metrics = Get-VorkConsoleMetrics
+            $visible = [Math]::Max(1, [Math]::Min([Math]::Max(1, $filteredKeys.Count), $metrics.Height - 9))
+            $panelRows = $visible + 5
+            $panel = Update-VorkPanel -Panel $panel -Rows $panelRows
+
+            if ($filteredKeys.Count -gt 0) {
+                if ($selected -lt $top) { $top = $selected }
+                if ($selected -ge ($top + $visible)) { $top = $selected - $visible + 1 }
+                if ($top -lt 0) { $top = 0 }
+                $maxTop = [Math]::Max(0, $filteredKeys.Count - $visible)
+                if ($top -gt $maxTop) { $top = $maxTop }
             }
 
-            # Cambiar valor hacia la izquierda (←)
-            if ($k.Key -eq [ConsoleKey]::LeftArrow) {
-                $activeK = $filteredKeys[$selIdx]
-                $opts = $settingsData[$activeK].Options
-                $cVal = $settingsData[$activeK].Value
-                $curIdx = [Array]::IndexOf($opts, $cVal)
-                if ($curIdx -lt 0) { $curIdx = 0 }
-                $nextIdx = if ($curIdx -gt 0) { $curIdx - 1 } else { $opts.Count - 1 }
-                $settingsData[$activeK].Value = $opts[$nextIdx]
-                & $saveAll
-                & $renderAll
-                continue
-            }
+            Write-VorkSettingsFrame -Panel $panel -SettingsData $settingsData -FilteredKeys $filteredKeys -Selected $selected -Top $top -Visible $visible -Search $query
 
-            # Cambiar valor hacia la derecha (→) o Enter
-            if ($k.Key -eq [ConsoleKey]::RightArrow -or $k.Key -eq [ConsoleKey]::Enter) {
-                $activeK = $filteredKeys[$selIdx]
-                $opts = $settingsData[$activeK].Options
-                $cVal = $settingsData[$activeK].Value
-                $curIdx = [Array]::IndexOf($opts, $cVal)
-                if ($curIdx -lt 0) { $curIdx = 0 }
-                $nextIdx = if ($curIdx -lt ($opts.Count - 1)) { $curIdx + 1 } else { 0 }
-                $settingsData[$activeK].Value = $opts[$nextIdx]
-                & $saveAll
-                & $renderAll
-                continue
-            }
+            $wait = Wait-VorkConsoleKey
+            if ($wait.Resized) { continue }
+            $key = $wait.Key
+            if (-not $key) { continue }
 
-            if ($k.Key -eq [ConsoleKey]::Escape) {
-                if ($searchBuf.Length -gt 0) {
-                    $searchBuf = ""
-                    $selIdx = 0
-                    & $renderAll
+            if (Test-VorkCtrlC -Key $key) { Clear-VorkPanel -Panel $panel; return @{ Action = "exited" } }
+
+            if ($key.Key -eq [ConsoleKey]::Escape) {
+                if ($query) {
+                    $query = ""
+                    $selected = 0
+                    $top = 0
                     continue
                 }
-
-                # Limpiar área visual
-                try {
-                    for ($c = 0; $c -lt $neededRows; $c++) {
-                        [Console]::SetCursorPosition(0, $baseRow + $c)
-                        Write-Host ([string]::new(" ", $width - 1)) -NoNewline
-                    }
-                    [Console]::SetCursorPosition(0, $baseRow)
-                } catch { }
-
+                Clear-VorkPanel -Panel $panel
                 return @{ Action = "exited" }
             }
 
-            if ($k.Key -eq [ConsoleKey]::Backspace) {
-                if ($searchBuf.Length -gt 0) {
-                    $searchBuf = $searchBuf.Substring(0, $searchBuf.Length - 1)
-                    $selIdx = 0
-                    & $renderAll
+            if ($key.Key -eq [ConsoleKey]::UpArrow) {
+                if ($filteredKeys.Count -gt 0) { $selected = if ($selected -gt 0) { $selected - 1 } else { $filteredKeys.Count - 1 } }
+                continue
+            }
+
+            if ($key.Key -eq [ConsoleKey]::DownArrow) {
+                if ($filteredKeys.Count -gt 0) { $selected = if ($selected -lt ($filteredKeys.Count - 1)) { $selected + 1 } else { 0 } }
+                continue
+            }
+
+            if ($key.Key -eq [ConsoleKey]::Home) { $selected = 0; continue }
+            if ($key.Key -eq [ConsoleKey]::End) { if ($filteredKeys.Count -gt 0) { $selected = $filteredKeys.Count - 1 }; continue }
+
+            if ($filteredKeys.Count -gt 0 -and ($key.Key -eq [ConsoleKey]::LeftArrow -or $key.Key -eq [ConsoleKey]::RightArrow -or $key.Key -eq [ConsoleKey]::Spacebar)) {
+                $activeKey = $filteredKeys[$selected]
+                $options = @($settingsData[$activeKey].Options)
+                $currentValue = [string]$settingsData[$activeKey].Value
+                $currentIndex = [Array]::IndexOf($options, $currentValue)
+                if ($currentIndex -lt 0) { $currentIndex = 0 }
+                $direction = if ($key.Key -eq [ConsoleKey]::LeftArrow) { -1 } else { 1 }
+                $nextIndex = $currentIndex + $direction
+                if ($nextIndex -ge $options.Count) { $nextIndex = 0 }
+                if ($nextIndex -lt 0) { $nextIndex = $options.Count - 1 }
+                $settingsData[$activeKey].Value = $options[$nextIndex]
+                & $saveAll
+                continue
+            }
+
+            if ($key.Key -eq [ConsoleKey]::Enter) {
+                if ($filteredKeys.Count -gt 0) {
+                    $selected = if ($selected -lt ($filteredKeys.Count - 1)) { $selected + 1 } else { 0 }
                 }
                 continue
             }
 
-            $ch = $k.KeyChar
-            if (-not [char]::IsControl($ch)) {
-                $searchBuf += $ch
-                $selIdx = 0
-                & $renderAll
+            if ($key.Key -eq [ConsoleKey]::Backspace) {
+                if ($query.Length -gt 0) {
+                    $query = $query.Substring(0, $query.Length - 1)
+                    $selected = 0
+                    $top = 0
+                }
+                continue
+            }
+
+            if (Test-VorkCtrlKey -Key $key -Letter ([ConsoleKey]::U)) {
+                $query = ""
+                $selected = 0
+                $top = 0
+                continue
+            }
+
+            if (-not [char]::IsControl($key.KeyChar)) {
+                $query += [string]$key.KeyChar
+                $selected = 0
+                $top = 0
                 continue
             }
         }
     } finally {
+        try { [Console]::TreatControlCAsInput = $false } catch { }
         try { [Console]::CursorVisible = $savedCursor } catch { }
     }
 }

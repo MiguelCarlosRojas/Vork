@@ -338,12 +338,22 @@ async function processBackgroundOperation({
       }
 
       logger.info(`[ImageEngine] Generando nuevo fondo con IA FLUX.1: ${prompt}`);
+      let enPrompt = prompt.trim();
+      try {
+        const translate = require("google-translate-api-x");
+        const tRes = await translate(enPrompt, { to: "en" });
+        if (tRes && tRes.text) {
+          enPrompt = tRes.text;
+          logger.info(`[ImageEngine] Prompt traducido para FLUX: ${enPrompt}`);
+        }
+      } catch (tErr) {}
+
       let bgBuffer = null;
       try {
         const { Client } = require("@gradio/client");
         const fluxClient = await Client.connect("black-forest-labs/FLUX.1-schnell");
         const fluxRes = await fluxClient.predict("/infer", {
-          prompt: prompt.trim(),
+          prompt: enPrompt,
           seed: 0,
           randomize_seed: true,
           width: 1024,

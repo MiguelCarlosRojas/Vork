@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Pilar 09: Vork Agentes Autónomos & Modo Interactivo TUI
 #>
@@ -17,7 +17,8 @@ function Invoke-PillarAgents {
         )
 
         $chosenAction = Select-InteractiveOption -PromptTitle "Selecciona una operación de Agentes Autónomos:" -Options $agentOptions -DefaultIndex 0
-        if ($chosenAction -and $chosenAction -ne "status") {
+        if (-not $chosenAction) { return }
+        if ($chosenAction -ne "status") {
             switch ($chosenAction) {
                 "goal" { Invoke-CmdGoal @(); return }
                 "plan" { Invoke-CmdPlan @(); return }

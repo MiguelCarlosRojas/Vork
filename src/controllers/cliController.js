@@ -23,10 +23,10 @@ function assembleVorkScript() {
     parts.push(readPart(configFile));
   }
 
-  // 2. UI Modules (Banner, Help, Cards)
+  // 2. UI Modules (Toolkit, Banner, Cards, Help)
   const uiDir = path.join(CLI_DIR, "ui");
   if (fs.existsSync(uiDir)) {
-    const uiFiles = ["banner.ps1", "cards.ps1", "help.ps1"];
+    const uiFiles = ["toolkit.ps1", "banner.ps1", "cards.ps1", "help.ps1"];
     uiFiles.forEach(file => {
       const fullPath = path.join(uiDir, file);
       if (fs.existsSync(fullPath)) {

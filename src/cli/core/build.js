@@ -4,6 +4,7 @@ const path = require('path');
 const cliDir = path.resolve(__dirname, '..');
 const files = [
   'core/config.ps1',
+  'ui/toolkit.ps1',
   'ui/banner.ps1',
   'ui/cards.ps1',
   'ui/help.ps1',

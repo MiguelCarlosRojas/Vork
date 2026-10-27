@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Pilar 07: Vork Conversor Universal de Formatos de Imagen (PNG, JPG, WEBP, ICO, AVIF)
 #>
@@ -169,7 +169,12 @@ function Invoke-PillarImage {
         }
 
         $chosenFmt = Select-InteractiveOption -PromptTitle "Selecciona el formato de imagen destino:" -Options $imgOptions -DefaultIndex 0
-        if ($chosenFmt) { $fmt = $chosenFmt } else { $fmt = $availableFormats[0].Value }
+        if (-not $chosenFmt) {
+            Write-Host "  ${Lead}╰─ Conversión cancelada.${Reset}"
+            Write-Host ""
+            return
+        }
+        $fmt = $chosenFmt
     }
 
     Write-Host ""

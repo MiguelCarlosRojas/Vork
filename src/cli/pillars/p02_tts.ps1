@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Pilar 02: Vork Texto a Voz Neuronal (TTS Studio con 24 voces humanas)
 #>

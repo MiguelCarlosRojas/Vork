@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Pilar 01: Vork Traductor Neuronal en la Nube (+200 Idiomas)
 #>
@@ -42,9 +42,12 @@ function Invoke-PillarTranslate {
         )
 
         $chosenLang = Select-InteractiveOption -PromptTitle "Selecciona el idioma destino:" -Options $langOptions -DefaultIndex 0
-        if ($chosenLang) {
-            $to = $chosenLang
+        if (-not $chosenLang) {
+            Write-Host "  ${Lead}╰─ Traducción cancelada.${Reset}"
+            Write-Host ""
+            return
         }
+        $to = $chosenLang
     }
 
     Write-Host ""

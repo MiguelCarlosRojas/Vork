@@ -4,11 +4,12 @@
 #>
 
 function Invoke-PillarVersion {
+    $archLabel = if ($env:PROCESSOR_ARCHITECTURE) { $env:PROCESSOR_ARCHITECTURE } else { "unknown" }
     Write-Host ""
     Write-Host "  $ESC[44;97;1m VORK CLI $Reset $White$Bold v$VorkVersion$Reset"
     Write-Host "  $Gray Backend:$Reset  $Cyan$ApiBase$Reset"
     Write-Host "  $Gray Pilares:$Reset  $Green 9 Pilares Operacionales Activos$Reset"
-    Write-Host "  $Gray Motor:$Reset    $White PowerShell $($PSVersionTable.PSVersion) [$arch]$Reset"
+    Write-Host "  $Gray Motor:$Reset    $White PowerShell $($PSVersionTable.PSVersion) [$archLabel]$Reset"
     Write-Host ""
 }
 

@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Pilar 03: Vork Clonacion de Voz IA (Extraccion Fundamental F0)
 #>
@@ -38,7 +38,12 @@ function Invoke-PillarClone {
             @{ Value = "pm";      Label = "[4] pm       (Modo ultra-rápido para previsualización inmediata)" }
         )
         $chosenF0 = Select-InteractiveOption -PromptTitle "Selecciona el algoritmo de extracción fundamental F0:" -Options $f0Options -DefaultIndex 0
-        if ($chosenF0) { $f0Method = $chosenF0 }
+        if (-not $chosenF0) {
+            Write-Host "  ${Lead}╰─ Clonación cancelada.${Reset}"
+            Write-Host ""
+            return
+        }
+        $f0Method = $chosenF0
 
         Write-Host "  ${Lead}│${Reset} ${White}Texto o guión a sintetizar con la voz clonada:${Reset}"
         $text = Read-VorkInput -Prompt "  ${Lead}│${Reset} ${Cyan}> ${Reset}"

@@ -1,4 +1,4 @@
-param(
+﻿param(
     [Parameter(Position=0, ValueFromPipeline=$true)]
     [string]$Command = "",
 

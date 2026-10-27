@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Pilar 05: Vork Separador de Stems (Acapella y Karaoke con Demucs v4)
 #>
@@ -34,7 +34,12 @@ function Invoke-PillarSeparate {
         )
 
         $chosenMode = Select-InteractiveOption -PromptTitle "Selecciona el modo de separación de stems:" -Options $sepOptions -DefaultIndex 0
-        if ($chosenMode) { $mode = $chosenMode }
+        if (-not $chosenMode) {
+            Write-Host "  ${Lead}╰─ Separación cancelada.${Reset}"
+            Write-Host ""
+            return
+        }
+        $mode = $chosenMode
     }
 
     Write-Host ""
