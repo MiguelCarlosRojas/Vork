@@ -51,8 +51,14 @@ async function fetchYouTubeStreams(normalizedUrl) {
     const r = await withTimeout(rahad.alldl(normalizedUrl), 10000);
     if (r && r.data && r.data.download) {
       const dl = r.data.download;
-      const audioUrl = dl.audio || dl.video;
-      const videoUrl = dl.video || dl.audio;
+      let audioUrl = dl.audio || dl.video;
+      let videoUrl = dl.video || dl.audio;
+      if (audioUrl && audioUrl.includes("googlevideo.com") && !audioUrl.includes("vidsnap.app")) {
+        audioUrl = `https://api.vidsnap.app/proxy?u=${encodeURIComponent(audioUrl)}`;
+      }
+      if (videoUrl && videoUrl.includes("googlevideo.com") && !videoUrl.includes("vidsnap.app")) {
+        videoUrl = `https://api.vidsnap.app/proxy?u=${encodeURIComponent(videoUrl)}`;
+      }
       if (audioUrl || videoUrl) {
         return {
           title: r.data.title,
