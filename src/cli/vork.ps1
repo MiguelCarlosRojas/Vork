@@ -2207,7 +2207,7 @@ function Show-Shortcuts {
     Write-Host "  ${Cyan}  /ping, /health${Reset}  ${Dim}Comprobar conexion con el backend ($ApiBase)${Reset}"
     Write-Host "  ${Cyan}  /update${Reset}         ${Dim}Actualizar Vork CLI al instante${Reset}"
     Write-Host ""
-    Write-Host "  ${Dim}Pilares directos: translate, tts, clone, media, separate, dj, image, remove-bg, agents${Reset}"
+    Write-Host "  ${Dim}Pilares directos: translate, tts, clone, media, separate, image, remove-bg, agents${Reset}"
     Write-Host ""
 }
 
@@ -2250,9 +2250,6 @@ function Show-Help {
     Write-Host "  ${Cyan}╰────────────────────────────────────────────────────────────${Reset}"
 
     # Pillar 06
-    Write-Host "  ${Cyan}╭─ ${Bold}[06] Vork DJ Mezclador en Vivo${Reset} ${Dim}· Tornamesas virtuales & Web Audio${Reset}"
-    Write-Host "  ${Cyan}│${Reset}  ${Yellow}vork dj${Reset} ${White}<url_pista>${Reset}"
-    Write-Host "  ${Cyan}│${Reset}  ${Dim}Ej: vork dj 'https://youtube.com/watch?v=...'${Reset}"
     Write-Host "  ${Cyan}╰────────────────────────────────────────────────────────────${Reset}"
 
     # Pillar 07
@@ -2295,7 +2292,6 @@ function Show-SlashCommands {
     Write-Host "  ${Cyan}│${Reset}  ${Yellow}/clone${Reset}      ${White}· Clonación vocal IA y modelado espectral F0${Reset}"
     Write-Host "  ${Cyan}│${Reset}  ${Yellow}/media${Reset}      ${White}· Conversión multimedia YouTube, TikTok, IG a MP3/MP4${Reset}"
     Write-Host "  ${Cyan}│${Reset}  ${Yellow}/separate${Reset}   ${White}· Aislamiento de Stems Acapella/Karaoke (Demucs v4)${Reset}"
-    Write-Host "  ${Cyan}│${Reset}  ${Yellow}/dj${Reset}         ${White}· Mezclador virtual interactivo y grafos Web Audio${Reset}"
     Write-Host "  ${Cyan}│${Reset}  ${Yellow}/image${Reset}      ${White}· Conversor universal PNG, JPG, WEBP, ICO, AVIF${Reset}"
     Write-Host "  ${Cyan}│${Reset}  ${Yellow}/remove-bg${Reset}  ${White}· Silueta inteligente y eliminación de fondo IA${Reset}"
     Write-Host "  ${Cyan}│${Reset}  ${Yellow}/agents${Reset}     ${White}· Orquestación de subagentes en terminal interactiva${Reset}"
@@ -2372,7 +2368,6 @@ function Show-InteractiveHelpModal {
         @{ Cmd = "/clone";       Desc = "Clonación vocal IA y modelado espectral F0" },
         @{ Cmd = "/media";       Desc = "Conversión multimedia YouTube, TikTok, IG a MP3/MP4" },
         @{ Cmd = "/separate";    Desc = "Aislamiento de Stems Acapella/Karaoke (Demucs v4)" },
-        @{ Cmd = "/dj";          Desc = "Mezclador virtual interactivo y grafos Web Audio" },
         @{ Cmd = "/image";       Desc = "Conversor universal PNG, JPG, WEBP, ICO, AVIF" },
         @{ Cmd = "/remove-bg";   Desc = "Silueta inteligente y eliminación de fondo IA" },
         @{ Cmd = "/agents";      Desc = "Orquestación de subagentes en terminal interactiva" },
@@ -2876,7 +2871,6 @@ function Invoke-CmdStatus {
         @{ Id = "03"; Name = "Clonación Vocal & Timbre";  Tech = "Modelado espectral F0 & voice matching"; Endpoint = "/api/voice-clone" },
         @{ Id = "04"; Name = "Extracción Multimedia";      Tech = "Descarga de YouTube, TikTok, Reels, IG"; Endpoint = "/api/media-extract" },
         @{ Id = "05"; Name = "Aislamiento de Stems Demucs";Tech = "Separación Acapella/Instrumental (v4)";  Endpoint = "/api/demucs" },
-        @{ Id = "06"; Name = "Mezclador Virtual DJ";       Tech = "Grafos Web Audio, ecualizador y faders"; Endpoint = "/api/dj-mix" },
         @{ Id = "07"; Name = "Conversor de Imágenes";      Tech = "Pipeline Sharp PNG, WEBP, ICO, AVIF";    Endpoint = "/api/image-convert" },
         @{ Id = "08"; Name = "Eliminación de Fondo IA";    Tech = "Máscaras alfa y recorte de silueta";     Endpoint = "/api/remove-bg" },
         @{ Id = "09"; Name = "Orquestación de Agentes";    Tech = "Subagentes concurrentes y bucle autónomo";Endpoint = "/api/agents" }
@@ -3642,23 +3636,50 @@ function Invoke-PillarSeparate {
             Write-Host "`r$ClrLine  $Cyan│$Reset  ${White}Progreso:${Reset} [${Green}$filled100${Reset}] 100%  ${Green}Completado${Reset}"
 
             $jsonStr = $task.Result.Content.ReadAsStringAsync().Result
-            $res = $jsonStr | ConvertFrom-Json
+            if (-not $task.Result.IsSuccessStatusCode) {
+                $errDetail = $null
+                try {
+                    $parsedErr = $jsonStr | ConvertFrom-Json
+                    if ($parsedErr -and $parsedErr.error) { $errDetail = $parsedErr.error }
+                } catch { }
+                if (-not $errDetail) {
+                    $errDetail = "Error en el servidor ($([int]$task.Result.StatusCode)): $($task.Result.ReasonPhrase)"
+                }
+                Write-Host "  $Cyan├───────────────────────────────────────────────────$Reset"
+                Write-Host "  $Cyan│$Reset  ${Coral}[Error Separador]:${Reset} $errDetail"
+                Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
+                return
+            }
+            $res = try { $jsonStr | ConvertFrom-Json } catch { $null }
         } else {
-            $res = Invoke-RestMethod -Uri $endpoint -Method Post -Body $body -ContentType "application/json" -TimeoutSec 300
+            $res = try { Invoke-RestMethod -Uri $endpoint -Method Post -Body $body -ContentType "application/json" -TimeoutSec 300 } catch { $null }
         }
 
-        if ($res.status -eq "error" -or $res.error) {
+        if (-not $res -or $res.status -eq "error" -or $res.error) {
+            $errDetail = if ($res -and $res.error) { $res.error } else { "No se pudo completar la separación de stems." }
             Write-Host "  $Cyan├───────────────────────────────────────────────────$Reset"
-            Write-Host "  $Cyan│$Reset  ${Coral}[Error Separador]:${Reset} $($res.error)"
+            Write-Host "  $Cyan│$Reset  ${Coral}[Error Separador]:${Reset} $errDetail"
             Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
             return
         }
 
-        $vocDl = if ($res.vocals -and $res.vocals.downloadUrl) { if ($res.vocals.downloadUrl.StartsWith("http")) { $res.vocals.downloadUrl } else { "$ApiBase$($res.vocals.downloadUrl)" } } else { $null }
-        $vocSt = if ($res.vocals -and $res.vocals.streamUrl) { if ($res.vocals.streamUrl.StartsWith("http")) { $res.vocals.streamUrl } else { "$ApiBase$($res.vocals.streamUrl)" } } else { $null }
+        $vocDl = $null
+        $vocSt = $null
+        if ($res.vocals) {
+            $rawDl = $res.vocals.downloadUrl
+            $rawSt = $res.vocals.streamUrl
+            if ($rawDl) { $vocDl = if ($rawDl -match '^https?://') { $rawDl } else { "$ApiBase$rawDl" } }
+            if ($rawSt) { $vocSt = if ($rawSt -match '^https?://') { $rawSt } else { "$ApiBase$rawSt" } }
+        }
 
-        $instDl = if ($res.instrumental -and $res.instrumental.downloadUrl) { if ($res.instrumental.downloadUrl.StartsWith("http")) { $res.instrumental.downloadUrl } else { "$ApiBase$($res.instrumental.downloadUrl)" } } else { $null }
-        $instSt = if ($res.instrumental -and $res.instrumental.streamUrl) { if ($res.instrumental.streamUrl.StartsWith("http")) { $res.instrumental.streamUrl } else { "$ApiBase$($res.instrumental.streamUrl)" } } else { $null }
+        $instDl = $null
+        $instSt = $null
+        if ($res.instrumental) {
+            $rawDl = $res.instrumental.downloadUrl
+            $rawSt = $res.instrumental.streamUrl
+            if ($rawDl) { $instDl = if ($rawDl -match '^https?://') { $rawDl } else { "$ApiBase$rawDl" } }
+            if ($rawSt) { $instSt = if ($rawSt -match '^https?://') { $rawSt } else { "$ApiBase$rawSt" } }
+        }
 
         Write-Host "  $Cyan├───────────────────────────────────────────────────$Reset"
 
@@ -3686,49 +3707,6 @@ function Invoke-PillarSeparate {
         Write-Host "  $Cyan│$Reset  ${Coral}[Error Separador]:${Reset} $($_.Exception.Message)"
         Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
     }
-    Write-Host ""
-}
-
-# ============================================================
-
-<#
-.SYNOPSIS
-    Pilar 06: Vork DJ Mezclador en Vivo & Grafos Web Audio
-#>
-
-function Invoke-PillarDJ {
-    param([string[]]$ArgsList)
-
-    $track = if ($ArgsList -and $ArgsList.Length -gt 0) { $ArgsList[0] } else { $null }
-
-    if (-not $track) {
-        $djOptions = @(
-            @{ Value = "web";    Label = "[1] Iniciar Consola Web Audio en Vivo (Doble tornamesa y ecualizador)" },
-            @{ Value = "deck_a"; Label = "[2] Cargar pista de audio local o remota en Deck A" },
-            @{ Value = "sync";   Label = "[3] Auto-Sincronización de BPM y Master Crossfader" },
-            @{ Value = "status"; Label = "[4] Estado del motor y buffer de procesamiento de audio" }
-        )
-
-        $action = Select-InteractiveOption -PromptTitle "Selecciona una acción para Vork DJ Mezclador:" -Options $djOptions -DefaultIndex 0
-        if ($action -eq "deck_a") {
-            Write-Host "  ${Lead}│${Reset} ${White}Ingresa la ruta del archivo de audio o URL:${Reset}"
-            $trackInput = Read-VorkInput -Prompt "  ${Lead}│${Reset} ${Cyan}> ${Reset}"
-            if ($trackInput -and $trackInput.Trim()) { $track = $trackInput.Trim() }
-        }
-    }
-
-    Write-Host ""
-    Write-Host "  $Cyan╭─ [06] VORK DJ MEZCLADOR VIRTUAL EN VIVO ─────────$Reset"
-    Write-Host "  $Cyan│$Reset  $Gray Modo:$Reset     $WhiteConsola Web Audio en Vivo$Reset"
-    if ($track) {
-        Write-Host "  $Cyan│$Reset  $Gray Pista:$Reset    $White$track$Reset"
-    }
-    Write-Host "  $Cyan├───────────────────────────────────────────────────$Reset"
-    Write-Host "  $Cyan│$Reset  $Green✓ Sesión de DJ lista:$Reset"
-    Write-Host "  $Cyan│$Reset    Descarga: $Yellow$ApiBase/api/dj/export$Reset"
-    Write-Host "  $Cyan│$Reset    Stream:   $Cyan$ApiBase/dj$Reset"
-    Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
-    try { Start-Process "$ApiBase/dj" } catch {}
     Write-Host ""
 }
 
@@ -4122,7 +4100,6 @@ function Dispatch-CLICommand {
         "clone"     { Invoke-PillarClone -ArgsList $ArgsList }
         "media"     { Invoke-PillarMedia -ArgsList $ArgsList }
         "separate"  { Invoke-PillarSeparate -ArgsList $ArgsList }
-        "dj"        { Invoke-PillarDJ -ArgsList $ArgsList }
         "image"     { Invoke-PillarImage -ArgsList $ArgsList }
         "remove-bg" { Invoke-PillarRemoveBg -ArgsList $ArgsList }
         "agents"    { Invoke-PillarAgents -ArgsList $ArgsList }
@@ -4246,7 +4223,6 @@ function Read-InteractiveVorkLine {
         @{ Cmd = "/clone";       Desc = "Clonacion vocal IA y modelado espectral F0" },
         @{ Cmd = "/media";       Desc = "Conversion multimedia YouTube, TikTok, IG a MP3/MP4" },
         @{ Cmd = "/separate";    Desc = "Aislamiento de Stems Acapella/Karaoke (Demucs v4)" },
-        @{ Cmd = "/dj";          Desc = "Mezclador virtual interactivo y grafos Web Audio" },
         @{ Cmd = "/image";       Desc = "Conversor universal PNG, JPG, WEBP, ICO, AVIF" },
         @{ Cmd = "/remove-bg";   Desc = "Silueta inteligente y eliminacion de fondo IA" },
         @{ Cmd = "/agents";      Desc = "Orquestacion de subagentes en terminal interactiva" },

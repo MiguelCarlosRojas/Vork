@@ -20,7 +20,6 @@ function Dispatch-CLICommand {
         "clone"     { Invoke-PillarClone -ArgsList $ArgsList }
         "media"     { Invoke-PillarMedia -ArgsList $ArgsList }
         "separate"  { Invoke-PillarSeparate -ArgsList $ArgsList }
-        "dj"        { Invoke-PillarDJ -ArgsList $ArgsList }
         "image"     { Invoke-PillarImage -ArgsList $ArgsList }
         "remove-bg" { Invoke-PillarRemoveBg -ArgsList $ArgsList }
         "agents"    { Invoke-PillarAgents -ArgsList $ArgsList }
@@ -144,7 +143,6 @@ function Read-InteractiveVorkLine {
         @{ Cmd = "/clone";       Desc = "Clonacion vocal IA y modelado espectral F0" },
         @{ Cmd = "/media";       Desc = "Conversion multimedia YouTube, TikTok, IG a MP3/MP4" },
         @{ Cmd = "/separate";    Desc = "Aislamiento de Stems Acapella/Karaoke (Demucs v4)" },
-        @{ Cmd = "/dj";          Desc = "Mezclador virtual interactivo y grafos Web Audio" },
         @{ Cmd = "/image";       Desc = "Conversor universal PNG, JPG, WEBP, ICO, AVIF" },
         @{ Cmd = "/remove-bg";   Desc = "Silueta inteligente y eliminacion de fondo IA" },
         @{ Cmd = "/agents";      Desc = "Orquestacion de subagentes en terminal interactiva" },

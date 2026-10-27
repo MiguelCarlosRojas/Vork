@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Pilar 05: Vork Separador de Stems (Acapella y Karaoke con Demucs v4)
 #>
@@ -126,23 +126,50 @@ function Invoke-PillarSeparate {
             Write-Host "`r$ClrLine  $Cyan│$Reset  ${White}Progreso:${Reset} [${Green}$filled100${Reset}] 100%  ${Green}Completado${Reset}"
 
             $jsonStr = $task.Result.Content.ReadAsStringAsync().Result
-            $res = $jsonStr | ConvertFrom-Json
+            if (-not $task.Result.IsSuccessStatusCode) {
+                $errDetail = $null
+                try {
+                    $parsedErr = $jsonStr | ConvertFrom-Json
+                    if ($parsedErr -and $parsedErr.error) { $errDetail = $parsedErr.error }
+                } catch { }
+                if (-not $errDetail) {
+                    $errDetail = "Error en el servidor ($([int]$task.Result.StatusCode)): $($task.Result.ReasonPhrase)"
+                }
+                Write-Host "  $Cyan├───────────────────────────────────────────────────$Reset"
+                Write-Host "  $Cyan│$Reset  ${Coral}[Error Separador]:${Reset} $errDetail"
+                Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
+                return
+            }
+            $res = try { $jsonStr | ConvertFrom-Json } catch { $null }
         } else {
-            $res = Invoke-RestMethod -Uri $endpoint -Method Post -Body $body -ContentType "application/json" -TimeoutSec 300
+            $res = try { Invoke-RestMethod -Uri $endpoint -Method Post -Body $body -ContentType "application/json" -TimeoutSec 300 } catch { $null }
         }
 
-        if ($res.status -eq "error" -or $res.error) {
+        if (-not $res -or $res.status -eq "error" -or $res.error) {
+            $errDetail = if ($res -and $res.error) { $res.error } else { "No se pudo completar la separación de stems." }
             Write-Host "  $Cyan├───────────────────────────────────────────────────$Reset"
-            Write-Host "  $Cyan│$Reset  ${Coral}[Error Separador]:${Reset} $($res.error)"
+            Write-Host "  $Cyan│$Reset  ${Coral}[Error Separador]:${Reset} $errDetail"
             Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
             return
         }
 
-        $vocDl = if ($res.vocals -and $res.vocals.downloadUrl) { if ($res.vocals.downloadUrl.StartsWith("http")) { $res.vocals.downloadUrl } else { "$ApiBase$($res.vocals.downloadUrl)" } } else { $null }
-        $vocSt = if ($res.vocals -and $res.vocals.streamUrl) { if ($res.vocals.streamUrl.StartsWith("http")) { $res.vocals.streamUrl } else { "$ApiBase$($res.vocals.streamUrl)" } } else { $null }
+        $vocDl = $null
+        $vocSt = $null
+        if ($res.vocals) {
+            $rawDl = $res.vocals.downloadUrl
+            $rawSt = $res.vocals.streamUrl
+            if ($rawDl) { $vocDl = if ($rawDl -match '^https?://') { $rawDl } else { "$ApiBase$rawDl" } }
+            if ($rawSt) { $vocSt = if ($rawSt -match '^https?://') { $rawSt } else { "$ApiBase$rawSt" } }
+        }
 
-        $instDl = if ($res.instrumental -and $res.instrumental.downloadUrl) { if ($res.instrumental.downloadUrl.StartsWith("http")) { $res.instrumental.downloadUrl } else { "$ApiBase$($res.instrumental.downloadUrl)" } } else { $null }
-        $instSt = if ($res.instrumental -and $res.instrumental.streamUrl) { if ($res.instrumental.streamUrl.StartsWith("http")) { $res.instrumental.streamUrl } else { "$ApiBase$($res.instrumental.streamUrl)" } } else { $null }
+        $instDl = $null
+        $instSt = $null
+        if ($res.instrumental) {
+            $rawDl = $res.instrumental.downloadUrl
+            $rawSt = $res.instrumental.streamUrl
+            if ($rawDl) { $instDl = if ($rawDl -match '^https?://') { $rawDl } else { "$ApiBase$rawDl" } }
+            if ($rawSt) { $instSt = if ($rawSt -match '^https?://') { $rawSt } else { "$ApiBase$rawSt" } }
+        }
 
         Write-Host "  $Cyan├───────────────────────────────────────────────────$Reset"
 

@@ -14,7 +14,7 @@ function Show-Shortcuts {
     Write-Host "  ${Cyan}  /ping, /health${Reset}  ${Dim}Comprobar conexion con el backend ($ApiBase)${Reset}"
     Write-Host "  ${Cyan}  /update${Reset}         ${Dim}Actualizar Vork CLI al instante${Reset}"
     Write-Host ""
-    Write-Host "  ${Dim}Pilares directos: translate, tts, clone, media, separate, dj, image, remove-bg, agents${Reset}"
+    Write-Host "  ${Dim}Pilares directos: translate, tts, clone, media, separate, image, remove-bg, agents${Reset}"
     Write-Host ""
 }
 
@@ -57,9 +57,6 @@ function Show-Help {
     Write-Host "  ${Cyan}╰────────────────────────────────────────────────────────────${Reset}"
 
     # Pillar 06
-    Write-Host "  ${Cyan}╭─ ${Bold}[06] Vork DJ Mezclador en Vivo${Reset} ${Dim}· Tornamesas virtuales & Web Audio${Reset}"
-    Write-Host "  ${Cyan}│${Reset}  ${Yellow}vork dj${Reset} ${White}<url_pista>${Reset}"
-    Write-Host "  ${Cyan}│${Reset}  ${Dim}Ej: vork dj 'https://youtube.com/watch?v=...'${Reset}"
     Write-Host "  ${Cyan}╰────────────────────────────────────────────────────────────${Reset}"
 
     # Pillar 07
@@ -102,7 +99,6 @@ function Show-SlashCommands {
     Write-Host "  ${Cyan}│${Reset}  ${Yellow}/clone${Reset}      ${White}· Clonación vocal IA y modelado espectral F0${Reset}"
     Write-Host "  ${Cyan}│${Reset}  ${Yellow}/media${Reset}      ${White}· Conversión multimedia YouTube, TikTok, IG a MP3/MP4${Reset}"
     Write-Host "  ${Cyan}│${Reset}  ${Yellow}/separate${Reset}   ${White}· Aislamiento de Stems Acapella/Karaoke (Demucs v4)${Reset}"
-    Write-Host "  ${Cyan}│${Reset}  ${Yellow}/dj${Reset}         ${White}· Mezclador virtual interactivo y grafos Web Audio${Reset}"
     Write-Host "  ${Cyan}│${Reset}  ${Yellow}/image${Reset}      ${White}· Conversor universal PNG, JPG, WEBP, ICO, AVIF${Reset}"
     Write-Host "  ${Cyan}│${Reset}  ${Yellow}/remove-bg${Reset}  ${White}· Silueta inteligente y eliminación de fondo IA${Reset}"
     Write-Host "  ${Cyan}│${Reset}  ${Yellow}/agents${Reset}     ${White}· Orquestación de subagentes en terminal interactiva${Reset}"
@@ -179,7 +175,6 @@ function Show-InteractiveHelpModal {
         @{ Cmd = "/clone";       Desc = "Clonación vocal IA y modelado espectral F0" },
         @{ Cmd = "/media";       Desc = "Conversión multimedia YouTube, TikTok, IG a MP3/MP4" },
         @{ Cmd = "/separate";    Desc = "Aislamiento de Stems Acapella/Karaoke (Demucs v4)" },
-        @{ Cmd = "/dj";          Desc = "Mezclador virtual interactivo y grafos Web Audio" },
         @{ Cmd = "/image";       Desc = "Conversor universal PNG, JPG, WEBP, ICO, AVIF" },
         @{ Cmd = "/remove-bg";   Desc = "Silueta inteligente y eliminación de fondo IA" },
         @{ Cmd = "/agents";      Desc = "Orquestación de subagentes en terminal interactiva" },

@@ -12,6 +12,12 @@ const path = require("path");
 const { spawn } = require("child_process");
 const axios = require("axios");
 const btch = require("btch-downloader");
+let rahad = null;
+try {
+  rahad = require("rahad-all-downloader-v2");
+} catch (e) {
+  // Opcional
+}
 const logger = require("./logger");
 const { validateSafeUrl } = require("./ssrfGuard");
 
@@ -40,6 +46,25 @@ function withTimeout(promise, ms = 4500) {
  * Consulta de alta disponibilidad y concurrencia a proveedores y espejos de extracción para YouTube
  */
 async function fetchYouTubeStreams(normalizedUrl) {
+  const fetchRahad = async () => {
+    if (!rahad || !rahad.alldl) throw new Error("rahad no disponible");
+    const r = await withTimeout(rahad.alldl(normalizedUrl), 10000);
+    if (r && r.data && r.data.download) {
+      const dl = r.data.download;
+      const audioUrl = dl.audio || dl.video;
+      const videoUrl = dl.video || dl.audio;
+      if (audioUrl || videoUrl) {
+        return {
+          title: r.data.title,
+          mp4: videoUrl,
+          mp3: audioUrl,
+          thumbnail: r.data.thumbnail ? (r.data.thumbnail.startsWith("http") ? r.data.thumbnail : `https://i.ytimg.com${r.data.thumbnail}`) : null
+        };
+      }
+    }
+    throw new Error("rahad no retornó streams");
+  };
+
   const fetchBtch = async () => {
     const directRes = await withTimeout(btch.youtube(normalizedUrl), 10000);
     if (directRes && (directRes.mp4 || directRes.mp3)) {
@@ -75,7 +100,7 @@ async function fetchYouTubeStreams(normalizedUrl) {
   };
 
   try {
-    return await Promise.any([fetchBtch(), fetchMirror1(), fetchMirror2()]);
+    return await Promise.any([fetchRahad(), fetchBtch(), fetchMirror1(), fetchMirror2()]);
   } catch (err) {
     logger.warn(`Todos los proveedores de streams para YouTube fallaron para ${normalizedUrl}: ${err.message}`);
     return null;
