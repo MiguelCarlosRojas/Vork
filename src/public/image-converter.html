@@ -20,92 +20,6 @@
   </script>
   <script src="/js/spa-router.js" defer></script>
   <script src="/components/components.js" defer></script>
-  <style>
-    .converter-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 24px;
-      margin-top: 24px;
-    }
-    @media (max-width: 900px) {
-      .converter-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-    .format-chips-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-      gap: 10px;
-      margin-top: 10px;
-    }
-    .format-chip {
-      padding: 10px 14px;
-      text-align: center;
-      background: rgba(15, 23, 42, 0.7);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-md);
-      color: var(--text-secondary);
-      cursor: pointer;
-      font-weight: 700;
-      font-size: 0.88rem;
-      transition: all 0.2s ease;
-      user-select: none;
-    }
-    .format-chip:hover {
-      border-color: rgba(255, 122, 61, 0.45);
-      color: #fff;
-      transform: translateY(-2px);
-    }
-    .format-chip.active {
-      background: linear-gradient(135deg, rgba(0, 240, 255, 0.2), rgba(99, 102, 241, 0.25));
-      border-color: var(--primary);
-      color: #ffffff;
-      box-shadow: 0 0 16px rgba(255, 122, 61, 0.3);
-    }
-    .preview-box {
-      background: rgba(8, 11, 20, 0.85);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-md);
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 260px;
-      position: relative;
-      overflow: hidden;
-    }
-    .preview-img {
-      max-width: 100%;
-      max-height: 280px;
-      object-fit: contain;
-      border-radius: 8px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-    }
-    .toast-notification {
-      position: fixed;
-      bottom: 24px;
-      right: 24px;
-      background: linear-gradient(135deg, #0ea5e9, #6366f1);
-      color: #fff;
-      padding: 12px 22px;
-      border-radius: 8px;
-      font-weight: 600;
-      font-size: 0.92rem;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.4);
-      z-index: 9999;
-      transform: translateY(100px);
-      opacity: 0;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .toast-notification.show {
-      transform: translateY(0);
-      opacity: 1;
-    }
-  </style>
 </head>
 <body>
 
@@ -265,7 +179,7 @@
     </section>
 
     <!-- LOS 9 PILARES DE VORK -->
-    <section class="workbench-wrap" id="pilares" style="margin-top: 48px; margin-bottom: 40px;">
+    <section class="workbench-wrap" id="pilares">
       <div class="section-head">
         <span class="label">Pilares Operacionales</span>
         <h2 class="h-section">Los 9 Pilares de <em>Vork</em></h2>
@@ -388,17 +302,17 @@
     </section>
 
     <!-- SECCIÓN VORK CLI -->
-    <section class="workbench-wrap" style="margin-top: 48px; margin-bottom: 40px;">
-      <div class="workbench-card" style="background: linear-gradient(135deg, rgba(22, 27, 34, 0.96) 0%, rgba(13, 17, 23, 0.98) 100%); border: 1px solid rgba(255, 122, 61, 0.22); box-shadow: 0 16px 36px -12px rgba(0, 0, 0, 0.5), 0 0 24px -6px rgba(255, 122, 61, 0.08); display: flex; align-items: center; justify-content: space-between; gap: 28px; flex-wrap: wrap; padding: clamp(28px, 4vw, 40px);">
+    <section class="workbench-wrap">
+      <div class="workbench-card">
         <div style="flex: 1 1 540px; max-width: 780px;">
           <span class="label" style="color: var(--accent); display: inline-block; margin-bottom: 8px;">(09) Terminal &amp; Automatización</span>
-          <h2 class="h-section" style="color: #ffffff; margin: 0 0 12px 0; font-size: clamp(1.8rem, 3.2vw, 2.3rem); line-height: 1.2;">Vork <em>CLI</em></h2>
-          <p style="color: #a59a8f; margin: 0; font-size: 1.02rem; line-height: 1.65;">
+          <h2 class="h-section" style="margin: 0 0 12px 0; font-size: clamp(1.8rem, 3.2vw, 2.3rem); line-height: 1.2;">Vork <em>CLI</em></h2>
+          <p style="color: var(--muted); margin: 0; font-size: 1.02rem; line-height: 1.65;">
             Entorno centrado en la terminal para interactuar con agentes Vork en lenguaje natural. Orquesta subagentes paralelos, atajos configurables y comandos con diagonal sin cambiar de contexto.
           </p>
         </div>
         <div style="flex-shrink: 0;">
-          <a href="/cli" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 10px; padding: 14px 28px; font-size: 0.95rem; font-weight: 700; box-shadow: 0 6px 20px rgba(255, 102, 0, 0.35); text-decoration: none;">
+          <a href="/cli" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 10px; padding: 14px 28px; font-size: 0.95rem; font-weight: 700; text-decoration: none;">
             <span>Ir a Vork CLI</span>
             <svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
           </a>
@@ -417,7 +331,6 @@
   <!-- Pie de Página Modular -->
   <footer id="footer-placeholder" data-component="footer" data-active="image-converter"></footer>
 
-  <script src="/js/vork.js"></script>
   <script src="/js/vork.js"></script>
   <script>
     (function() {

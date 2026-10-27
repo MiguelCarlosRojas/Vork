@@ -100,15 +100,17 @@
         El SDK para navegadores examina el árbol DOM, recolecta de manera transparente todos los nodos de texto visibles respetando elementos interactivos (botones, enlaces, inputs) y envía las cadenas agrupadas en un solo paquete HTTP para optimizar el consumo de red y no bloquear la interfaz.
       </p>
 
-      <h3 style="color: #ffffff; font-size: 1.05rem; margin-top: 20px;">Paso 1: Incluir el Script en tu HTML</h3>
+      <h3 class="content-subheading">Paso 1: Incluir el Script en tu HTML</h3>
       <p>Añade la etiqueta <code>&lt;script&gt;</code> al final del <code>&lt;body&gt;</code> o dentro de <code>&lt;head&gt;</code>:</p>
+      <div class="code-box-wrapper">
       <div class="code-box-header">
         <span>HTML / ETIQUETA SCRIPT CDN</span>
         <button class="btn-copy" onclick="copiarAlPortapapeles(this, 'code-learn-1')">Copiar</button>
       </div>
       <pre class="code-panel" id="code-learn-1">&lt;script src="https://vork-st1k.onrender.com/js/vork.js"&gt;&lt;/script&gt;</pre>
+    </div>
 
-      <h3 style="color: #ffffff; font-size: 1.05rem; margin-top: 24px;">Paso 2: Opciones de Inicialización</h3>
+      <h3 class="content-subheading">Paso 2: Opciones de Inicialización</h3>
       <p>Al instanciar <code>new Vork(options)</code>, dispones de los siguientes parámetros configurables:</p>
       
       <div class="table-responsive">
@@ -162,8 +164,9 @@
         </table>
       </div>
 
-      <h3 style="color: #ffffff; font-size: 1.05rem; margin-top: 24px;">Paso 3: Código de Ejemplo Funcional Completo</h3>
+      <h3 class="content-subheading">Paso 3: Código de Ejemplo Funcional Completo</h3>
       <p>Copia y pega este archivo HTML en tu computadora para probar la traducción en tiempo real:</p>
+      <div class="code-box-wrapper">
       <div class="code-box-header">
         <span>HTML COMPLETO / EJEMPLO CLIENTE MÍNIMO</span>
         <button class="btn-copy" onclick="copiarAlPortapapeles(this, 'code-learn-2')">Copiar</button>
@@ -218,11 +221,13 @@
   &lt;/script&gt;
 &lt;/body&gt;
 &lt;/html&gt;</pre>
+    </div>
 
-      <h3 style="color: #ffffff; font-size: 1.05rem; margin-top: 24px;">Paso 4: Exclusión de Elementos y Marcas</h3>
+      <h3 class="content-subheading">Paso 4: Exclusión de Elementos y Marcas</h3>
       <p>
         Para proteger nombres propios, términos técnicos, marcas comerciales o bloques de código que no deben traducirse, añade la clase <code>notranslate</code> o el atributo HTML estándar <code>translate="no"</code>:
       </p>
+      <div class="code-box-wrapper">
       <div class="code-box-header">
         <span>HTML / EXCLUSIÓN DE ELEMENTOS</span>
         <button class="btn-copy" onclick="copiarAlPortapapeles(this, 'code-learn-exclude')">Copiar</button>
@@ -234,6 +239,7 @@
 &lt;div translate="no"&gt;
   &lt;p&gt;API_KEY_SECRET = "sk_live_9941a87b"&lt;/p&gt;
 &lt;/div&gt;</pre>
+    </div>
     </article>
 
     <!-- Módulo 2: Backend Node.js -->
@@ -244,7 +250,8 @@
         Invoca la API desde cualquier servidor Node.js, Express, Next.js, Fastify o NestJS mediante el estándar nativo <code>fetch</code> sin requerir librerías externas.
       </p>
 
-      <h3 style="color: #ffffff; font-size: 1.05rem; margin-top: 16px;">2.1 Traducción de Texto Individual</h3>
+      <h3 class="content-subheading">2.1 Traducción de Texto Individual</h3>
+      <div class="code-box-wrapper">
       <div class="code-box-header">
         <span>NODE.JS / TEXTO SIMPLE (FETCH)</span>
         <button class="btn-copy" onclick="copiarAlPortapapeles(this, 'code-learn-3')">Copiar</button>
@@ -275,11 +282,13 @@
 traducirTexto("Servicio de traducción en tiempo real", "en")
   .then(res => console.log("Resultado:", res)) // "Real-time translation service"
   .catch(err => console.error("Error:", err.message));</pre>
+    </div>
 
-      <h3 style="color: #ffffff; font-size: 1.05rem; margin-top: 24px;">2.2 Traducción de Lotes Masivos (Micro-batch)</h3>
+      <h3 class="content-subheading">2.2 Traducción de Lotes Masivos (Micro-batch)</h3>
       <p>
         Para catálogos, menús o notificaciones compuestas, envía el arreglo <code>texts</code> para procesar hasta 1,000 cadenas en una sola llamada:
       </p>
+      <div class="code-box-wrapper">
       <div class="code-box-header">
         <span>NODE.JS / TRADUCCIÓN POR LOTES (BATCH)</span>
         <button class="btn-copy" onclick="copiarAlPortapapeles(this, 'code-learn-batch-node')">Copiar</button>
@@ -309,11 +318,13 @@ traducirTexto("Servicio de traducción en tiempo real", "en")
 traducirLote(["Inicio", "Configuración", "Cerrar Sesión"], "en")
   .then(resultado => console.log(resultado));
   // Salida: ["Home", "Settings", "Log Out"]</pre>
+    </div>
 
-      <h3 style="color: #ffffff; font-size: 1.05rem; margin-top: 24px;">2.3 Manejo Resiliente del "Cold Start" en Render</h3>
+      <h3 class="content-subheading">2.3 Manejo Resiliente del "Cold Start" en Render</h3>
       <p>
         En la infraestructura gratuita de Render, la máquina entra en suspensión tras 15 minutos de inactividad. El primer contacto tardará entre 30 y 45 segundos mientras el servidor inicia. Implementa un reintento con retardo (backoff):
       </p>
+      <div class="code-box-wrapper">
       <div class="code-box-header">
         <span>NODE.JS / CLIENTE RESILIENTE CON RETRY</span>
         <button class="btn-copy" onclick="copiarAlPortapapeles(this, 'code-learn-retry')">Copiar</button>
@@ -341,6 +352,7 @@ traducirLote(["Inicio", "Configuración", "Cerrar Sesión"], "en")
     }
   }
 }</pre>
+    </div>
     </article>
 
     <!-- Módulo 3: Backend Python -->
@@ -351,6 +363,7 @@ traducirLote(["Inicio", "Configuración", "Cerrar Sesión"], "en")
         Integración directa para scripts de datos o APIs construidas con FastAPI, Flask, Django o scripts de procesamiento batch:
       </p>
 
+      <div class="code-box-wrapper">
       <div class="code-box-header">
         <span>PYTHON / MÓDULO REQUESTS (TEXTO Y BATCH)</span>
         <button class="btn-copy" onclick="copiarAlPortapapeles(this, 'code-learn-4')">Copiar</button>
@@ -384,6 +397,7 @@ print(traducir("Servicio de traducción en la nube", "en"))
 
 print(traducir(["Facturación", "Inventario", "Reportes"], "fr"))
 # Salida: ["Facturation", "Inventaire", "Rapports"]</pre>
+    </div>
     </article>
 
     <!-- Módulo 4: Automatización con cURL -->
@@ -394,6 +408,7 @@ print(traducir(["Facturación", "Inventario", "Reportes"], "fr"))
         Puedes consumir el microservicio directamente desde scripts de terminal Bash, pipelines de GitHub Actions o tareas programadas Cron:
       </p>
 
+      <div class="code-box-wrapper">
       <div class="code-box-header">
         <span>TERMINAL / CURL Y JQ</span>
         <button class="btn-copy" onclick="copiarAlPortapapeles(this, 'code-learn-curl')">Copiar</button>
@@ -402,7 +417,8 @@ print(traducir(["Facturación", "Inventario", "Reportes"], "fr"))
 curl -s -X POST "https://vork-st1k.onrender.com/api/translate" \
   -H "Content-Type: application/json" \
   -d '{"text": "Despliegue completado con éxito", "targetLanguage": "en"}' \
-  | jq -r '.translatedText'
+  | jq -r '.translatedText'</pre>
+    </div>
     </article>
 
     <!-- Módulo 5: Integración Pilar 2 - Texto a Voz (TTS) -->
@@ -440,6 +456,7 @@ async function reproducirTexto(texto, voz = "es-ES-AlvaroNeural") {
 fetch("https://vork-st1k.onrender.com/api/tts/voices")
   .then(r => r.json())
   .then(data => console.log("Voces disponibles:", data.voices));</pre>
+    </div>
     </article>
 
     <!-- Módulo 6: Integración Pilar 3 - Clonación de Voz con IA -->
@@ -450,6 +467,7 @@ fetch("https://vork-st1k.onrender.com/api/tts/voices")
         Envía una muestra vocal (grabada o archivo) junto al texto a narrar para obtener una réplica tímbrica en PCM 16-bit:
       </p>
 
+      <div class="code-box-wrapper">
       <div class="code-box-header">
         <span>NODE.JS (FORMDATA / AXIOS) / CLONACIÓN VOCAL</span>
         <button class="btn-copy" onclick="copiarAlPortapapeles(this, 'code-learn-clone')">Copiar</button>
@@ -472,6 +490,7 @@ async function clonarVoz(rutaAudioMuestra, guionTexto) {
   fs.writeFileSync("audio_clonado.wav", res.data);
   console.log("Audio sintetizado con tu voz guardado en audio_clonado.wav");
 }</pre>
+    </div>
     </article>
 
     <!-- Módulo 7: Integración Pilar 4 - Conversor Multimedia (MP3 / MP4) -->
@@ -482,6 +501,7 @@ async function clonarVoz(rutaAudioMuestra, guionTexto) {
         Extrae audio MP3 (hasta 320 kbps) o video MP4 (hasta 1080p) desde YouTube, TikTok, Instagram Reels, Facebook o Twitter/X:
       </p>
 
+      <div class="code-box-wrapper">
       <div class="code-box-header">
         <span>NODE.JS / INSPECCIÓN Y CONVERSIÓN MULTIMEDIA</span>
         <button class="btn-copy" onclick="copiarAlPortapapeles(this, 'code-learn-media')">Copiar</button>
@@ -507,6 +527,7 @@ const convertRes = await fetch("https://vork-st1k.onrender.com/api/media/convert
 });
 const result = await convertRes.json();
 console.log("Enlace de descarga directa:", result.downloadUrl);</pre>
+    </div>
     </article>
 
     <!-- Módulo 8: Códigos de Respuesta y Diagnóstico -->
@@ -562,7 +583,7 @@ console.log("Enlace de descarga directa:", result.downloadUrl);</pre>
   <footer id="footer-placeholder" data-component="footer" data-active="learn"></footer>
 
   <script src="/js/vork.js"></script>
-  <script src="/js/vork.js"></script>
-    <script src="/js/modules/common.js" defer></script>
+  <script src="/js/utils/clipboard.js" defer></script>
+  <script src="/js/modules/common.js" defer></script>
 </body>
 </html>

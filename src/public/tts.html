@@ -184,11 +184,11 @@
 
     <!-- Catálogo de Voces Humanas Reales (24 Voces Disponibles) -->
     <section class="content-box-card" id="catalog-section">
-      <div class="section-full-title" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; margin-bottom: 20px;">
         <div>
           <span class="tech-card-tag">[ VOICES_ECOSYSTEM // 24_REAL_HUMANS ]</span>
-          <h2>Catálogo de Voces Humanas Reales</h2>
-          <p>Voces acústicas con acentos auténticos, prosodia natural y articulación cristalina en más de 10 idiomas.</p>
+          <h2 style="margin: 6px 0 4px;">Catálogo de Voces Humanas Reales</h2>
+          <p style="color: var(--muted); margin: 0; font-size: 0.95rem;">Voces acústicas con acentos auténticos, prosodia natural y articulación cristalina en más de 10 idiomas.</p>
         </div>
         <div id="catalog-filters" style="display: flex; gap: 6px; flex-wrap: wrap;">
           <button class="btn btn-primary btn-filter-voice active" data-filter="all" style="padding: 6px 12px; font-size: 0.74rem;">Todas</button>
@@ -203,7 +203,7 @@
       </div>
 
       <div id="voices-cards-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-top: 20px;">
-        <div style="grid-column: 1 / -1; padding: 20px; text-align: center; color: var(--text-muted);">
+        <div style="grid-column: 1 / -1; padding: 20px; text-align: center; color: var(--muted);">
           Cargando catálogo de 24 voces humanas desde el backend...
         </div>
       </div>
@@ -231,8 +231,8 @@
       </div>
     </section>
 
-        <!-- LOS 9 PILARES DE VORK -->
-    <section class="workbench-wrap" id="pilares" style="margin-top: 48px; margin-bottom: 40px;">
+    <!-- LOS 9 PILARES DE VORK -->
+    <section class="workbench-wrap" id="pilares">
       <div class="section-head">
         <span class="label">Pilares Operacionales</span>
         <h2 class="h-section">Los 9 Pilares de <em>Vork</em></h2>
@@ -355,17 +355,17 @@
     </section>
 
     <!-- SECCIÓN VORK CLI -->
-    <section class="workbench-wrap" style="margin-top: 48px; margin-bottom: 40px;">
-      <div class="workbench-card" style="background: linear-gradient(135deg, rgba(22, 27, 34, 0.96) 0%, rgba(13, 17, 23, 0.98) 100%); border: 1px solid rgba(255, 122, 61, 0.22); box-shadow: 0 16px 36px -12px rgba(0, 0, 0, 0.5), 0 0 24px -6px rgba(255, 122, 61, 0.08); display: flex; align-items: center; justify-content: space-between; gap: 28px; flex-wrap: wrap; padding: clamp(28px, 4vw, 40px);">
+    <section class="workbench-wrap">
+      <div class="workbench-card">
         <div style="flex: 1 1 540px; max-width: 780px;">
           <span class="label" style="color: var(--accent); display: inline-block; margin-bottom: 8px;">(09) Terminal &amp; Automatización</span>
-          <h2 class="h-section" style="color: #ffffff; margin: 0 0 12px 0; font-size: clamp(1.8rem, 3.2vw, 2.3rem); line-height: 1.2;">Vork <em>CLI</em></h2>
-          <p style="color: #a59a8f; margin: 0; font-size: 1.02rem; line-height: 1.65;">
+          <h2 class="h-section" style="margin: 0 0 12px 0; font-size: clamp(1.8rem, 3.2vw, 2.3rem); line-height: 1.2;">Vork <em>CLI</em></h2>
+          <p style="color: var(--muted); margin: 0; font-size: 1.02rem; line-height: 1.65;">
             Entorno centrado en la terminal para interactuar con agentes Vork en lenguaje natural. Orquesta subagentes paralelos, atajos configurables y comandos con diagonal sin cambiar de contexto.
           </p>
         </div>
         <div style="flex-shrink: 0;">
-          <a href="/cli" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 10px; padding: 14px 28px; font-size: 0.95rem; font-weight: 700; box-shadow: 0 6px 20px rgba(255, 102, 0, 0.35); text-decoration: none;">
+          <a href="/cli" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 10px; padding: 14px 28px; font-size: 0.95rem; font-weight: 700; text-decoration: none;">
             <span>Ir a Vork CLI</span>
             <svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
           </a>
@@ -379,7 +379,6 @@
   <footer id="footer-placeholder" data-component="footer" data-active="tts"></footer>
 
   <script src="/js/vork.js"></script>
-  <script src="/js/vork.js"></script>
-    <script src="/js/modules/tts.js" defer></script>
+  <script src="/js/modules/tts.js" defer></script>
 </body>
 </html>

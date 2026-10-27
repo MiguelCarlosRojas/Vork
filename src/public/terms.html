@@ -11,7 +11,7 @@
   <link rel="icon" type="image/png" sizes="64x64" href="/img/logo.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/img/logo.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/img/logo.png">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css">
@@ -23,15 +23,11 @@
 </head>
 <body>
 
-  <!-- Textura de grano sutil Huella -->
   <div class="grain" aria-hidden="true"></div>
 
-
-  <!-- Barra Superior -->
   <header id="header-placeholder" data-component="header" data-active="terms"></header>
 
   <main class="full-container">
-    <!-- Hero de Términos del Servicio -->
     <section class="hero-full">
       <div class="hero-split hero-split-solo">
         <div class="hero-split-content">
@@ -50,20 +46,24 @@
       <p>
         Al acceder o utilizar la API de Vork a través de <code>https://vork-st1k.onrender.com</code>, aceptas someterte a estos Términos de Servicio y a todas las directrices técnicas descritas en este portal.
       </p>
+    </article>
 
-      <span class="tech-card-tag" style="margin-top: 24px;">[ 02 // FAIR_USE ]</span>
+    <article class="content-box-card">
+      <span class="tech-card-tag">[ 02 // FAIR_USE ]</span>
       <h2>2. Uso Responsable y Fair Use en los 9 Pilares</h2>
       <p>
         El ecosistema se ofrece como plataforma libre y abierta orientada a desarrolladores y usuarios finales bajo las siguientes directrices operativas:
       </p>
-      <ul style="margin-left: 20px; line-height: 2;">
+      <ul>
         <li><strong>Traductor en la Nube:</strong> Utilizar el envío por lotes (<code>texts: [...]</code>) para páginas completas en una sola petición consolidada y respetar el caché en memoria para no saturar las redes.</li>
         <li><strong>Texto a Voz (TTS):</strong> Mantener las peticiones dentro del límite de 5,000 caracteres por síntesis y utilizar streaming responsable.</li>
         <li><strong>Clonación de Voz con IA:</strong> Utilizar únicamente la voz propia o contar con el consentimiento explícito del titular del timbre vocal. Queda terminantemente prohibida la suplantación de identidad, difamación, fraudes o creación de deepfakes lesivos.</li>
         <li><strong>Conversor Multimedia Universal:</strong> Realizar conversiones de audio y video exclusivamente para propósitos personales, educativos o de contenidos bajo licencias libres y de dominio público.</li>
       </ul>
+    </article>
 
-      <span class="tech-card-tag" style="margin-top: 24px;">[ 03 // AVAILABILITY ]</span>
+    <article class="content-box-card">
+      <span class="tech-card-tag">[ 03 // AVAILABILITY ]</span>
       <h2>3. Disponibilidad del Servicio</h2>
       <p>
         El servicio se proporciona según disponibilidad técnica. Puedes verificar el estado en tiempo real en nuestra página de <a href="/status">Estado del Servicio</a>.
@@ -74,7 +74,6 @@
   <footer id="footer-placeholder" data-component="footer" data-active="terms"></footer>
 
   <script src="/js/vork.js"></script>
-  <script src="/js/vork.js"></script>
-    <script src="/js/modules/common.js" defer></script>
+  <script src="/js/modules/common.js" defer></script>
 </body>
 </html>

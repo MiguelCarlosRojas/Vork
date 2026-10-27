@@ -204,21 +204,21 @@
       </div>
 
       <!-- Barra de Progreso y Estado de Conversión -->
-      <div id="conversion-progress-box" style="display: none; margin-bottom: 20px; background: rgba(10, 12, 18, 0.8); border: 1px solid var(--border-card); border-radius: var(--radius-md); padding: 16px;">
+      <div id="conversion-progress-box" style="display: none; margin-bottom: 20px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 0.85rem;">
-          <span id="progress-status-text" style="color: var(--primary); font-weight: 600; display: flex; align-items: center; gap: 8px;">
+          <span id="progress-status-text" style="color: var(--accent); font-weight: 600; display: flex; align-items: center; gap: 8px;">
             <span class="spinner" style="display: inline-block; width: 14px; height: 14px;"></span>
             Procesando conversión multimedia...
           </span>
-          <span id="progress-percent" style="font-family: var(--font-mono); color: var(--text-white); font-weight: 700;">0%</span>
+          <span id="progress-percent" style="font-family: var(--f-mono); color: var(--ink); font-weight: 700;">0%</span>
         </div>
-        <div style="width: 100%; height: 8px; background: rgba(255, 255, 255, 0.08); border-radius: var(--radius-full); overflow: hidden;">
-          <div id="progress-bar-fill" style="width: 0%; height: 100%; background: var(--primary-gradient); transition: width 0.3s ease;"></div>
+        <div style="width: 100%; height: 8px; background: var(--line); border-radius: var(--radius-full); overflow: hidden;">
+          <div id="progress-bar-fill" style="width: 0%; height: 100%; background: var(--accent); transition: width 0.3s ease;"></div>
         </div>
       </div>
 
       <!-- Tarjeta de Resultado con Vista Previa y Reproductor Integrado -->
-      <div id="result-card" style="display: none; background: rgba(15, 17, 24, 0.95); border: 1px solid rgba(0, 240, 255, 0.4); border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow-glow);">
+      <div id="result-card" style="display: none;">
         <div style="display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start;">
           <!-- Miniatura del Video -->
           <div style="position: relative; width: 220px; max-width: 100%; aspect-ratio: 16/9; background: #000; border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--border-card); flex-shrink: 0;">
@@ -229,20 +229,20 @@
 
           <!-- Información y Detalles -->
           <div style="flex: 1; min-width: 250px;">
-            <span id="res-format-badge" class="brand-badge" style="background: rgba(255, 122, 61, 0.15); border-color: rgba(255, 122, 61, 0.35); color: var(--primary); margin-bottom: 8px; display: inline-block;">MP3 320 KBPS</span>
-            <h3 id="res-title" style="margin: 0 0 6px; font-size: 1.15rem; line-height: 1.4;">Título del Video</h3>
-            <p id="res-author" style="margin: 0 0 14px; font-size: 0.85rem; color: var(--text-muted);">Canal / Autor</p>
+            <span id="res-format-badge" class="brand-badge" style="background: var(--accent-soft); border-color: var(--accent); color: var(--accent); margin-bottom: 8px; display: inline-block;">MP3 320 KBPS</span>
+            <h3 id="res-title" style="margin: 0 0 6px; font-size: 1.15rem; line-height: 1.4; color: var(--ink);">Título del Video</h3>
+            <p id="res-author" style="margin: 0 0 14px; font-size: 0.85rem; color: var(--muted);">Canal / Autor</p>
 
-            <div style="display: flex; gap: 14px; flex-wrap: wrap; font-size: 0.8rem; font-family: var(--font-mono); color: var(--text-secondary); margin-bottom: 16px;">
-              <span>DURACIÓN: <strong id="res-duration-text" style="color: var(--primary);">00:00</strong></span>
-              <span>TAMAÑO: <strong id="res-size" style="color: #ffffff;">0 MB</strong></span>
+            <div style="display: flex; gap: 14px; flex-wrap: wrap; font-size: 0.8rem; font-family: var(--f-mono); color: var(--muted); margin-bottom: 16px;">
+              <span>DURACIÓN: <strong id="res-duration-text" style="color: var(--accent);">00:00</strong></span>
+              <span>TAMAÑO: <strong id="res-size" style="color: var(--ink);">0 MB</strong></span>
               <span>ESTADO: <strong style="color: #10b981;">COMPLETADO</strong></span>
-              <span>TTL EN CACHÉ: <strong style="color: var(--primary);">30 MIN</strong></span>
+              <span>TTL EN CACHÉ: <strong style="color: var(--accent);">30 MIN</strong></span>
             </div>
 
             <!-- Reproductor Integrado para Audio MP3 -->
             <div id="audio-player-wrapper" style="margin-bottom: 16px;">
-              <audio id="html5-audio-player" controls style="width: 100%; border-radius: var(--radius-md); outline: none; filter: invert(0.9) hue-rotate(180deg);"></audio>
+              <audio id="html5-audio-player" controls style="width: 100%; border-radius: var(--radius-md); outline: none;"></audio>
             </div>
 
             <!-- Reproductor Integrado para Video MP4 -->
@@ -334,7 +334,7 @@
     </section>
 
         <!-- LOS 9 PILARES DE VORK -->
-    <section class="workbench-wrap" id="pilares" style="margin-top: 48px; margin-bottom: 40px;">
+    <section class="workbench-wrap" id="pilares">
       <div class="section-head">
         <span class="label">Pilares Operacionales</span>
         <h2 class="h-section">Los 9 Pilares de <em>Vork</em></h2>
@@ -457,17 +457,17 @@
     </section>
 
     <!-- SECCIÓN VORK CLI -->
-    <section class="workbench-wrap" style="margin-top: 48px; margin-bottom: 40px;">
-      <div class="workbench-card" style="background: linear-gradient(135deg, rgba(22, 27, 34, 0.96) 0%, rgba(13, 17, 23, 0.98) 100%); border: 1px solid rgba(255, 122, 61, 0.22); box-shadow: 0 16px 36px -12px rgba(0, 0, 0, 0.5), 0 0 24px -6px rgba(255, 122, 61, 0.08); display: flex; align-items: center; justify-content: space-between; gap: 28px; flex-wrap: wrap; padding: clamp(28px, 4vw, 40px);">
+    <section class="workbench-wrap">
+      <div class="workbench-card">
         <div style="flex: 1 1 540px; max-width: 780px;">
           <span class="label" style="color: var(--accent); display: inline-block; margin-bottom: 8px;">(09) Terminal &amp; Automatización</span>
-          <h2 class="h-section" style="color: #ffffff; margin: 0 0 12px 0; font-size: clamp(1.8rem, 3.2vw, 2.3rem); line-height: 1.2;">Vork <em>CLI</em></h2>
-          <p style="color: #a59a8f; margin: 0; font-size: 1.02rem; line-height: 1.65;">
+          <h2 class="h-section" style="margin: 0 0 12px 0; font-size: clamp(1.8rem, 3.2vw, 2.3rem); line-height: 1.2;">Vork <em>CLI</em></h2>
+          <p style="color: var(--muted); margin: 0; font-size: 1.02rem; line-height: 1.65;">
             Entorno centrado en la terminal para interactuar con agentes Vork en lenguaje natural. Orquesta subagentes paralelos, atajos configurables y comandos con diagonal sin cambiar de contexto.
           </p>
         </div>
         <div style="flex-shrink: 0;">
-          <a href="/cli" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 10px; padding: 14px 28px; font-size: 0.95rem; font-weight: 700; box-shadow: 0 6px 20px rgba(255, 102, 0, 0.35); text-decoration: none;">
+          <a href="/cli" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 10px; padding: 14px 28px; font-size: 0.95rem; font-weight: 700; text-decoration: none;">
             <span>Ir a Vork CLI</span>
             <svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
           </a>
@@ -480,7 +480,7 @@
   <!-- Pie de Página Aliniado y Estructurado -->
   <footer id="footer-placeholder" data-component="footer" data-active="converter"></footer>
 
-  <!-- Script del Conversor Multimedia -->
-    <script src="/js/modules/converter.js" defer></script>
+  <script src="/js/vork.js"></script>
+  <script src="/js/modules/converter.js" defer></script>
 </body>
 </html>

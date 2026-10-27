@@ -1,7 +1,30 @@
-﻿<#
+<#
 .SYNOPSIS
     Vork CLI - Modulo UI: Selectores Interactivos con Flechas (Up/Down) y Enter
 #>
+
+function Wait-VorkGoBack {
+    param([string]$CmdName = "")
+
+    if ([Console]::IsInputRedirected) { return }
+
+    Write-Host ""
+    Write-Host "  ${LeadLight}Keyboard: ${Cyan}${Bold}esc${Reset} ${LeadLight}Go Back  ${Cyan}${Bold}enter${Reset} ${LeadLight}Select${Reset}"
+
+    # Limpiar buffer de teclado residual
+    while ([Console]::KeyAvailable) {
+        try { [void][Console]::ReadKey($true) } catch { break }
+    }
+
+    try {
+        while ($true) {
+            $k = [Console]::ReadKey($true)
+            if ($k.Key -in [ConsoleKey]::Escape, [ConsoleKey]::Enter, [ConsoleKey]::Spacebar) {
+                break
+            }
+        }
+    } catch { }
+}
 
 function Read-VorkInput {
     param(
@@ -867,7 +890,7 @@ function Show-InteractiveModelSwitcher {
     $rule = [string]::new($ruleChar, ($width - 1))
 
     # Pre-scroll buffer space for rock-solid stability
-    $neededRows = 18
+    $neededRows = 14
     $startTop = try { [Console]::CursorTop } catch { 0 }
     for ($i = 0; $i -lt $neededRows; $i++) {
         Write-Host ""
@@ -880,11 +903,6 @@ function Show-InteractiveModelSwitcher {
         $selModelIdx = 0
 
         $row = $baseRow
-
-        # Rule y prompt decorativo
-        try { [Console]::SetCursorPosition(0, $row) } catch { }
-        Write-Host "${Lead}$rule${Reset}$ClrToEnd"
-        $row++
 
         try { [Console]::SetCursorPosition(0, $row) } catch { }
         Write-Host "${Coral}${Bold}> ${Reset}$ClrToEnd"
@@ -1006,7 +1024,7 @@ function Show-InteractiveModelSwitcher {
         try { [Console]::SetCursorPosition(0, $row) } catch { }
         $activeText = "Vork 3 " + [char]0x00B7 + " $($efforts[$effortIdx])"
         $padLen = [Math]::Max(1, ($width - 1) - $activeText.Length)
-        Write-Host "$([string]::new(' ', $padLen))${LeadLight}$activeText${Reset}$ClrToEnd"
+        Write-Host "$([string]::new(' ', $padLen))${effortColor}$activeText${Reset}$ClrToEnd"
     }
 
     & $renderAll

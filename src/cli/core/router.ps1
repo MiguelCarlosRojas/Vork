@@ -381,30 +381,33 @@ function Read-InteractiveVorkLine {
 
         if ($key.Key -eq [ConsoleKey]::Enter) {
             try { [Console]::TreatControlCAsInput = $false } catch { }
+            $finalText = ""
             if ($slashMenuOpen -and $filtered.Count -gt 0) {
-                $chosen = $filtered[$selIdx].Cmd
+                $finalText = $filtered[$selIdx].Cmd
                 & $clearMenu
                 $slashMenuOpen = $false
-                try {
-                    [Console]::SetCursorPosition(2, $PromptRow)
-                    Write-Host "${Coral}${Bold}$chosen${Reset}$ClrToEnd" -NoNewline
-                    [Console]::SetCursorPosition(0, $PromptRow + 3)
-                } catch { }
-                Write-Host ""
-                return $chosen
+            } else {
+                if ($slashMenuOpen) {
+                    & $clearMenu
+                    $slashMenuOpen = $false
+                }
+                $finalText = $buf.ToString()
             }
 
-            if ($slashMenuOpen) {
-                & $clearMenu
-                $slashMenuOpen = $false
+            if ($finalText.Trim().Length -gt 0) {
+                try {
+                    $topR = [Math]::Max(0, $PromptRow - 1)
+                    [Console]::SetCursorPosition(0, $topR)
+                    Write-Host "${Coral}${Bold}> $finalText${Reset}$ClrToEnd"
+                    [Console]::SetCursorPosition(0, $PromptRow)
+                    Write-Host ([string]::new(" ", [Math]::Max(1, $Width - 1))) -NoNewline
+                    [Console]::SetCursorPosition(0, $PromptRow + 1)
+                    Write-Host ([string]::new(" ", [Math]::Max(1, $Width - 1))) -NoNewline
+                    [Console]::SetCursorPosition(0, $PromptRow + 2)
+                    Write-Host ([string]::new(" ", [Math]::Max(1, $Width - 1))) -NoNewline
+                    [Console]::SetCursorPosition(0, $PromptRow)
+                } catch { }
             }
-            $finalText = $buf.ToString()
-            try {
-                [Console]::SetCursorPosition(2, $PromptRow)
-                Write-Host "${Coral}${Bold}$finalText${Reset}$ClrToEnd" -NoNewline
-                [Console]::SetCursorPosition(0, $PromptRow + 3)
-            } catch { }
-            Write-Host ""
             return $finalText
         }
 
@@ -715,16 +718,19 @@ function Start-InteractiveREPL {
                 Set-VorkTier -NewTier $argVal
                 $outMsg = "Set effort to $argVal"
                 Write-Host "  ${LeadLight}$elbow  $outMsg${Reset}"
+                Write-Host ""
                 Save-VorkConversationRecord -Cmd $line -Output $outMsg
             } else {
                 $mRes = Show-InteractiveModelSwitcher
                 if ($mRes -and $mRes.Action -eq "selected") {
                     $outMsg = "Switched to $($mRes.Model) · $($mRes.Tier)"
                     Write-Host "  ${LeadLight}$elbow  $outMsg${Reset}"
+                Write-Host ""
                     Save-VorkConversationRecord -Cmd $line -Output $outMsg
                 } else {
                     $outMsg = "Exited /model command"
                     Write-Host "  ${LeadLight}$elbow  $outMsg${Reset}"
+                Write-Host ""
                     Save-VorkConversationRecord -Cmd $line -Output $outMsg
                 }
             }
@@ -735,6 +741,7 @@ function Start-InteractiveREPL {
             Invoke-CmdTheme -ArgsList $replArgs
             $outMsg = if ($replArgs -and $replArgs.Count -gt 0) { "Changed theme to $global:VorkThemeName" } else { "Exited /theme command" }
             Write-Host "  ${LeadLight}$elbow  $outMsg${Reset}"
+                Write-Host ""
             Save-VorkConversationRecord -Cmd $line -Output $outMsg
             continue
         }
@@ -743,6 +750,7 @@ function Start-InteractiveREPL {
             $sRes = Show-InteractiveSettings
             $outMsg = "Exited /settings command"
             Write-Host "  ${LeadLight}$elbow  $outMsg${Reset}"
+                Write-Host ""
             Save-VorkConversationRecord -Cmd $line -Output $outMsg
             continue
         }
@@ -751,6 +759,7 @@ function Start-InteractiveREPL {
         $outMsg = if ($replCmd.StartsWith("/")) { "Exited $replCmd command" } else { "Executed $replCmd" }
         if ($replCmd.StartsWith("/")) {
             Write-Host "  ${LeadLight}$elbow  $outMsg${Reset}"
+                Write-Host ""
         }
         Save-VorkConversationRecord -Cmd $line -Output $outMsg
     }

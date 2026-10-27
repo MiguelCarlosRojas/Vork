@@ -140,5 +140,6 @@ function Invoke-PillarMedia {
         Write-Host "  $Cyan│$Reset  ${Coral}[Error Multimedia]:${Reset} $($_.Exception.Message)"
         Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
     }
+    Wait-VorkGoBack
     Write-Host ""
 }

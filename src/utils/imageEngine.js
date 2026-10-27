@@ -369,7 +369,64 @@ async function processBackgroundOperation({
       args.push("--bg-image", bgPath);
     }
 
-    const result = await runPythonStudio(args);
+    let result = null;
+    try {
+      result = await runPythonStudio(args);
+    } catch (pyErr) {
+      logger.warn(`[ImageEngine] Procesador local Python no disponible (${pyErr.message}). Utilizando motor IA de silueta BRIA-RMBG-1.4...`);
+      const { Client } = require("@gradio/client");
+      const client = await Client.connect("briaai/BRIA-RMBG-1.4");
+      const imgBuffer = fs.readFileSync(inputPath);
+      const blob = new Blob([imgBuffer], { type: "image/png" });
+      const hfRes = await client.predict("/run", { image: blob });
+
+      if (!hfRes || !hfRes.data || !hfRes.data[1] || !hfRes.data[1].url) {
+        throw new Error("No se pudo obtener la silueta transparente del modelo IA.");
+      }
+
+      const cutoutUrl = hfRes.data[1].url;
+      const cutoutResp = await axios.get(cutoutUrl, { responseType: "arraybuffer", timeout: 30000 });
+      const tempCutoutPath = path.join(IMAGE_CACHE_DIR, `${targetId}_cutout.png`);
+      fs.writeFileSync(tempCutoutPath, Buffer.from(cutoutResp.data));
+
+      const ffmpeg = require("@ffmpeg-installer/ffmpeg").path;
+      const { execFileSync } = require("child_process");
+
+      if (safeMode === "transparent") {
+        fs.renameSync(tempCutoutPath, outputPath);
+      } else if (safeMode === "color") {
+        const safeColor = /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(color) ? color : "#FFFFFF";
+        execFileSync(ffmpeg, [
+          "-y",
+          "-i", tempCutoutPath,
+          "-filter_complex", `color=c=${safeColor}:s=16x16[c];[c][0:v]scale2ref=iw:ih[bg][fg];[bg][fg]overlay=format=auto[out]`,
+          "-map", "[out]",
+          "-vframes", "1",
+          outputPath
+        ]);
+        try { fs.unlinkSync(tempCutoutPath); } catch (e) {}
+      } else if ((safeMode === "custom_bg" || safeMode === "prompt") && bgPath) {
+        execFileSync(ffmpeg, [
+          "-y",
+          "-i", tempCutoutPath,
+          "-i", bgPath,
+          "-filter_complex", "[1:v][0:v]scale2ref=iw:ih[bg][fg];[bg][fg]overlay=format=auto[out]",
+          "-map", "[out]",
+          "-vframes", "1",
+          outputPath
+        ]);
+        try { fs.unlinkSync(tempCutoutPath); } catch (e) {}
+      } else {
+        fs.renameSync(tempCutoutPath, outputPath);
+      }
+
+      const stats = fs.statSync(outputPath);
+      result = {
+        size_bytes: stats.size,
+        width: 1024,
+        height: 1024
+      };
+    }
 
     const itemData = {
       id: targetId,

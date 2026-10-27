@@ -11,7 +11,7 @@
   <link rel="icon" type="image/png" sizes="64x64" href="/img/logo.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/img/logo.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/img/logo.png">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css">
@@ -23,15 +23,11 @@
 </head>
 <body>
 
-  <!-- Textura de grano sutil Huella -->
   <div class="grain" aria-hidden="true"></div>
 
-
-  <!-- Barra Superior -->
   <header id="header-placeholder" data-component="header" data-active="security"></header>
 
   <main class="full-container">
-    <!-- Hero de Seguridad -->
     <section class="hero-full">
       <div class="hero-split hero-split-solo">
         <div class="hero-split-content">
@@ -50,20 +46,26 @@
       <p>
         Cada conexión hacia la API está protegida por túneles criptográficos TLS 1.3 administrados a través de Cloudflare y los balanceadores de carga de Render. Cualquier solicitud HTTP no segura es automáticamente rechazada o redirigida a HTTPS.
       </p>
+    </article>
 
-      <span class="tech-card-tag" style="margin-top: 24px;">[ 02 // CORS_CONTROL ]</span>
+    <article class="content-box-card">
+      <span class="tech-card-tag">[ 02 // CORS_CONTROL ]</span>
       <h2>2. CORS y Seguridad de Orígenes</h2>
       <p>
         Las cabeceras CORS de la API están configuradas de forma estandarizada para responder a peticiones preflight (<code>OPTIONS</code>) con código <code>204 No Content</code>, permitiendo comunicación asíncrona segura entre navegadores web y el microservicio.
       </p>
+    </article>
 
-      <span class="tech-card-tag" style="margin-top: 24px;">[ 03 // SCHEMA_SANITIZATION ]</span>
+    <article class="content-box-card">
+      <span class="tech-card-tag">[ 03 // SCHEMA_SANITIZATION ]</span>
       <h2>3. Sanitización y Validación Nativa de Esquemas en los 9 Pilares</h2>
       <p>
         Todos los datos entrantes pasan por middlewares de validación estricta de alto rendimiento en O(1) diseñados para cada pilar: normalización de códigos ISO en traducción, verificación de longitud en síntesis TTS, análisis de cabeceras y formatos binarios seguros en clonación de voz, y filtrado estricto por lista blanca de plataformas en el conversor multimedia para prevenir inyecciones y accesos a recursos no autorizados.
       </p>
+    </article>
 
-      <span class="tech-card-tag" style="margin-top: 24px;">[ 04 // ACTIVE_TELEMETRY ]</span>
+    <article class="content-box-card">
+      <span class="tech-card-tag">[ 04 // ACTIVE_TELEMETRY ]</span>
       <h2>4. Monitoreo Activo</h2>
       <p>
         Puedes comprobar la integridad de los 17 endpoints las 24 horas del día en el portal de <a href="/status">Estado del Servicio</a>.
@@ -74,7 +76,6 @@
   <footer id="footer-placeholder" data-component="footer" data-active="security"></footer>
 
   <script src="/js/vork.js"></script>
-  <script src="/js/vork.js"></script>
-    <script src="/js/modules/common.js" defer></script>
+  <script src="/js/modules/common.js" defer></script>
 </body>
 </html>

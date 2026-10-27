@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Pilar 09: Vork Agentes Autónomos & Modo Interactivo TUI
 #>
@@ -41,5 +41,6 @@ function Invoke-PillarAgents {
     Write-Host "  ${Cyan}│${Reset}    Descarga: ${Yellow}$ApiBase/api/cli/health${Reset}"
     Write-Host "  ${Cyan}│${Reset}    Stream:   ${Cyan}$ApiBase/api/cli/vork.ps1${Reset}"
     Write-Host "  ${Cyan}╰───────────────────────────────────────────────────${Reset}"
+    Wait-VorkGoBack
     Write-Host ""
 }

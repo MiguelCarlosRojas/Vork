@@ -68,5 +68,6 @@ function Invoke-PillarTTS {
         Write-Host "  $Cyan│$Reset  ${Coral}[Error TTS]:${Reset} $($_.Exception.Message)"
         Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
     }
+    Wait-VorkGoBack
     Write-Host ""
 }

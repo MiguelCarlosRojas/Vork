@@ -58,7 +58,7 @@
     </section>
 
     <!-- Estudio de Separación Multimedia -->
-    <section id="splitter-studio" class="studio-wrapper" style="margin-top: 10px; margin-bottom: 40px;">
+    <section id="splitter-studio" class="studio-wrapper">
       
       <!-- Encabezado del Estudio de Separación (Diseño Conversor) -->
       <div class="studio-header-full" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 22px; flex-wrap: wrap; gap: 14px;">
@@ -222,18 +222,18 @@
       <!-- ========================================================================= -->
       <!-- RESULTADO: ESTUDIO DE REPRODUCCIÓN DUAL & DESCARGAS SEPARADAS             -->
       <!-- ========================================================================= -->
-      <div id="result-box" style="display: none; background: rgba(15, 17, 24, 0.95); border: 1px solid rgba(0, 240, 255, 0.4); border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow-glow);">
+      <div id="result-box" style="display: none;">
         
         <!-- Cabecera de la Pista Procesada con Acciones -->
         <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; flex-wrap: wrap;">
           <div style="display: flex; align-items: center; gap: 16px; min-width: 240px; flex: 1;">
-            <img id="res-thumb" src="/img/logo.png" alt="Cover" style="width: 64px; height: 64px; border-radius: 10px; object-fit: cover; border: 1px solid var(--border-subtle);">
+            <img id="res-thumb" src="/img/logo.png" alt="Cover" style="width: 64px; height: 64px; border-radius: 10px; object-fit: cover; border: 1px solid var(--line);">
             <div>
-              <h3 id="res-title" style="margin: 0 0 6px 0; font-size: 1.2rem; font-weight: 800; line-height: 1.4;">Título de la Canción</h3>
-              <div style="display: flex; gap: 10px; align-items: center; font-size: 0.82rem; color: var(--text-muted); flex-wrap: wrap;">
-                <span id="res-platform" style="background: rgba(255, 255, 255, 0.08); padding: 2px 8px; border-radius: 4px; text-transform: uppercase;">MULTIMEDIA</span>
+              <h3 id="res-title" style="margin: 0 0 6px 0; font-size: 1.2rem; font-weight: 800; line-height: 1.4; color: var(--ink);">Título de la Canción</h3>
+              <div style="display: flex; gap: 10px; align-items: center; font-size: 0.82rem; color: var(--muted); flex-wrap: wrap;">
+                <span id="res-platform" style="background: var(--line); padding: 2px 8px; border-radius: 4px; text-transform: uppercase;">MULTIMEDIA</span>
                 <span id="res-duration">00:00</span>
-                <span id="res-stem-badge" style="color: var(--primary); display: inline-flex; align-items: center; gap: 4px;">
+                <span id="res-stem-badge" style="color: var(--accent); display: inline-flex; align-items: center; gap: 4px;">
                   <svg class="icon" viewBox="0 0 24 24" style="width: 14px; height: 14px;"><polyline points="20 6 9 17 4 12"/></svg>
                   DEMUCS v4 AI // 2 STEMS
                 </span>
@@ -247,7 +247,7 @@
         <div style="margin-bottom: 18px;">
           <div class="studio-label" style="margin-bottom: 8px;">
             <span>MODO DE ESCUCHA INTERACTIVO</span>
-            <span id="current-listen-label" style="color: var(--primary); font-weight: 700;">SOLO INSTRUMENTAL</span>
+            <span id="current-listen-label" style="color: var(--accent); font-weight: 700;">SOLO INSTRUMENTAL</span>
           </div>
           <div style="display: flex; gap: 10px; flex-wrap: wrap;">
             <button id="btn-mode-inst" type="button" class="btn mode-listen-btn active">
@@ -271,9 +271,9 @@
             <svg id="master-play-icon" class="icon" style="width: 20px; height: 20px;" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
           </button>
           <div style="flex: 1;">
-            <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px;">
-              <span>TIEMPO: <strong id="time-current" style="color: #fff;">00:00</strong></span>
-              <span>DURACIÓN: <strong id="time-total" style="color: #fff;">00:00</strong></span>
+            <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--muted); margin-bottom: 6px;">
+              <span>TIEMPO: <strong id="time-current" style="color: var(--ink);">00:00</strong></span>
+              <span>DURACIÓN: <strong id="time-total" style="color: var(--ink);">00:00</strong></span>
             </div>
             <input type="range" id="master-scrubber" min="0" max="100" value="0" style="width: 100%; cursor: pointer;">
           </div>
@@ -427,7 +427,7 @@
     </section>
 
         <!-- LOS 9 PILARES DE VORK -->
-    <section class="workbench-wrap" id="pilares" style="margin-top: 48px; margin-bottom: 40px;">
+    <section class="workbench-wrap" id="pilares">
       <div class="section-head">
         <span class="label">Pilares Operacionales</span>
         <h2 class="h-section">Los 9 Pilares de <em>Vork</em></h2>
@@ -550,17 +550,17 @@
     </section>
 
     <!-- SECCIÓN VORK CLI -->
-    <section class="workbench-wrap" style="margin-top: 48px; margin-bottom: 40px;">
-      <div class="workbench-card" style="background: linear-gradient(135deg, rgba(22, 27, 34, 0.96) 0%, rgba(13, 17, 23, 0.98) 100%); border: 1px solid rgba(255, 122, 61, 0.22); box-shadow: 0 16px 36px -12px rgba(0, 0, 0, 0.5), 0 0 24px -6px rgba(255, 122, 61, 0.08); display: flex; align-items: center; justify-content: space-between; gap: 28px; flex-wrap: wrap; padding: clamp(28px, 4vw, 40px);">
+    <section class="workbench-wrap">
+      <div class="workbench-card">
         <div style="flex: 1 1 540px; max-width: 780px;">
           <span class="label" style="color: var(--accent); display: inline-block; margin-bottom: 8px;">(09) Terminal &amp; Automatización</span>
-          <h2 class="h-section" style="color: #ffffff; margin: 0 0 12px 0; font-size: clamp(1.8rem, 3.2vw, 2.3rem); line-height: 1.2;">Vork <em>CLI</em></h2>
-          <p style="color: #a59a8f; margin: 0; font-size: 1.02rem; line-height: 1.65;">
+          <h2 class="h-section" style="margin: 0 0 12px 0; font-size: clamp(1.8rem, 3.2vw, 2.3rem); line-height: 1.2;">Vork <em>CLI</em></h2>
+          <p style="color: var(--muted); margin: 0; font-size: 1.02rem; line-height: 1.65;">
             Entorno centrado en la terminal para interactuar con agentes Vork en lenguaje natural. Orquesta subagentes paralelos, atajos configurables y comandos con diagonal sin cambiar de contexto.
           </p>
         </div>
         <div style="flex-shrink: 0;">
-          <a href="/cli" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 10px; padding: 14px 28px; font-size: 0.95rem; font-weight: 700; box-shadow: 0 6px 20px rgba(255, 102, 0, 0.35); text-decoration: none;">
+          <a href="/cli" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 10px; padding: 14px 28px; font-size: 0.95rem; font-weight: 700; text-decoration: none;">
             <span>Ir a Vork CLI</span>
             <svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
           </a>
@@ -577,6 +577,7 @@
   <audio id="audio-inst" preload="auto"></audio>
   <audio id="audio-voc" preload="auto"></audio>
 
-    <script src="/js/modules/vocal-remover.js" defer></script>
+  <script src="/js/vork.js"></script>
+  <script src="/js/modules/vocal-remover.js" defer></script>
 </body>
 </html>

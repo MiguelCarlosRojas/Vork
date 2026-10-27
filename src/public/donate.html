@@ -11,7 +11,7 @@
   <link rel="icon" type="image/png" sizes="64x64" href="/img/logo.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/img/logo.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/img/logo.png">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css">
@@ -23,16 +23,12 @@
 </head>
 <body>
 
-  <!-- Textura de grano sutil Huella -->
   <div class="grain" aria-hidden="true"></div>
 
-
-  <!-- Barra Superior -->
   <header id="header-placeholder" data-component="header" data-active="donate"></header>
 
   <main class="full-container">
 
-    <!-- Hero de Donaciones -->
     <section class="hero-full">
       <div class="hero-split hero-split-solo">
         <div class="hero-split-content">
@@ -45,71 +41,53 @@
       </div>
     </section>
 
-    <!-- Métodos de Donación: PayPal & Yape QR con Cuadro Completo y Modal -->
-    <section style="margin-bottom: clamp(40px, 6vw, 68px);">
+    <section>
       <div class="section-full-title">
         <h2>Elige tu Canal de Apoyo</h2>
         <p>Aceptamos transferencias nacionales desde Perú vía Yape y pagos internacionales con tarjetas mediante PayPal.</p>
       </div>
 
-      <div class="donations-grid" style="grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 32px; max-width: 980px; margin: 0 auto;">
-        
-        <!-- Método 1: PayPal Internacional -->
+      <div class="donations-grid">
         <div class="donation-card donation-card-paypal">
           <div>
-            <div style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: 14px;">
-              <svg class="icon" viewBox="0 0 24 24" style="color: #0070ba; width: 24px; height: 24px;"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20M12 2a14.5 14.5 0 0 1 0 20M2 12h20"/></svg>
-            </div>
-
-            <h3 style="font-size: 1.45rem; margin-bottom: 10px; color: #ffffff;">Donar vía PayPal</h3>
-            <p style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.6; margin-bottom: 20px;">
+            <h3>Donar vía PayPal</h3>
+            <p>
               Dona de forma segura desde cualquier país con tu saldo PayPal o tarjetas Visa, MasterCard y American Express. Selecciona un monto sugerido para donar directamente:
             </p>
-
-            <!-- Sugerencias de Montos Rápidos -->
-            <div style="margin-bottom: 20px;">
-              <span style="display: block; font-size: 0.76rem; font-family: var(--font-mono); color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase;">
-                MONTOS SUGERIDOS
-              </span>
-              <div style="display: flex; gap: 8px; flex-wrap: wrap;" id="paypal-amounts-group">
-                <button type="button" class="btn btn-outline" data-amount="5" style="padding: 7px 14px; font-size: 0.82rem; font-weight: 700; border-color: rgba(0, 112, 186, 0.4); cursor: pointer;">$5 USD</button>
-                <button type="button" class="btn btn-outline" data-amount="10" style="padding: 7px 14px; font-size: 0.82rem; font-weight: 700; border-color: rgba(0, 112, 186, 0.4); cursor: pointer;">$10 USD</button>
-                <button type="button" class="btn btn-outline" data-amount="25" style="padding: 7px 14px; font-size: 0.82rem; font-weight: 700; border-color: rgba(0, 112, 186, 0.4); cursor: pointer;">$25 USD</button>
-                <button type="button" class="btn btn-outline" data-amount="50" style="padding: 7px 14px; font-size: 0.82rem; font-weight: 700; border-color: rgba(0, 112, 186, 0.4); cursor: pointer;">$50 USD</button>
+            <div>
+              <span class="donation-amounts-label">Montos sugeridos</span>
+              <div class="donation-amounts" id="paypal-amounts-group">
+                <button type="button" class="btn btn-outline" data-amount="5">$5 USD</button>
+                <button type="button" class="btn btn-outline" data-amount="10">$10 USD</button>
+                <button type="button" class="btn btn-outline" data-amount="25">$25 USD</button>
+                <button type="button" class="btn btn-outline" data-amount="50">$50 USD</button>
               </div>
             </div>
           </div>
-
-          <a id="btn-paypal-main" href="https://paypal.me/miguelcarlosrojas" target="_blank" rel="noopener noreferrer" class="btn btn-paypal w-full" style="font-size: 0.96rem;">
+          <a id="btn-paypal-main" href="https://paypal.me/miguelcarlosrojas" target="_blank" rel="noopener noreferrer" class="btn btn-paypal w-full">
             <svg class="icon" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
             <span id="btn-paypal-text">Donar con PayPal Ahora</span>
           </a>
         </div>
 
-        <!-- Método 2: Yape (QR Grande Ocupando Todo el Ancho del Cuadro) -->
         <div class="donation-card donation-card-yape">
           <div>
-            <div style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: 14px;">
-              <span style="font-size: 0.8rem; color: #d946ef; font-weight: 700; font-family: var(--font-mono);">0% COMISIÓN</span>
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 8px;">
+              <span style="font-size: 0.78rem; color: #7c3aed; font-weight: 700; font-family: var(--f-mono);">0% COMISIÓN</span>
             </div>
-
-            <h3 style="font-size: 1.45rem; margin-bottom: 10px; color: #ffffff;">Donar por Código QR Yape</h3>
-            <p style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.6; margin-bottom: 16px;">
+            <h3>Donar por Código QR Yape</h3>
+            <p>
               Escanea el código QR directamente desde la app de Yape en tu teléfono celular para transferencias instantáneas desde Perú.
             </p>
-
-            <!-- Cuadro donde la imagen ocupa TODO el ancho del contenedor -->
             <div class="qr-box-full" id="qr-box-container">
               <img src="/img/yape-qr.png" alt="Código QR de Yape" id="yape-qr-page-img">
             </div>
           </div>
         </div>
-
       </div>
     </section>
 
-    <!-- En qué se invierten las donaciones -->
-    <section style="margin-bottom: clamp(40px, 6vw, 68px);">
+    <section>
       <div class="section-full-title">
         <h2>Transparencia: ¿En Qué se Utiliza tu Aporte?</h2>
         <p>Cada céntimo recibido se destina a mantener vivo y optimizado el ecosistema.</p>
@@ -127,7 +105,7 @@
 
         <div class="tech-card">
           <span class="tech-card-tag">[ 02 // AI_COMPUTE ]</span>
-          <div class="tech-card-icon" style="color: var(--secondary);">
+          <div class="tech-card-icon" style="color: var(--lilac);">
             <svg class="icon" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
           </div>
           <h3>Cómputo para Clonación y TTS Neural</h3>
@@ -136,7 +114,7 @@
 
         <div class="tech-card">
           <span class="tech-card-tag">[ 03 // GLOBAL_EXPANSION ]</span>
-          <div class="tech-card-icon" style="color: var(--primary);">
+          <div class="tech-card-icon" style="color: var(--accent);">
             <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20M12 2a14.5 14.5 0 0 1 0 20M2 12h20"/></svg>
           </div>
           <h3>Nuevos Idiomas y SDKs Abiertos</h3>
@@ -145,7 +123,7 @@
 
         <div class="tech-card">
           <span class="tech-card-tag">[ 04 // MULTIMEDIA_STREAMING ]</span>
-          <div class="tech-card-icon" style="color: #f87171;">
+          <div class="tech-card-icon" style="color: #dc2626;">
             <svg class="icon" viewBox="0 0 24 24"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2"/><circle cx="8" cy="12" r="2"/></svg>
           </div>
           <h3>Ancho de Banda y Servidores FFmpeg</h3>
@@ -156,11 +134,9 @@
 
   </main>
 
-  <!-- Pie de Página Horizontal Alineado -->
   <footer id="footer-placeholder" data-component="footer" data-active="donate"></footer>
 
   <script src="/js/vork.js"></script>
-  <script src="/js/vork.js"></script>
-    <script src="/js/modules/donate.js" defer></script>
+  <script src="/js/modules/donate.js" defer></script>
 </body>
 </html>

@@ -60,5 +60,6 @@ function Invoke-PillarTranslate {
         Write-Host "  $Cyan│$Reset  ${Coral}[Error al traducir]:${Reset} $($_.Exception.Message)"
         Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
     }
+    Wait-VorkGoBack
     Write-Host ""
 }

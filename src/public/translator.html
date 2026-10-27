@@ -115,13 +115,13 @@
         <div class="studio-panel">
           <div class="studio-label">
             <span>RESULTADO DE LA TRADUCCIÓN</span>
-            <span id="translator-stats" style="color: var(--primary);">Listo para traducir</span>
+            <span id="translator-stats" style="color: var(--accent);">Listo para traducir</span>
           </div>
-          <div id="translator-output-text" class="studio-textarea" style="min-height: 140px; height: 140px; background: rgba(255, 122, 61, 0.04); border-color: rgba(0, 240, 255, 0.2); overflow-y: auto; color: var(--text-white); line-height: 1.6;">
+          <div id="translator-output-text" class="studio-textarea" style="min-height: 140px; height: 140px; overflow-y: auto; line-height: 1.6;">
             Haz clic en "TRADUCIR TEXTO" para ver el resultado en tiempo real.
           </div>
           <div style="display: flex; justify-content: space-between; align-items: center; margin-top: auto; padding-top: 10px;">
-            <span style="font-size: 0.8rem; color: var(--text-muted); font-family: var(--font-mono);">Respuesta Instantánea</span>
+            <span style="font-size: 0.8rem; color: var(--muted); font-family: var(--f-mono);">Respuesta Instantánea</span>
             <button id="btn-copy-result" class="btn btn-outline" style="padding: 10px 18px; font-size: 0.82rem; display: flex; align-items: center; gap: 8px;">
               <svg class="icon" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
               <span>Copiar Resultado</span>
@@ -134,7 +134,7 @@
       <div class="code-box-wrapper" style="margin-top: 24px;">
         <div class="code-box-header">
           <span>Respuesta HTTP JSON de la API (/api/translate)</span>
-          <span style="font-size: 0.75rem; color: var(--text-muted);">Content-Type: application/json</span>
+          <span style="font-size: 0.75rem; color: var(--muted);">Content-Type: application/json</span>
         </div>
         <pre class="code-panel" id="translator-output-json">{
   "status": "ready",
@@ -211,7 +211,7 @@
     </section>
 
     <!-- LOS 9 PILARES DE VORK -->
-    <section class="workbench-wrap" id="pilares" style="margin-top: 48px; margin-bottom: 40px;">
+    <section class="workbench-wrap" id="pilares">
       <div class="section-head">
         <span class="label">Pilares Operacionales</span>
         <h2 class="h-section">Los 9 Pilares de <em>Vork</em></h2>
@@ -334,17 +334,17 @@
     </section>
 
     <!-- SECCIÓN VORK CLI -->
-    <section class="workbench-wrap" style="margin-top: 48px; margin-bottom: 40px;">
-      <div class="workbench-card" style="background: linear-gradient(135deg, rgba(22, 27, 34, 0.96) 0%, rgba(13, 17, 23, 0.98) 100%); border: 1px solid rgba(255, 122, 61, 0.22); box-shadow: 0 16px 36px -12px rgba(0, 0, 0, 0.5), 0 0 24px -6px rgba(255, 122, 61, 0.08); display: flex; align-items: center; justify-content: space-between; gap: 28px; flex-wrap: wrap; padding: clamp(28px, 4vw, 40px);">
+    <section class="workbench-wrap">
+      <div class="workbench-card">
         <div style="flex: 1 1 540px; max-width: 780px;">
           <span class="label" style="color: var(--accent); display: inline-block; margin-bottom: 8px;">(09) Terminal &amp; Automatización</span>
-          <h2 class="h-section" style="color: #ffffff; margin: 0 0 12px 0; font-size: clamp(1.8rem, 3.2vw, 2.3rem); line-height: 1.2;">Vork <em>CLI</em></h2>
-          <p style="color: #a59a8f; margin: 0; font-size: 1.02rem; line-height: 1.65;">
+          <h2 class="h-section" style="margin: 0 0 12px 0; font-size: clamp(1.8rem, 3.2vw, 2.3rem); line-height: 1.2;">Vork <em>CLI</em></h2>
+          <p style="color: var(--muted); margin: 0; font-size: 1.02rem; line-height: 1.65;">
             Entorno centrado en la terminal para interactuar con agentes Vork en lenguaje natural. Orquesta subagentes paralelos, atajos configurables y comandos con diagonal sin cambiar de contexto.
           </p>
         </div>
         <div style="flex-shrink: 0;">
-          <a href="/cli" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 10px; padding: 14px 28px; font-size: 0.95rem; font-weight: 700; box-shadow: 0 6px 20px rgba(255, 102, 0, 0.35); text-decoration: none;">
+          <a href="/cli" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 10px; padding: 14px 28px; font-size: 0.95rem; font-weight: 700; text-decoration: none;">
             <span>Ir a Vork CLI</span>
             <svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
           </a>
@@ -358,7 +358,6 @@
   <footer id="footer-placeholder" data-component="footer" data-active="translator"></footer>
 
   <script src="/js/vork.js"></script>
-  <script src="/js/vork.js"></script>
-    <script src="/js/modules/translator.js" defer></script>
+  <script src="/js/modules/translator.js" defer></script>
 </body>
 </html>

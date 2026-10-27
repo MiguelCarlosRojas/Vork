@@ -175,19 +175,41 @@ function Invoke-PillarSeparate {
 
         if ($mode -eq "vocals" -and $vocDl) {
             Write-Host "  $Cyan│$Reset  $Green✓ Voz Acapella aislada con éxito:$Reset"
-            Write-Host "  $Cyan│$Reset    Descarga: $Yellow$vocDl$Reset"
-            Write-Host "  $Cyan│$Reset    Stream:   $Cyan$vocSt$Reset"
+            $localVoc = "vocals.wav"
+            try {
+                Invoke-WebRequest -Uri $vocDl -OutFile $localVoc -UseBasicParsing -TimeoutSec 120
+                Write-Host "  $Cyan│$Reset    ${White}${Bold}Archivo local:${Reset} $Green$((Resolve-Path $localVoc).Path)$Reset"
+            } catch {
+                Write-Host "  $Cyan│$Reset    Descarga: $Yellow$vocDl$Reset"
+            }
         } elseif ($mode -eq "karaoke" -and $instDl) {
             Write-Host "  $Cyan│$Reset  $Green✓ Pista Instrumental (Karaoke) aislada con éxito:$Reset"
-            Write-Host "  $Cyan│$Reset    Descarga: $Yellow$instDl$Reset"
-            Write-Host "  $Cyan│$Reset    Stream:   $Cyan$instSt$Reset"
+            $localInst = "instrumental.wav"
+            try {
+                Invoke-WebRequest -Uri $instDl -OutFile $localInst -UseBasicParsing -TimeoutSec 120
+                Write-Host "  $Cyan│$Reset    ${White}${Bold}Archivo local:${Reset} $Green$((Resolve-Path $localInst).Path)$Reset"
+            } catch {
+                Write-Host "  $Cyan│$Reset    Descarga: $Yellow$instDl$Reset"
+            }
         } else {
             Write-Host "  $Cyan│$Reset  $Green✓ Separación de stems lista con Demucs v4:$Reset"
             if ($vocDl) {
-                Write-Host "  $Cyan│$Reset    ${White}${Bold}Voz Acapella:${Reset}  $Yellow$vocDl$Reset"
+                $localVoc = "vocals.wav"
+                try {
+                    Invoke-WebRequest -Uri $vocDl -OutFile $localVoc -UseBasicParsing -TimeoutSec 120
+                    Write-Host "  $Cyan│$Reset    ${White}${Bold}Voz Acapella:${Reset}  $Green$((Resolve-Path $localVoc).Path)$Reset"
+                } catch {
+                    Write-Host "  $Cyan│$Reset    ${White}${Bold}Voz Acapella:${Reset}  $Yellow$vocDl$Reset"
+                }
             }
             if ($instDl) {
-                Write-Host "  $Cyan│$Reset    ${White}${Bold}Instrumental:${Reset}  $Cyan$instDl$Reset"
+                $localInst = "instrumental.wav"
+                try {
+                    Invoke-WebRequest -Uri $instDl -OutFile $localInst -UseBasicParsing -TimeoutSec 120
+                    Write-Host "  $Cyan│$Reset    ${White}${Bold}Instrumental:${Reset}  $Green$((Resolve-Path $localInst).Path)$Reset"
+                } catch {
+                    Write-Host "  $Cyan│$Reset    ${White}${Bold}Instrumental:${Reset}  $Cyan$instDl$Reset"
+                }
             }
         }
         Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
@@ -197,5 +219,6 @@ function Invoke-PillarSeparate {
         Write-Host "  $Cyan│$Reset  ${Coral}[Error Separador]:${Reset} $($_.Exception.Message)"
         Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
     }
+    Wait-VorkGoBack
     Write-Host ""
 }

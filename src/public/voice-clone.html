@@ -71,19 +71,19 @@
       </div>
 
       <!-- Barra de Estado del Motor de IA Propio -->
-      <div class="engine-config-banner" style="background: rgba(168, 85, 247, 0.08); border: 1px solid rgba(168, 85, 247, 0.3); border-radius: var(--radius-md); padding: 12px 18px; margin-bottom: 20px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px;">
+      <div class="engine-config-banner">
         <div style="display: flex; align-items: center; gap: 12px;">
           <div style="width: 12px; height: 12px; border-radius: 50%; background: #10b981; box-shadow: 0 0 10px #10b981;" id="engine-status-dot"></div>
           <div>
-            <div style="font-size: 0.86rem; font-weight: 700; color: #ffffff;">
-              Motor de IA: <span id="current-engine-label" style="color: var(--secondary);">Vork Bio-Acoustic Voice Clone v3.0</span>
+            <div style="font-size: 0.86rem; font-weight: 700; color: var(--ink);">
+              Motor de IA: <span id="current-engine-label" style="color: var(--lilac);">Vork Bio-Acoustic Voice Clone v3.0</span>
             </div>
-            <div style="font-size: 0.76rem; color: var(--text-muted);" id="current-engine-desc">
+            <div style="font-size: 0.76rem; color: var(--muted);" id="current-engine-desc">
               IA Biométrica Propia • Tu voz auténtica 100% personalizada • Sin APIs de terceros • Ilimitado
             </div>
           </div>
         </div>
-        <div style="font-size: 0.78rem; font-family: var(--font-mono); color: #10b981; background: rgba(16, 185, 129, 0.12); padding: 5px 12px; border-radius: 20px; border: 1px solid rgba(16, 185, 129, 0.3); font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+        <div style="font-size: 0.78rem; font-family: var(--f-mono); color: #10b981; background: rgba(16, 185, 129, 0.12); padding: 5px 12px; border-radius: 20px; border: 1px solid rgba(16, 185, 129, 0.3); font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
           <svg class="icon" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
           <span>MOTOR DE IA ACTIVO</span>
         </div>
@@ -172,15 +172,15 @@
             </div>
 
             <!-- TARJETA DE ANÁLISIS FORENSE EN VIVO -->
-            <div id="user-voice-card" style="margin-top: 10px; background: rgba(168, 85, 247, 0.08); border: 1px solid rgba(168, 85, 247, 0.25); border-radius: var(--radius-sm); padding: 12px;">
+            <div id="user-voice-card" style="margin-top: 10px; background: var(--lilac-soft); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 12px;">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                <span style="font-size: 0.75rem; font-family: var(--font-mono); color: var(--secondary); font-weight: 700;">HUELLA VOCAL DETECTADA</span>
-                <span id="user-voice-tag" class="brand-badge" style="background: rgba(168, 85, 247, 0.25); border-color: var(--secondary); font-size: 0.7rem;">CALCULANDO...</span>
+                <span style="font-size: 0.75rem; font-family: var(--f-mono); color: var(--lilac); font-weight: 700;">HUELLA VOCAL DETECTADA</span>
+                <span id="user-voice-tag" class="brand-badge" style="background: var(--lilac-soft); border-color: var(--lilac); font-size: 0.7rem;">CALCULANDO...</span>
               </div>
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.8rem; color: var(--text-secondary);">
-                <div>Frecuencia F0: <strong id="user-voice-f0" style="color: #ffffff;">-- Hz</strong></div>
-                <div>Registro: <strong id="user-voice-range" style="color: #ffffff;">--</strong></div>
-                <div>Duración: <strong id="user-voice-duration" style="color: #ffffff;">-- s</strong></div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.8rem; color: var(--muted);">
+                <div>Frecuencia F0: <strong id="user-voice-f0" style="color: var(--ink);">-- Hz</strong></div>
+                <div>Registro: <strong id="user-voice-range" style="color: var(--ink);">--</strong></div>
+                <div>Duración: <strong id="user-voice-duration" style="color: var(--ink);">-- s</strong></div>
                 <div>Fidelidad tímbrica: <strong id="user-voice-fidelity" style="color: #10b981;">Lista para clonar</strong></div>
               </div>
             </div>
@@ -268,12 +268,12 @@
             <audio id="clone-result-audio" controls style="width: 100%; height: 40px; outline: none; margin-bottom: 12px;"></audio>
 
             <!-- Métricas acústicas del resultado -->
-            <div id="clone-metrics-box" style="background: rgba(0, 0, 0, 0.4); border-radius: var(--radius-sm); padding: 10px; margin-bottom: 12px; font-size: 0.78rem; color: var(--text-secondary); display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
-              <div>Frecuencia F0 replicada: <strong id="res-f0" style="color: #ffffff;">--</strong></div>
+            <div id="clone-metrics-box" style="background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 10px; margin-bottom: 12px; font-size: 0.78rem; color: var(--muted); display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+              <div>Frecuencia F0 replicada: <strong id="res-f0" style="color: var(--ink);">--</strong></div>
               <div>Similitud tímbrica: <strong id="res-similarity" style="color: #10b981;">99.8%</strong></div>
-              <div>Perfil vocal: <strong id="res-profile" style="color: #ffffff;">--</strong></div>
-              <div>Calidad acústica: <strong style="color: #00f0ff;">Estudio Broadcast</strong></div>
-              <div style="grid-column: span 2; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 6px; margin-top: 2px;">
+              <div>Perfil vocal: <strong id="res-profile" style="color: var(--ink);">--</strong></div>
+              <div>Calidad acústica: <strong style="color: var(--accent);">Estudio Broadcast</strong></div>
+              <div style="grid-column: span 2; border-top: 1px solid var(--line); padding-top: 6px; margin-top: 2px;">
                 Motor de IA: <strong id="res-model" style="color: #10b981;">Clonación Biométrica Vocal (Tu Voz 100% Personalizada)</strong>
               </div>
             </div>
@@ -317,7 +317,7 @@
     </section>
 
         <!-- LOS 9 PILARES DE VORK -->
-    <section class="workbench-wrap" id="pilares" style="margin-top: 48px; margin-bottom: 40px;">
+    <section class="workbench-wrap" id="pilares">
       <div class="section-head">
         <span class="label">Pilares Operacionales</span>
         <h2 class="h-section">Los 9 Pilares de <em>Vork</em></h2>
@@ -440,17 +440,17 @@
     </section>
 
     <!-- SECCIÓN VORK CLI -->
-    <section class="workbench-wrap" style="margin-top: 48px; margin-bottom: 40px;">
-      <div class="workbench-card" style="background: linear-gradient(135deg, rgba(22, 27, 34, 0.96) 0%, rgba(13, 17, 23, 0.98) 100%); border: 1px solid rgba(255, 122, 61, 0.22); box-shadow: 0 16px 36px -12px rgba(0, 0, 0, 0.5), 0 0 24px -6px rgba(255, 122, 61, 0.08); display: flex; align-items: center; justify-content: space-between; gap: 28px; flex-wrap: wrap; padding: clamp(28px, 4vw, 40px);">
+    <section class="workbench-wrap">
+      <div class="workbench-card">
         <div style="flex: 1 1 540px; max-width: 780px;">
           <span class="label" style="color: var(--accent); display: inline-block; margin-bottom: 8px;">(09) Terminal &amp; Automatización</span>
-          <h2 class="h-section" style="color: #ffffff; margin: 0 0 12px 0; font-size: clamp(1.8rem, 3.2vw, 2.3rem); line-height: 1.2;">Vork <em>CLI</em></h2>
-          <p style="color: #a59a8f; margin: 0; font-size: 1.02rem; line-height: 1.65;">
+          <h2 class="h-section" style="margin: 0 0 12px 0; font-size: clamp(1.8rem, 3.2vw, 2.3rem); line-height: 1.2;">Vork <em>CLI</em></h2>
+          <p style="color: var(--muted); margin: 0; font-size: 1.02rem; line-height: 1.65;">
             Entorno centrado en la terminal para interactuar con agentes Vork en lenguaje natural. Orquesta subagentes paralelos, atajos configurables y comandos con diagonal sin cambiar de contexto.
           </p>
         </div>
         <div style="flex-shrink: 0;">
-          <a href="/cli" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 10px; padding: 14px 28px; font-size: 0.95rem; font-weight: 700; box-shadow: 0 6px 20px rgba(255, 102, 0, 0.35); text-decoration: none;">
+          <a href="/cli" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 10px; padding: 14px 28px; font-size: 0.95rem; font-weight: 700; text-decoration: none;">
             <span>Ir a Vork CLI</span>
             <svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
           </a>
@@ -464,7 +464,6 @@
   <footer id="footer-placeholder" data-component="footer" data-active="voice-clone"></footer>
 
   <script src="/js/vork.js"></script>
-  <script src="/js/vork.js"></script>
-    <script src="/js/modules/voice-clone.js" defer></script>
+  <script src="/js/modules/voice-clone.js" defer></script>
 </body>
 </html>
