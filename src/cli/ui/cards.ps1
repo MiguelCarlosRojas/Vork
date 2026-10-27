@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Vork CLI - Modulo UI: Componentes interactivos responsive.
 
@@ -1128,7 +1128,7 @@ function Show-InteractiveModelSwitcher {
     $catalog = @(
         @{ Id = "Vork 3";   Name = "Vork 3";                  SupportsEffort = $true },
         @{ Id = "Vork 3.1"; Name = "Vork 3.1";                SupportsEffort = $true },
-        @{ Id = "Vork 3.2"; Name = "Vork 3.2 (Expert Edition)"; SupportsEffort = $false }
+        @{ Id = "Vork 3.2"; Name = "Vork 3.2 (Expert)";           SupportsEffort = $false }
     )
     $efforts = @("low", "medium", "high")
 

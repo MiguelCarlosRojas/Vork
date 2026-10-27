@@ -2951,7 +2951,7 @@ function Show-InteractiveModelSwitcher {
     $catalog = @(
         @{ Id = "Vork 3";   Name = "Vork 3";                  SupportsEffort = $true },
         @{ Id = "Vork 3.1"; Name = "Vork 3.1";                SupportsEffort = $true },
-        @{ Id = "Vork 3.2"; Name = "Vork 3.2 (Expert Edition)"; SupportsEffort = $false }
+        @{ Id = "Vork 3.2"; Name = "Vork 3.2 (Expert)";           SupportsEffort = $false }
     )
     $efforts = @("low", "medium", "high")
 
@@ -5511,23 +5511,7 @@ function Invoke-VorkAIChat {
 
     Write-Host ""
     if ($answer) {
-        $cleanAnswer = [regex]::Replace($answer, '[\uD800-\uDBFF][\uDC00-\uDFFF]|[\uFE0E\uFE0F]|[\u2600-\u26FF\u2700-\u27BF]', '')
-        $lines = $cleanAnswer -split '\r?\n'
-        foreach ($l in $lines) {
-            if ($l.StartsWith('```')) {
-                Write-Host "  ${Yellow}$l${Reset}"
-            } elseif ($l.StartsWith('#')) {
-                Write-Host "  ${White}${Bold}$l${Reset}"
-            } elseif ($l.StartsWith('>')) {
-                Write-Host "  ${Cyan}$l${Reset}"
-            } else {
-                Write-Host "  ${White}$l${Reset}"
-            }
-        }
-        Write-Host ""
-        $elbowChar = [char]0x23BF
-        Write-Host "  ${LeadLight}$elbowChar  $activeModel · $tierLabel · ${elapsedSec}s${Reset}"
-        Write-Host ""
+        Write-VorkAIResponse -Answer $answer -ActiveModel $activeModel -TierLabel $tierLabel -ElapsedSec $elapsedSec
     } else {
         Write-Host "  ${Coral}[Error]:${Reset} No se pudo obtener respuesta del motor de Vork AI."
         Write-Host ""
