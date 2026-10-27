@@ -396,13 +396,15 @@ function Write-VorkPromptFrame {
         [int]$MenuVisible,
         [bool]$MenuOpen,
         [string]$Status,
-        [int]$MenuRows
+        [int]$MenuRows,
+        [int]$PreviousMenuRows = 0
     )
 
     $maxWidth = [Math]::Max(4, $Width - 1)
+    $actualRows = if ($MenuOpen) { 3 + [Math]::Max(0, $MenuRows) } else { 3 }
     $panel = [pscustomobject]@{
         Top          = $PromptRow
-        Rows         = 3 + [Math]::Max(0, $MenuRows)
+        Rows         = $actualRows
         Width        = $Width
         Height       = $Height
         BufferHeight = 0
@@ -458,6 +460,25 @@ function Write-VorkPromptFrame {
         }
 
         Write-VorkPanelLine -Panel $panel -Index 2 -Text (Format-VorkBorderMiddle -RightText $rightText -Width $Width)
+
+        # Lista de comandos: SOLO cuando el menu esta activo
+        $menuStart = 3
+        $menuInner = [Math]::Max(6, $Width - 7)
+
+        for ($i = 0; $i -lt $MenuRows; $i++) {
+            $row = $menuStart + $i
+            $itemIndex = $MenuTop + $i
+            if ($i -lt $MenuVisible -and $itemIndex -lt $MenuItems.Count) {
+                $item = $MenuItems[$itemIndex]
+                $isSelected = $itemIndex -eq $MenuSelected
+                $line = Format-VorkMenuItemLine -Cmd ([string]$item.Cmd) -Desc ([string]$item.Desc) -Selected $isSelected -InnerWidth $menuInner
+                Write-VorkPanelLine -Panel $panel -Index $row -Text $line
+            } elseif ($i -eq $MenuVisible) {
+                Write-VorkPanelLine -Panel $panel -Index $row -Text (Format-VorkBorderBottom -LeftText $leftText -Width $Width)
+            } else {
+                Write-VorkPanelLine -Panel $panel -Index $row -Text ""
+            }
+        }
     } else {
         if ($Width -ge 90) {
             $remaining = $maxWidth - 8 - (Get-VorkDisplayWidth $leftText) - 4
@@ -468,24 +489,18 @@ function Write-VorkPromptFrame {
         }
 
         Write-VorkPanelLine -Panel $panel -Index 2 -Text (Format-VorkBorderBottom -LeftText $leftText -RightText $rightText -Width $Width)
-    }
 
-    # Lista de comandos: fila seleccionada con fondo solido y borde derecho continuo.
-    $menuStart = 3
-    $menuInner = [Math]::Max(6, $Width - 7)
-
-    for ($i = 0; $i -lt $MenuRows; $i++) {
-        $row = $menuStart + $i
-        $itemIndex = $MenuTop + $i
-        if ($MenuOpen -and $i -lt $MenuVisible -and $itemIndex -lt $MenuItems.Count) {
-            $item = $MenuItems[$itemIndex]
-            $isSelected = $itemIndex -eq $MenuSelected
-            $line = Format-VorkMenuItemLine -Cmd ([string]$item.Cmd) -Desc ([string]$item.Desc) -Selected $isSelected -InnerWidth $menuInner
-            Write-VorkPanelLine -Panel $panel -Index $row -Text $line
-        } elseif ($MenuOpen -and $i -eq $MenuVisible) {
-            Write-VorkPanelLine -Panel $panel -Index $row -Text (Format-VorkBorderBottom -LeftText $leftText -Width $Width)
-        } else {
-            Write-VorkPanelLine -Panel $panel -Index $row -Text ""
+        # Limpiar filas del menu que hayan quedado de una apertura anterior
+        if ($PreviousMenuRows -gt 0) {
+            for ($k = 0; $k -lt $PreviousMenuRows; $k++) {
+                $cleanRow = $PromptRow + 3 + $k
+                try {
+                    if ($cleanRow -lt [Console]::BufferHeight) {
+                        [Console]::SetCursorPosition(0, $cleanRow)
+                        Write-Host "$ClrLine$ClrToEnd" -NoNewline
+                    }
+                } catch { }
+            }
         }
     }
 
@@ -493,7 +508,9 @@ function Write-VorkPromptFrame {
         $cursorColumn = 6 + $view.Cursor
         if ($cursorColumn -ge ($Width - 1)) { $cursorColumn = $Width - 2 }
         if ($cursorColumn -lt 0) { $cursorColumn = 0 }
-        [Console]::SetCursorPosition($cursorColumn, $PromptRow + 1)
+        if (($PromptRow + 1) -ge 0 -and ($PromptRow + 1) -lt [Console]::BufferHeight) {
+            [Console]::SetCursorPosition($cursorColumn, $PromptRow + 1)
+        }
     } catch { }
 }
 
@@ -569,9 +586,9 @@ function Read-InteractiveVorkLine {
 
     try {
         $metrics = Get-VorkConsoleMetrics
-        $menuRows = [Math]::Max(2, [Math]::Min(8, $metrics.Height - 7))
-        Ensure-VorkRowsBelow -Rows (3 + $menuRows) | Out-Null
+        Ensure-VorkRowsBelow -Rows 3 | Out-Null
         $promptRow = try { [Console]::CursorTop } catch { 0 }
+        $previousMenuRows = 0
 
         while ($true) {
             $text = $buffer.ToString()
@@ -612,7 +629,15 @@ function Read-InteractiveVorkLine {
             }
             if ($ctrlCWarning) { $statusText = "ctrl+c otra vez para salir" }
 
-            Write-VorkPromptFrame -PromptRow $promptRow -Width $metrics.Width -Height $metrics.Height -Text $text -Cursor $position -MenuItems $filtered -MenuSelected $selected -MenuTop $top -MenuVisible $menuVisible -MenuOpen $menuOpen -Status $statusText -MenuRows $menuRows
+            if ($menuOpen) {
+                $needed = 3 + $menuRows
+                $winBottom = [Console]::WindowTop + [Console]::WindowHeight
+                if (($promptRow + $needed) -gt $winBottom) {
+                    $promptRow = Ensure-VorkRowsBelow -Rows $needed
+                }
+            }
+            Write-VorkPromptFrame -PromptRow $promptRow -Width $metrics.Width -Height $metrics.Height -Text $text -Cursor $position -MenuItems $filtered -MenuSelected $selected -MenuTop $top -MenuVisible $menuVisible -MenuOpen $menuOpen -Status $statusText -MenuRows $menuRows -PreviousMenuRows $previousMenuRows
+            $previousMenuRows = if ($menuOpen) { $menuRows } else { 0 }
 
             $wait = Wait-VorkConsoleKey
             if ($wait.Resized) {
@@ -679,7 +704,8 @@ function Read-InteractiveVorkLine {
             if ($key.Key -eq [ConsoleKey]::Enter) {
                 $finalText = if ($menuOpen -and $filtered.Count -gt 0) { [string]$filtered[$selected].Cmd } else { $buffer.ToString() }
 
-                $panel = [pscustomobject]@{ Top = $promptRow; Rows = 3 + $menuRows; Width = $metrics.Width; Height = $metrics.Height; BufferHeight = 0 }
+                $rowsToClear = if ($menuOpen) { 3 + $menuRows } else { 3 }
+                $panel = [pscustomobject]@{ Top = $promptRow; Rows = $rowsToClear; Width = $metrics.Width; Height = $metrics.Height; BufferHeight = 0 }
                 Clear-VorkPanel -Panel $panel
 
                 if ($finalText.Trim().Length -gt 0) {
@@ -877,6 +903,21 @@ function Read-InteractiveVorkLine {
                 $position++
                 $selected = 0
                 $top = 0
+
+                # Drenar caracteres disponibles en cola (escritura rapida o pegado)
+                while ($true) {
+                    $hasMore = $false
+                    try { $hasMore = [Console]::KeyAvailable } catch { }
+                    if (-not $hasMore) { break }
+                    $nextKey = [Console]::ReadKey($true)
+                    $nextChar = $nextKey.KeyChar
+                    if (-not [char]::IsControl($nextChar)) {
+                        [void]$buffer.Insert($position, $nextChar)
+                        $position++
+                    } else {
+                        break
+                    }
+                }
             }
         }
     } finally {

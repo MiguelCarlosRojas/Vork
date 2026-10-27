@@ -163,30 +163,34 @@ function Get-VorkConsoleMetrics {
 }
 
 function Ensure-VorkRowsBelow {
-    param([int]$Rows)
+    param([int]$Rows = 3)
 
     if ($Rows -le 0) {
         try { return [Console]::CursorTop } catch { return 0 }
     }
 
     try {
-        $windowTop = [Console]::WindowTop
-        $windowHeight = [Console]::WindowHeight
-        $current = [Console]::CursorTop
-        $bottom = $windowTop + $windowHeight
-        $available = $bottom - $current
+        $curTop = [Console]::CursorTop
+        $winTop = [Console]::WindowTop
+        $winHeight = [Console]::WindowHeight
+        $bufHeight = [Console]::BufferHeight
 
-        if ($available -lt $Rows) {
-            $needed = $Rows - $available
-            for ($i = 0; $i -lt $needed; $i++) { [Console]::WriteLine() }
-            $newTop = [Console]::CursorTop - $needed
-            if ($newTop -lt $windowTop) { $newTop = $windowTop }
-            [Console]::SetCursorPosition(0, $newTop)
+        $availableInWindow = ($winTop + $winHeight) - $curTop
+        $needed = [Math]::Max(0, $Rows - $availableInWindow)
+
+        if ($needed -gt 0) {
+            for ($i = 0; $i -lt $needed; $i++) {
+                [Console]::WriteLine()
+            }
+            $targetTop = [Console]::CursorTop - $needed
+            if ($targetTop -lt 0) { $targetTop = 0 }
+            [Console]::SetCursorPosition(0, $targetTop)
+            return $targetTop
         }
 
-        return [Console]::CursorTop
+        return $curTop
     } catch {
-        return 0
+        try { return [Console]::CursorTop } catch { return 0 }
     }
 }
 
@@ -283,13 +287,15 @@ function Write-VorkPanelLine {
     $line = Limit-VorkAnsiText -Text $Text -MaxWidth $maxWidth
 
     try {
-        [Console]::SetCursorPosition(0, $row)
-        Write-Host "$line$ClrToEnd" -NoNewline
+        if ($row -ge 0 -and $row -lt [Console]::BufferHeight) {
+            [Console]::SetCursorPosition(0, $row)
+            Write-Host "$line$ClrToEnd" -NoNewline
+        }
     } catch { }
 }
 
 function Wait-VorkConsoleKey {
-    param([int]$PollMilliseconds = 75)
+    param([int]$PollMilliseconds = 15)
 
     if ([Console]::IsInputRedirected) {
         return [pscustomobject]@{
