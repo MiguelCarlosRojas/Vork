@@ -14,6 +14,7 @@ const mediaRoutes = require("./mediaRoutes");
 const separatorRoutes = require("./separatorRoutes");
 const cliRoutes = require("./cliRoutes");
 const imageRoutes = require("./imageRoutes");
+const aiRoutes = require("./aiRoutes");
 
 // Montar submódulos de la API
 router.use("/", baseRoutes);
@@ -24,5 +25,7 @@ router.use("/", mediaRoutes);
 router.use("/", separatorRoutes);
 router.use("/", cliRoutes);
 router.use("/image", imageRoutes);
+router.use("/ai", aiRoutes);
+router.use("/", aiRoutes);
 
 module.exports = router;

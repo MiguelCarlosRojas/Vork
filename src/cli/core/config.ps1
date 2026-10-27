@@ -1,4 +1,4 @@
-﻿param(
+param(
     [Parameter(Position=0, ValueFromPipeline=$true)]
     [string]$Command = "",
 
@@ -493,26 +493,28 @@ $cTriL = [char]0x25C0 # ◀
 # MODELO ACTIVO & PERFIL DE ESFUERZO / TIER
 # ========================================================
 $modelFile = Join-Path $HOME ".vork\.model"
+$validModels = @("Vork 3", "Vork 3.1", "Vork 3.2")
+
 if (-not $global:VorkModel) {
     if (Test-Path $modelFile) {
-        $savedModel = try { (Get-Content -Path $modelFile -Raw).Trim() } catch { "Vork 3" }
-        if ($savedModel) {
+        $savedModel = try { (Get-Content -Path $modelFile -Raw).Trim() } catch { "Vork 3.1" }
+        if ($savedModel -in $validModels) {
             $global:VorkModel = $savedModel
         }
     }
     if (-not $global:VorkModel) {
-        $global:VorkModel = if ($env:VORK_MODEL) { $env:VORK_MODEL } else { "Vork 3" }
+        $global:VorkModel = if ($env:VORK_MODEL -and $env:VORK_MODEL -in $validModels) { $env:VORK_MODEL } else { "Vork 3.1" }
     }
 }
-if (-not $global:VorkModel -or $global:VorkModel -ne "Vork 3") {
-    $global:VorkModel = "Vork 3"
+if ($global:VorkModel -notin $validModels) {
+    $global:VorkModel = "Vork 3.1"
 }
 
 $tierFile = Join-Path $HOME ".vork\.tier"
 if (-not $global:VorkTier) {
     if (Test-Path $tierFile) {
         $savedTier = try { (Get-Content -Path $tierFile -Raw).Trim().ToLower() } catch { "medium" }
-        if ($savedTier -in @("low", "medium", "high")) {
+        if ($savedTier -in @("low", "medium", "high", "expert")) {
             $global:VorkTier = $savedTier
         }
     }
@@ -520,7 +522,9 @@ if (-not $global:VorkTier) {
         $global:VorkTier = if ($env:VORK_TIER) { $env:VORK_TIER.ToLower() } else { "medium" }
     }
 }
-if ($global:VorkTier -notin @("low", "medium", "high")) {
+if ($global:VorkModel -eq "Vork 3.2") {
+    $global:VorkTier = "expert"
+} elseif ($global:VorkTier -notin @("low", "medium", "high")) {
     $global:VorkTier = "medium"
 }
 
@@ -630,7 +634,10 @@ function Show-InteractiveModeSelector {
 function Set-VorkTier {
     param([string]$NewTier)
     $clean = if ($NewTier) { $NewTier.Trim().ToLower() } else { "" }
-    if ($clean -in @("low", "medium", "high")) {
+    if ($global:VorkModel -eq "Vork 3.2") {
+        $clean = "expert"
+    }
+    if ($clean -in @("low", "medium", "high", "expert")) {
         $global:VorkTier = $clean
         try {
             $tDir = Join-Path $HOME ".vork"
@@ -643,8 +650,9 @@ function Set-VorkTier {
         Write-Host "  $ESC[42;30;1m OK $Reset ${Green}Nivel de potencia de Vork cambiado a: ${Bold}$label${Reset}"
         switch ($clean) {
             "low"    { Write-Host "  ${Dim}Modo Ligero / Eco: menor latencia, respuesta ultrarrápida.${Reset}" }
-            "medium" { Write-Host "  ${Dim}Modo Balanceado: óptimo para traducción, 24 voces neuronales y stems.${Reset}" }
-            "high"   { Write-Host "  ${Dim}Modo Estudio / Ultra: máxima fidelidad (320kbps, Demucs v4 sin compresión).${Reset}" }
+            "medium" { Write-Host "  ${Dim}Modo Balanceado: óptimo para traducción, razonamiento ágil y stems.${Reset}" }
+            "high"   { Write-Host "  ${Dim}Modo Estudio / Ultra: máxima profundidad de razonamiento y fidelidad acústica.${Reset}" }
+            "expert" { Write-Host "  ${Dim}Modo Expert Soberano: máxima profundidad cognitiva, razonamiento exhaustivo y arquitectura.${Reset}" }
         }
         Write-Host ""
     } else {

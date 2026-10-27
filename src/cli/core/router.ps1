@@ -27,6 +27,10 @@ function Dispatch-CLICommand {
         # ========================================================
         # CATEGORIA 2: AGENTES AUTONOMOS & PLANIFICACION IA (8)
         # ========================================================
+        { $_ -in "chat", "ai", "ask" } {
+            $chatPrompt = if ($ArgsList) { $ArgsList -join " " } else { "" }
+            Invoke-VorkAIChat -Prompt $chatPrompt
+        }
         "goal"       { Invoke-CmdGoal -ArgsList $ArgsList }
         "plan"       { Invoke-CmdPlan -ArgsList $ArgsList }
         "grill-me"   { Invoke-CmdGrillMe }
@@ -130,12 +134,256 @@ function Dispatch-CLICommand {
         }
 
         default {
-            Write-Host ""
-            Write-Host "  ${Coral}[!] Comando no reconocido:${Reset} $White`"$Cmd`"$Reset"
-            Write-Host "  ${Dim}Escribe '?' para atajos o 'slash' para ver los 40 comandos con barra.${Reset}"
-            Write-Host ""
+            if ($Cmd.StartsWith("/")) {
+                Write-Host ""
+                Write-Host "  ${Coral}[!] Comando no reconocido:${Reset} $White`"$Cmd`"$Reset"
+                Write-Host "  ${Dim}Escribe '?' para atajos o 'slash' para ver los 40 comandos con barra.${Reset}"
+                Write-Host ""
+            } else {
+                $fullChat = "$Cmd $($ArgsList -join ' ')".Trim()
+                Invoke-VorkAIChat -Prompt $fullChat
+            }
         }
     }
+}
+
+function Get-VorkPromptTierColor {
+    param([string]$Tier)
+
+    switch (([string]$Tier).ToLower()) {
+        "low"    { return $Green }
+        "medium" { return $Yellow }
+        "high"   { return $Coral }
+        "expert" { return $Purple }
+        default  { return $Cyan }
+    }
+}
+
+function Format-VorkPromptStatus {
+    param(
+        [string]$Status,
+        [int]$Width
+    )
+
+    if (-not $Status -or $Width -lt 36) { return "" }
+
+    if ($Status -match '(?i)ctrl\s*\+\s*c') {
+        $warning = if ($Width -lt 58) { "ctrl+c otra vez" } else { $Status }
+        return "${Yellow}${Bold}$([char]0x26A0)${Reset} ${Yellow}$warning${Reset}"
+    }
+
+    $segments = @($Status -split ([string][char]0x00B7) | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+    if ($segments.Count -ge 2) {
+        $model = [string]$segments[0]
+        $tier = [string]$segments[$segments.Count - 1]
+        $tierLabel = if ($tier.Length -gt 1) { $tier.Substring(0, 1).ToUpper() + $tier.Substring(1).ToLower() } else { $tier.ToUpper() }
+        $tierColor = Get-VorkPromptTierColor -Tier $tier
+
+        if ($Width -lt 58) {
+            return "${tierColor}$([char]0x25CF)${Reset} ${tierColor}${Bold}$tierLabel${Reset}"
+        }
+
+        return "${tierColor}$([char]0x25CF)${Reset} ${LeadLight}$model${Reset} ${Lead}$([char]0x00B7)${Reset} ${tierColor}${Bold}$tierLabel${Reset}"
+    }
+
+    return "${LeadLight}$Status${Reset}"
+}
+
+function Get-VorkPromptPlaceholder {
+    param([int]$Budget)
+
+    if ($Budget -lt 8) { return "" }
+
+    $candidates = @(
+        "Escribe tu mensaje o usa /comando",
+        "Mensaje o /comando",
+        "Mensaje o /cmd",
+        "/comando"
+    )
+
+    foreach ($candidate in $candidates) {
+        if ((Get-VorkDisplayWidth $candidate) -le $Budget) { return $candidate }
+    }
+
+    return ""
+}
+
+function Get-VorkPromptHints {
+    param(
+        [int]$Width,
+        [bool]$MenuOpen
+    )
+
+    $upDown = [string]([char]0x2191) + [string]([char]0x2193)
+    $enter = [string][char]0x23CE
+
+    if ($MenuOpen) {
+        if ($Width -ge 80) {
+            return @(
+                @{ Key = $upDown; Label = "navegar" },
+                @{ Key = "tab";    Label = "completar" },
+                @{ Key = "enter";  Label = "ejecutar" },
+                @{ Key = "esc";    Label = "cerrar" }
+            )
+        }
+        if ($Width -ge 60) {
+            return @(
+                @{ Key = $upDown; Label = "" },
+                @{ Key = "tab";    Label = "completar" },
+                @{ Key = $enter;   Label = "ejecutar" },
+                @{ Key = "esc";    Label = "" }
+            )
+        }
+        return @(
+            @{ Key = $upDown; Label = "" },
+            @{ Key = "tab";    Label = "" },
+            @{ Key = $enter;   Label = "" },
+            @{ Key = "esc";    Label = "" }
+        )
+    }
+
+    if ($Width -ge 88) {
+        return @(
+            @{ Key = "?";      Label = "atajos" },
+            @{ Key = "/";      Label = "comandos" },
+            @{ Key = "ctrl+l"; Label = "limpiar" },
+            @{ Key = "ctrl+c"; Label = "salir" }
+        )
+    }
+    if ($Width -ge 64) {
+        return @(
+            @{ Key = "?";      Label = "atajos" },
+            @{ Key = "/";      Label = "comandos" },
+            @{ Key = "ctrl+c"; Label = "salir" }
+        )
+    }
+    if ($Width -ge 46) {
+        return @(
+            @{ Key = "?";  Label = "ayuda" },
+            @{ Key = "/";  Label = "cmds" },
+            @{ Key = "^C"; Label = "salir" }
+        )
+    }
+    return @(
+        @{ Key = "?";  Label = "" },
+        @{ Key = "/";  Label = "" },
+        @{ Key = "^C"; Label = "" }
+    )
+}
+
+function Format-VorkHintLine {
+    param(
+        [array]$Hints,
+        [int]$MaxWidth
+    )
+
+    if (-not $Hints -or $Hints.Count -eq 0 -or $MaxWidth -le 0) { return "" }
+
+    $separator = " ${Lead}$([char]0x00B7)${Reset} "
+    $separatorWidth = 3
+    $output = ""
+    $used = 0
+
+    foreach ($hint in $Hints) {
+        $key = [string]$hint.Key
+        $label = [string]$hint.Label
+        if (-not $key) { continue }
+
+        $pieceWidth = Get-VorkDisplayWidth $key
+        if ($label) { $pieceWidth += 1 + (Get-VorkDisplayWidth $label) }
+
+        $needed = $pieceWidth
+        if ($output) { $needed += $separatorWidth }
+        if (($used + $needed) -gt $MaxWidth) { break }
+
+        if ($output) { $output += $separator }
+        $output += "${White}${Bold}$key${Reset}"
+        if ($label) { $output += " ${LeadLight}$label${Reset}" }
+        $used += $needed
+    }
+
+    return $output
+}
+
+function Get-VorkPromptPathLabel {
+    param([int]$MaxWidth = 28)
+
+    $path = try { (Get-Location).Path } catch { "" }
+    if (-not $path) { return "" }
+
+    $homePath = [string]$HOME
+    if ($homePath -and $path.StartsWith($homePath, [System.StringComparison]::OrdinalIgnoreCase)) {
+        $relative = $path.Substring($homePath.Length).TrimStart([char[]]@('\', '/'))
+        $path = if ($relative) { "~/" + ($relative -replace '\\', '/') } else { "~" }
+    } else {
+        $path = $path -replace '\\', '/'
+    }
+
+    if ($MaxWidth -gt 2 -and (Get-VorkDisplayWidth $path) -gt $MaxWidth) {
+        while ($path.Length -gt 1 -and (Get-VorkDisplayWidth $path) -gt ($MaxWidth - 1)) {
+            $path = $path.Substring(1)
+        }
+        $path = [string][char]0x2026 + $path
+    }
+
+    return $path
+}
+
+function Format-VorkMenuItemLine {
+    param(
+        [string]$Cmd,
+        [string]$Desc,
+        [bool]$Selected,
+        [int]$InnerWidth
+    )
+
+    $inner = [Math]::Max(6, $InnerWidth)
+    $vertical = [char]0x2502
+    $arrow = [char]0x25B8
+    $showDesc = $inner -ge 32
+    $cmdWidth = if ($showDesc) {
+        [Math]::Max(13, [Math]::Min(18, [int][Math]::Floor($inner * 0.3)))
+    } else {
+        $inner - 4
+    }
+
+    $cmdText = if ((Get-VorkDisplayWidth $Cmd) -le $cmdWidth) {
+        $Cmd
+    } elseif ($cmdWidth -ge 2) {
+        (Limit-VorkAnsiText -Text $Cmd -MaxWidth ($cmdWidth - 1) -Ellipsis "") + [string][char]0x2026
+    } else {
+        ""
+    }
+    $cmdPad = $cmdText + [string]::new(' ', [Math]::Max(0, $cmdWidth - (Get-VorkDisplayWidth $cmdText)))
+
+    if ($showDesc) {
+        $descBudget = [Math]::Max(0, $inner - $cmdWidth - 4)
+        $descText = if ((Get-VorkDisplayWidth $Desc) -le $descBudget) {
+            $Desc
+        } elseif ($descBudget -ge 2) {
+            (Limit-VorkAnsiText -Text $Desc -MaxWidth ($descBudget - 1) -Ellipsis "") + [string][char]0x2026
+        } else {
+            ""
+        }
+        $descWidth = Get-VorkDisplayWidth $descText
+        $fill = [string]::new(' ', [Math]::Max(0, $inner - $cmdWidth - 4 - $descWidth))
+    } else {
+        $descText = ""
+        $fill = [string]::new(' ', [Math]::Max(0, $inner - 3 - (Get-VorkDisplayWidth $cmdText)))
+    }
+
+    if ($Selected) {
+        if ($showDesc) {
+            return "  ${Lead}$vertical${Reset}${BgSel} ${Cyan}${Bold}$arrow ${White}${Bold}$cmdPad ${LeadLight}$descText$fill${Reset} ${Lead}$vertical${Reset}"
+        }
+        return "  ${Lead}$vertical${Reset}${BgSel} ${Cyan}${Bold}$arrow ${White}${Bold}$cmdText$fill${Reset} ${Lead}$vertical${Reset}"
+    }
+
+    if ($showDesc) {
+        return "  ${Lead}$vertical${Reset}   ${White}$cmdPad${Reset} ${LeadLight}$descText$fill${Reset} ${Lead}$vertical${Reset}"
+    }
+
+    return "  ${Lead}$vertical${Reset}   ${White}$cmdText$fill${Reset} ${Lead}$vertical${Reset}"
 }
 
 function Write-VorkPromptFrame {
@@ -154,6 +402,7 @@ function Write-VorkPromptFrame {
         [int]$MenuRows
     )
 
+    $maxWidth = [Math]::Max(4, $Width - 1)
     $panel = [pscustomobject]@{
         Top          = $PromptRow
         Rows         = 3 + [Math]::Max(0, $MenuRows)
@@ -162,45 +411,82 @@ function Write-VorkPromptFrame {
         BufferHeight = 0
     }
 
-    Write-VorkPanelLine -Panel $panel -Index 0 -Text (Format-VorkBorderTop -Title "Vork CLI" -RightText $Status -Width $Width)
+    # Cabecera: marca en coral + estado de modelo/tier alineado a la derecha.
+    $statusText = Format-VorkPromptStatus -Status $Status -Width $Width
+    $titleText = "${Coral}${Bold}Vork CLI${Reset}"
+    Write-VorkPanelLine -Panel $panel -Index 0 -Text (Format-VorkBorderTop -Title $titleText -RightText $statusText -Width $Width)
 
+    # Linea de entrada con placeholder atenuado cuando el buffer esta vacio.
     $inner = [Math]::Max(1, $Width - 9)
     $view = Get-VorkTextWindow -Text $Text -Cursor $Cursor -Width $inner
-    $inputPlainWidth = 6 + (Get-VorkDisplayWidth $view.Text)
-    $padding = [Math]::Max(0, ($Width - 3) - $inputPlainWidth)
-    $inputLine = "  ${Lead}$([char]0x2502)${Reset} ${Coral}${Bold}$([char]0x203A)${Reset} $($view.Text)$([string]::new(' ', $padding)) ${Lead}$([char]0x2502)${Reset}"
-    Write-VorkPanelLine -Panel $panel -Index 1 -Text $inputLine
+    $shownText = $view.Text
+    $textWidth = Get-VorkDisplayWidth $view.Text
 
-    $footerText = "? atajos  ·  / comandos  ·  ctrl+c salir"
-    if ($MenuOpen) {
-        $footerText = "flechas navegar  ·  tab completar  ·  enter ejecutar  ·  esc cerrar"
-        $above = $MenuTop
-        $below = [Math]::Max(0, $MenuItems.Count - ($MenuTop + $MenuVisible))
-        $scrollText = if ($below -gt 0 -and $above -gt 0) { "$([char]0x2191) $above  ·  $([char]0x2193) $below" } elseif ($below -gt 0) { "$([char]0x2193) $below mas" } elseif ($above -gt 0) { "$([char]0x2191) $above mas" } else { "" }
-        Write-VorkPanelLine -Panel $panel -Index 2 -Text (Format-VorkBorderMiddle -RightText $scrollText -Width $Width)
-    } else {
-        Write-VorkPanelLine -Panel $panel -Index 2 -Text (Format-VorkBorderBottom -LeftText $footerText -Width $Width)
+    if (-not $Text) {
+        $placeholder = Get-VorkPromptPlaceholder -Budget $inner
+        if ($placeholder) {
+            $shownText = "${LeadLight}$placeholder${Reset}"
+            $textWidth = Get-VorkDisplayWidth $placeholder
+        }
     }
 
+    $padding = [Math]::Max(0, ($Width - 3) - (6 + $textWidth))
+    $inputLine = "  ${Lead}$([char]0x2502)${Reset} ${Coral}${Bold}$([char]0x276F)${Reset} $shownText$([string]::new(' ', $padding)) ${Lead}$([char]0x2502)${Reset}"
+    Write-VorkPanelLine -Panel $panel -Index 1 -Text $inputLine
+
+    # Pie de pagina: atajos contextuales que se recortan segun el ancho disponible.
+    $hints = Get-VorkPromptHints -Width $Width -MenuOpen $MenuOpen
+    $leftText = Format-VorkHintLine -Hints $hints -MaxWidth ([Math]::Max(0, $maxWidth - 8))
+    $rightText = ""
+
+    if ($MenuOpen) {
+        $above = $MenuTop
+        $below = [Math]::Max(0, $MenuItems.Count - ($MenuTop + $MenuVisible))
+
+        if ($Width -ge 64) {
+            $scrollText = if ($below -gt 0 -and $above -gt 0) {
+                "$([char]0x2191)$above $([char]0x00B7) $([char]0x2193)$below"
+            } elseif ($below -gt 0) {
+                "$([char]0x2193) $below"
+            } elseif ($above -gt 0) {
+                "$([char]0x2191) $above"
+            } else {
+                ""
+            }
+
+            if ($scrollText) {
+                $rightText = "${Lead}$scrollText"
+                $leftText = Format-VorkHintLine -Hints $hints -MaxWidth ([Math]::Max(0, $maxWidth - 12 - (Get-VorkDisplayWidth $scrollText)))
+            }
+        }
+
+        Write-VorkPanelLine -Panel $panel -Index 2 -Text (Format-VorkBorderMiddle -RightText $rightText -Width $Width)
+    } else {
+        if ($Width -ge 90) {
+            $remaining = $maxWidth - 8 - (Get-VorkDisplayWidth $leftText) - 4
+            if ($remaining -ge 12) {
+                $pathLabel = Get-VorkPromptPathLabel -MaxWidth ([Math]::Min(28, $remaining))
+                if ($pathLabel) { $rightText = "${Lead}$pathLabel" }
+            }
+        }
+
+        Write-VorkPanelLine -Panel $panel -Index 2 -Text (Format-VorkBorderBottom -LeftText $leftText -RightText $rightText -Width $Width)
+    }
+
+    # Lista de comandos: fila seleccionada con fondo solido y borde derecho continuo.
     $menuStart = 3
+    $menuInner = [Math]::Max(6, $Width - 7)
+
     for ($i = 0; $i -lt $MenuRows; $i++) {
         $row = $menuStart + $i
         $itemIndex = $MenuTop + $i
         if ($MenuOpen -and $i -lt $MenuVisible -and $itemIndex -lt $MenuItems.Count) {
             $item = $MenuItems[$itemIndex]
             $isSelected = $itemIndex -eq $MenuSelected
-            $cmd = [string]$item.Cmd
-            $desc = [string]$item.Desc
-            $availableDesc = [Math]::Max(8, $Width - 32)
-            $desc = Limit-VorkAnsiText -Text $desc -MaxWidth $availableDesc -Ellipsis "..."
-            if ($isSelected) {
-                $line = "  ${Lead}$([char]0x2502)${Reset} ${Cyan}${Bold}$([char]0x25B8)${Reset} ${White}${Bold}$($cmd.PadRight(17))${Reset}${LeadLight}$desc${Reset}"
-            } else {
-                $line = "  ${Lead}$([char]0x2502)${Reset}   ${White}$($cmd.PadRight(17))${Reset}${LeadLight}$desc${Reset}"
-            }
+            $line = Format-VorkMenuItemLine -Cmd ([string]$item.Cmd) -Desc ([string]$item.Desc) -Selected $isSelected -InnerWidth $menuInner
             Write-VorkPanelLine -Panel $panel -Index $row -Text $line
         } elseif ($MenuOpen -and $i -eq $MenuVisible) {
-            Write-VorkPanelLine -Panel $panel -Index $row -Text (Format-VorkBorderBottom -LeftText $footerText -Width $Width)
+            Write-VorkPanelLine -Panel $panel -Index $row -Text (Format-VorkBorderBottom -LeftText $leftText -Width $Width)
         } else {
             Write-VorkPanelLine -Panel $panel -Index $row -Text ""
         }
@@ -255,7 +541,8 @@ function Read-InteractiveVorkLine {
         @{ Cmd = "/config";      Desc = "Ajustar permisos, temas visuales y preferencias" },
         @{ Cmd = "/keybindings"; Desc = "Personalizar atajos de teclado y combinaciones" },
         @{ Cmd = "/permissions"; Desc = "Administrar permisos de herramientas y comandos" },
-        @{ Cmd = "/model";       Desc = "Configurar modelo Vork 3 y nivel de potencia" },
+        @{ Cmd = "/chat";        Desc = "Conversar directamente con Vork AI (3.0, 3.1 o 3.2 Expert)" },
+        @{ Cmd = "/model";       Desc = "Selector de modelo (Vork 3, 3.1, 3.2 Expert) y potencia" },
         @{ Cmd = "/theme";       Desc = "Alternar temas visuales (Dark, Cyberpunk, Coral)" },
         @{ Cmd = "/env";         Desc = "Consultar y gestionar variables de entorno activas" },
         @{ Cmd = "/help";        Desc = "Manual interactivo de comandos y atajos de teclado" },
@@ -397,7 +684,7 @@ function Read-InteractiveVorkLine {
                 Clear-VorkPanel -Panel $panel
 
                 if ($finalText.Trim().Length -gt 0) {
-                    $submitted = "  ${Coral}${Bold}$([char]0x203A)${Reset} ${White}$finalText${Reset}"
+                    $submitted = "  ${Coral}${Bold}$([char]0x276F)${Reset} ${White}$finalText${Reset}"
                     Write-Host (Limit-VorkAnsiText -Text $submitted -MaxWidth ([Math]::Max(10, $metrics.Width - 1)))
                     try { [Console]::SetCursorPosition(0, $promptRow + 1) } catch { }
                 }
@@ -659,11 +946,7 @@ function Start-InteractiveREPL {
                 Save-VorkConversationRecord -Cmd $line -Output $outMsg
             } else {
                 $modelResult = Show-InteractiveModelSwitcher
-                if ($modelResult -and $modelResult.Action -eq "selected") {
-                    $outMsg = "Switched to $($modelResult.Model) · $($modelResult.Tier)"
-                } else {
-                    $outMsg = "Exited /model command"
-                }
+                $outMsg = "Exited /model command"
                 Write-Host "  ${LeadLight}$elbow  $outMsg${Reset}"
                 Write-Host ""
                 Save-VorkConversationRecord -Cmd $line -Output $outMsg
@@ -690,12 +973,12 @@ function Start-InteractiveREPL {
         }
 
         Dispatch-CLICommand -Cmd $replCmd -ArgsList $replArgs
-        $outMsg = if ($replCmd.StartsWith("/")) { "Exited $replCmd command" } else { "Executed $replCmd" }
         if ($replCmd.StartsWith("/")) {
+            $outMsg = "Exited $replCmd command"
             Write-Host "  ${LeadLight}$elbow  $outMsg${Reset}"
             Write-Host ""
+            Save-VorkConversationRecord -Cmd $line -Output $outMsg
         }
-        Save-VorkConversationRecord -Cmd $line -Output $outMsg
     }
 }
 

@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Vork CLI - Modulo UI: Componentes interactivos responsive.
 
@@ -965,59 +965,103 @@ function Select-InteractivePermissions {
 function Write-VorkModelFrame {
     param(
         $Panel,
+        [int]$ModelIndex,
+        [array]$Models,
         [int]$EffortIndex,
         [array]$Efforts,
-        [array]$EffortDescriptions
+        [hashtable]$Descriptions
     )
 
-    $effort = $Efforts[$EffortIndex]
+    $modelName = $Models[$ModelIndex]
+    $isExpert = ($modelName -eq "Vork 3.2")
+    $effort = if ($isExpert) { "expert" } else { $Efforts[$EffortIndex] }
+
     $effortColor = switch ($effort) {
         "low"    { $Green }
         "medium" { $Yellow }
         "high"   { $Coral }
+        "expert" { $Magenta }
         default  { $Cyan }
     }
 
     $row = 0
-    Write-VorkPanelLine -Panel $Panel -Index $row -Text (Format-VorkBorderTop -Title "Modelo y potencia" -RightText "Vork 3" -Width $Panel.Width)
+    Write-VorkPanelLine -Panel $Panel -Index $row -Text (Format-VorkBorderTop -Title "Seleccionar Modelo IA" -RightText "$modelName · $effort" -Width $Panel.Width)
     $row++
 
-    Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${Lead}$([char]0x2502)${Reset} ${White}${Bold}Vork 3${Reset} ${LeadLight}· Neural AI Engine${Reset}"
+    # Línea 1: Modelos disponibles
+    $mTokens = @()
+    for ($m = 0; $m -lt $Models.Count; $m++) {
+        $mItem = $Models[$m]
+        if ($m -eq $ModelIndex) {
+            $mTokens += "${BgSel}${Cyan}${Bold} $mItem ${Reset}"
+        } else {
+            $mTokens += "${LeadLight} $mItem ${Reset}"
+        }
+    }
+    $modelsStr = $mTokens -join "  "
+    Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${Lead}$([char]0x2502)${Reset} ${White}${Bold}Modelo:${Reset}   $([char]0x2039) $modelsStr $([char]0x203A)"
     $row++
 
-    $low = if ($EffortIndex -eq 0) { "${BgSel}${Green}${Bold}  LOW  ${Reset}" } else { "${LeadLight}  low  ${Reset}" }
-    $medium = if ($EffortIndex -eq 1) { "${BgSel}${Yellow}${Bold} MEDIUM ${Reset}" } else { "${LeadLight} medium ${Reset}" }
-    $high = if ($EffortIndex -eq 2) { "${BgSel}${Coral}${Bold}  HIGH  ${Reset}" } else { "${LeadLight}  high  ${Reset}" }
-    Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${Lead}$([char]0x2502)${Reset} ${LeadLight}Potencia${Reset}  $([char]0x2039)  $low  $medium  $high  $([char]0x203A)"
-    $row++
+    # Línea 2: Selector de Esfuerzo / Potencia
+    if ($isExpert) {
+        Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${Lead}$([char]0x2502)${Reset} ${White}${Bold}Potencia:${Reset} ${BgSel}${Magenta}${Bold}  EXPERT (MÁXIMO BLOQUEADO)  ${Reset}"
+        $row++
+    } else {
+        $low = if ($EffortIndex -eq 0) { "${BgSel}${Green}${Bold}  LOW  ${Reset}" } else { "${LeadLight}  low  ${Reset}" }
+        $medium = if ($EffortIndex -eq 1) { "${BgSel}${Yellow}${Bold} MEDIUM ${Reset}" } else { "${LeadLight} medium ${Reset}" }
+        $high = if ($EffortIndex -eq 2) { "${BgSel}${Coral}${Bold}  HIGH  ${Reset}" } else { "${LeadLight}  high  ${Reset}" }
+        Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${Lead}$([char]0x2502)${Reset} ${White}${Bold}Potencia:${Reset} $([char]0x2039)  $low  $medium  $high  $([char]0x203A)"
+        $row++
+    }
 
-    $description = [string]$EffortDescriptions[$effort]
-    $descriptionLines = Get-VorkWrappedLines -Text $description -Width ([Math]::Max(10, $Panel.Width - 8)) -MaxLines 2
+    # Línea 3: Descripción detallada
+    $key = "$modelName-$effort"
+    $desc = if ($Descriptions.ContainsKey($key)) {
+        $Descriptions[$key]
+    } elseif ($Descriptions.ContainsKey($modelName)) {
+        $Descriptions[$modelName]
+    } else {
+        $Descriptions[$effort]
+    }
+
+    $descriptionLines = Get-VorkWrappedLines -Text $desc -Width ([Math]::Max(10, $Panel.Width - 8)) -MaxLines 2
     foreach ($line in $descriptionLines) {
         Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${Lead}$([char]0x2502)${Reset} ${effortColor}$line${Reset}"
         $row++
     }
-    while ($row -lt 5) {
+    while ($row -lt 6) {
         Write-VorkPanelLine -Panel $Panel -Index $row -Text ""
         $row++
     }
 
-    Write-VorkPanelLine -Panel $Panel -Index $row -Text (Format-VorkBorderBottom -LeftText "izquierda/derecha o arriba/abajo cambiar  ·  enter aplicar  ·  esc cancelar" -Width $Panel.Width)
+    Write-VorkPanelLine -Panel $Panel -Index $row -Text (Format-VorkBorderBottom -LeftText "arriba/abajo Modelo  ·  izquierda/derecha Potencia  ·  enter Aplicar  ·  esc Salir" -Width $Panel.Width)
 }
 
 function Show-InteractiveModelSwitcher {
+    $models = @("Vork 3", "Vork 3.1", "Vork 3.2")
     $efforts = @("low", "medium", "high")
+
     $descriptions = @{
-        "low"    = "Respuesta rapida y bajo consumo. Ideal para tareas simples."
-        "medium" = "Equilibrio entre velocidad y calidad de razonamiento."
-        "high"   = "Maxima profundidad para arquitectura y codigo complejo."
+        "Vork 3-low"      = "Vork 3: Motor multimodal ligero para conversiones y audio rápido."
+        "Vork 3-medium"   = "Vork 3: Equilibrio balanceado para procesamiento y traducción."
+        "Vork 3-high"     = "Vork 3: Máxima fidelidad para aislamiento de stems Demucs y audio 320k."
+        "Vork 3.1-low"    = "Vork 3.1: IA conversacional ágil para respuestas rápidas y código simple."
+        "Vork 3.1-medium" = "Vork 3.1: IA profesional de desarrollo, depuración y arquitectura de software."
+        "Vork 3.1-high"   = "Vork 3.1: Máxima profundidad de razonamiento para sistemas complejos y lógica estricta."
+        "Vork 3.2-expert" = "Vork 3.2: Arquitectura Soberana Experta. Razonamiento analítico sin restricciones, síntesis matemática y diseño industrial."
     }
 
-    $effortIndex = [Array]::IndexOf($efforts, $(if ($global:VorkTier) { $global:VorkTier.ToLower() } else { "medium" }))
+    $currModel = if ($global:VorkModel -and $global:VorkModel -in $models) { $global:VorkModel } else { "Vork 3.1" }
+    $modelIndex = [Array]::IndexOf($models, $currModel)
+    if ($modelIndex -lt 0) { $modelIndex = 1 }
+
+    $currTier = if ($global:VorkTier) { $global:VorkTier.ToLower() } else { "medium" }
+    $effortIndex = [Array]::IndexOf($efforts, $currTier)
     if ($effortIndex -lt 0) { $effortIndex = 1 }
 
     if ([Console]::IsInputRedirected -or [Console]::IsOutputRedirected) {
-        return @{ Action = "selected"; Model = "Vork 3"; Tier = $efforts[$effortIndex] }
+        $eff = if ($currModel -eq "Vork 3.2") { "expert" } else { $efforts[$effortIndex] }
+        return @{ Action = "selected"; Model = $currModel; Tier = $eff }
     }
 
     $savedCursor = try { [Console]::CursorVisible } catch { $true }
@@ -1028,8 +1072,8 @@ function Show-InteractiveModelSwitcher {
     try {
         while ($true) {
             $metrics = Get-VorkConsoleMetrics
-            $panel = Update-VorkPanel -Panel $panel -Rows 6
-            Write-VorkModelFrame -Panel $panel -EffortIndex $effortIndex -Efforts $efforts -EffortDescriptions $descriptions
+            $panel = Update-VorkPanel -Panel $panel -Rows 7
+            Write-VorkModelFrame -Panel $panel -ModelIndex $modelIndex -Models $models -EffortIndex $effortIndex -Efforts $efforts -Descriptions $descriptions
 
             $wait = Wait-VorkConsoleKey
             if ($wait.Resized) { continue }
@@ -1039,30 +1083,46 @@ function Show-InteractiveModelSwitcher {
             if (Test-VorkCtrlC -Key $key) { Clear-VorkPanel -Panel $panel; return @{ Action = "exited" } }
             if ($key.Key -eq [ConsoleKey]::Escape) { Clear-VorkPanel -Panel $panel; return @{ Action = "exited" } }
 
-            if ($key.Key -eq [ConsoleKey]::LeftArrow -or $key.Key -eq [ConsoleKey]::UpArrow) {
-                $effortIndex = if ($effortIndex -gt 0) { $effortIndex - 1 } else { $efforts.Count - 1 }
+            # Arriba/Abajo: Cambiar de Modelo (Vork 3 <-> Vork 3.1 <-> Vork 3.2)
+            if ($key.Key -eq [ConsoleKey]::UpArrow) {
+                $modelIndex = if ($modelIndex -gt 0) { $modelIndex - 1 } else { $models.Count - 1 }
+                continue
+            }
+            if ($key.Key -eq [ConsoleKey]::DownArrow) {
+                $modelIndex = if ($modelIndex -lt ($models.Count - 1)) { $modelIndex + 1 } else { 0 }
                 continue
             }
 
-            if ($key.Key -eq [ConsoleKey]::RightArrow -or $key.Key -eq [ConsoleKey]::DownArrow) {
-                $effortIndex = if ($effortIndex -lt ($efforts.Count - 1)) { $effortIndex + 1 } else { 0 }
+            # Izquierda/Derecha: Cambiar de Potencia (solo si no es Vork 3.2 que está bloqueado en Expert)
+            if ($key.Key -eq [ConsoleKey]::LeftArrow) {
+                if ($models[$modelIndex] -ne "Vork 3.2") {
+                    $effortIndex = if ($effortIndex -gt 0) { $effortIndex - 1 } else { $efforts.Count - 1 }
+                }
+                continue
+            }
+            if ($key.Key -eq [ConsoleKey]::RightArrow) {
+                if ($models[$modelIndex] -ne "Vork 3.2") {
+                    $effortIndex = if ($effortIndex -lt ($efforts.Count - 1)) { $effortIndex + 1 } else { 0 }
+                }
                 continue
             }
 
+            # Enter: Confirmar y guardar
             if ($key.Key -eq [ConsoleKey]::Enter) {
-                $chosenEffort = $efforts[$effortIndex]
-                $global:VorkModel = "Vork 3"
+                $chosenModel = $models[$modelIndex]
+                $chosenEffort = if ($chosenModel -eq "Vork 3.2") { "expert" } else { $efforts[$effortIndex] }
+                $global:VorkModel = $chosenModel
                 $global:VorkTier = $chosenEffort
 
                 try {
                     $vorkDir = Join-Path $HOME ".vork"
                     if (-not (Test-Path $vorkDir)) { New-Item -ItemType Directory -Path $vorkDir -Force | Out-Null }
-                    Set-Content -Path (Join-Path $vorkDir ".model") -Value "Vork 3" -Force -Encoding UTF8
+                    Set-Content -Path (Join-Path $vorkDir ".model") -Value $chosenModel -Force -Encoding UTF8
                     Set-Content -Path (Join-Path $vorkDir ".tier") -Value $chosenEffort -Force -Encoding UTF8
                 } catch { }
 
                 Clear-VorkPanel -Panel $panel
-                return @{ Action = "selected"; Model = "Vork 3"; Tier = $chosenEffort }
+                return @{ Action = "selected"; Model = $chosenModel; Tier = $chosenEffort }
             }
         }
     } finally {

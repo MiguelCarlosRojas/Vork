@@ -19,6 +19,7 @@ function Show-Banner {
         "low"    { $Green }
         "medium" { $Yellow }
         "high"   { $Coral }
+        "expert" { $Purple }
         default  { $Cyan }
     }
     $modelName = if ($global:VorkModel) { $global:VorkModel } else { "Vork 3" }

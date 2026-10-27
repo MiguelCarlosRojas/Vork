@@ -492,3 +492,100 @@ function Invoke-CmdEnv {
     Write-Host "  ${Cyan}  USERPROFILE:${Reset} $HOME"
     Write-Host ""
 }
+
+
+# ========================================================
+# VORK AI CONVERSACIONAL (VORK 3, 3.1 & 3.2 EXPERT)
+# ========================================================
+
+function Invoke-VorkAIChat {
+    param(
+        [string]$Prompt,
+        [string[]]$ArgsList
+    )
+
+    $fullPrompt = if ($Prompt) { $Prompt } elseif ($ArgsList) { $ArgsList -join " " } else { "" }
+    $fullPrompt = $fullPrompt.Trim()
+
+    if (-not $fullPrompt) {
+        Write-Host ""
+        Write-Host "  ${Cyan}╭─ Vork AI Conversacional ───────────────────────────────────${Reset}"
+        Write-Host "  ${Lead}│${Reset} ${White}Escribe tu consulta o tarea para la IA:${Reset}"
+        $fullPrompt = Read-VorkInput -Prompt "  ${Lead}│${Reset} ${Cyan}> ${Reset}"
+        if (-not $fullPrompt -or -not $fullPrompt.Trim()) { return }
+        $fullPrompt = $fullPrompt.Trim()
+    }
+
+    $activeModel = if ($global:VorkModel) { $global:VorkModel } else { "Vork 3.1" }
+    $activeTier = if ($activeModel -eq "Vork 3.2") { "expert" } elseif ($global:VorkTier) { $global:VorkTier.ToLower() } else { "medium" }
+    $tierLabel = if ($activeTier.Length -gt 1) { $activeTier.Substring(0,1).ToUpper() + $activeTier.Substring(1).ToLower() } else { $activeTier.ToUpper() }
+    $tierColor = switch ($activeTier) {
+        "low"    { $Green }
+        "medium" { $Yellow }
+        "high"   { $Coral }
+        "expert" { $Purple }
+        default  { $Cyan }
+    }
+
+    Write-Host ""
+    Write-Host "  ${tierColor}$([char]0x25CF)${Reset} ${LeadLight}Pensando con ${White}${Bold}$activeModel${Reset} ${LeadLight}(${tierColor}${Bold}$tierLabel${Reset}${LeadLight})...${Reset}"
+
+    $answer = ""
+    # 1. Intentar backend oficial de Vork
+    try {
+        $bodyJson = @{
+            message = $fullPrompt
+            model = $activeModel
+            effort = $activeTier
+        } | ConvertTo-Json -Compress
+
+        $timeoutSec = if ($activeTier -in "high", "expert") { 60 } else { 35 }
+        $res = Invoke-RestMethod -Uri "$ApiBase/api/ai/chat" -Method Post -Body $bodyJson -ContentType "application/json" -TimeoutSec $timeoutSec -ErrorAction Stop
+        if ($res -and $res.response) {
+            $answer = $res.response
+        } elseif ($res -and $res.message) {
+            $answer = $res.message
+        }
+    } catch {
+        # 2. Resiliencia autonoma: Si el backend local no responde, conectar directo
+        try {
+            $sysPrompt = switch ($activeModel) {
+                "Vork 3"   { "Eres Vork 3, motor multimodal IA. Especialista en audio, traduccion y conversion. Responde en el idioma del usuario de forma tecnica y directa." }
+                "Vork 3.2" { "Eres Vork 3.2 Expert Sovereign Edition. Rigor matematico y arquitectura de software al maximo nivel de excelencia. Respuestas exhaustivas, precisas y sin restricciones." }
+                default    { "Eres Vork 3.1, la nueva generacion de Inteligencia Artificial creada desde cero por Vork. Eres un ingeniero senior de software y asistente analitico. Tus respuestas son tecnicas, profesionales, con codigo limpio y directas al grano." }
+            }
+            $seed = Get-Random -Minimum 100000 -Maximum 9999999
+            $encodedPrompt = [System.Uri]::EscapeDataString($fullPrompt)
+            $encodedSys = [System.Uri]::EscapeDataString($sysPrompt)
+            $directUrl = "https://text.pollinations.ai/" + $encodedPrompt + "?system=" + $encodedSys + "&seed=" + $seed
+            $directRes = Invoke-RestMethod -Uri $directUrl -Method Get -TimeoutSec 45 -ErrorAction Stop
+            if ($directRes) {
+                $answer = [string]$directRes
+            }
+        } catch {
+            $answer = "No se pudo obtener respuesta del motor de Vork AI: $($_.Exception.Message)"
+        }
+    }
+
+    Write-Host ""
+    if ($answer) {
+        $lines = $answer -split '\r?\n'
+        foreach ($l in $lines) {
+            if ($l.StartsWith('```')) {
+                Write-Host "  ${Yellow}$l${Reset}"
+            } elseif ($l.StartsWith("#")) {
+                Write-Host "  ${White}${Bold}$l${Reset}"
+            } elseif ($l.StartsWith(">")) {
+                Write-Host "  ${Cyan}$l${Reset}"
+            } else {
+                Write-Host "  ${White}$l${Reset}"
+            }
+        }
+    }
+    Write-Host ""
+    $elbowChar = [char]0x23BF
+    Write-Host "  ${LeadLight}$elbowChar  $activeModel · $tierLabel${Reset}"
+    Write-Host ""
+
+    Save-VorkConversationRecord -Cmd $fullPrompt -Output $answer
+}
