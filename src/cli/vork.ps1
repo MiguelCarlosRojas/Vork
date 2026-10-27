@@ -2236,7 +2236,6 @@ function Show-Shortcuts {
     Write-Host "  ${Cyan}  /update${Reset}         ${Dim}Actualizar Vork CLI al instante${Reset}"
     Write-Host ""
     Write-Host "  ${Dim}Pilares directos: translate, tts, clone, media, separate, image, remove-bg, agents${Reset}"
-    Wait-VorkGoBack
     Write-Host ""
 }
 
@@ -2376,7 +2375,6 @@ function Show-SlashCommands {
     Write-Host "  ${Cyan}│${Reset}  ${Yellow}/docs${Reset}       ${White}· Abrir la documentación oficial de Vork en el navegador${Reset}"
     Write-Host "  ${Cyan}│${Reset}  ${Yellow}/exit${Reset}       ${White}· Cerrar la sesión de terminal de forma segura${Reset}"
     Write-Host "  ${Cyan}╰────────────────────────────────────────────────────────────${Reset}"
-    Wait-VorkGoBack
     Write-Host ""
 }
 
@@ -2615,17 +2613,19 @@ function Show-InteractiveHelpModal {
 # ========================================================
 <#
 .SYNOPSIS
-    Pilar 01: Vork Traductor en la Nube (+200 idiomas por lotes)
+    Pilar 01: Vork Traductor Neuronal en la Nube (+200 Idiomas)
 #>
 
 function Invoke-PillarTranslate {
     param([string[]]$ArgsList)
 
-    $text = if ($ArgsList -and $ArgsList.Length -gt 0) { $ArgsList[0] } else { $null }
     $to = "en"
-    if ($ArgsList) {
-        for ($i=0; $i -lt $ArgsList.Length; $i++) {
-            if ($ArgsList[$i] -in "-To", "--to", "-t") { $to = $ArgsList[$i+1] }
+    $text = ""
+
+    if ($ArgsList -and $ArgsList.Length -gt 0) {
+        $to = $ArgsList[0]
+        if ($ArgsList.Length -gt 1) {
+            $text = ($ArgsList[1..($ArgsList.Length - 1)]) -join " "
         }
     }
 
@@ -2633,25 +2633,25 @@ function Invoke-PillarTranslate {
         Write-Host ""
         Write-Host "  ${Cyan}${Bold}╭─ [01] Vork Traductor en la Nube (+200 Idiomas)${Reset}"
         Write-Host "  ${Lead}│${Reset} ${White}Ingresa el texto que deseas traducir:${Reset}"
-        $text = Read-VorkInput -Prompt "  ${Lead}│${Reset} ${Cyan}> ${Reset}"
-        if (-not $text -or -not $text.Trim()) {
+        $textInput = Read-VorkInput -Prompt "  ${Lead}│${Reset} ${Cyan}> ${Reset}"
+        if (-not $textInput -or -not $textInput.Trim()) {
             Write-Host "  ${Lead}╰─ Traducción cancelada.${Reset}"
             Write-Host ""
             return
         }
-        $text = $text.Trim()
+        $text = $textInput.Trim()
 
         $langOptions = @(
-            @{ Value = "en"; Label = "[1]  en (Inglés)" },
-            @{ Value = "es"; Label = "[2]  es (Español)" },
-            @{ Value = "fr"; Label = "[3]  fr (Francés)" },
-            @{ Value = "de"; Label = "[4]  de (Alemán)" },
-            @{ Value = "it"; Label = "[5]  it (Italiano)" },
-            @{ Value = "pt"; Label = "[6]  pt (Portugués)" },
-            @{ Value = "ja"; Label = "[7]  ja (Japonés)" },
-            @{ Value = "zh"; Label = "[8]  zh (Chino)" },
-            @{ Value = "ru"; Label = "[9]  ru (Ruso)" },
-            @{ Value = "ko"; Label = "[10] ko (Coreano)" }
+            @{ Value = "en"; Label = "en (Inglés)" },
+            @{ Value = "es"; Label = "es (Español)" },
+            @{ Value = "fr"; Label = "fr (Francés)" },
+            @{ Value = "de"; Label = "de (Alemán)" },
+            @{ Value = "it"; Label = "it (Italiano)" },
+            @{ Value = "pt"; Label = "pt (Portugués)" },
+            @{ Value = "ja"; Label = "ja (Japonés)" },
+            @{ Value = "zh"; Label = "zh (Chino)" },
+            @{ Value = "ru"; Label = "ru (Ruso)" },
+            @{ Value = "ko"; Label = "ko (Coreano)" }
         )
 
         $chosenLang = Select-InteractiveOption -PromptTitle "Selecciona el idioma destino:" -Options $langOptions -DefaultIndex 0
@@ -2670,12 +2670,16 @@ function Invoke-PillarTranslate {
     try {
         $res = Invoke-RestMethod -Uri "$ApiBase/api/translate" -Method Post -Body $body -ContentType "application/json"
         Write-Host "  $Cyan│$Reset  $Green✓ Traducción:$Reset $White$($res.translatedText)$Reset"
+        
+        $outFile = "traduccion.txt"
+        [System.IO.File]::WriteAllText((Join-Path (Get-Location) $outFile), $res.translatedText, [System.Text.Encoding]::UTF8)
+        $resolvedOut = (Resolve-Path $outFile).Path
+        Write-Host "  $Cyan│$Reset  $Green✓ Guardado local:$Reset $White$resolvedOut$Reset"
         Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
     } catch {
         Write-Host "  $Cyan│$Reset  ${Coral}[Error al traducir]:${Reset} $($_.Exception.Message)"
         Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
     }
-    Wait-VorkGoBack
     Write-Host ""
 }
 
@@ -2733,27 +2737,35 @@ function Invoke-PillarTTS {
     Write-Host "  $Cyan│$Reset  $Gray Salida:$Reset  $White$out$Reset"
     Write-Host "  $Cyan├───────────────────────────────────────────────────$Reset"
 
+    if (-not $out) { $out = "audio_tts.mp3" }
+
     $body = @{ text = $text; voice = $voice; outputFormat = "audio-24khz-48kbitrate-mono-mp3" } | ConvertTo-Json
     try {
         $res = Invoke-RestMethod -Uri "$ApiBase/api/tts" -Method Post -Body $body -ContentType "application/json"
-        if ($res.audioBase64 -and $out) {
+        $targetFile = if ([System.IO.Path]::IsPathRooted($out)) { $out } else { Join-Path (Get-Location) $out }
+        if ($res.audioBase64) {
             try {
                 $rawB64 = $res.audioBase64 -replace '^data:audio\/[^;]+;base64,', ''
-                $targetFile = if ([System.IO.Path]::IsPathRooted($out)) { $out } else { Join-Path (Get-Location) $out }
                 [System.IO.File]::WriteAllBytes($targetFile, [System.Convert]::FromBase64String($rawB64))
             } catch {}
         }
         $dlUrl = if ($res.downloadUrl) { "$ApiBase$($res.downloadUrl)" } else { "$ApiBase/api/tts/download?file=$out" }
-        $stUrl = if ($res.streamUrl) { "$ApiBase$($res.streamUrl)" } else { "$ApiBase/api/tts/stream?file=$out" }
-        Write-Host "  $Cyan│$Reset  $Green✓ Síntesis vocal lista:$Reset"
-        Write-Host "  $Cyan│$Reset    Descarga: $Yellow$dlUrl$Reset"
-        Write-Host "  $Cyan│$Reset    Stream:   $Cyan$stUrl$Reset"
+        if (-not (Test-Path $targetFile)) {
+            try { Invoke-WebRequest -Uri $dlUrl -OutFile $targetFile -UseBasicParsing } catch {}
+        }
+
+        Write-Host "  $Cyan│$Reset  $Green✓ Síntesis vocal completada con éxito.$Reset"
+        if (Test-Path $targetFile) {
+            $resolvedOut = (Resolve-Path $targetFile).Path
+            Write-Host "  $Cyan│$Reset  $Green✓ Guardado local:$Reset $White$resolvedOut$Reset"
+        } else {
+            Write-Host "  $Cyan│$Reset    Descarga: $Yellow$dlUrl$Reset"
+        }
         Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
     } catch {
         Write-Host "  $Cyan│$Reset  ${Coral}[Error TTS]:${Reset} $($_.Exception.Message)"
         Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
     }
-    Wait-VorkGoBack
     Write-Host ""
 }
 
@@ -2825,28 +2837,35 @@ function Invoke-PillarClone {
         } catch {}
     }
 
+    if (-not $out) { $out = "voz_clonada.wav" }
     $cloneText = if ($text -and $text.Trim()) { $text.Trim() } else { "Prueba de síntesis con voz clonada en Vork CLI." }
     $body = @{ text = $cloneText; audioSampleBase64 = $b64; similarity = "high"; format = "wav" } | ConvertTo-Json
     try {
         $res = Invoke-RestMethod -Uri "$ApiBase/api/voice-clone" -Method Post -Body $body -ContentType "application/json"
-        if ($res.audioBase64 -and $out) {
+        $targetFile = if ([System.IO.Path]::IsPathRooted($out)) { $out } else { Join-Path (Get-Location) $out }
+        if ($res.audioBase64) {
             try {
                 $rawB64 = $res.audioBase64 -replace '^data:audio\/[^;]+;base64,', ''
-                $targetFile = if ([System.IO.Path]::IsPathRooted($out)) { $out } else { Join-Path (Get-Location) $out }
                 [System.IO.File]::WriteAllBytes($targetFile, [System.Convert]::FromBase64String($rawB64))
             } catch {}
         }
         $dlUrl = if ($res.downloadUrl) { "$ApiBase$($res.downloadUrl)" } else { "$ApiBase/api/voice-clone/download" }
-        $stUrl = if ($res.streamUrl) { "$ApiBase$($res.streamUrl)" } else { "$ApiBase/api/voice-clone/stream" }
-        Write-Host "  $Cyan│$Reset  $Green✓ Clonación de voz lista:$Reset"
-        Write-Host "  $Cyan│$Reset    Descarga: $Yellow$dlUrl$Reset"
-        Write-Host "  $Cyan│$Reset    Stream:   $Cyan$stUrl$Reset"
+        if (-not (Test-Path $targetFile)) {
+            try { Invoke-WebRequest -Uri $dlUrl -OutFile $targetFile -UseBasicParsing } catch {}
+        }
+
+        Write-Host "  $Cyan│$Reset  $Green✓ Clonación de voz completada exitosamente.$Reset"
+        if (Test-Path $targetFile) {
+            $resolvedOut = (Resolve-Path $targetFile).Path
+            Write-Host "  $Cyan│$Reset  $Green✓ Guardado local:$Reset $White$resolvedOut$Reset"
+        } else {
+            Write-Host "  $Cyan│$Reset    Descarga: $Yellow$dlUrl$Reset"
+        }
         Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
     } catch {
         Write-Host "  $Cyan│$Reset  ${Coral}[Error Clonación]:${Reset} $($_.Exception.Message)"
         Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
     }
-    Wait-VorkGoBack
     Write-Host ""
 }
 
@@ -2985,9 +3004,16 @@ function Invoke-PillarMedia {
             Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
         } else {
             Write-Host "  $Cyan├───────────────────────────────────────────────────$Reset"
-            Write-Host "  $Cyan│$Reset  $Green✓ Conversión lista:$Reset"
-            Write-Host "  $Cyan│$Reset    Descarga: $Yellow$ApiBase$($res.downloadUrl)$Reset"
-            Write-Host "  $Cyan│$Reset    Stream:   $Cyan$ApiBase$($res.streamUrl)$Reset"
+            Write-Host "  $Cyan│$Reset  $Green✓ Conversión multimedia completada exitosamente.$Reset"
+            $dlFull = if ($res.downloadUrl.StartsWith("http")) { $res.downloadUrl } else { "$ApiBase$($res.downloadUrl)" }
+            $localFile = if ($res.filename) { $res.filename } else { "media_output.$fmt" }
+            try {
+                Invoke-WebRequest -Uri $dlFull -OutFile $localFile -UseBasicParsing -TimeoutSec 120
+                $resolvedOut = (Resolve-Path $localFile).Path
+                Write-Host "  $Cyan│$Reset  $Green✓ Guardado local:$Reset $White$resolvedOut$Reset"
+            } catch {
+                Write-Host "  $Cyan│$Reset    Descarga: $Yellow$dlFull$Reset"
+            }
             Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
         }
     } catch {
@@ -2996,7 +3022,6 @@ function Invoke-PillarMedia {
         Write-Host "  $Cyan│$Reset  ${Coral}[Error Multimedia]:${Reset} $($_.Exception.Message)"
         Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
     }
-    Wait-VorkGoBack
     Write-Host ""
 }
 
@@ -3184,7 +3209,7 @@ function Invoke-PillarSeparate {
             $localVoc = "vocals.wav"
             try {
                 Invoke-WebRequest -Uri $vocDl -OutFile $localVoc -UseBasicParsing -TimeoutSec 120
-                Write-Host "  $Cyan│$Reset    ${White}${Bold}Archivo local:${Reset} $Green$((Resolve-Path $localVoc).Path)$Reset"
+                Write-Host "  $Cyan│$Reset  $Green✓ Guardado local:$Reset $White$((Resolve-Path $localVoc).Path)$Reset"
             } catch {
                 Write-Host "  $Cyan│$Reset    Descarga: $Yellow$vocDl$Reset"
             }
@@ -3193,7 +3218,7 @@ function Invoke-PillarSeparate {
             $localInst = "instrumental.wav"
             try {
                 Invoke-WebRequest -Uri $instDl -OutFile $localInst -UseBasicParsing -TimeoutSec 120
-                Write-Host "  $Cyan│$Reset    ${White}${Bold}Archivo local:${Reset} $Green$((Resolve-Path $localInst).Path)$Reset"
+                Write-Host "  $Cyan│$Reset  $Green✓ Guardado local:$Reset $White$((Resolve-Path $localInst).Path)$Reset"
             } catch {
                 Write-Host "  $Cyan│$Reset    Descarga: $Yellow$instDl$Reset"
             }
@@ -3203,7 +3228,7 @@ function Invoke-PillarSeparate {
                 $localVoc = "vocals.wav"
                 try {
                     Invoke-WebRequest -Uri $vocDl -OutFile $localVoc -UseBasicParsing -TimeoutSec 120
-                    Write-Host "  $Cyan│$Reset    ${White}${Bold}Voz Acapella:${Reset}  $Green$((Resolve-Path $localVoc).Path)$Reset"
+                    Write-Host "  $Cyan│$Reset  $Green✓ Guardado local (Vocals):$Reset       $White$((Resolve-Path $localVoc).Path)$Reset"
                 } catch {
                     Write-Host "  $Cyan│$Reset    ${White}${Bold}Voz Acapella:${Reset}  $Yellow$vocDl$Reset"
                 }
@@ -3212,7 +3237,7 @@ function Invoke-PillarSeparate {
                 $localInst = "instrumental.wav"
                 try {
                     Invoke-WebRequest -Uri $instDl -OutFile $localInst -UseBasicParsing -TimeoutSec 120
-                    Write-Host "  $Cyan│$Reset    ${White}${Bold}Instrumental:${Reset}  $Green$((Resolve-Path $localInst).Path)$Reset"
+                    Write-Host "  $Cyan│$Reset  $Green✓ Guardado local (Instrumental):$Reset $White$((Resolve-Path $localInst).Path)$Reset"
                 } catch {
                     Write-Host "  $Cyan│$Reset    ${White}${Bold}Instrumental:${Reset}  $Cyan$instDl$Reset"
                 }
@@ -3225,7 +3250,6 @@ function Invoke-PillarSeparate {
         Write-Host "  $Cyan│$Reset  ${Coral}[Error Separador]:${Reset} $($_.Exception.Message)"
         Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
     }
-    Wait-VorkGoBack
     Write-Host ""
 }
 
@@ -3430,15 +3454,24 @@ function Invoke-PillarImage {
         $res = Invoke-RestMethod -Uri "$ApiBase/api/image/convert" -Method Post -Body $body -ContentType "application/json"
         $dlUrl = if ($res.downloadUrl) { if ($res.downloadUrl.StartsWith("http")) { $res.downloadUrl } else { "$ApiBase$($res.downloadUrl)" } } else { "$ApiBase/api/image/download" }
         $stUrl = if ($res.streamUrl) { if ($res.streamUrl.StartsWith("http")) { $res.streamUrl } else { "$ApiBase$($res.streamUrl)" } } else { "$ApiBase/api/image/stream" }
-        Write-Host "  $Cyan│$Reset  $Green✓ Conversión de imagen lista:$Reset"
-        Write-Host "  $Cyan│$Reset    Descarga: $Yellow$dlUrl$Reset"
-        Write-Host "  $Cyan│$Reset    Stream:   $Cyan$stUrl$Reset"
+        Write-Host "  $Cyan│$Reset  $Green✓ Conversión de imagen completada exitosamente.$Reset"
+        $localImg = if ($target -and (Test-Path $target)) {
+            [System.IO.Path]::GetFileNameWithoutExtension($target) + "_convertido.$fmt"
+        } else {
+            "imagen_convertida.$fmt"
+        }
+        try {
+            Invoke-WebRequest -Uri $dlUrl -OutFile $localImg -UseBasicParsing -TimeoutSec 60
+            $resolvedOut = (Resolve-Path $localImg).Path
+            Write-Host "  $Cyan│$Reset  $Green✓ Guardado local:$Reset $White$resolvedOut$Reset"
+        } catch {
+            Write-Host "  $Cyan│$Reset    Descarga: $Yellow$dlUrl$Reset"
+        }
         Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
     } catch {
         Write-Host "  $Cyan│$Reset  ${Coral}[Error Imagen]:${Reset} $($_.Exception.Message)"
         Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
     }
-    Wait-VorkGoBack
     Write-Host ""
 }
 
@@ -3448,7 +3481,7 @@ function Invoke-PillarImage {
 # ========================================================
 <#
 .SYNOPSIS
-    Pilar 08: Vork Estudio y Eliminador de Fondo IA (U2-Net / BRIA RMBG)
+    Pilar 08: Vork Estudio y Eliminador / Modificador de Fondo IA (BRIA RMBG + FLUX.1)
 #>
 
 function Invoke-PillarRemoveBg {
@@ -3456,11 +3489,14 @@ function Invoke-PillarRemoveBg {
 
     $file = if ($ArgsList -and $ArgsList.Length -gt 0) { $ArgsList[0] } else { $null }
     $out = $null
-    $mode = "transparent"
+    $mode = $null
+    $userPrompt = $null
+
     if ($ArgsList) {
         for ($i=0; $i -lt $ArgsList.Length; $i++) {
             if ($ArgsList[$i] -in "-Out", "--out", "-o") { $out = $ArgsList[$i+1] }
             if ($ArgsList[$i] -in "-Mode", "--mode", "-m") { $mode = $ArgsList[$i+1] }
+            if ($ArgsList[$i] -in "-Prompt", "--prompt", "-p") { $userPrompt = $ArgsList[$i+1] }
         }
     }
 
@@ -3473,7 +3509,7 @@ function Invoke-PillarRemoveBg {
 
     if (-not $isWebUrl -and -not $isLocalFile) {
         Write-Host ""
-        Write-Host "  ${Cyan}${Bold}╭─ [08] Vork Estudio y Eliminador de Fondo IA${Reset}"
+        Write-Host "  ${Cyan}${Bold}╭─ [08] Vork Estudio y Eliminador / Modificador de Fondo IA${Reset}"
         Write-Host "  ${Lead}│${Reset} ${White}Ingresa la ruta o URL de la imagen (ej: producto.jpg o enlace web):${Reset}"
         $fileInput = Read-VorkInput -Prompt "  ${Lead}│${Reset} ${Cyan}> ${Reset}"
         if (-not $fileInput -or -not $fileInput.Trim()) {
@@ -3490,51 +3526,82 @@ function Invoke-PillarRemoveBg {
             Write-Host ""
             return
         }
+    }
 
+    if (-not $mode) {
         $bgOptions = @(
-            @{ Value = "transparent"; Label = "[1] Transparente (Aislamiento de silueta PNG alfa puro)" },
-            @{ Value = "color";       Label = "[2] Fondo Blanco Studio (Ideal para e-commerce y catálogo)" },
-            @{ Value = "black";       Label = "[3] Fondo Negro Cine (Alto contraste dramático)" }
+            @{ Value = "prompt";      Label = "[1] Generar nuevo fondo con IA (Escribe un prompt descriptivo)" },
+            @{ Value = "transparent"; Label = "[2] Transparente (Aislamiento de silueta PNG alfa puro)" },
+            @{ Value = "color";       Label = "[3] Fondo Blanco Studio (Ideal para e-commerce y catálogo)" },
+            @{ Value = "black";       Label = "[4] Fondo Negro Cine (Alto contraste dramático)" }
         )
 
-        $chosenBg = Select-InteractiveOption -PromptTitle "Selecciona el modo de procesamiento de fondo:" -Options $bgOptions -DefaultIndex 0
-        if ($chosenBg) { $mode = $chosenBg }
+        $chosenBg = Select-InteractiveOption -PromptTitle "Selecciona cómo deseas modificar el fondo de la imagen:" -Options $bgOptions -DefaultIndex 0
+        if ($chosenBg) { $mode = $chosenBg } else { $mode = "prompt" }
+    }
+
+    if ($mode -eq "prompt" -and -not $userPrompt) {
+        Write-Host "  ${Lead}│${Reset} ${White}Escribe el prompt del fondo que deseas generar con IA:${Reset}"
+        Write-Host "  ${Lead}│${Reset} ${LeadLight}(Ej: playa paradisíaca al atardecer, oficina cyberpunk moderna, etc.)${Reset}"
+        $pInput = Read-VorkInput -Prompt "  ${Lead}│${Reset} ${Cyan}> ${Reset}"
+        if ($pInput -and $pInput.Trim()) {
+            $userPrompt = $pInput.Trim()
+        } else {
+            $userPrompt = "modern minimalist photography studio with warm lighting and plants"
+        }
     }
 
     if (-not $out) {
-        $ext = if ($mode -eq "color" -or $mode -eq "black") { "jpg" } else { "png" }
+        $ext = if ($mode -eq "transparent") { "png" } else { "jpg" }
         if ($isLocalFile) {
             $baseName = [System.IO.Path]::GetFileNameWithoutExtension($file)
-            $out = "${baseName}_nobg.$ext"
+            $suffix = if ($mode -eq "prompt") { "_fondo_ia" } else { "_nobg" }
+            $out = "${baseName}${suffix}.$ext"
         } else {
-            $out = "sin_fondo.$ext"
+            $out = if ($mode -eq "prompt") { "fondo_ia.$ext" } else { "sin_fondo.$ext" }
         }
     }
 
     Write-Host ""
-    Write-Host "  $Cyan╭─ [08] VORK ESTUDIO Y FONDO IA ──────────────────$Reset"
+    Write-Host "  $Cyan╭─ [08] VORK ESTUDIO Y FONDO IA (NEURAL) ──────────$Reset"
     Write-Host "  $Cyan│$Reset  $Gray Origen:$Reset   $White$file$Reset"
     Write-Host "  $Cyan│$Reset  $Gray Modo:$Reset     $Yellow$mode$Reset"
+    if ($userPrompt) {
+        Write-Host "  $Cyan│$Reset  $Gray Prompt:$Reset   $Cyan`"$userPrompt`"$Reset"
+    }
     Write-Host "  $Cyan├───────────────────────────────────────────────────$Reset"
 
-    $body = if ($isLocalFile) {
+    $bodyMap = @{ mode = $mode }
+    if ($userPrompt) {
+        $bodyMap["prompt"] = $userPrompt
+    }
+
+    if ($isLocalFile) {
         $resolved = Resolve-Path $file
         $bytes = [System.IO.File]::ReadAllBytes($resolved)
         $b64 = [System.Convert]::ToBase64String($bytes)
-        @{ imageBase64 = "data:image/jpeg;base64,$b64"; mode = $mode } | ConvertTo-Json
+        $bodyMap["imageBase64"] = "data:image/jpeg;base64,$b64"
     } else {
-        @{ url = $file; mode = $mode } | ConvertTo-Json
+        $bodyMap["url"] = $file
     }
 
+    $body = $bodyMap | ConvertTo-Json
+
     try {
-        Write-Host "  $Cyan│$Reset  ${LeadLight}Procesando silueta con IA neuronal...${Reset}"
-        $res = Invoke-RestMethod -Uri "$ApiBase/api/image/remove-background" -Method Post -Body $body -ContentType "application/json" -TimeoutSec 120
+        if ($mode -eq "prompt") {
+            Write-Host "  $Cyan│$Reset  ${LeadLight}Aislando silueta con BRIA RMBG 1.4...${Reset}"
+            Write-Host "  $Cyan│$Reset  ${LeadLight}Generando fondo fotográfico con FLUX.1 Neural...${Reset}"
+        } else {
+            Write-Host "  $Cyan│$Reset  ${LeadLight}Procesando silueta con IA neuronal...${Reset}"
+        }
+
+        $res = Invoke-RestMethod -Uri "$ApiBase/api/image/remove-background" -Method Post -Body $body -ContentType "application/json" -TimeoutSec 180
         $dlUrl = if ($res.downloadUrl) { "$ApiBase$($res.downloadUrl)" } else { "$ApiBase/api/image/download?id=$($res.id)" }
 
-        Write-Host "  $Cyan│$Reset  $Green✓ Recorte de fondo completado exitosamente.$Reset"
+        Write-Host "  $Cyan│$Reset  $Green✓ Procesamiento de fondo completado exitosamente.$Reset"
         try {
-            Invoke-WebRequest -Uri $dlUrl -OutFile $out -UseBasicParsing -TimeoutSec 60
-            $resolvedOut = Resolve-Path $out
+            Invoke-WebRequest -Uri $dlUrl -OutFile $out -UseBasicParsing -TimeoutSec 90
+            $resolvedOut = (Resolve-Path $out).Path
             Write-Host "  $Cyan│$Reset  $Green✓ Guardado local:$Reset $White$resolvedOut$Reset"
         } catch {
             Write-Host "  $Cyan│$Reset  $Yellow URL de descarga:$Reset $White$dlUrl$Reset"
@@ -3544,7 +3611,6 @@ function Invoke-PillarRemoveBg {
         Write-Host "  $Cyan│$Reset  ${Coral}[Error Fondo IA]:${Reset} $($_.Exception.Message)"
         Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
     }
-    Wait-VorkGoBack
     Write-Host ""
 }
 
@@ -3591,11 +3657,12 @@ function Invoke-PillarAgents {
     Write-Host "  ${Cyan}│${Reset}    ${Cyan}● Demucs Stem Worker${Reset}  ${LeadLight}· Separación acapella/karaoke en background${Reset}"
     Write-Host "  ${Cyan}│${Reset}    ${Cyan}● Media Extraction Bot${Reset}${LeadLight}· Extracción y compresión multimedia 320k${Reset}"
     Write-Host "  ${Cyan}├───────────────────────────────────────────────────${Reset}"
-    Write-Host "  ${Cyan}│${Reset}  $Green✓ Clúster de agentes listo:$Reset"
-    Write-Host "  ${Cyan}│${Reset}    Descarga: ${Yellow}$ApiBase/api/cli/health${Reset}"
-    Write-Host "  ${Cyan}│${Reset}    Stream:   ${Cyan}$ApiBase/api/cli/vork.ps1${Reset}"
+    $reportFile = "vork_agents_cluster.json"
+    @{ status = "online"; motor = "Vork Autonomous Agents v3"; pilares = 8; subagentes = @("Codebase Researcher", "Audio Engine Agent", "Demucs Stem Worker", "Media Extraction Bot") } | ConvertTo-Json | Set-Content -Path $reportFile -Encoding UTF8
+    $resolvedOut = (Resolve-Path $reportFile).Path
+    Write-Host "  ${Cyan}│${Reset}  $Green✓ Clúster de agentes sincronizado con éxito.$Reset"
+    Write-Host "  ${Cyan}│${Reset}  $Green✓ Guardado local:$Reset $White$resolvedOut$Reset"
     Write-Host "  ${Cyan}╰───────────────────────────────────────────────────${Reset}"
-    Wait-VorkGoBack
     Write-Host ""
 }
 

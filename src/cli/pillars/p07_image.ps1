@@ -195,14 +195,23 @@ function Invoke-PillarImage {
         $res = Invoke-RestMethod -Uri "$ApiBase/api/image/convert" -Method Post -Body $body -ContentType "application/json"
         $dlUrl = if ($res.downloadUrl) { if ($res.downloadUrl.StartsWith("http")) { $res.downloadUrl } else { "$ApiBase$($res.downloadUrl)" } } else { "$ApiBase/api/image/download" }
         $stUrl = if ($res.streamUrl) { if ($res.streamUrl.StartsWith("http")) { $res.streamUrl } else { "$ApiBase$($res.streamUrl)" } } else { "$ApiBase/api/image/stream" }
-        Write-Host "  $Cyan│$Reset  $Green✓ Conversión de imagen lista:$Reset"
-        Write-Host "  $Cyan│$Reset    Descarga: $Yellow$dlUrl$Reset"
-        Write-Host "  $Cyan│$Reset    Stream:   $Cyan$stUrl$Reset"
+        Write-Host "  $Cyan│$Reset  $Green✓ Conversión de imagen completada exitosamente.$Reset"
+        $localImg = if ($target -and (Test-Path $target)) {
+            [System.IO.Path]::GetFileNameWithoutExtension($target) + "_convertido.$fmt"
+        } else {
+            "imagen_convertida.$fmt"
+        }
+        try {
+            Invoke-WebRequest -Uri $dlUrl -OutFile $localImg -UseBasicParsing -TimeoutSec 60
+            $resolvedOut = (Resolve-Path $localImg).Path
+            Write-Host "  $Cyan│$Reset  $Green✓ Guardado local:$Reset $White$resolvedOut$Reset"
+        } catch {
+            Write-Host "  $Cyan│$Reset    Descarga: $Yellow$dlUrl$Reset"
+        }
         Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
     } catch {
         Write-Host "  $Cyan│$Reset  ${Coral}[Error Imagen]:${Reset} $($_.Exception.Message)"
         Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
     }
-    Wait-VorkGoBack
     Write-Host ""
 }

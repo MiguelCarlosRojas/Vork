@@ -129,9 +129,16 @@ function Invoke-PillarMedia {
             Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
         } else {
             Write-Host "  $Cyan├───────────────────────────────────────────────────$Reset"
-            Write-Host "  $Cyan│$Reset  $Green✓ Conversión lista:$Reset"
-            Write-Host "  $Cyan│$Reset    Descarga: $Yellow$ApiBase$($res.downloadUrl)$Reset"
-            Write-Host "  $Cyan│$Reset    Stream:   $Cyan$ApiBase$($res.streamUrl)$Reset"
+            Write-Host "  $Cyan│$Reset  $Green✓ Conversión multimedia completada exitosamente.$Reset"
+            $dlFull = if ($res.downloadUrl.StartsWith("http")) { $res.downloadUrl } else { "$ApiBase$($res.downloadUrl)" }
+            $localFile = if ($res.filename) { $res.filename } else { "media_output.$fmt" }
+            try {
+                Invoke-WebRequest -Uri $dlFull -OutFile $localFile -UseBasicParsing -TimeoutSec 120
+                $resolvedOut = (Resolve-Path $localFile).Path
+                Write-Host "  $Cyan│$Reset  $Green✓ Guardado local:$Reset $White$resolvedOut$Reset"
+            } catch {
+                Write-Host "  $Cyan│$Reset    Descarga: $Yellow$dlFull$Reset"
+            }
             Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
         }
     } catch {
@@ -140,6 +147,5 @@ function Invoke-PillarMedia {
         Write-Host "  $Cyan│$Reset  ${Coral}[Error Multimedia]:${Reset} $($_.Exception.Message)"
         Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
     }
-    Wait-VorkGoBack
     Write-Host ""
 }

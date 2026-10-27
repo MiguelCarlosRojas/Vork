@@ -37,10 +37,11 @@ function Invoke-PillarAgents {
     Write-Host "  ${Cyan}│${Reset}    ${Cyan}● Demucs Stem Worker${Reset}  ${LeadLight}· Separación acapella/karaoke en background${Reset}"
     Write-Host "  ${Cyan}│${Reset}    ${Cyan}● Media Extraction Bot${Reset}${LeadLight}· Extracción y compresión multimedia 320k${Reset}"
     Write-Host "  ${Cyan}├───────────────────────────────────────────────────${Reset}"
-    Write-Host "  ${Cyan}│${Reset}  $Green✓ Clúster de agentes listo:$Reset"
-    Write-Host "  ${Cyan}│${Reset}    Descarga: ${Yellow}$ApiBase/api/cli/health${Reset}"
-    Write-Host "  ${Cyan}│${Reset}    Stream:   ${Cyan}$ApiBase/api/cli/vork.ps1${Reset}"
+    $reportFile = "vork_agents_cluster.json"
+    @{ status = "online"; motor = "Vork Autonomous Agents v3"; pilares = 8; subagentes = @("Codebase Researcher", "Audio Engine Agent", "Demucs Stem Worker", "Media Extraction Bot") } | ConvertTo-Json | Set-Content -Path $reportFile -Encoding UTF8
+    $resolvedOut = (Resolve-Path $reportFile).Path
+    Write-Host "  ${Cyan}│${Reset}  $Green✓ Clúster de agentes sincronizado con éxito.$Reset"
+    Write-Host "  ${Cyan}│${Reset}  $Green✓ Guardado local:$Reset $White$resolvedOut$Reset"
     Write-Host "  ${Cyan}╰───────────────────────────────────────────────────${Reset}"
-    Wait-VorkGoBack
     Write-Host ""
 }

@@ -15,7 +15,6 @@ function Show-Shortcuts {
     Write-Host "  ${Cyan}  /update${Reset}         ${Dim}Actualizar Vork CLI al instante${Reset}"
     Write-Host ""
     Write-Host "  ${Dim}Pilares directos: translate, tts, clone, media, separate, image, remove-bg, agents${Reset}"
-    Wait-VorkGoBack
     Write-Host ""
 }
 
@@ -155,7 +154,6 @@ function Show-SlashCommands {
     Write-Host "  ${Cyan}│${Reset}  ${Yellow}/docs${Reset}       ${White}· Abrir la documentación oficial de Vork en el navegador${Reset}"
     Write-Host "  ${Cyan}│${Reset}  ${Yellow}/exit${Reset}       ${White}· Cerrar la sesión de terminal de forma segura${Reset}"
     Write-Host "  ${Cyan}╰────────────────────────────────────────────────────────────${Reset}"
-    Wait-VorkGoBack
     Write-Host ""
 }
 

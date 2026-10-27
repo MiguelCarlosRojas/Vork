@@ -178,7 +178,7 @@ function Invoke-PillarSeparate {
             $localVoc = "vocals.wav"
             try {
                 Invoke-WebRequest -Uri $vocDl -OutFile $localVoc -UseBasicParsing -TimeoutSec 120
-                Write-Host "  $Cyan│$Reset    ${White}${Bold}Archivo local:${Reset} $Green$((Resolve-Path $localVoc).Path)$Reset"
+                Write-Host "  $Cyan│$Reset  $Green✓ Guardado local:$Reset $White$((Resolve-Path $localVoc).Path)$Reset"
             } catch {
                 Write-Host "  $Cyan│$Reset    Descarga: $Yellow$vocDl$Reset"
             }
@@ -187,7 +187,7 @@ function Invoke-PillarSeparate {
             $localInst = "instrumental.wav"
             try {
                 Invoke-WebRequest -Uri $instDl -OutFile $localInst -UseBasicParsing -TimeoutSec 120
-                Write-Host "  $Cyan│$Reset    ${White}${Bold}Archivo local:${Reset} $Green$((Resolve-Path $localInst).Path)$Reset"
+                Write-Host "  $Cyan│$Reset  $Green✓ Guardado local:$Reset $White$((Resolve-Path $localInst).Path)$Reset"
             } catch {
                 Write-Host "  $Cyan│$Reset    Descarga: $Yellow$instDl$Reset"
             }
@@ -197,7 +197,7 @@ function Invoke-PillarSeparate {
                 $localVoc = "vocals.wav"
                 try {
                     Invoke-WebRequest -Uri $vocDl -OutFile $localVoc -UseBasicParsing -TimeoutSec 120
-                    Write-Host "  $Cyan│$Reset    ${White}${Bold}Voz Acapella:${Reset}  $Green$((Resolve-Path $localVoc).Path)$Reset"
+                    Write-Host "  $Cyan│$Reset  $Green✓ Guardado local (Vocals):$Reset       $White$((Resolve-Path $localVoc).Path)$Reset"
                 } catch {
                     Write-Host "  $Cyan│$Reset    ${White}${Bold}Voz Acapella:${Reset}  $Yellow$vocDl$Reset"
                 }
@@ -206,7 +206,7 @@ function Invoke-PillarSeparate {
                 $localInst = "instrumental.wav"
                 try {
                     Invoke-WebRequest -Uri $instDl -OutFile $localInst -UseBasicParsing -TimeoutSec 120
-                    Write-Host "  $Cyan│$Reset    ${White}${Bold}Instrumental:${Reset}  $Green$((Resolve-Path $localInst).Path)$Reset"
+                    Write-Host "  $Cyan│$Reset  $Green✓ Guardado local (Instrumental):$Reset $White$((Resolve-Path $localInst).Path)$Reset"
                 } catch {
                     Write-Host "  $Cyan│$Reset    ${White}${Bold}Instrumental:${Reset}  $Cyan$instDl$Reset"
                 }
@@ -219,6 +219,5 @@ function Invoke-PillarSeparate {
         Write-Host "  $Cyan│$Reset  ${Coral}[Error Separador]:${Reset} $($_.Exception.Message)"
         Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
     }
-    Wait-VorkGoBack
     Write-Host ""
 }

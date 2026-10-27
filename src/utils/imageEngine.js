@@ -331,28 +331,52 @@ async function processBackgroundOperation({
 
     const safeMode = ["transparent", "color", "custom_bg", "prompt"].includes(mode) ? mode : "transparent";
 
-    // Si el modo es prompt (IA generativa gratuita de Pollinations para crear el fondo exacto descrito por el usuario)
+    // Si el modo es prompt (Generador de fondos de alta fidelidad con FLUX.1)
     if (safeMode === "prompt") {
       if (!prompt || typeof prompt !== "string" || prompt.trim().length === 0) {
-        throw new Error("Debe especificar una descripción de lo que desea cambiar en el fondo.");
+        throw new Error("Debe especificar una descripción de lo que desea generar en el fondo.");
       }
 
-      const cleanPrompt = encodeURIComponent(prompt.trim().slice(0, 300));
-      const seed = Math.floor(Math.random() * 999999);
-      const pollinationsUrl = `https://image.pollinations.ai/prompt/${cleanPrompt}?width=1024&height=1024&nologo=true&seed=${seed}`;
-
-      logger.info(`[ImageEngine] Generando nuevo fondo con IA Pollinations: ${prompt}`);
-      const bgResponse = await axios.get(pollinationsUrl, {
-        responseType: "arraybuffer",
-        timeout: 25000,
-        headers: { "User-Agent": "Vork/2.5.0" }
-      });
-      bgPath = saveTempFile(Buffer.from(bgResponse.data), "jpg");
+      logger.info(`[ImageEngine] Generando nuevo fondo con IA FLUX.1: ${prompt}`);
+      let bgBuffer = null;
+      try {
+        const { Client } = require("@gradio/client");
+        const fluxClient = await Client.connect("black-forest-labs/FLUX.1-schnell");
+        const fluxRes = await fluxClient.predict("/infer", {
+          prompt: prompt.trim(),
+          seed: 0,
+          randomize_seed: true,
+          width: 1024,
+          height: 1024,
+          num_inference_steps: 4
+        });
+        if (fluxRes && fluxRes.data && fluxRes.data[0] && fluxRes.data[0].url) {
+          const bgResponse = await axios.get(fluxRes.data[0].url, {
+            responseType: "arraybuffer",
+            timeout: 30000
+          });
+          bgBuffer = Buffer.from(bgResponse.data);
+        } else {
+          throw new Error("Respuesta incompleta de FLUX.1");
+        }
+      } catch (fluxErr) {
+        logger.warn(`[ImageEngine] Generador FLUX falló (${fluxErr.message}), intentando fallback...`);
+        try {
+          const cleanPrompt = encodeURIComponent(prompt.trim().slice(0, 300));
+          const pollinationsUrl = `https://image.pollinations.ai/prompt/${cleanPrompt}?width=1024&height=1024&nologo=true`;
+          const bgResponse = await axios.get(pollinationsUrl, { responseType: "arraybuffer", timeout: 20000 });
+          bgBuffer = Buffer.from(bgResponse.data);
+        } catch (pErr) {
+          logger.error(`[ImageEngine] No se pudo generar fondo con IA: ${pErr.message}`);
+          throw new Error(`Error generando fondo con IA: ${fluxErr.message}`);
+        }
+      }
+      bgPath = saveTempFile(bgBuffer, "jpg");
     } else if (safeMode === "custom_bg" && bgImageBase64) {
       bgPath = saveTempFile(bgImageBase64, "bg");
     }
 
-    const extension = safeMode === "color" ? "jpg" : "png";
+    const extension = (safeMode === "color" || safeMode === "prompt" || safeMode === "custom_bg") ? "jpg" : "png";
     const outputPath = path.join(IMAGE_CACHE_DIR, `${targetId}.${extension}`);
 
     const args = [
