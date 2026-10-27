@@ -229,11 +229,41 @@ function Update-VorkPanel {
     )
 
     $metrics = Get-VorkConsoleMetrics
-    if (-not $Panel) { return New-VorkPanel -Rows $Rows }
+    $safeRows = [Math]::Max(1, [Math]::Min($Rows, [Math]::Max(1, $metrics.Height - 1)))
 
-    if ($metrics.Width -ne $Panel.Width -or $metrics.Height -ne $Panel.Height) {
+    if (-not $Panel) { return New-VorkPanel -Rows $safeRows }
+
+    $sizeChanged = ($metrics.Width -ne $Panel.Width) -or
+        ($metrics.Height -ne $Panel.Height) -or
+        ($safeRows -ne $Panel.Rows)
+
+    if ($sizeChanged) {
+        $top = $Panel.Top
         Clear-VorkPanel -Panel $Panel
-        return New-VorkPanel -Rows $Rows
+
+        # Reutiliza la misma fila superior cuando hay espacio suficiente.
+        $canReuse = $false
+        try {
+            $windowTop = [Console]::WindowTop
+            $windowHeight = [Console]::WindowHeight
+            $available = ($windowTop + $windowHeight) - $top
+            $canReuse = ($top -ge $windowTop) -and ($available -ge $safeRows)
+        } catch { }
+
+        if ($canReuse) {
+            try {
+                [Console]::SetCursorPosition(0, $top)
+                return [pscustomobject]@{
+                    Top          = [int]$top
+                    Rows         = [int]$safeRows
+                    Width        = [int]$metrics.Width
+                    Height       = [int]$metrics.Height
+                    BufferHeight = [int]$metrics.BufferHeight
+                }
+            } catch { }
+        }
+
+        return New-VorkPanel -Rows $safeRows
     }
 
     return $Panel

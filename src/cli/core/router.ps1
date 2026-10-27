@@ -77,11 +77,8 @@ function Dispatch-CLICommand {
                 Set-VorkTier -NewTier $argVal
             } else {
                 $modelResult = Show-InteractiveModelSwitcher
-                if ($modelResult -and $modelResult.Action -eq "selected") {
-                    Write-Host "  ${LeadLight}Modelo: $($modelResult.Model) · $($modelResult.Tier)${Reset}"
-                } else {
-                    Write-Host "  ${LeadLight}Selector de modelo cerrado.${Reset}"
-                }
+                $elbowChar = [char]0x23BF
+                Write-Host "  ${LeadLight}$elbowChar  Exited /model command${Reset}"
                 Write-Host ""
             }
         }
