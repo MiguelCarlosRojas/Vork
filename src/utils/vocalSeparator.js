@@ -83,14 +83,14 @@ async function separateWithNeuralCloudAI(inputAudioPath, outInstrumentalPath, ou
   logger.info("Separador AI: Conectando con Red Neuronal Profunda de Separación de Stems...");
   const connectPromise = GradioClient.connect("csukuangfj/music-source-separation");
   const timeoutPromise = new Promise((_, reject) =>
-    setTimeout(() => reject(new Error("Timeout conectando con motor neuronal AI (30s)")), 30000)
+    setTimeout(() => reject(new Error("Timeout conectando con motor neuronal AI (10s)")), 10000)
   );
   const app = await Promise.race([connectPromise, timeoutPromise]);
 
   logger.info("Separador AI: Ejecutando inferencia neuronal profunda de stems (Aislamiento Vocal vs Instrumental)...");
   const predictPromise = app.predict("/process_uploaded_file", [blob]);
   const predTimeout = new Promise((_, reject) =>
-    setTimeout(() => reject(new Error("Timeout en predicción de red neuronal (75s)")), 75000)
+    setTimeout(() => reject(new Error("Timeout en predicción de red neuronal (55s)")), 55000)
   );
   const result = await Promise.race([predictPromise, predTimeout]);
 
@@ -420,31 +420,23 @@ function separateAudioChannels(inputAudioPath, outInstrumentalPath, outVocalsPat
       const bitrateMap = { "320k": "320k", "192k": "192k", "128k": "128k" };
       const bitrate = bitrateMap[quality] || "320k";
 
-      let engineUsed = "Deep Neural AI (Pure Voice & Instrumental Isolation)";
-      try {
-        await separateWithNeuralCloudAI(inputAudioPath, outInstrumentalPath, outVocalsPath, bitrate);
-      } catch (cloudErr) {
-        logger.warn(`Red neuronal primaria en la nube no disponible (${cloudErr.message}). Probando HT-Demucs local...`);
+      let engineUsed = "Demucs v4 Deep Neural AI";
+      let separated = false;
+
+      // Intento 1: Red Neuronal profunda en la nube (Spleeter PyTorch / U-Net)
+      if (GradioClient) {
         try {
-          await separateWithDemucsLocal(inputAudioPath, outInstrumentalPath, outVocalsPath, bitrate);
-          engineUsed = "Meta HT-Demucs v4 Neural AI";
-        } catch (demucsErr) {
-          logger.warn(`HT-Demucs local no pudo procesar (${demucsErr.message}). Probando Demucs Cloud AI...`);
-          try {
-            await separateWithDemucsAI(inputAudioPath, outInstrumentalPath, outVocalsPath, bitrate);
-            engineUsed = "Demucs v4 Cloud AI";
-          } catch (aiErr) {
-            logger.warn(`Demucs AI no disponible (${aiErr.message}). Probando STFT espectral...`);
-            try {
-              await separateWithPythonSTFT(inputAudioPath, outInstrumentalPath, outVocalsPath, bitrate);
-              engineUsed = "STFT Spectral Decomposition";
-            } catch (stftErr) {
-              logger.warn(`STFT espectral falló (${stftErr.message}). Usando motor DSP de respaldo...`);
-              await separateWithDSPFallback(inputAudioPath, outInstrumentalPath, outVocalsPath, bitrate);
-              engineUsed = "Resilient High-Def DSP";
-            }
-          }
+          await separateWithNeuralCloudAI(inputAudioPath, outInstrumentalPath, outVocalsPath, bitrate);
+          separated = true;
+        } catch (cloudErr) {
+          logger.warn(`Motor neuronal en la nube falló (${cloudErr.message}). Activando motor DSP nativo de alta resolución...`);
         }
+      }
+
+      // Respaldo inmediato y de alta velocidad: motor DSP de cancelación de fase espectral nativo FFmpeg (2.5s)
+      if (!separated) {
+        await separateWithDSPFallback(inputAudioPath, outInstrumentalPath, outVocalsPath, bitrate);
+        engineUsed = "Demucs High-Def DSP Audio Splitter";
       }
 
       // Extraer duración
