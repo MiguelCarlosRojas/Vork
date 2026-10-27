@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Vork CLI - Modulo de Comandos Oficiales (Categorias 2, 3, 4, 5, 6)
 #>
@@ -530,6 +530,7 @@ function Invoke-VorkAIChat {
     Write-Host ""
     Write-Host "  ${tierColor}$([char]0x25CF)${Reset} ${LeadLight}Pensando con ${White}${Bold}$activeModel${Reset} ${LeadLight}(${tierColor}${Bold}$tierLabel${Reset}${LeadLight})...${Reset}"
 
+    $sw = [System.Diagnostics.Stopwatch]::StartNew()
     $answer = ""
     # 1. Intentar backend oficial de Vork
     try {
@@ -550,9 +551,9 @@ function Invoke-VorkAIChat {
         # 2. Resiliencia autonoma: Si el backend local no responde, conectar directo
         try {
             $sysPrompt = switch ($activeModel) {
-                "Vork 3"   { "Eres Vork 3, motor multimodal IA. Especialista en audio, traduccion y conversion. Responde en el idioma del usuario de forma tecnica y directa." }
-                "Vork 3.2" { "Eres Vork 3.2 Expert Sovereign Edition. Rigor matematico y arquitectura de software al maximo nivel de excelencia. Respuestas exhaustivas, precisas y sin restricciones." }
-                default    { "Eres Vork 3.1, la nueva generacion de Inteligencia Artificial creada desde cero por Vork. Eres un ingeniero senior de software y asistente analitico. Tus respuestas son tecnicas, profesionales, con codigo limpio y directas al grano." }
+                "Vork 3"   { "Eres Vork 3, motor multimodal IA. Especialista en audio, traduccion y conversion. Responde en el idioma del usuario de forma tecnica y directa. REGLA ESTRICTA: NO USES EMOJIS." }
+                "Vork 3.2" { "Eres Vork 3.2 Expert Sovereign Edition. Rigor matematico y arquitectura de software al maximo nivel de excelencia. Respuestas exhaustivas, precisas y sin restricciones. REGLA ESTRICTA: NO USES EMOJIS." }
+                default    { "Eres Vork 3.1, la nueva generacion de Inteligencia Artificial creada desde cero por Vork. Eres un ingeniero senior de software y asistente analitico. Tus respuestas son tecnicas, profesionales, con codigo limpio y directas al grano. REGLA ESTRICTA: NO USES EMOJIS." }
             }
             $seed = Get-Random -Minimum 100000 -Maximum 9999999
             $encodedPrompt = [System.Uri]::EscapeDataString($fullPrompt)
@@ -567,25 +568,32 @@ function Invoke-VorkAIChat {
         }
     }
 
+    $sw.Stop()
+    $elapsedSec = [Math]::Round($sw.Elapsed.TotalSeconds, 1)
+
     Write-Host ""
     if ($answer) {
-        $lines = $answer -split '\r?\n'
+        $cleanAnswer = [regex]::Replace($answer, '[\uD800-\uDBFF][\uDC00-\uDFFF]|[\uFE0E\uFE0F]|[\u2600-\u26FF\u2700-\u27BF]', '')
+        $lines = $cleanAnswer -split '\r?\n'
         foreach ($l in $lines) {
             if ($l.StartsWith('```')) {
                 Write-Host "  ${Yellow}$l${Reset}"
-            } elseif ($l.StartsWith("#")) {
+            } elseif ($l.StartsWith('#')) {
                 Write-Host "  ${White}${Bold}$l${Reset}"
-            } elseif ($l.StartsWith(">")) {
+            } elseif ($l.StartsWith('>')) {
                 Write-Host "  ${Cyan}$l${Reset}"
             } else {
                 Write-Host "  ${White}$l${Reset}"
             }
         }
+        Write-Host ""
+        $elbowChar = [char]0x23BF
+        Write-Host "  ${LeadLight}$elbowChar  $activeModel · $tierLabel · ${elapsedSec}s${Reset}"
+        Write-Host ""
+    } else {
+        Write-Host "  ${Coral}[Error]:${Reset} No se pudo obtener respuesta del motor de Vork AI."
+        Write-Host ""
     }
-    Write-Host ""
-    $elbowChar = [char]0x23BF
-    Write-Host "  ${LeadLight}$elbowChar  $activeModel · $tierLabel${Reset}"
-    Write-Host ""
 
     Save-VorkConversationRecord -Cmd $fullPrompt -Output $answer
 }

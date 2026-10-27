@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Vork CLI - UI Toolkit responsive (ANSI, metricas de consola, paneles y teclado).
 
@@ -417,6 +417,35 @@ function Get-VorkTextWindow {
     }
 }
 
+function Get-VorkCursorBoundary {
+    param(
+        [string]$Text,
+        [int]$Position,
+        [int]$Direction
+    )
+
+    if (-not $Text) { return 0 }
+    if ($Position -lt 0) { $Position = 0 }
+    if ($Position -gt $Text.Length) { $Position = $Text.Length }
+
+    # Limites de caracteres reales (soporta acentos combinados y emojis).
+    $starts = [System.Globalization.StringInfo]::ParseCombiningCharacters($Text)
+
+    if ($Direction -lt 0) {
+        $boundary = 0
+        foreach ($start in $starts) {
+            if ($start -lt $Position) { $boundary = $start } else { break }
+        }
+        return [int]$boundary
+    }
+
+    foreach ($start in $starts) {
+        if ($start -gt $Position) { return [int]$start }
+    }
+
+    return [int]$Text.Length
+}
+
 function Format-VorkBorderTop {
     param(
         [string]$Title,
@@ -653,4 +682,384 @@ function Write-VorkSectionTitle {
     }
     Write-Host ""
     Write-Host "  ${Lead}$([string]::new([char]0x2500, [Math]::Max(10, $width - 3)))${Reset}"
+}
+
+
+# ========================================================
+# RENDERIZADOR AVANZADO DE RESPUESTAS VORK AI
+# ========================================================
+
+function Remove-VorkEmojis {
+    param([string]$Text)
+    if (-not $Text) { return "" }
+    # Eliminar pares suplentes de emojis Unicode (U+10000 a U+10FFFF)
+    $clean = [regex]::Replace($Text, '[\uD800-\uDBFF][\uDC00-\uDFFF]', '')
+    # Eliminar selectores de variacion y simbolos miscelaneos emoji
+    $clean = [regex]::Replace($clean, '[\uFE0E\uFE0F]|[\u2600-\u26FF\u2700-\u2702\u2705\u2708-\u270F\u2728\u274C\u2753-\u2757\u27B0\u27BF]', '')
+    # Normalizar espacios dobles residuales
+    $clean = [regex]::Replace($clean, '[ \t]{2,}', ' ')
+    return $clean
+}
+
+function Format-VorkInlineText {
+    param([string]$Text)
+    if (-not $Text) { return "" }
+    $res = $Text
+    # Codigo en linea: `codigo`
+    $res = [regex]::Replace($res, '`([^`]+)`', "$Yellow`$1$Reset")
+    # Negrita: **texto**
+    $res = [regex]::Replace($res, '\*\*([^*]+)\*\*', "$White$Bold`$1$Reset")
+    # Cursiva: *texto*
+    $res = [regex]::Replace($res, '(?<!\*)\*([^*]+)\*(?!\*)', "$Dim`$1$Reset")
+    # Limpiar etiquetas HTML residuales
+    $res = [regex]::Replace($res, '(?i)<br\s*/?>', ' ')
+    $res = [regex]::Replace($res, '(?i)</?li>', ' ')
+    $res = [regex]::Replace($res, '(?i)</?ul>', '')
+    return $res
+}
+
+function Render-VorkTable {
+    param(
+        [string[]]$TableLines,
+        [int]$MaxWidth = 100
+    )
+    if (-not $TableLines -or $TableLines.Count -lt 2) { return }
+
+    $rows = [System.Collections.Generic.List[string[]]]::new()
+    foreach ($line in $TableLines) {
+        $trimmed = $line.Trim()
+        if ($trimmed.StartsWith('|')) { $trimmed = $trimmed.Substring(1) }
+        if ($trimmed.EndsWith('|')) { $trimmed = $trimmed.Substring(0, $trimmed.Length - 1) }
+        # Omitir fila separadora Markdown (|---|---|)
+        if ($trimmed -match '^[\s\-:\|]+$') { continue }
+        $rawCells = $trimmed -split '\|'
+        $cellList = [System.Collections.Generic.List[string]]::new()
+        foreach ($c in $rawCells) {
+            $cleanedCell = [regex]::Replace($c.Trim(), '(?i)<br\s*/?>', "`n")
+            $cellList.Add($cleanedCell)
+        }
+        $rows.Add($cellList.ToArray())
+    }
+    if ($rows.Count -eq 0) { return }
+
+    # Calcular numero maximo de columnas
+    $colCount = 0
+    foreach ($r in $rows) {
+        if ($r.Length -gt $colCount) { $colCount = $r.Length }
+    }
+    if ($colCount -eq 0) { return }
+
+    # Rellenar celdas faltantes
+    for ($i = 0; $i -lt $rows.Count; $i++) {
+        $r = $rows[$i]
+        if ($r.Length -lt $colCount) {
+            $newR = [System.Collections.Generic.List[string]]::new($r)
+            while ($newR.Count -lt $colCount) { $newR.Add("") }
+            $rows[$i] = $newR.ToArray()
+        }
+    }
+
+    # Espacio para bordes verticales: '  │ ' + ' │ ' * (colCount-1) + ' │'
+    $borderSpaces = 4 + 3 * ($colCount - 1)
+    $availWidth = [Math]::Max(20, $MaxWidth - $borderSpaces)
+
+    # Ancho deseado por columna segun texto plano
+    $colMaxWidths = New-Object 'int[]' $colCount
+    for ($c = 0; $c -lt $colCount; $c++) {
+        $maxLen = 6
+        foreach ($r in $rows) {
+            $subLines = $r[$c] -split "`n"
+            foreach ($sl in $subLines) {
+                $cleanCell = [regex]::Replace($sl, '\*\*([^*]+)\*\*', '$1')
+                $cleanCell = [regex]::Replace($cleanCell, '`([^`]+)`', '$1')
+                $w = Get-VorkDisplayWidth (Get-VorkPlainText $cleanCell.Trim())
+                if ($w -gt $maxLen) { $maxLen = $w }
+            }
+        }
+        $colMaxWidths[$c] = $maxLen
+    }
+
+    $totalDesired = 0
+    for ($c = 0; $c -lt $colCount; $c++) { $totalDesired += $colMaxWidths[$c] }
+
+    $colWidths = New-Object 'int[]' $colCount
+    if ($totalDesired -le $availWidth) {
+        for ($c = 0; $c -lt $colCount; $c++) { $colWidths[$c] = $colMaxWidths[$c] }
+    } else {
+        $minCol = 8
+        for ($c = 0; $c -lt $colCount; $c++) {
+            $w = [Math]::Max($minCol, [int][Math]::Floor(($colMaxWidths[$c] / [double]$totalDesired) * $availWidth))
+            $colWidths[$c] = $w
+        }
+    }
+
+    # Bordes de tabla Unicode
+    $topBorder = "  $Lead$([char]0x250C)"
+    $midBorder = "  $Lead$([char]0x251C)"
+    $botBorder = "  $Lead$([char]0x2514)"
+    for ($c = 0; $c -lt $colCount; $c++) {
+        $seg = [string]::new([char]0x2500, $colWidths[$c] + 2)
+        $topBorder += $seg + $(if ($c -lt $colCount - 1) { [char]0x252C } else { [char]0x2510 })
+        $midBorder += $seg + $(if ($c -lt $colCount - 1) { [char]0x253C } else { [char]0x2524 })
+        $botBorder += $seg + $(if ($c -lt $colCount - 1) { [char]0x2534 } else { [char]0x2518 })
+    }
+    $topBorder += "$Reset"
+    $midBorder += "$Reset"
+    $botBorder += "$Reset"
+
+    Write-Host $topBorder
+
+    for ($rIdx = 0; $rIdx -lt $rows.Count; $rIdx++) {
+        $row = $rows[$rIdx]
+        $isHeader = ($rIdx -eq 0)
+
+        $wrappedCells = [System.Collections.Generic.List[string[]]]::new()
+        $maxCellLines = 1
+        for ($c = 0; $c -lt $colCount; $c++) {
+            $rawCell = $row[$c]
+            $subLines = $rawCell -split "`n"
+            $cellLines = [System.Collections.Generic.List[string]]::new()
+            foreach ($sl in $subLines) {
+                $trimmedSl = $sl.Trim()
+                if (-not $trimmedSl) { continue }
+                $cleanCell = [regex]::Replace($trimmedSl, '\*\*([^*]+)\*\*', '$1')
+                $wrapped = @(Get-VorkWrappedLines -Text $cleanCell -Width $colWidths[$c] -MaxLines 10)
+                if ($wrapped -and $wrapped.Count -gt 0) {
+                    foreach ($w in $wrapped) { $cellLines.Add($w) }
+                } else {
+                    $cellLines.Add("")
+                }
+            }
+            if ($cellLines.Count -eq 0) { $cellLines.Add("") }
+            if ($cellLines.Count -gt $maxCellLines) { $maxCellLines = $cellLines.Count }
+            $wrappedCells.Add($cellLines.ToArray())
+        }
+
+        for ($lineIdx = 0; $lineIdx -lt $maxCellLines; $lineIdx++) {
+            $outLine = "  $Lead$([char]0x2502)$Reset"
+            for ($c = 0; $c -lt $colCount; $c++) {
+                $cellText = if ($lineIdx -lt $wrappedCells[$c].Length) { $wrappedCells[$c][$lineIdx] } else { "" }
+                $formattedCell = if ($isHeader) {
+                    "$White$Bold$cellText$Reset"
+                } else {
+                    Format-VorkInlineText -Text $cellText
+                }
+                $plainW = Get-VorkDisplayWidth (Get-VorkPlainText $formattedCell)
+                $pad = [Math]::Max(0, $colWidths[$c] - $plainW)
+                $outLine += " " + $formattedCell + ([string]::new(' ', $pad)) + " $Lead$([char]0x2502)$Reset"
+            }
+            Write-Host $outLine
+        }
+
+        if ($isHeader) {
+            Write-Host $midBorder
+        }
+    }
+
+    Write-Host $botBorder
+}
+
+function Write-VorkAIResponse {
+    param(
+        [string]$Answer,
+        [string]$ActiveModel = "Vork 3.2",
+        [string]$TierLabel = "Expert",
+        [double]$ElapsedSec = 0
+    )
+
+    if (-not $Answer) { return }
+
+    # 1. Filtro estricto anti-emojis
+    $cleanAnswer = Remove-VorkEmojis -Text $Answer
+    $metrics = Get-VorkConsoleMetrics
+    $maxWidth = [Math]::Max(40, $metrics.Width - 4)
+
+    $lines = $cleanAnswer -split '\r?\n'
+    $inCodeBlock = $false
+    $codeLang = ""
+    $tableBuffer = [System.Collections.Generic.List[string]]::new()
+
+    $i = 0
+    while ($i -lt $lines.Length) {
+        $line = $lines[$i]
+        $trimmed = $line.Trim()
+
+        # Inicio o Fin de Bloque de Codigo
+        if ($trimmed -match '^`{3,}(.*)$') {
+            if ($inCodeBlock) {
+                # Cierre de bloque de codigo
+                $boxWidth = [Math]::Min(76, $maxWidth - 4)
+                $borderLen = [Math]::Max(4, $boxWidth - 2)
+                Write-Host "  ${Lead}$([char]0x2570)$([string]::new([char]0x2500, $borderLen))${Reset}"
+                Write-Host ""
+                $inCodeBlock = $false
+                $codeLang = ""
+            } else {
+                # Renderizar tabla pendiente si existiera
+                if ($tableBuffer.Count -gt 0) {
+                    Render-VorkTable -TableLines $tableBuffer.ToArray() -MaxWidth $maxWidth
+                    $tableBuffer.Clear()
+                    Write-Host ""
+                }
+                $codeLang = $Matches[1].Trim()
+                if (-not $codeLang) { $codeLang = "código" }
+                $langTag = "${Coral}${Bold}[$codeLang]${Reset}"
+                $boxWidth = [Math]::Min(76, $maxWidth - 4)
+                $borderLen = [Math]::Max(4, $boxWidth - 6 - (Get-VorkDisplayWidth $codeLang))
+                Write-Host ""
+                Write-Host "  ${Lead}$([char]0x256D)$([char]0x2500) $langTag ${Lead}$([string]::new([char]0x2500, $borderLen))${Reset}"
+                $inCodeBlock = $true
+            }
+            $i++
+            continue
+        }
+
+        if ($inCodeBlock) {
+            $lineColor = if ($line.Trim().StartsWith("//") -or $line.Trim().StartsWith("#") -or $line.Trim().StartsWith("--")) { $LeadLight } else { $White }
+            Write-Host "  ${Lead}$([char]0x2502)${Reset}  $lineColor$line${Reset}"
+            $i++
+            continue
+        }
+
+        # Deteccion de linea de tabla Markdown
+        if ($trimmed.StartsWith('|') -and $trimmed.EndsWith('|')) {
+            $tableBuffer.Add($line)
+            $i++
+            continue
+        } else {
+            if ($tableBuffer.Count -gt 0) {
+                Render-VorkTable -TableLines $tableBuffer.ToArray() -MaxWidth $maxWidth
+                $tableBuffer.Clear()
+                Write-Host ""
+            }
+        }
+
+        # Linea en blanco
+        if (-not $trimmed) {
+            Write-Host ""
+            $i++
+            continue
+        }
+
+        # Regla horizontal (---, ***, ___ )
+        if ($trimmed -match '^(---|(\*\*\*)|___)$') {
+            $ruleLen = [Math]::Min(50, $maxWidth - 4)
+            Write-Host "  ${Lead}$([string]::new([char]0x2500, $ruleLen))${Reset}"
+            Write-Host ""
+            $i++
+            continue
+        }
+
+        # Encabezados Markdown
+        if ($trimmed.StartsWith('###')) {
+            $hText = $trimmed.TrimStart('#').Trim()
+            $hText = [regex]::Replace($hText, '^\*\*|\*\*$', '')
+            $hFormatted = Format-VorkInlineText -Text $hText
+            Write-Host ""
+            Write-Host "  ${Cyan}${Bold}$([char]0x25B8) $hFormatted${Reset}"
+            Write-Host ""
+            $i++
+            continue
+        }
+        if ($trimmed.StartsWith('##')) {
+            $hText = $trimmed.TrimStart('#').Trim()
+            $hText = [regex]::Replace($hText, '^\*\*|\*\*$', '')
+            $hFormatted = Format-VorkInlineText -Text $hText
+            Write-Host ""
+            Write-Host "  ${White}${Bold}$hFormatted${Reset}"
+            $ruleLen = [Math]::Min(40, (Get-VorkDisplayWidth (Get-VorkPlainText $hFormatted)) + 2)
+            Write-Host "  ${Lead}$([string]::new([char]0x2500, $ruleLen))${Reset}"
+            Write-Host ""
+            $i++
+            continue
+        }
+        if ($trimmed.StartsWith('#')) {
+            $hText = $trimmed.TrimStart('#').Trim()
+            $hText = [regex]::Replace($hText, '^\*\*|\*\*$', '')
+            $hFormatted = Format-VorkInlineText -Text $hText
+            Write-Host ""
+            Write-Host "  ${Coral}${Bold}$hFormatted${Reset}"
+            $ruleLen = [Math]::Min(50, (Get-VorkDisplayWidth (Get-VorkPlainText $hFormatted)) + 4)
+            Write-Host "  ${Lead}$([string]::new([char]0x2500, $ruleLen))${Reset}"
+            Write-Host ""
+            $i++
+            continue
+        }
+
+        # Bloque de cita (>)
+        if ($trimmed.StartsWith('>')) {
+            $qText = $trimmed.Substring(1).Trim()
+            $qFormatted = Format-VorkInlineText -Text $qText
+            Write-Host "  ${Lead}$([char]0x2502)${Reset} ${Cyan}$qFormatted${Reset}"
+            $i++
+            continue
+        }
+
+        # Elemento de lista no ordenada (- o *)
+        if ($trimmed -match '^[-*]\s+(.*)$') {
+            $itemText = $Matches[1]
+            $isSub = $line.StartsWith('   ') -or $line.StartsWith("`t")
+            $indent = if ($isSub) { "    " } else { "  " }
+            $bullet = if ($isSub) { "${Lead}$([char]0x25AA)${Reset}" } else { "${Cyan}$([char]0x2022)${Reset}" }
+            $formatted = Format-VorkInlineText -Text $itemText
+            $contentWidth = [Math]::Max(20, $maxWidth - (Get-VorkDisplayWidth $indent) - 4)
+            $wrapped = @(Get-VorkWrappedLines -Text $formatted -Width $contentWidth -MaxLines 10)
+            if ($wrapped -and $wrapped.Count -gt 0) {
+                Write-Host "$indent$bullet $($wrapped[0])"
+                for ($wIdx = 1; $wIdx -lt $wrapped.Count; $wIdx++) {
+                    Write-Host "$indent  $($wrapped[$wIdx])"
+                }
+            } else {
+                Write-Host "$indent$bullet $formatted"
+            }
+            $i++
+            continue
+        }
+
+        # Elemento de lista numerada (1. 2. etc.)
+        if ($trimmed -match '^(\d+\.)\s+(.*)$') {
+            $num = $Matches[1]
+            $itemText = $Matches[2]
+            $formatted = Format-VorkInlineText -Text $itemText
+            $contentWidth = [Math]::Max(20, $maxWidth - (Get-VorkDisplayWidth $num) - 4)
+            $wrapped = @(Get-VorkWrappedLines -Text $formatted -Width $contentWidth -MaxLines 10)
+            if ($wrapped -and $wrapped.Count -gt 0) {
+                Write-Host "  ${Cyan}$num${Reset} $($wrapped[0])"
+                $hangingPad = [string]::new(' ', $num.Length + 1)
+                for ($wIdx = 1; $wIdx -lt $wrapped.Count; $wIdx++) {
+                    Write-Host "  $hangingPad$($wrapped[$wIdx])"
+                }
+            } else {
+                Write-Host "  ${Cyan}$num${Reset} $formatted"
+            }
+            $i++
+            continue
+        }
+
+        # Parrafo regular de texto con sangria uniforme de 2 espacios
+        $formatted = Format-VorkInlineText -Text $trimmed
+        $wrapped = @(Get-VorkWrappedLines -Text $formatted -Width ([Math]::Max(20, $maxWidth - 4)) -MaxLines 20)
+        if ($wrapped -and $wrapped.Count -gt 0) {
+            foreach ($wl in $wrapped) {
+                Write-Host "  $wl"
+            }
+        } else {
+            Write-Host "  $formatted"
+        }
+        $i++
+    }
+
+    # Renderizar cualquier tabla restante
+    if ($tableBuffer.Count -gt 0) {
+        Render-VorkTable -TableLines $tableBuffer.ToArray() -MaxWidth $maxWidth
+        $tableBuffer.Clear()
+        Write-Host ""
+    }
+
+    # Pie de respuesta con modelo, nivel y metadatos alineados
+    Write-Host ""
+    $elbowChar = [char]0x23BF
+    $timeStr = if ($ElapsedSec -gt 0) { " ${Lead}$([char]0x00B7)${Reset} ${LeadLight}${ElapsedSec}s${Reset}" } else { "" }
+    Write-Host "  ${LeadLight}$elbowChar  $ActiveModel · $TierLabel$timeStr${Reset}"
+    Write-Host ""
 }

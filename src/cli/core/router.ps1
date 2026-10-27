@@ -561,6 +561,7 @@ function Read-InteractiveVorkLine {
     $navigatingHistory = $false
     $lastCtrlC = [DateTime]::MinValue
     $ctrlCWarning = $false
+    $menuDismissed = $false
 
     $savedCursor = try { [Console]::CursorVisible } catch { $true }
     try { [Console]::TreatControlCAsInput = $true } catch { }
@@ -574,7 +575,7 @@ function Read-InteractiveVorkLine {
 
         while ($true) {
             $text = $buffer.ToString()
-            $isSlash = (-not $navigatingHistory) -and $text.StartsWith("/") -and (-not $text.Contains(" "))
+            $isSlash = (-not $navigatingHistory) -and (-not $menuDismissed) -and $text.StartsWith("/") -and (-not $text.Contains(" "))
 
             if ($isSlash) {
                 $filtered = @($allCommands | Where-Object { $_.Cmd.StartsWith($text, [System.StringComparison]::OrdinalIgnoreCase) })
@@ -637,6 +638,7 @@ function Read-InteractiveVorkLine {
                     [void]$buffer.Clear()
                     $position = 0
                     $menuOpen = $false
+                    $menuDismissed = $false
                     $navigatingHistory = $false
                     $historyIndex = -1
                     $lastCtrlC = [DateTime]::MinValue
@@ -697,6 +699,7 @@ function Read-InteractiveVorkLine {
                     [void]$buffer.Append($chosen)
                     $position = $buffer.Length
                     $menuOpen = $false
+                    $menuDismissed = $true
                     $navigatingHistory = $false
                     $historyIndex = -1
                     $selected = 0
@@ -750,21 +753,25 @@ function Read-InteractiveVorkLine {
             }
 
             if ($key.Key -eq [ConsoleKey]::LeftArrow) {
-                if ($position -gt 0) { $position-- }
+                if ($menuOpen) { $menuOpen = $false; $menuDismissed = $true }
+                $position = Get-VorkCursorBoundary -Text $buffer.ToString() -Position $position -Direction -1
                 continue
             }
 
             if ($key.Key -eq [ConsoleKey]::RightArrow) {
-                if ($position -lt $buffer.Length) { $position++ }
+                if ($menuOpen) { $menuOpen = $false; $menuDismissed = $true }
+                $position = Get-VorkCursorBoundary -Text $buffer.ToString() -Position $position -Direction 1
                 continue
             }
 
             if ($key.Key -eq [ConsoleKey]::Home -or (Test-VorkCtrlKey -Key $key -Letter ([ConsoleKey]::A))) {
+                if ($menuOpen) { $menuOpen = $false; $menuDismissed = $true }
                 $position = 0
                 continue
             }
 
             if ($key.Key -eq [ConsoleKey]::End -or (Test-VorkCtrlKey -Key $key -Letter ([ConsoleKey]::E))) {
+                if ($menuOpen) { $menuOpen = $false; $menuDismissed = $true }
                 $position = $buffer.Length
                 continue
             }
@@ -772,6 +779,7 @@ function Read-InteractiveVorkLine {
             if ($key.Key -eq [ConsoleKey]::Escape) {
                 if ($menuOpen) {
                     $menuOpen = $false
+                    $menuDismissed = $true
                     continue
                 }
                 if ($navigatingHistory) {
@@ -785,6 +793,7 @@ function Read-InteractiveVorkLine {
                 if ($buffer.Length -gt 0) {
                     [void]$buffer.Clear()
                     $position = 0
+                    $menuDismissed = $false
                 }
                 continue
             }
@@ -792,9 +801,13 @@ function Read-InteractiveVorkLine {
             if ($key.Key -eq [ConsoleKey]::Backspace -or $key.KeyChar -eq [char]8) {
                 $navigatingHistory = $false
                 $historyIndex = -1
+                $menuDismissed = $false
+                $selected = 0
+                $top = 0
                 if ($position -gt 0) {
-                    [void]$buffer.Remove($position - 1, 1)
-                    $position--
+                    $start = Get-VorkCursorBoundary -Text $buffer.ToString() -Position $position -Direction -1
+                    [void]$buffer.Remove($start, $position - $start)
+                    $position = $start
                 }
                 continue
             }
@@ -802,8 +815,12 @@ function Read-InteractiveVorkLine {
             if ($key.Key -eq [ConsoleKey]::Delete) {
                 $navigatingHistory = $false
                 $historyIndex = -1
+                $menuDismissed = $false
+                $selected = 0
+                $top = 0
                 if ($position -lt $buffer.Length) {
-                    [void]$buffer.Remove($position, 1)
+                    $end = Get-VorkCursorBoundary -Text $buffer.ToString() -Position $position -Direction 1
+                    [void]$buffer.Remove($position, $end - $position)
                 }
                 continue
             }
@@ -813,6 +830,9 @@ function Read-InteractiveVorkLine {
                 $position = 0
                 $navigatingHistory = $false
                 $historyIndex = -1
+                $menuDismissed = $false
+                $selected = 0
+                $top = 0
                 continue
             }
 
@@ -820,6 +840,9 @@ function Read-InteractiveVorkLine {
                 if ($position -lt $buffer.Length) {
                     [void]$buffer.Remove($position, $buffer.Length - $position)
                 }
+                $menuDismissed = $false
+                $selected = 0
+                $top = 0
                 continue
             }
 
@@ -832,6 +855,9 @@ function Read-InteractiveVorkLine {
                     [void]$buffer.Remove($cut, $position - $cut)
                     $position = $cut
                 }
+                $menuDismissed = $false
+                $selected = 0
+                $top = 0
                 continue
             }
 
@@ -846,6 +872,7 @@ function Read-InteractiveVorkLine {
             if (-not [char]::IsControl($char)) {
                 $navigatingHistory = $false
                 $historyIndex = -1
+                $menuDismissed = $false
                 [void]$buffer.Insert($position, $char)
                 $position++
                 $selected = 0

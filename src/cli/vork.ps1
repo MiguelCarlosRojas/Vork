@@ -913,11 +913,41 @@ function Update-VorkPanel {
     )
 
     $metrics = Get-VorkConsoleMetrics
-    if (-not $Panel) { return New-VorkPanel -Rows $Rows }
+    $safeRows = [Math]::Max(1, [Math]::Min($Rows, [Math]::Max(1, $metrics.Height - 1)))
 
-    if ($metrics.Width -ne $Panel.Width -or $metrics.Height -ne $Panel.Height) {
+    if (-not $Panel) { return New-VorkPanel -Rows $safeRows }
+
+    $sizeChanged = ($metrics.Width -ne $Panel.Width) -or
+        ($metrics.Height -ne $Panel.Height) -or
+        ($safeRows -ne $Panel.Rows)
+
+    if ($sizeChanged) {
+        $top = $Panel.Top
         Clear-VorkPanel -Panel $Panel
-        return New-VorkPanel -Rows $Rows
+
+        # Reutiliza la misma fila superior cuando hay espacio suficiente.
+        $canReuse = $false
+        try {
+            $windowTop = [Console]::WindowTop
+            $windowHeight = [Console]::WindowHeight
+            $available = ($windowTop + $windowHeight) - $top
+            $canReuse = ($top -ge $windowTop) -and ($available -ge $safeRows)
+        } catch { }
+
+        if ($canReuse) {
+            try {
+                [Console]::SetCursorPosition(0, $top)
+                return [pscustomobject]@{
+                    Top          = [int]$top
+                    Rows         = [int]$safeRows
+                    Width        = [int]$metrics.Width
+                    Height       = [int]$metrics.Height
+                    BufferHeight = [int]$metrics.BufferHeight
+                }
+            } catch { }
+        }
+
+        return New-VorkPanel -Rows $safeRows
     }
 
     return $Panel
@@ -1069,6 +1099,35 @@ function Get-VorkTextWindow {
         Cursor = $cursorOffset
         Left   = $left
     }
+}
+
+function Get-VorkCursorBoundary {
+    param(
+        [string]$Text,
+        [int]$Position,
+        [int]$Direction
+    )
+
+    if (-not $Text) { return 0 }
+    if ($Position -lt 0) { $Position = 0 }
+    if ($Position -gt $Text.Length) { $Position = $Text.Length }
+
+    # Limites de caracteres reales (soporta acentos combinados y emojis).
+    $starts = [System.Globalization.StringInfo]::ParseCombiningCharacters($Text)
+
+    if ($Direction -lt 0) {
+        $boundary = 0
+        foreach ($start in $starts) {
+            if ($start -lt $Position) { $boundary = $start } else { break }
+        }
+        return [int]$boundary
+    }
+
+    foreach ($start in $starts) {
+        if ($start -gt $Position) { return [int]$start }
+    }
+
+    return [int]$Text.Length
 }
 
 function Format-VorkBorderTop {
@@ -1307,6 +1366,386 @@ function Write-VorkSectionTitle {
     }
     Write-Host ""
     Write-Host "  ${Lead}$([string]::new([char]0x2500, [Math]::Max(10, $width - 3)))${Reset}"
+}
+
+
+# ========================================================
+# RENDERIZADOR AVANZADO DE RESPUESTAS VORK AI
+# ========================================================
+
+function Remove-VorkEmojis {
+    param([string]$Text)
+    if (-not $Text) { return "" }
+    # Eliminar pares suplentes de emojis Unicode (U+10000 a U+10FFFF)
+    $clean = [regex]::Replace($Text, '[\uD800-\uDBFF][\uDC00-\uDFFF]', '')
+    # Eliminar selectores de variacion y simbolos miscelaneos emoji
+    $clean = [regex]::Replace($clean, '[\uFE0E\uFE0F]|[\u2600-\u26FF\u2700-\u2702\u2705\u2708-\u270F\u2728\u274C\u2753-\u2757\u27B0\u27BF]', '')
+    # Normalizar espacios dobles residuales
+    $clean = [regex]::Replace($clean, '[ \t]{2,}', ' ')
+    return $clean
+}
+
+function Format-VorkInlineText {
+    param([string]$Text)
+    if (-not $Text) { return "" }
+    $res = $Text
+    # Codigo en linea: `codigo`
+    $res = [regex]::Replace($res, '`([^`]+)`', "$Yellow`$1$Reset")
+    # Negrita: **texto**
+    $res = [regex]::Replace($res, '\*\*([^*]+)\*\*', "$White$Bold`$1$Reset")
+    # Cursiva: *texto*
+    $res = [regex]::Replace($res, '(?<!\*)\*([^*]+)\*(?!\*)', "$Dim`$1$Reset")
+    # Limpiar etiquetas HTML residuales
+    $res = [regex]::Replace($res, '(?i)<br\s*/?>', ' ')
+    $res = [regex]::Replace($res, '(?i)</?li>', ' ')
+    $res = [regex]::Replace($res, '(?i)</?ul>', '')
+    return $res
+}
+
+function Render-VorkTable {
+    param(
+        [string[]]$TableLines,
+        [int]$MaxWidth = 100
+    )
+    if (-not $TableLines -or $TableLines.Count -lt 2) { return }
+
+    $rows = [System.Collections.Generic.List[string[]]]::new()
+    foreach ($line in $TableLines) {
+        $trimmed = $line.Trim()
+        if ($trimmed.StartsWith('|')) { $trimmed = $trimmed.Substring(1) }
+        if ($trimmed.EndsWith('|')) { $trimmed = $trimmed.Substring(0, $trimmed.Length - 1) }
+        # Omitir fila separadora Markdown (|---|---|)
+        if ($trimmed -match '^[\s\-:\|]+$') { continue }
+        $rawCells = $trimmed -split '\|'
+        $cellList = [System.Collections.Generic.List[string]]::new()
+        foreach ($c in $rawCells) {
+            $cleanedCell = [regex]::Replace($c.Trim(), '(?i)<br\s*/?>', "`n")
+            $cellList.Add($cleanedCell)
+        }
+        $rows.Add($cellList.ToArray())
+    }
+    if ($rows.Count -eq 0) { return }
+
+    # Calcular numero maximo de columnas
+    $colCount = 0
+    foreach ($r in $rows) {
+        if ($r.Length -gt $colCount) { $colCount = $r.Length }
+    }
+    if ($colCount -eq 0) { return }
+
+    # Rellenar celdas faltantes
+    for ($i = 0; $i -lt $rows.Count; $i++) {
+        $r = $rows[$i]
+        if ($r.Length -lt $colCount) {
+            $newR = [System.Collections.Generic.List[string]]::new($r)
+            while ($newR.Count -lt $colCount) { $newR.Add("") }
+            $rows[$i] = $newR.ToArray()
+        }
+    }
+
+    # Espacio para bordes verticales: '  │ ' + ' │ ' * (colCount-1) + ' │'
+    $borderSpaces = 4 + 3 * ($colCount - 1)
+    $availWidth = [Math]::Max(20, $MaxWidth - $borderSpaces)
+
+    # Ancho deseado por columna segun texto plano
+    $colMaxWidths = New-Object 'int[]' $colCount
+    for ($c = 0; $c -lt $colCount; $c++) {
+        $maxLen = 6
+        foreach ($r in $rows) {
+            $subLines = $r[$c] -split "`n"
+            foreach ($sl in $subLines) {
+                $cleanCell = [regex]::Replace($sl, '\*\*([^*]+)\*\*', '$1')
+                $cleanCell = [regex]::Replace($cleanCell, '`([^`]+)`', '$1')
+                $w = Get-VorkDisplayWidth (Get-VorkPlainText $cleanCell.Trim())
+                if ($w -gt $maxLen) { $maxLen = $w }
+            }
+        }
+        $colMaxWidths[$c] = $maxLen
+    }
+
+    $totalDesired = 0
+    for ($c = 0; $c -lt $colCount; $c++) { $totalDesired += $colMaxWidths[$c] }
+
+    $colWidths = New-Object 'int[]' $colCount
+    if ($totalDesired -le $availWidth) {
+        for ($c = 0; $c -lt $colCount; $c++) { $colWidths[$c] = $colMaxWidths[$c] }
+    } else {
+        $minCol = 8
+        for ($c = 0; $c -lt $colCount; $c++) {
+            $w = [Math]::Max($minCol, [int][Math]::Floor(($colMaxWidths[$c] / [double]$totalDesired) * $availWidth))
+            $colWidths[$c] = $w
+        }
+    }
+
+    # Bordes de tabla Unicode
+    $topBorder = "  $Lead$([char]0x250C)"
+    $midBorder = "  $Lead$([char]0x251C)"
+    $botBorder = "  $Lead$([char]0x2514)"
+    for ($c = 0; $c -lt $colCount; $c++) {
+        $seg = [string]::new([char]0x2500, $colWidths[$c] + 2)
+        $topBorder += $seg + $(if ($c -lt $colCount - 1) { [char]0x252C } else { [char]0x2510 })
+        $midBorder += $seg + $(if ($c -lt $colCount - 1) { [char]0x253C } else { [char]0x2524 })
+        $botBorder += $seg + $(if ($c -lt $colCount - 1) { [char]0x2534 } else { [char]0x2518 })
+    }
+    $topBorder += "$Reset"
+    $midBorder += "$Reset"
+    $botBorder += "$Reset"
+
+    Write-Host $topBorder
+
+    for ($rIdx = 0; $rIdx -lt $rows.Count; $rIdx++) {
+        $row = $rows[$rIdx]
+        $isHeader = ($rIdx -eq 0)
+
+        $wrappedCells = [System.Collections.Generic.List[string[]]]::new()
+        $maxCellLines = 1
+        for ($c = 0; $c -lt $colCount; $c++) {
+            $rawCell = $row[$c]
+            $subLines = $rawCell -split "`n"
+            $cellLines = [System.Collections.Generic.List[string]]::new()
+            foreach ($sl in $subLines) {
+                $trimmedSl = $sl.Trim()
+                if (-not $trimmedSl) { continue }
+                $cleanCell = [regex]::Replace($trimmedSl, '\*\*([^*]+)\*\*', '$1')
+                $wrapped = @(Get-VorkWrappedLines -Text $cleanCell -Width $colWidths[$c] -MaxLines 10)
+                if ($wrapped -and $wrapped.Count -gt 0) {
+                    foreach ($w in $wrapped) { $cellLines.Add($w) }
+                } else {
+                    $cellLines.Add("")
+                }
+            }
+            if ($cellLines.Count -eq 0) { $cellLines.Add("") }
+            if ($cellLines.Count -gt $maxCellLines) { $maxCellLines = $cellLines.Count }
+            $wrappedCells.Add($cellLines.ToArray())
+        }
+
+        for ($lineIdx = 0; $lineIdx -lt $maxCellLines; $lineIdx++) {
+            $outLine = "  $Lead$([char]0x2502)$Reset"
+            for ($c = 0; $c -lt $colCount; $c++) {
+                $cellText = if ($lineIdx -lt $wrappedCells[$c].Length) { $wrappedCells[$c][$lineIdx] } else { "" }
+                $formattedCell = if ($isHeader) {
+                    "$White$Bold$cellText$Reset"
+                } else {
+                    Format-VorkInlineText -Text $cellText
+                }
+                $plainW = Get-VorkDisplayWidth (Get-VorkPlainText $formattedCell)
+                $pad = [Math]::Max(0, $colWidths[$c] - $plainW)
+                $outLine += " " + $formattedCell + ([string]::new(' ', $pad)) + " $Lead$([char]0x2502)$Reset"
+            }
+            Write-Host $outLine
+        }
+
+        if ($isHeader) {
+            Write-Host $midBorder
+        }
+    }
+
+    Write-Host $botBorder
+}
+
+function Write-VorkAIResponse {
+    param(
+        [string]$Answer,
+        [string]$ActiveModel = "Vork 3.2",
+        [string]$TierLabel = "Expert",
+        [double]$ElapsedSec = 0
+    )
+
+    if (-not $Answer) { return }
+
+    # 1. Filtro estricto anti-emojis
+    $cleanAnswer = Remove-VorkEmojis -Text $Answer
+    $metrics = Get-VorkConsoleMetrics
+    $maxWidth = [Math]::Max(40, $metrics.Width - 4)
+
+    $lines = $cleanAnswer -split '\r?\n'
+    $inCodeBlock = $false
+    $codeLang = ""
+    $tableBuffer = [System.Collections.Generic.List[string]]::new()
+
+    $i = 0
+    while ($i -lt $lines.Length) {
+        $line = $lines[$i]
+        $trimmed = $line.Trim()
+
+        # Inicio o Fin de Bloque de Codigo
+        if ($trimmed -match '^`{3,}(.*)$') {
+            if ($inCodeBlock) {
+                # Cierre de bloque de codigo
+                $boxWidth = [Math]::Min(76, $maxWidth - 4)
+                $borderLen = [Math]::Max(4, $boxWidth - 2)
+                Write-Host "  ${Lead}$([char]0x2570)$([string]::new([char]0x2500, $borderLen))${Reset}"
+                Write-Host ""
+                $inCodeBlock = $false
+                $codeLang = ""
+            } else {
+                # Renderizar tabla pendiente si existiera
+                if ($tableBuffer.Count -gt 0) {
+                    Render-VorkTable -TableLines $tableBuffer.ToArray() -MaxWidth $maxWidth
+                    $tableBuffer.Clear()
+                    Write-Host ""
+                }
+                $codeLang = $Matches[1].Trim()
+                if (-not $codeLang) { $codeLang = "código" }
+                $langTag = "${Coral}${Bold}[$codeLang]${Reset}"
+                $boxWidth = [Math]::Min(76, $maxWidth - 4)
+                $borderLen = [Math]::Max(4, $boxWidth - 6 - (Get-VorkDisplayWidth $codeLang))
+                Write-Host ""
+                Write-Host "  ${Lead}$([char]0x256D)$([char]0x2500) $langTag ${Lead}$([string]::new([char]0x2500, $borderLen))${Reset}"
+                $inCodeBlock = $true
+            }
+            $i++
+            continue
+        }
+
+        if ($inCodeBlock) {
+            $lineColor = if ($line.Trim().StartsWith("//") -or $line.Trim().StartsWith("#") -or $line.Trim().StartsWith("--")) { $LeadLight } else { $White }
+            Write-Host "  ${Lead}$([char]0x2502)${Reset}  $lineColor$line${Reset}"
+            $i++
+            continue
+        }
+
+        # Deteccion de linea de tabla Markdown
+        if ($trimmed.StartsWith('|') -and $trimmed.EndsWith('|')) {
+            $tableBuffer.Add($line)
+            $i++
+            continue
+        } else {
+            if ($tableBuffer.Count -gt 0) {
+                Render-VorkTable -TableLines $tableBuffer.ToArray() -MaxWidth $maxWidth
+                $tableBuffer.Clear()
+                Write-Host ""
+            }
+        }
+
+        # Linea en blanco
+        if (-not $trimmed) {
+            Write-Host ""
+            $i++
+            continue
+        }
+
+        # Regla horizontal (---, ***, ___ )
+        if ($trimmed -match '^(---|(\*\*\*)|___)$') {
+            $ruleLen = [Math]::Min(50, $maxWidth - 4)
+            Write-Host "  ${Lead}$([string]::new([char]0x2500, $ruleLen))${Reset}"
+            Write-Host ""
+            $i++
+            continue
+        }
+
+        # Encabezados Markdown
+        if ($trimmed.StartsWith('###')) {
+            $hText = $trimmed.TrimStart('#').Trim()
+            $hText = [regex]::Replace($hText, '^\*\*|\*\*$', '')
+            $hFormatted = Format-VorkInlineText -Text $hText
+            Write-Host ""
+            Write-Host "  ${Cyan}${Bold}$([char]0x25B8) $hFormatted${Reset}"
+            Write-Host ""
+            $i++
+            continue
+        }
+        if ($trimmed.StartsWith('##')) {
+            $hText = $trimmed.TrimStart('#').Trim()
+            $hText = [regex]::Replace($hText, '^\*\*|\*\*$', '')
+            $hFormatted = Format-VorkInlineText -Text $hText
+            Write-Host ""
+            Write-Host "  ${White}${Bold}$hFormatted${Reset}"
+            $ruleLen = [Math]::Min(40, (Get-VorkDisplayWidth (Get-VorkPlainText $hFormatted)) + 2)
+            Write-Host "  ${Lead}$([string]::new([char]0x2500, $ruleLen))${Reset}"
+            Write-Host ""
+            $i++
+            continue
+        }
+        if ($trimmed.StartsWith('#')) {
+            $hText = $trimmed.TrimStart('#').Trim()
+            $hText = [regex]::Replace($hText, '^\*\*|\*\*$', '')
+            $hFormatted = Format-VorkInlineText -Text $hText
+            Write-Host ""
+            Write-Host "  ${Coral}${Bold}$hFormatted${Reset}"
+            $ruleLen = [Math]::Min(50, (Get-VorkDisplayWidth (Get-VorkPlainText $hFormatted)) + 4)
+            Write-Host "  ${Lead}$([string]::new([char]0x2500, $ruleLen))${Reset}"
+            Write-Host ""
+            $i++
+            continue
+        }
+
+        # Bloque de cita (>)
+        if ($trimmed.StartsWith('>')) {
+            $qText = $trimmed.Substring(1).Trim()
+            $qFormatted = Format-VorkInlineText -Text $qText
+            Write-Host "  ${Lead}$([char]0x2502)${Reset} ${Cyan}$qFormatted${Reset}"
+            $i++
+            continue
+        }
+
+        # Elemento de lista no ordenada (- o *)
+        if ($trimmed -match '^[-*]\s+(.*)$') {
+            $itemText = $Matches[1]
+            $isSub = $line.StartsWith('   ') -or $line.StartsWith("`t")
+            $indent = if ($isSub) { "    " } else { "  " }
+            $bullet = if ($isSub) { "${Lead}$([char]0x25AA)${Reset}" } else { "${Cyan}$([char]0x2022)${Reset}" }
+            $formatted = Format-VorkInlineText -Text $itemText
+            $contentWidth = [Math]::Max(20, $maxWidth - (Get-VorkDisplayWidth $indent) - 4)
+            $wrapped = @(Get-VorkWrappedLines -Text $formatted -Width $contentWidth -MaxLines 10)
+            if ($wrapped -and $wrapped.Count -gt 0) {
+                Write-Host "$indent$bullet $($wrapped[0])"
+                for ($wIdx = 1; $wIdx -lt $wrapped.Count; $wIdx++) {
+                    Write-Host "$indent  $($wrapped[$wIdx])"
+                }
+            } else {
+                Write-Host "$indent$bullet $formatted"
+            }
+            $i++
+            continue
+        }
+
+        # Elemento de lista numerada (1. 2. etc.)
+        if ($trimmed -match '^(\d+\.)\s+(.*)$') {
+            $num = $Matches[1]
+            $itemText = $Matches[2]
+            $formatted = Format-VorkInlineText -Text $itemText
+            $contentWidth = [Math]::Max(20, $maxWidth - (Get-VorkDisplayWidth $num) - 4)
+            $wrapped = @(Get-VorkWrappedLines -Text $formatted -Width $contentWidth -MaxLines 10)
+            if ($wrapped -and $wrapped.Count -gt 0) {
+                Write-Host "  ${Cyan}$num${Reset} $($wrapped[0])"
+                $hangingPad = [string]::new(' ', $num.Length + 1)
+                for ($wIdx = 1; $wIdx -lt $wrapped.Count; $wIdx++) {
+                    Write-Host "  $hangingPad$($wrapped[$wIdx])"
+                }
+            } else {
+                Write-Host "  ${Cyan}$num${Reset} $formatted"
+            }
+            $i++
+            continue
+        }
+
+        # Parrafo regular de texto con sangria uniforme de 2 espacios
+        $formatted = Format-VorkInlineText -Text $trimmed
+        $wrapped = @(Get-VorkWrappedLines -Text $formatted -Width ([Math]::Max(20, $maxWidth - 4)) -MaxLines 20)
+        if ($wrapped -and $wrapped.Count -gt 0) {
+            foreach ($wl in $wrapped) {
+                Write-Host "  $wl"
+            }
+        } else {
+            Write-Host "  $formatted"
+        }
+        $i++
+    }
+
+    # Renderizar cualquier tabla restante
+    if ($tableBuffer.Count -gt 0) {
+        Render-VorkTable -TableLines $tableBuffer.ToArray() -MaxWidth $maxWidth
+        $tableBuffer.Clear()
+        Write-Host ""
+    }
+
+    # Pie de respuesta con modelo, nivel y metadatos alineados
+    Write-Host ""
+    $elbowChar = [char]0x23BF
+    $timeStr = if ($ElapsedSec -gt 0) { " ${Lead}$([char]0x00B7)${Reset} ${LeadLight}${ElapsedSec}s${Reset}" } else { "" }
+    Write-Host "  ${LeadLight}$elbowChar  $ActiveModel · $TierLabel$timeStr${Reset}"
+    Write-Host ""
 }
 
 
@@ -2357,65 +2796,77 @@ function Write-VorkModelFrame {
     )
 
     $row = 0
-    # Line 0: Switch Model
+    # Row 0: Switch Model
     Write-VorkPanelLine -Panel $Panel -Index $row -Text "${White}${Bold}Switch Model${Reset}"
     $row++
 
-    # Line 1: Blank
+    # Row 1: Blank
     Write-VorkPanelLine -Panel $Panel -Index $row -Text ""
     $row++
 
-    # Line 2: Search input
-    $searchDisplay = if ($SearchQuery) { "${White}${Bold}$SearchQuery${Reset}" } else { "" }
-    Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${White}Search:${Reset} $searchDisplay"
+    # Row 2: Search Input
+    $displayQuery = if ($SearchQuery) { "${White}${Bold}$SearchQuery${Reset}" } else { "" }
+    Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${White}Search:${Reset} $displayQuery"
     $row++
 
-    # Line 3: Underline
+    # Row 3: Underline
     Write-VorkPanelLine -Panel $Panel -Index $row -Text "          ${LeadDark}────────────────────${Reset}"
     $row++
 
-    # Line 4: Blank
+    # Row 4: Blank
     Write-VorkPanelLine -Panel $Panel -Index $row -Text ""
     $row++
 
-    # Lines 5..7: Model items (up to 3 or filtered count)
-    for ($i = 0; $i -lt 3; $i++) {
-        if ($i -lt $FilteredModels.Count) {
-            $m = $FilteredModels[$i]
-            $isFocused = ($i -eq $SelectedIndex)
-            $isCurrent = ($m.Id -eq $ActiveModelId)
-
-            $cursor = if ($isFocused) { "${Cyan}${Bold}>${Reset} " } else { "  " }
-            $nameStr = $m.Name.PadRight(28)
-            $nameColored = if ($isFocused) { "${White}${Bold}$nameStr${Reset}" } else { "${White}$nameStr${Reset}" }
-            $tag = if ($isCurrent) { "${LeadDark}(current)${Reset}" } else { "" }
-
-            Write-VorkPanelLine -Panel $Panel -Index $row -Text "$cursor$nameColored$tag"
-        } else {
-            Write-VorkPanelLine -Panel $Panel -Index $row -Text ""
-        }
+    # Rows 5..7: Model items (or no match message)
+    if ($FilteredModels.Count -eq 0) {
+        Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${LeadDark}No models match '$SearchQuery'${Reset}"
         $row++
+        Write-VorkPanelLine -Panel $Panel -Index $row -Text ""
+        $row++
+        Write-VorkPanelLine -Panel $Panel -Index $row -Text ""
+        $row++
+    } else {
+        for ($i = 0; $i -lt 3; $i++) {
+            if ($i -lt $FilteredModels.Count) {
+                $m = $FilteredModels[$i]
+                $isFocused = ($i -eq $SelectedIndex)
+                $isCurrent = ($m.Id -eq $ActiveModelId)
+
+                $cursor = if ($isFocused) { "${Cyan}${Bold}>${Reset} " } else { "  " }
+                $nameStr = $m.Name.PadRight(28)
+                $nameColored = if ($isFocused) { "${White}${Bold}$nameStr${Reset}" } else { "${White}$nameStr${Reset}" }
+                $tag = if ($isCurrent) { "${LeadDark}(current)${Reset}" } else { "" }
+
+                Write-VorkPanelLine -Panel $Panel -Index $row -Text "$cursor$nameColored$tag"
+            } else {
+                Write-VorkPanelLine -Panel $Panel -Index $row -Text ""
+            }
+            $row++
+        }
     }
 
-    # Line 8: Blank
+    # Row 8: Blank
     Write-VorkPanelLine -Panel $Panel -Index $row -Text ""
     $row++
 
-    # Lines 9..11: Effort Track & Description
+    # Focused model
     $focusedModel = if ($FilteredModels.Count -gt 0 -and $SelectedIndex -lt $FilteredModels.Count) { $FilteredModels[$SelectedIndex] } else { $null }
 
     if ($focusedModel -and $focusedModel.SupportsEffort) {
+        # Screen 2: With Effort Slider
         $triL = [char]0x25C2 # ◂
         $triR = [char]0x25B8 # ▸
-        $bar = [string][char]0x2501 * 14 # ━━━━━━━━━━━━━━
+        $bar14 = [string][char]0x2501 * 14 # ━━━━━━━━━━━━━━
+        $dotChar = [char]0x25CF  # ●
+        $activeDot = [char]0x25C9 # ◉
 
-        $cLow = if ($EffortIndex -eq 0) { "${Green}${Bold}$([char]0x25C9)${Reset}" } else { "${LeadDark}$([char]0x25CF)${Reset}" }
-        $cMed = if ($EffortIndex -eq 1) { "${Yellow}${Bold}$([char]0x25C9)${Reset}" } else { "${LeadDark}$([char]0x25CF)${Reset}" }
-        $cHig = if ($EffortIndex -eq 2) { "${Coral}${Bold}$([char]0x25C9)${Reset}" } else { "${LeadDark}$([char]0x25CF)${Reset}" }
+        $d0 = if ($EffortIndex -eq 0) { "${Green}${Bold}$activeDot${Reset}" } else { "${LeadDark}$dotChar${Reset}" }
+        $d1 = if ($EffortIndex -eq 1) { "${Yellow}${Bold}$activeDot${Reset}" } else { "${LeadDark}$dotChar${Reset}" }
+        $d2 = if ($EffortIndex -eq 2) { "${Coral}${Bold}$activeDot${Reset}" } else { "${LeadDark}$dotChar${Reset}" }
 
-        $lblLow = if ($EffortIndex -eq 0) { "${White}${Bold}low${Reset}" } else { "${LeadDark}low${Reset}" }
-        $lblMed = if ($EffortIndex -eq 1) { "${White}${Bold}medium${Reset}" } else { "${LeadDark}medium${Reset}" }
-        $lblHig = if ($EffortIndex -eq 2) { "${White}${Bold}high${Reset}" } else { "${LeadDark}high${Reset}" }
+        $l0 = if ($EffortIndex -eq 0) { "${White}${Bold}low${Reset}" } else { "${LeadDark}low${Reset}" }
+        $l1 = if ($EffortIndex -eq 1) { "${White}${Bold}medium${Reset}" } else { "${LeadDark}medium${Reset}" }
+        $l2 = if ($EffortIndex -eq 2) { "${White}${Bold}high${Reset}" } else { "${LeadDark}high${Reset}" }
 
         $desc = switch ($EffortIndex) {
             0 { "Fastest response for lightweight tasks and quick queries" }
@@ -2423,22 +2874,44 @@ function Write-VorkModelFrame {
             2 { "Deepest reasoning for complex problems -- slower but strongest" }
         }
 
-        Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${White}Effort${Reset}  ${LeadDark}$triL${Reset}        $cLow${LeadDark}$bar${Reset}$cMed${LeadDark}$bar${Reset}$cHig        ${LeadDark}$triR${Reset}"
+        # Row 9: Track
+        Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${White}Effort${Reset}  ${LeadDark}$triL${Reset}        $d0${LeadDark}$bar14${Reset}$d1${LeadDark}$bar14${Reset}$d2        ${LeadDark}$triR${Reset}"
         $row++
-        Write-VorkPanelLine -Panel $Panel -Index $row -Text "                  $lblLow          $lblMed          $lblHig"
+
+        # Row 10: Labels
+        Write-VorkPanelLine -Panel $Panel -Index $row -Text "                  $l0          $l1          $l2"
         $row++
+
+        # Row 11: Desc
         Write-VorkPanelLine -Panel $Panel -Index $row -Text "            ${LeadLight}$desc${Reset}"
         $row++
-    } elseif ($focusedModel -and -not $focusedModel.SupportsEffort) {
-        $triL = [char]0x25C2
-        $triR = [char]0x25B8
-        Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${White}Effort${Reset}  ${LeadDark}$triL${Reset}                                                     ${Purple}${Bold}[EXPERT]${Reset}        ${LeadDark}$triR${Reset}"
+
+        # Row 12: Blank
+        Write-VorkPanelLine -Panel $Panel -Index $row -Text ""
         $row++
-        Write-VorkPanelLine -Panel $Panel -Index $row -Text "                                                                ${Purple}${Bold}expert (bloqueado)${Reset}"
+
+        # Row 13: Keyboard
+        $upDown = "$([char]0x2191)/$([char]0x2193)"
+        $leftRight = "$([char]0x2190)/$([char]0x2192)"
+        Write-VorkPanelLine -Panel $Panel -Index $row -Text "${LeadDark}Keyboard: ${White}${Bold}$upDown${Reset} ${LeadLight}Navigate${Reset}  ${White}${Bold}$leftRight${Reset} ${LeadLight}Effort${Reset}  ${White}${Bold}enter${Reset} ${LeadLight}Select${Reset}  ${White}${Bold}esc${Reset} ${LeadLight}Go Back${Reset}"
         $row++
-        Write-VorkPanelLine -Panel $Panel -Index $row -Text "            ${LeadLight}Deepest reasoning & sovereign architecture -- locked at Expert${Reset}"
+
+        # Row 14: Blank
+        Write-VorkPanelLine -Panel $Panel -Index $row -Text ""
         $row++
     } else {
+        # Screen 1: Without Effort Slider (Vork 3.2 or no match)
+        $upDown = "$([char]0x2191)/$([char]0x2193)"
+
+        # Row 9: Keyboard immediately under models list
+        Write-VorkPanelLine -Panel $Panel -Index $row -Text "${LeadDark}Keyboard: ${White}${Bold}$upDown${Reset} ${LeadLight}Navigate${Reset}  ${White}${Bold}enter${Reset} ${LeadLight}Select${Reset}  ${White}${Bold}esc${Reset} ${LeadLight}Go Back${Reset}"
+        $row++
+
+        # Rows 10..14: Clean blank filler
+        Write-VorkPanelLine -Panel $Panel -Index $row -Text ""
+        $row++
+        Write-VorkPanelLine -Panel $Panel -Index $row -Text ""
+        $row++
         Write-VorkPanelLine -Panel $Panel -Index $row -Text ""
         $row++
         Write-VorkPanelLine -Panel $Panel -Index $row -Text ""
@@ -2447,26 +2920,7 @@ function Write-VorkModelFrame {
         $row++
     }
 
-    # Line 12: Blank
-    Write-VorkPanelLine -Panel $Panel -Index $row -Text ""
-    $row++
-
-    # Line 13: Keyboard line
-    $upDown = "$([char]0x2191)/$([char]0x2193)"
-    $leftRight = "$([char]0x2190)/$([char]0x2192)"
-    if ($focusedModel -and $focusedModel.SupportsEffort) {
-        $kbText = "${LeadDark}Keyboard: ${White}${Bold}$upDown${Reset} ${LeadLight}Navigate${Reset}  ${White}${Bold}$leftRight${Reset} ${LeadLight}Effort${Reset}  ${White}${Bold}enter${Reset} ${LeadLight}Select${Reset}  ${White}${Bold}esc${Reset} ${LeadLight}Go Back${Reset}"
-    } else {
-        $kbText = "${LeadDark}Keyboard: ${White}${Bold}$upDown${Reset} ${LeadLight}Navigate${Reset}  ${White}${Bold}enter${Reset} ${LeadLight}Select${Reset}  ${White}${Bold}esc${Reset} ${LeadLight}Go Back${Reset}"
-    }
-    Write-VorkPanelLine -Panel $Panel -Index $row -Text $kbText
-    $row++
-
-    # Line 14: Blank
-    Write-VorkPanelLine -Panel $Panel -Index $row -Text ""
-    $row++
-
-    # Line 15: Right-aligned status
+    # Row 15: Right-aligned active status
     $activeModelDisp = if ($global:VorkModel) { $global:VorkModel } else { "Vork 3.1" }
     $activeTierDisp = if ($activeModelDisp -eq "Vork 3.2") { "expert" } elseif ($global:VorkTier) { $global:VorkTier.ToLower() } else { "medium" }
     $tierColor = switch ($activeTierDisp) {
@@ -2481,6 +2935,16 @@ function Write-VorkModelFrame {
     $pad = [Math]::Max(0, $Panel.Width - $rawWidth - 2)
     $statusLine = ([string]::new(' ', $pad)) + "${LeadLight}$activeModelDisp${Reset} ${Lead}·${Reset} ${tierColor}$activeTierDisp${Reset}"
     Write-VorkPanelLine -Panel $Panel -Index $row -Text $statusLine
+
+    # Place console cursor right at Search input so the user can see typing
+    try {
+        $searchCol = 10 + (Get-VorkDisplayWidth $SearchQuery)
+        $searchRow = $Panel.Top + 2
+        if ($searchCol -lt ($Panel.Width - 1)) {
+            [Console]::SetCursorPosition($searchCol, $searchRow)
+            [Console]::CursorVisible = $true
+        }
+    } catch { }
 }
 
 function Show-InteractiveModelSwitcher {
@@ -2512,7 +2976,6 @@ function Show-InteractiveModelSwitcher {
     }
 
     $savedCursor = try { [Console]::CursorVisible } catch { $true }
-    try { [Console]::CursorVisible = $false } catch { }
     try { [Console]::TreatControlCAsInput = $true } catch { }
 
     $panel = $null
@@ -2541,6 +3004,7 @@ function Show-InteractiveModelSwitcher {
             if (-not $key) { continue }
 
             if (Test-VorkCtrlC -Key $key) {
+                try { [Console]::CursorVisible = $false } catch { }
                 Clear-VorkPanel -Panel $panel
                 return @{ Action = "exited" }
             }
@@ -2551,10 +3015,12 @@ function Show-InteractiveModelSwitcher {
                     $selectedIndex = 0
                     continue
                 }
+                try { [Console]::CursorVisible = $false } catch { }
                 Clear-VorkPanel -Panel $panel
                 return @{ Action = "exited" }
             }
 
+            # Navegacion vertical (arriba / abajo)
             if ($key.Key -eq [ConsoleKey]::UpArrow) {
                 if ($filtered.Count -gt 0) {
                     $selectedIndex = if ($selectedIndex -gt 0) { $selectedIndex - 1 } else { $filtered.Count - 1 }
@@ -2569,20 +3035,22 @@ function Show-InteractiveModelSwitcher {
                 continue
             }
 
+            # Navegacion horizontal (izquierda / derecha): control deslizante continuo sin bucle
             if ($key.Key -eq [ConsoleKey]::LeftArrow) {
                 if ($filtered.Count -gt 0 -and $filtered[$selectedIndex].SupportsEffort) {
-                    $effortIndex = if ($effortIndex -gt 0) { $effortIndex - 1 } else { $efforts.Count - 1 }
+                    if ($effortIndex -gt 0) { $effortIndex-- }
                 }
                 continue
             }
 
             if ($key.Key -eq [ConsoleKey]::RightArrow) {
                 if ($filtered.Count -gt 0 -and $filtered[$selectedIndex].SupportsEffort) {
-                    $effortIndex = if ($effortIndex -lt ($efforts.Count - 1)) { $effortIndex + 1 } else { 0 }
+                    if ($effortIndex -lt ($efforts.Count - 1)) { $effortIndex++ }
                 }
                 continue
             }
 
+            # Confirmar seleccion: Enter
             if ($key.Key -eq [ConsoleKey]::Enter) {
                 if ($filtered.Count -gt 0) {
                     $chosenModel = $filtered[$selectedIndex]
@@ -2598,13 +3066,16 @@ function Show-InteractiveModelSwitcher {
                         Set-Content -Path (Join-Path $vorkDir ".tier") -Value $chosenEffort -Force -Encoding UTF8
                     } catch { }
 
+                    try { [Console]::CursorVisible = $false } catch { }
                     Clear-VorkPanel -Panel $panel
                     return @{ Action = "selected"; Model = $chosenModel.Id; Tier = $chosenEffort }
                 }
+                try { [Console]::CursorVisible = $false } catch { }
                 Clear-VorkPanel -Panel $panel
                 return @{ Action = "exited" }
             }
 
+            # Borrar texto de busqueda
             if ($key.Key -eq [ConsoleKey]::Backspace) {
                 if ($searchQuery.Length -gt 0) {
                     $searchQuery = $searchQuery.Substring(0, $searchQuery.Length - 1)
@@ -2619,8 +3090,24 @@ function Show-InteractiveModelSwitcher {
                 continue
             }
 
+            # Acceso directo numerico si busqueda esta vacia (1: Vork 3, 2: Vork 3.1, 3: Vork 3.2)
+            $charStr = [string]$key.KeyChar
+            if (-not $searchQuery -and $charStr -in @("1", "2", "3")) {
+                $numIdx = [int]$charStr - 1
+                if ($numIdx -lt $filtered.Count) {
+                    $selectedIndex = $numIdx
+                    continue
+                }
+            }
+
+            # Ignorar teclas no deseadas
+            if ($key.Key -in @([ConsoleKey]::Tab, [ConsoleKey]::Insert, [ConsoleKey]::Delete, [ConsoleKey]::Home, [ConsoleKey]::End, [ConsoleKey]::PageUp, [ConsoleKey]::PageDown)) {
+                continue
+            }
+
+            # Entrada de texto para filtrar modelos
             if (-not [char]::IsControl($key.KeyChar)) {
-                $searchQuery += [string]$key.KeyChar
+                $searchQuery += $charStr
                 $selectedIndex = 0
                 continue
             }
@@ -4981,6 +5468,7 @@ function Invoke-VorkAIChat {
     Write-Host ""
     Write-Host "  ${tierColor}$([char]0x25CF)${Reset} ${LeadLight}Pensando con ${White}${Bold}$activeModel${Reset} ${LeadLight}(${tierColor}${Bold}$tierLabel${Reset}${LeadLight})...${Reset}"
 
+    $sw = [System.Diagnostics.Stopwatch]::StartNew()
     $answer = ""
     # 1. Intentar backend oficial de Vork
     try {
@@ -5001,9 +5489,9 @@ function Invoke-VorkAIChat {
         # 2. Resiliencia autonoma: Si el backend local no responde, conectar directo
         try {
             $sysPrompt = switch ($activeModel) {
-                "Vork 3"   { "Eres Vork 3, motor multimodal IA. Especialista en audio, traduccion y conversion. Responde en el idioma del usuario de forma tecnica y directa." }
-                "Vork 3.2" { "Eres Vork 3.2 Expert Sovereign Edition. Rigor matematico y arquitectura de software al maximo nivel de excelencia. Respuestas exhaustivas, precisas y sin restricciones." }
-                default    { "Eres Vork 3.1, la nueva generacion de Inteligencia Artificial creada desde cero por Vork. Eres un ingeniero senior de software y asistente analitico. Tus respuestas son tecnicas, profesionales, con codigo limpio y directas al grano." }
+                "Vork 3"   { "Eres Vork 3, motor multimodal IA. Especialista en audio, traduccion y conversion. Responde en el idioma del usuario de forma tecnica y directa. REGLA ESTRICTA: NO USES EMOJIS." }
+                "Vork 3.2" { "Eres Vork 3.2 Expert Sovereign Edition. Rigor matematico y arquitectura de software al maximo nivel de excelencia. Respuestas exhaustivas, precisas y sin restricciones. REGLA ESTRICTA: NO USES EMOJIS." }
+                default    { "Eres Vork 3.1, la nueva generacion de Inteligencia Artificial creada desde cero por Vork. Eres un ingeniero senior de software y asistente analitico. Tus respuestas son tecnicas, profesionales, con codigo limpio y directas al grano. REGLA ESTRICTA: NO USES EMOJIS." }
             }
             $seed = Get-Random -Minimum 100000 -Maximum 9999999
             $encodedPrompt = [System.Uri]::EscapeDataString($fullPrompt)
@@ -5018,25 +5506,32 @@ function Invoke-VorkAIChat {
         }
     }
 
+    $sw.Stop()
+    $elapsedSec = [Math]::Round($sw.Elapsed.TotalSeconds, 1)
+
     Write-Host ""
     if ($answer) {
-        $lines = $answer -split '\r?\n'
+        $cleanAnswer = [regex]::Replace($answer, '[\uD800-\uDBFF][\uDC00-\uDFFF]|[\uFE0E\uFE0F]|[\u2600-\u26FF\u2700-\u27BF]', '')
+        $lines = $cleanAnswer -split '\r?\n'
         foreach ($l in $lines) {
             if ($l.StartsWith('```')) {
                 Write-Host "  ${Yellow}$l${Reset}"
-            } elseif ($l.StartsWith("#")) {
+            } elseif ($l.StartsWith('#')) {
                 Write-Host "  ${White}${Bold}$l${Reset}"
-            } elseif ($l.StartsWith(">")) {
+            } elseif ($l.StartsWith('>')) {
                 Write-Host "  ${Cyan}$l${Reset}"
             } else {
                 Write-Host "  ${White}$l${Reset}"
             }
         }
+        Write-Host ""
+        $elbowChar = [char]0x23BF
+        Write-Host "  ${LeadLight}$elbowChar  $activeModel · $tierLabel · ${elapsedSec}s${Reset}"
+        Write-Host ""
+    } else {
+        Write-Host "  ${Coral}[Error]:${Reset} No se pudo obtener respuesta del motor de Vork AI."
+        Write-Host ""
     }
-    Write-Host ""
-    $elbowChar = [char]0x23BF
-    Write-Host "  ${LeadLight}$elbowChar  $activeModel · $tierLabel${Reset}"
-    Write-Host ""
 
     Save-VorkConversationRecord -Cmd $fullPrompt -Output $answer
 }
@@ -5702,6 +6197,7 @@ function Read-InteractiveVorkLine {
     $navigatingHistory = $false
     $lastCtrlC = [DateTime]::MinValue
     $ctrlCWarning = $false
+    $menuDismissed = $false
 
     $savedCursor = try { [Console]::CursorVisible } catch { $true }
     try { [Console]::TreatControlCAsInput = $true } catch { }
@@ -5715,7 +6211,7 @@ function Read-InteractiveVorkLine {
 
         while ($true) {
             $text = $buffer.ToString()
-            $isSlash = (-not $navigatingHistory) -and $text.StartsWith("/") -and (-not $text.Contains(" "))
+            $isSlash = (-not $navigatingHistory) -and (-not $menuDismissed) -and $text.StartsWith("/") -and (-not $text.Contains(" "))
 
             if ($isSlash) {
                 $filtered = @($allCommands | Where-Object { $_.Cmd.StartsWith($text, [System.StringComparison]::OrdinalIgnoreCase) })
@@ -5778,6 +6274,7 @@ function Read-InteractiveVorkLine {
                     [void]$buffer.Clear()
                     $position = 0
                     $menuOpen = $false
+                    $menuDismissed = $false
                     $navigatingHistory = $false
                     $historyIndex = -1
                     $lastCtrlC = [DateTime]::MinValue
@@ -5838,6 +6335,7 @@ function Read-InteractiveVorkLine {
                     [void]$buffer.Append($chosen)
                     $position = $buffer.Length
                     $menuOpen = $false
+                    $menuDismissed = $true
                     $navigatingHistory = $false
                     $historyIndex = -1
                     $selected = 0
@@ -5891,21 +6389,25 @@ function Read-InteractiveVorkLine {
             }
 
             if ($key.Key -eq [ConsoleKey]::LeftArrow) {
-                if ($position -gt 0) { $position-- }
+                if ($menuOpen) { $menuOpen = $false; $menuDismissed = $true }
+                $position = Get-VorkCursorBoundary -Text $buffer.ToString() -Position $position -Direction -1
                 continue
             }
 
             if ($key.Key -eq [ConsoleKey]::RightArrow) {
-                if ($position -lt $buffer.Length) { $position++ }
+                if ($menuOpen) { $menuOpen = $false; $menuDismissed = $true }
+                $position = Get-VorkCursorBoundary -Text $buffer.ToString() -Position $position -Direction 1
                 continue
             }
 
             if ($key.Key -eq [ConsoleKey]::Home -or (Test-VorkCtrlKey -Key $key -Letter ([ConsoleKey]::A))) {
+                if ($menuOpen) { $menuOpen = $false; $menuDismissed = $true }
                 $position = 0
                 continue
             }
 
             if ($key.Key -eq [ConsoleKey]::End -or (Test-VorkCtrlKey -Key $key -Letter ([ConsoleKey]::E))) {
+                if ($menuOpen) { $menuOpen = $false; $menuDismissed = $true }
                 $position = $buffer.Length
                 continue
             }
@@ -5913,6 +6415,7 @@ function Read-InteractiveVorkLine {
             if ($key.Key -eq [ConsoleKey]::Escape) {
                 if ($menuOpen) {
                     $menuOpen = $false
+                    $menuDismissed = $true
                     continue
                 }
                 if ($navigatingHistory) {
@@ -5926,6 +6429,7 @@ function Read-InteractiveVorkLine {
                 if ($buffer.Length -gt 0) {
                     [void]$buffer.Clear()
                     $position = 0
+                    $menuDismissed = $false
                 }
                 continue
             }
@@ -5933,9 +6437,13 @@ function Read-InteractiveVorkLine {
             if ($key.Key -eq [ConsoleKey]::Backspace -or $key.KeyChar -eq [char]8) {
                 $navigatingHistory = $false
                 $historyIndex = -1
+                $menuDismissed = $false
+                $selected = 0
+                $top = 0
                 if ($position -gt 0) {
-                    [void]$buffer.Remove($position - 1, 1)
-                    $position--
+                    $start = Get-VorkCursorBoundary -Text $buffer.ToString() -Position $position -Direction -1
+                    [void]$buffer.Remove($start, $position - $start)
+                    $position = $start
                 }
                 continue
             }
@@ -5943,8 +6451,12 @@ function Read-InteractiveVorkLine {
             if ($key.Key -eq [ConsoleKey]::Delete) {
                 $navigatingHistory = $false
                 $historyIndex = -1
+                $menuDismissed = $false
+                $selected = 0
+                $top = 0
                 if ($position -lt $buffer.Length) {
-                    [void]$buffer.Remove($position, 1)
+                    $end = Get-VorkCursorBoundary -Text $buffer.ToString() -Position $position -Direction 1
+                    [void]$buffer.Remove($position, $end - $position)
                 }
                 continue
             }
@@ -5954,6 +6466,9 @@ function Read-InteractiveVorkLine {
                 $position = 0
                 $navigatingHistory = $false
                 $historyIndex = -1
+                $menuDismissed = $false
+                $selected = 0
+                $top = 0
                 continue
             }
 
@@ -5961,6 +6476,9 @@ function Read-InteractiveVorkLine {
                 if ($position -lt $buffer.Length) {
                     [void]$buffer.Remove($position, $buffer.Length - $position)
                 }
+                $menuDismissed = $false
+                $selected = 0
+                $top = 0
                 continue
             }
 
@@ -5973,6 +6491,9 @@ function Read-InteractiveVorkLine {
                     [void]$buffer.Remove($cut, $position - $cut)
                     $position = $cut
                 }
+                $menuDismissed = $false
+                $selected = 0
+                $top = 0
                 continue
             }
 
@@ -5987,6 +6508,7 @@ function Read-InteractiveVorkLine {
             if (-not [char]::IsControl($char)) {
                 $navigatingHistory = $false
                 $historyIndex = -1
+                $menuDismissed = $false
                 [void]$buffer.Insert($position, $char)
                 $position++
                 $selected = 0
