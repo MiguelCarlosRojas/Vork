@@ -223,7 +223,30 @@ async function fetchWeatherForecast(query = "") {
       locationParam = locMatch[1].trim().replace(/\s+/g, '+');
     }
 
-    const url = `https://wttr.in/${encodeURIComponent(locationParam)}?format=j1`;
+    const cityMap = {
+      'mexico': 'Mexico+City',
+      'méxico': 'Mexico+City',
+      'cdmx': 'Mexico+City',
+      'ciudad de mexico': 'Mexico+City',
+      'ciudad de méxico': 'Mexico+City',
+      'espana': 'Madrid',
+      'españa': 'Madrid',
+      'madrid': 'Madrid',
+      'barcelona': 'Barcelona',
+      'bogota': 'Bogota',
+      'bogotá': 'Bogota',
+      'lima': 'Lima',
+      'buenos aires': 'Buenos+Aires',
+      'santiago': 'Santiago',
+      'miami': 'Miami',
+      'nueva york': 'New+York',
+      'new york': 'New+York'
+    };
+
+    const cleanLoc = locationParam.toLowerCase().replace(/\+/g, ' ');
+    const targetLoc = cityMap[cleanLoc] || locationParam;
+
+    const url = `https://wttr.in/${encodeURIComponent(targetLoc)}?format=j1`;
     const res = await axios.get(url, {
       headers: { 'User-Agent': 'curl/7.88.1' },
       timeout: 5500
@@ -234,8 +257,12 @@ async function fetchWeatherForecast(query = "") {
 
     const cur = data.current_condition[0];
     const loc = data.nearest_area ? data.nearest_area[0] : null;
-    const city = loc ? loc.areaName[0].value : (locationParam || "Tu ubicación actual");
+    let city = loc ? loc.areaName[0].value : (locationParam || "Tu ubicación actual");
     const country = loc ? loc.country[0].value : "";
+
+    if ((city === "Centro" || city.includes("Cuauhtemoc") || city.includes("The Federal District")) && country.toLowerCase().includes("mexico")) {
+      city = "Ciudad de México (CDMX)";
+    }
 
     const today = data.weather[0];
     const tomorrow = data.weather[1];
@@ -276,18 +303,28 @@ async function fetchWeatherForecast(query = "") {
       ? translateDesc(tomorrow.hourly[4].weatherDesc[0].value)
       : (tomorrow ? translateDesc(tomorrow.weatherDesc[0].value) : "Variables");
 
+    let maxRainChanceToday = 0;
+    if (today && today.hourly) {
+      today.hourly.forEach(h => {
+        const c = parseInt(h.chanceofrain, 10) || 0;
+        if (c > maxRainChanceToday) maxRainChanceToday = c;
+      });
+    }
+
     return {
       city,
       country,
       current: {
         tempC: cur.temp_C,
+        feelsLikeC: cur.FeelsLikeC || cur.temp_C,
         desc: translateDesc(cur.weatherDesc[0].value),
         humidity: cur.humidity,
         windKmph: cur.windspeedKmph
       },
       today: {
         maxC: today.maxtempC,
-        minC: today.mintempC
+        minC: today.mintempC,
+        rainChance: maxRainChanceToday
       },
       tomorrow: {
         maxC: tomorrow ? tomorrow.maxtempC : null,
@@ -454,8 +491,6 @@ async function searchWebIntelligence(query) {
     .replace(/^(quien|quién|cual|cuál|donde|dónde|cuando|cuándo|como|cómo|por que|por qué|que|qué|concepto de|definicion de|definición de|busca sobre|investiga|dime sobre|consulta internet sobre|buscar|busca|que paso con|qué pasó con|noticias de)\s+(es|fue|era|creo|creó|fundo|fundó|invento|inventó|gano|ganó|hizo|descubrio|descubrió|son|eran)?\s*(el|la|los|las|un|una)?\s*/i, '')
     .trim();
 
-  const isNewsIntent = /(noticia|novedad|actualidad|suceso|acontecimiento)/i.test(query);
-
   const [wiki, gh, hn, news] = await Promise.all([
     queryWikipedia(cleanQuery || query),
     searchGitHubIntelligence(cleanQuery || query),
@@ -474,7 +509,7 @@ async function searchWebIntelligence(query) {
       } catch (e) {}
       return [];
     })(),
-    isNewsIntent ? searchGoogleNews(cleanQuery || query) : Promise.resolve([])
+    searchGoogleNews(cleanQuery || query)
   ]);
 
   return {
@@ -527,14 +562,39 @@ function synthesizeWebIntelligence({ data, query, model, effort }) {
       `**Evaluación de Integración:** Se han filtrado scripts de rastreo y estilos para garantizar la seguridad del pipeline en memoria de Vork AI.`;
   }
 
-  // CASO 2: Noticias en Vivo de Google News (Prioridad si la consulta pide actualidad)
+  // CASO 2: Noticias en Vivo de Google News y Cobertura Digital
   if (data.news && data.news.length > 0) {
     if (effort === "low") {
       const topNews = data.news[0];
-      return `**Noticia Reciente:** ${topNews.title}\nFuente: ${topNews.url}`;
+      return `• **${topNews.title}**\nFuente: ${topNews.url}`;
     }
-    let ans = `### Titulares en Vivo (Google News) · ${model}\n\n`;
+    if (effort === "medium") {
+      let ans = `### Reportes en Vivo de la Red · ${model}\n\n`;
+      ans += data.news.map(n => `• **[${n.title}](${n.url})**${n.pubDate ? ` (${n.pubDate})` : ''}`).join('\n\n');
+      if (wiki) {
+        ans += `\n\n**Contexto Enciclopédico:** ${wiki.extract.substring(0, 320)}...\n• [${wiki.title} en Wikipedia](${wiki.url})`;
+      }
+      return ans;
+    }
+    if (effort === "high") {
+      let ans = `### Inteligencia & Reportes en Vivo · ${model} (HIGH)\n\n` +
+        `Información en tiempo real para **"${query}"**:\n\n`;
+      ans += data.news.map(n => `• **[${n.title}](${n.url})**${n.pubDate ? ` (${n.pubDate})` : ''}`).join('\n\n');
+      if (wiki) {
+        ans += `\n\n**Síntesis Enciclopédico:**\n${wiki.extract}\n\n• **Referencia:** [${wiki.title}](${wiki.url})`;
+      }
+      return ans;
+    }
+    // expert
+    let ans = `### Auditoría Soberana de Inteligencia Web · ${model} (EXPERT SOVEREIGN)\n\n` +
+      `• **Término Indexado:** "${query}"\n` +
+      `• **Fuentes en Tiempo Real:** ${data.news.length} referencias indexadas\n\n` +
+      `**Desglose Informativo en Tiempo Real:**\n\n`;
     ans += data.news.map(n => `• **[${n.title}](${n.url})**${n.pubDate ? ` (${n.pubDate})` : ''}`).join('\n\n');
+    if (wiki) {
+      ans += `\n\n**Marco de Referencia Enciclopédico:**\n${wiki.extract}\n\n• **Documentación Base:** [${wiki.title}](${wiki.url})`;
+    }
+    ans += `\n\n**Validación:** Datos analizados en tiempo real por el pipeline de red soberano de Vork AI.`;
     return ans;
   }
 
@@ -873,48 +933,94 @@ async function processAIChat({ message, messages, model = "Vork 3.1", effort = "
   if (isWeatherQuery) {
     const weather = await fetchWeatherForecast(promptText);
     if (weather) {
+      const asksTomorrow = /(ma[ñn]ana|proximo dia|próximo día)/i.test(q);
       const willRainStr = weather.tomorrow.willRain
         ? "Sí, hay alta probabilidad de lluvia."
-        : (weather.tomorrow.possibleRain ? "Posibilidad moderada de lluvia dispersa." : "No se prevén lluvias importantes; predominará tiempo estable o soleado.");
+        : (weather.tomorrow.possibleRain ? "Posibilidad moderada de lluvia dispersa." : "Tiempo estable sin lluvias significativas.");
 
       let answer = "";
-      if (activeEffort === "low") {
-        answer = `Pronóstico para mañana en **${weather.city}** (${weather.country}): **${weather.tomorrow.desc}**.\n` +
-          `• ${willRainStr} (Probabilidad de lluvia: **${weather.tomorrow.rainChance}%**)\n` +
-          `• Temperatura: **${weather.tomorrow.minC}°C** a **${weather.tomorrow.maxC}°C**.`;
-      } else if (activeEffort === "medium") {
-        answer = `### Pronóstico Meteorológico en Vivo · ${weather.city}, ${weather.country}\n\n` +
-          `• **Estado para mañana:** ${willRainStr}\n` +
-          `• **Condición prevista:** **${weather.tomorrow.desc}**\n` +
-          `• **Probabilidad de lluvia:** **${weather.tomorrow.rainChance}%**\n` +
-          `• **Temperaturas mañana:** Mínima **${weather.tomorrow.minC}°C** / Máxima **${weather.tomorrow.maxC}°C**\n\n` +
-          `*Tiempo actual:* ${weather.current.tempC}°C (${weather.current.desc}), Humedad: ${weather.current.humidity}%, Viento: ${weather.current.windKmph} km/h.`;
-      } else if (activeEffort === "high") {
-        answer = `### Diagnóstico Meteorológico Detallado · ${activeModel} (HIGH)\n\n` +
-          `**Ubicación Detectada:** ${weather.city}, ${weather.country}\n\n` +
-          `**Evaluación para mañana:**\n` +
-          `• **Comportamiento Pluvial:** ${willRainStr} (Índice de probabilidad: **${weather.tomorrow.rainChance}%**).\n` +
-          `• **Régimen Térmico:** Oscilación de **${weather.tomorrow.minC}°C** a **${weather.tomorrow.maxC}°C**.\n` +
-          `• **Cielos:** Cobertura ${weather.tomorrow.desc.toLowerCase()}.\n\n` +
-          `**Telemetría Actual de la Estación:**\n` +
-          `• Temperatura ambiente: ${weather.current.tempC}°C\n` +
-          `• Humedad relativa: ${weather.current.humidity}%\n` +
-          `• Velocidad del viento: ${weather.current.windKmph} km/h\n` +
-          `• Temperatura hoy: Mínima ${weather.today.minC}°C / Máxima ${weather.today.maxC}°C.`;
+
+      if (!asksTomorrow) {
+        // Consulta del clima actual / hoy (e.g. "dime el clima de mexico")
+        if (activeEffort === "low") {
+          answer = `**${weather.city}** (${weather.country}): **${weather.current.tempC}°C** (${weather.current.desc}).\n` +
+            `• Hoy: Mín ${weather.today.minC}°C / Máx ${weather.today.maxC}°C (Lluvia: ${weather.today.rainChance}%).\n` +
+            `• Humedad: ${weather.current.humidity}% | Viento: ${weather.current.windKmph} km/h.`;
+        } else if (activeEffort === "medium") {
+          answer = `### Clima en Vivo · ${weather.city}, ${weather.country}\n\n` +
+            `• **Tiempo actual:** **${weather.current.tempC}°C** (${weather.current.desc})\n` +
+            `• **Sensación térmica:** ${weather.current.feelsLikeC}°C\n` +
+            `• **Humedad relativa:** ${weather.current.humidity}% | **Viento:** ${weather.current.windKmph} km/h\n` +
+            `• **Temperaturas para hoy:** Mínima **${weather.today.minC}°C** / Máxima **${weather.today.maxC}°C** (Lluvia: **${weather.today.rainChance}%**)\n\n` +
+            `*Pronóstico para mañana:* ${weather.tomorrow.desc} (Mín ${weather.tomorrow.minC}°C / Máx ${weather.tomorrow.maxC}°C, Lluvia: ${weather.tomorrow.rainChance}%).`;
+        } else if (activeEffort === "high") {
+          answer = `### Diagnóstico Meteorológico en Vivo · ${activeModel} (HIGH)\n\n` +
+            `**Estación de Referencia:** ${weather.city}, ${weather.country}\n\n` +
+            `**Telemetría Actual de la Estación:**\n` +
+            `• **Temperatura en superficie:** **${weather.current.tempC}°C** (${weather.current.desc})\n` +
+            `• **Sensación térmica barométrica:** ${weather.current.feelsLikeC}°C\n` +
+            `• **Humedad relativa:** ${weather.current.humidity}%\n` +
+            `• **Velocidad y vector de viento:** ${weather.current.windKmph} km/h\n` +
+            `• **Rango térmico de hoy:** Mínima ${weather.today.minC}°C / Máxima ${weather.today.maxC}°C\n` +
+            `• **Probabilidad de precipitaciones hoy:** ${weather.today.rainChance}%\n\n` +
+            `**Proyección Sinóptica para Mañana:**\n` +
+            `• Condición: ${weather.tomorrow.desc}\n` +
+            `• Rango: ${weather.tomorrow.minC}°C a ${weather.tomorrow.maxC}°C | Lluvia: ${weather.tomorrow.rainChance}%`;
+        } else {
+          // expert
+          answer = `### Auditoría Meteorológica de Precisión · ${activeModel} (EXPERT SOVEREIGN)\n\n` +
+            `• **Estación Meteorológica Oficial:** ${weather.city}, ${weather.country}\n` +
+            `• **Canal de Telemetría:** Transmisión atmosférica Wttr.in en tiempo real\n\n` +
+            `**Condiciones Atmosféricas en Tiempo Real:**\n` +
+            `• Temperatura actual en superficie: **${weather.current.tempC}°C** (${weather.current.desc})\n` +
+            `• Sensación térmica: ${weather.current.feelsLikeC}°C\n` +
+            `• Índice de humedad relativa: ${weather.current.humidity}%\n` +
+            `• Velocidad del viento: ${weather.current.windKmph} km/h\n` +
+            `• Ciclo térmico diurno de hoy: Gradiente de ${weather.today.minC}°C a ${weather.today.maxC}°C\n` +
+            `• Probabilidad pluvial hoy: ${weather.today.rainChance}%\n\n` +
+            `**Previsión Sinóptica (Próximas 24 horas):**\n` +
+            `• Tendencia: ${weather.tomorrow.desc}\n` +
+            `• Límite térmico mañana: Mín ${weather.tomorrow.minC}°C / Máx ${weather.tomorrow.maxC}°C (Precipitación: ${weather.tomorrow.rainChance}%)`;
+        }
       } else {
-        // expert
-        answer = `### Análisis Meteorológico de Precisión & Telemetría Atmosférica · ${activeModel} (EXPERT SOVEREIGN)\n\n` +
-          `• **Estación de Referencia:** ${weather.city}, ${weather.country}\n` +
-          `• **Resolución del Pronóstico:** Ventana de 24-48 horas con telemetría Wttr.in en vivo.\n\n` +
-          `**Predicción Sinóptica para Mañana:**\n` +
-          `• **Vector de Precipitación:** ${willRainStr}\n` +
-          `• **Probabilidad Máxima de Lluvia:** **${weather.tomorrow.rainChance}%**\n` +
-          `• **Perfil Térmico Diurno/Nocturno:** Gradiente de **${weather.tomorrow.minC}°C** (mínima) a **${weather.tomorrow.maxC}°C** (máxima).\n` +
-          `• **Tipología de Nubosidad:** ${weather.tomorrow.desc}.\n\n` +
-          `**Condiciones Atmosféricas de Base:**\n` +
-          `• Temperatura en superficie: ${weather.current.tempC}°C | Humedad barométrica: ${weather.current.humidity}%\n` +
-          `• Flujo de viento anfitrión: ${weather.current.windKmph} km/h.\n` +
-          `• Fuente: Red meteorológica global sincronizada en tiempo real.`;
+        // Consulta específica para mañana (e.g. "mañana va a llover")
+        if (activeEffort === "low") {
+          answer = `Pronóstico para mañana en **${weather.city}** (${weather.country}): **${weather.tomorrow.desc}**.\n` +
+            `• ${willRainStr} (Probabilidad de lluvia: **${weather.tomorrow.rainChance}%**)\n` +
+            `• Temperatura: **${weather.tomorrow.minC}°C** a **${weather.tomorrow.maxC}°C**.`;
+        } else if (activeEffort === "medium") {
+          answer = `### Pronóstico Meteorológico para Mañana · ${weather.city}, ${weather.country}\n\n` +
+            `• **Previsión de lluvia:** ${willRainStr}\n` +
+            `• **Condición prevista:** **${weather.tomorrow.desc}**\n` +
+            `• **Probabilidad de lluvia:** **${weather.tomorrow.rainChance}%**\n` +
+            `• **Temperaturas mañana:** Mínima **${weather.tomorrow.minC}°C** / Máxima **${weather.tomorrow.maxC}°C**\n\n` +
+            `*Tiempo actual:* ${weather.current.tempC}°C (${weather.current.desc}), Humedad: ${weather.current.humidity}%, Viento: ${weather.current.windKmph} km/h.`;
+        } else if (activeEffort === "high") {
+          answer = `### Diagnóstico Meteorológico Detallado para Mañana · ${activeModel} (HIGH)\n\n` +
+            `**Ubicación Detectada:** ${weather.city}, ${weather.country}\n\n` +
+            `**Evaluación para mañana:**\n` +
+            `• **Comportamiento Pluvial:** ${willRainStr} (Índice de probabilidad: **${weather.tomorrow.rainChance}%**).\n` +
+            `• **Régimen Térmico:** Oscilación de **${weather.tomorrow.minC}°C** a **${weather.tomorrow.maxC}°C**.\n` +
+            `• **Cielos:** Cobertura ${weather.tomorrow.desc.toLowerCase()}.\n\n` +
+            `**Telemetría Actual de la Estación:**\n` +
+            `• Temperatura ambiente: ${weather.current.tempC}°C\n` +
+            `• Humedad relativa: ${weather.current.humidity}%\n` +
+            `• Velocidad del viento: ${weather.current.windKmph} km/h\n` +
+            `• Rango térmico hoy: Mínima ${weather.today.minC}°C / Máxima ${weather.today.maxC}°C.`;
+        } else {
+          // expert
+          answer = `### Análisis Meteorológico de Precisión & Telemetría Atmosférica · ${activeModel} (EXPERT SOVEREIGN)\n\n` +
+            `• **Estación de Referencia:** ${weather.city}, ${weather.country}\n` +
+            `• **Resolución del Pronóstico:** Ventana de 24-48 horas con telemetría satelital global.\n\n` +
+            `**Predicción Sinóptica para Mañana:**\n` +
+            `• **Vector de Precipitación:** ${willRainStr}\n` +
+            `• **Probabilidad Máxima de Lluvia:** **${weather.tomorrow.rainChance}%**\n` +
+            `• **Perfil Térmico Diurno/Nocturno:** Gradiente de **${weather.tomorrow.minC}°C** (mínima) a **${weather.tomorrow.maxC}°C** (máxima).\n` +
+            `• **Tipología de Nubosidad:** ${weather.tomorrow.desc}.\n\n` +
+            `**Condiciones Atmosféricas de Base:**\n` +
+            `• Temperatura en superficie hoy: ${weather.current.tempC}°C | Humedad barométrica: ${weather.current.humidity}%\n` +
+            `• Flujo de viento anfitrión: ${weather.current.windKmph} km/h.`;
+        }
       }
 
       return {
