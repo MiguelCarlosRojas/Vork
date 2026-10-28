@@ -35,7 +35,7 @@ try {
 /**
  * Envoltorio para limitar tiempo de espera en promesas de descarga de terceros
  */
-function withTimeout(promise, ms = 4500) {
+function withTimeout(promise, ms = 12000) {
   return Promise.race([
     promise,
     new Promise((_, reject) => setTimeout(() => reject(new Error(`Timeout after ${ms}ms`)), ms))
@@ -572,14 +572,15 @@ async function extractMediaInfo(url, requestedFormat = "mp3") {
     if (!info.directMediaUrl) {
       try {
         const { alldl } = require("rahad-all-downloader-v2");
-        const dlData = await withTimeout(alldl(resolvedUrl), 4500);
+        const dlData = await withTimeout(alldl(resolvedUrl), 15000);
         if (dlData && dlData.data) {
           if (dlData.data.title) info.title = dlData.data.title;
           if (dlData.data.thumbnail) info.thumbnail = dlData.data.thumbnail;
+          else if (dlData.data.download?.thumbnail) info.thumbnail = dlData.data.download.thumbnail;
           if (dlData.data.author?.nickname || dlData.data.author?.name) {
             info.author = dlData.data.author.nickname || dlData.data.author.name;
           }
-          info.mp4Url = dlData.data.download?.no_watermark || dlData.data.videoUrl || null;
+          info.mp4Url = dlData.data.download?.url || dlData.data.download?.no_watermark || dlData.data.videoUrl || null;
           info.mp3Url = dlData.data.download?.music || info.mp4Url;
           info.directMediaUrl = requestedFormat === "mp4" ? (info.mp4Url || info.mp3Url) : (info.mp3Url || info.mp4Url);
         }
@@ -591,7 +592,7 @@ async function extractMediaInfo(url, requestedFormat = "mp3") {
     // 2.3 Fallback con btch.ttdl
     if (!info.directMediaUrl) {
       try {
-        const ttRes = await withTimeout(btch.ttdl(resolvedUrl), 4500);
+        const ttRes = await withTimeout(btch.ttdl(resolvedUrl), 10000);
         if (ttRes && ttRes.status) {
           if (ttRes.title) info.title = ttRes.title;
           if (ttRes.thumbnail) info.thumbnail = ttRes.thumbnail;
@@ -611,26 +612,29 @@ async function extractMediaInfo(url, requestedFormat = "mp3") {
   else if (platform.id === "instagram") {
     try {
       const { alldl } = require("rahad-all-downloader-v2");
-      const dl = await withTimeout(alldl(cleanUrl), 4500);
+      const dl = await withTimeout(alldl(cleanUrl), 15000);
       if (dl && dl.data) {
         if (dl.data.title) info.title = dl.data.title;
         if (dl.data.thumbnail) info.thumbnail = dl.data.thumbnail;
+        else if (dl.data.download?.thumbnail) info.thumbnail = dl.data.download.thumbnail;
         if (dl.data.author) info.author = dl.data.author;
-        const vUrl = dl.data.download?.no_watermark || dl.data.videoUrl;
+        const vUrl = dl.data.videoUrl || dl.data.download?.url || dl.data.download?.no_watermark || dl.data.url;
         if (vUrl) {
           info.mp4Url = vUrl;
           info.mp3Url = vUrl;
           info.directMediaUrl = vUrl;
         }
       }
-    } catch {}
+    } catch (alldlErr) {
+      logger.warn(`rahad.alldl fallo para Instagram: ${alldlErr.message}`);
+    }
 
     if (!info.directMediaUrl) {
       try {
-        const igRes = await withTimeout(btch.igdl(cleanUrl), 4500);
+        const igRes = await withTimeout(btch.igdl(cleanUrl), 10000);
         if (igRes && igRes.status && igRes.result) {
           const items = Array.isArray(igRes.result) ? igRes.result : [igRes.result];
-          const media = items[0];
+          const media = items.find(m => m && (m.url || m.video || m.download_url)) || items[0];
           if (media) {
             const vUrl = media.url || media.video || media.download_url;
             if (vUrl) {
@@ -653,23 +657,26 @@ async function extractMediaInfo(url, requestedFormat = "mp3") {
   else if (platform.id === "twitter") {
     try {
       const { alldl } = require("rahad-all-downloader-v2");
-      const dl = await withTimeout(alldl(cleanUrl), 4500);
+      const dl = await withTimeout(alldl(cleanUrl), 15000);
       if (dl && dl.data) {
         if (dl.data.title) info.title = dl.data.title;
         if (dl.data.thumbnail) info.thumbnail = dl.data.thumbnail;
+        else if (dl.data.download?.thumbnail) info.thumbnail = dl.data.download.thumbnail;
         if (dl.data.author) info.author = dl.data.author;
-        const vUrl = dl.data.download?.HD || dl.data.videoUrl;
+        const vUrl = dl.data.download?.HD || dl.data.download?.url || dl.data.videoUrl;
         if (vUrl) {
           info.mp4Url = vUrl;
           info.mp3Url = vUrl;
           info.directMediaUrl = vUrl;
         }
       }
-    } catch {}
+    } catch (twDlErr) {
+      logger.warn(`rahad.alldl fallo para Twitter/X: ${twDlErr.message}`);
+    }
 
     if (!info.directMediaUrl) {
       try {
-        const twRes = await withTimeout(btch.twitter(cleanUrl), 4500);
+        const twRes = await withTimeout(btch.twitter(cleanUrl), 10000);
         if (twRes && twRes.status && twRes.url) {
           const vUrl = Array.isArray(twRes.url) ? twRes.url[0]?.hd || twRes.url[0]?.sd || twRes.url[0] : twRes.url;
           if (vUrl) {
@@ -689,7 +696,7 @@ async function extractMediaInfo(url, requestedFormat = "mp3") {
   // Estrategia 5: Facebook Video
   else if (platform.id === "facebook") {
     try {
-      const fbRes = await withTimeout(btch.fbdown(cleanUrl), 4500);
+      const fbRes = await withTimeout(btch.fbdown(cleanUrl), 10000);
       if (fbRes && fbRes.status) {
         const vUrl = fbRes.Normal_video || fbRes.HD || fbRes.video;
         if (vUrl) {
@@ -708,7 +715,7 @@ async function extractMediaInfo(url, requestedFormat = "mp3") {
   // Estrategia 6: Pinterest Video
   else if (platform.id === "pinterest") {
     try {
-      const pinRes = await withTimeout(btch.pinterest(cleanUrl), 4500);
+      const pinRes = await withTimeout(btch.pinterest(cleanUrl), 10000);
       if (pinRes && pinRes.status && pinRes.result) {
         const vUrl = pinRes.result.url || pinRes.result.video;
         if (vUrl) {
