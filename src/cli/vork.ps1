@@ -6027,30 +6027,8 @@ function Invoke-VorkAIChat {
             $answer = $res.message
         }
     } catch {
-        # 2. Resiliencia autonoma soberana: Motor cognitivo local sin dependencias de terceros
-        $lower = $fullPrompt.ToLower().Trim()
-        if ($lower -in @("hola", "buenas", "como estas?", "cómo estás?", "¿cómo estás?", "¿como estas?", "como estas", "cómo estás")) {
-            $answer = "Saludos. Me encuentro operando en estado óptimo con arquitectura Vork $activeModel ($tierLabel). ¿En qué tarea técnica o pilar puedo asistirte hoy?"
-        } elseif ($lower -match '(?i)(quien eres|quién eres|que eres|qué eres)') {
-            $answer = "Soy Vork $activeModel, el motor de Inteligencia Artificial soberano de Vork Technologies, con dominio pleno de los 9 pilares de procesamiento y arquitectura de software."
-        } elseif ($lower -match '(?i)(pilar|pilares|comandos|que puedes hacer)') {
-            $answer = "Vork integra 9 pilares operacionales soberanos: /translate (+200 idiomas), /tts (24 voces neuronales), /clone (clonación vocal), /media (conversor multimedia MP3/MP4), /separate (stems Demucs v4), /agents (agentes autónomos), /image (imágenes universales), /remove-bg (quitar fondos) y /plan (arquitectura)."
-        } else {
-            # Inferencia local con Ollama si está activo en el puerto 11434
-            try {
-                $ollamaBody = @{
-                    model = "llama3.2"
-                    prompt = $fullPrompt
-                    stream = $false
-                } | ConvertTo-Json -Compress
-                $olRes = Invoke-RestMethod -Uri "http://localhost:11434/api/generate" -Method Post -Body $ollamaBody -ContentType "application/json" -TimeoutSec 10 -ErrorAction Stop
-                if ($olRes -and $olRes.response) {
-                    $answer = [string]$olRes.response
-                }
-            } catch {
-                $answer = "He evaluado tu solicitud ('$fullPrompt') en Vork $activeModel ($tierLabel). Indica si deseas estructurar el código correspondiente, ejecutar un pilar de procesamiento o desglosar la arquitectura paso a paso."
-            }
-        }
+        # Si el backend en la nube en Render se encuentra reactivándose o sin conectividad
+        $answer = "No se pudo conectar con el motor en la nube de Vork ($ApiBase). Verifica tu conexión a internet o reintenta en unos instantes mientras el servidor en Render responde."
     }
 
     $sw.Stop()
