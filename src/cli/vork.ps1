@@ -2052,7 +2052,7 @@ function Show-Banner {
         $logoCol = $inner - $rightPad - $logoW
 
         $badgeStr = "${cH}${cH}[ ${White}${Bold}VORK CLI ${Cyan}$versionBadge${Lead} ]"
-        $badgeVis = 2 + 2 + 9 + 1 + $versionBadge.Length + 2
+        $badgeVis = ("$cH$cH[ VORK CLI $versionBadge ]").Length
         $remH = [Math]::Max(2, $inner - $badgeVis)
         Write-Host "  ${Lead}${cTL}${badgeStr}$([string]::new($cH, $remH))${cTR}${Reset}"
 
@@ -2083,8 +2083,9 @@ function Show-Banner {
     } else {
         # Cabecera compacta responsive para terminales ultra estrechas (< 48 cols)
         $badgeStr = "${cH}${cH}[ ${White}${Bold}VORK CLI ${Cyan}$versionBadge${Lead} ]"
+        $badgeVis = ("$cH$cH[ VORK CLI $versionBadge ]").Length
         $cW = [Math]::Max(20, $width - 2)
-        $remH = [Math]::Max(2, $cW - 2 - 16)
+        $remH = [Math]::Max(2, $cW - 2 - $badgeVis)
         Write-Host "  ${Lead}${cTL}${badgeStr}$([string]::new($cH, $remH))${cTR}${Reset}"
         Write-Host "  ${Lead}${cV}${Reset} ${White}$modelName${Reset} ${tierColor}($tierLabel)${Reset}"
         Write-Host "  ${Lead}${cV}${Reset} ${Coral}${cChev}${Reset} ${LeadLight}$currPath${Reset}"
