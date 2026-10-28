@@ -27,10 +27,7 @@ function Dispatch-CLICommand {
         # ========================================================
         # CATEGORIA 2: AGENTES AUTONOMOS & PLANIFICACION IA (8)
         # ========================================================
-        { $_ -in "chat", "ai", "ask" } {
-            $chatPrompt = if ($ArgsList) { $ArgsList -join " " } else { "" }
-            Invoke-VorkAIChat -Prompt $chatPrompt
-        }
+
         "goal"       { Invoke-CmdGoal -ArgsList $ArgsList }
         "plan"       { Invoke-CmdPlan -ArgsList $ArgsList }
         "teamwork"   { Invoke-CmdTeamwork -ArgsList $ArgsList }
@@ -536,10 +533,7 @@ function Read-InteractiveVorkLine {
         @{ Cmd = "/resume";      Desc = "Reanudar una sesion previa o restaurar estado" },
         @{ Cmd = "/undo";        Desc = "Deshacer la ultima accion o cambio de codigo" },
         @{ Cmd = "/status";      Desc = "Inspeccionar estado del entorno y tareas activas" },
-        @{ Cmd = "/settings";    Desc = "Panel interactivo de configuraciones y permisos" },
-        @{ Cmd = "/config";      Desc = "Ajustar permisos, temas visuales y preferencias" },
-        @{ Cmd = "/permissions"; Desc = "Administrar permisos de herramientas y comandos" },
-        @{ Cmd = "/chat";        Desc = "Conversar directamente con Vork AI (3.0, 3.1 o 3.2 Expert)" },
+        @{ Cmd = "/config";      Desc = "Panel interactivo de configuraciones y permisos" },
         @{ Cmd = "/model";       Desc = "Selector de modelo (Vork 3, 3.1, 3.2 Expert) y potencia" },
         @{ Cmd = "/theme";       Desc = "Alternar temas visuales (Dark, Cyberpunk, Coral)" },
         @{ Cmd = "/env";         Desc = "Consultar y gestionar variables de entorno activas" },
@@ -1012,9 +1006,9 @@ function Start-InteractiveREPL {
             continue
         }
 
-        if ($cmdCheck -in "permissions", "settings", "config") {
+        if ($cmdCheck -in "config", "settings", "permissions") {
             $settingsResult = Show-InteractiveSettings
-            $outMsg = "Exited /settings command"
+            $outMsg = "Exited /config command"
             Write-Host "  ${LeadLight}$elbow  $outMsg${Reset}"
             Write-Host ""
             Save-VorkConversationRecord -Cmd $line -Output $outMsg

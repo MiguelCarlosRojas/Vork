@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Vork CLI - Modulo UI: Catalogo visual, atajos y navegador de ayuda responsive.
 #>
@@ -175,10 +175,9 @@ function Show-SlashCommands {
             )
         },
         @{
-            Title = "[CATEGORIA 5] Configuracion & Preferencias (5)"
+            Title = "[CATEGORIA 5] Configuracion & Preferencias (4)"
             Items = @(
-                @{ Cmd = "/config";      Desc = "Ajustar permisos, temas visuales y preferencias" },
-                @{ Cmd = "/permissions"; Desc = "Administrar permisos de herramientas y comandos" },
+                @{ Cmd = "/config";      Desc = "Panel interactivo de configuraciones y permisos" },
                 @{ Cmd = "/model";       Desc = "Cambiar modelo IA y nivel de esfuerzo" },
                 @{ Cmd = "/theme";       Desc = "Alternar temas visuales (Dark, Cyberpunk, Coral)" },
                 @{ Cmd = "/env";         Desc = "Consultar y gestionar variables de entorno activas" }
@@ -244,8 +243,7 @@ function Show-InteractiveHelpModal {
         @{ Cmd = "/resume";      Desc = "Reanudar una sesion previa o restaurar estado" },
         @{ Cmd = "/undo";        Desc = "Deshacer la ultima accion o cambio de codigo" },
         @{ Cmd = "/status";      Desc = "Telemetria y estado operativo en vivo de los 9 pilares" },
-        @{ Cmd = "/config";      Desc = "Ajustar permisos, temas visuales y preferencias" },
-        @{ Cmd = "/permissions"; Desc = "Administrar permisos de herramientas y comandos" },
+        @{ Cmd = "/config";      Desc = "Panel interactivo de configuraciones y permisos" },
         @{ Cmd = "/model";       Desc = "Configurar modelo Vork 3 y nivel de potencia" },
         @{ Cmd = "/theme";       Desc = "Alternar entre los 10 temas visuales oficiales" },
         @{ Cmd = "/env";         Desc = "Consultar y gestionar variables de entorno activas" },
