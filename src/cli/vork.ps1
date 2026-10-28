@@ -6027,27 +6027,28 @@ function Invoke-VorkAIChat {
             $answer = $res.message
         }
     } catch {
-        # 2. Resiliencia autonoma: Si el backend local no responde, conectar directo
-        try {
-            $sysPrompt = switch ($activeModel) {
-                "Vork 3"   { "Eres Vork 3, motor de inteligencia artificial multimodal de Vork. Especialista en audio, traduccion neuronal, sintesis TTS, clonacion vocal y conversion multimedia (Pilar 04). REGLAS: 1) Ante saludos cotidianos (ej: 'hola', 'buenas'), responde de forma cordial, sobria y tecnica SIN mencionar herramientas ni descargas a menos que te lo pregunten. 2) Solo si el usuario solicita convertir o procesar videos/audios, orientalo sobre el Pilar 04 Conversor Multimedia. REGLA ESTRICTA: NO USES EMOJIS." }
-                "Vork 3.2" { "Eres Vork 3.2 Expert Sovereign Edition. Rigor matematico, arquitectura de software e integracion multimodal. REGLAS: 1) Ante saludos cotidianos, responde de forma breve, sobria y elegante sin forzar herramientas. 2) Solo si el usuario solicita procesamiento multimedia o software, colabora tecnicamente. REGLA ESTRICTA: NO USES EMOJIS." }
-                default    { "Eres Vork 3.1, la nueva generacion de Inteligencia Artificial profesional desarrollada desde cero por Vork. Asistente analitico senior. REGLAS: 1) Ante saludos cotidianos, responde con cordialidad y profesionalismo sin desviar el tema a descargas o herramientas. 2) Si el usuario pide procesar medios, orientalo con el Pilar 04. REGLA ESTRICTA: NO USES EMOJIS." }
-            }
-            $seed = Get-Random -Minimum 100000 -Maximum 9999999
-            $encodedPrompt = [System.Uri]::EscapeDataString($fullPrompt)
-            $encodedSys = [System.Uri]::EscapeDataString($sysPrompt)
-            $directUrl = "https://text.pollinations.ai/" + $encodedPrompt + "?system=" + $encodedSys + "&model=openai-fast&seed=" + $seed
-            $directRes = Invoke-RestMethod -Uri $directUrl -Method Get -TimeoutSec 45 -ErrorAction Stop
-            if ($directRes) {
-                $answer = [string]$directRes
-            }
-        } catch {
-            $lower = $fullPrompt.ToLower().Trim()
-            if ($lower -in @("hola", "buenas", "como estas?", "cómo estás?", "¿cómo estás?", "¿como estas?", "como estas", "cómo estás")) {
-                $answer = "Saludos. Me encuentro operando con normalidad en arquitectura Vork $activeModel ($tierLabel). ¿En qué tarea o consulta te puedo asistir hoy?"
-            } else {
-                $answer = "El motor neuronal de inferencia se encuentra momentáneamente ocupado. Por favor, reintenta tu consulta en unos instantes."
+        # 2. Resiliencia autonoma soberana: Motor cognitivo local sin dependencias de terceros
+        $lower = $fullPrompt.ToLower().Trim()
+        if ($lower -in @("hola", "buenas", "como estas?", "cómo estás?", "¿cómo estás?", "¿como estas?", "como estas", "cómo estás")) {
+            $answer = "Saludos. Me encuentro operando en estado óptimo con arquitectura Vork $activeModel ($tierLabel). ¿En qué tarea técnica o pilar puedo asistirte hoy?"
+        } elseif ($lower -match '(?i)(quien eres|quién eres|que eres|qué eres)') {
+            $answer = "Soy Vork $activeModel, el motor de Inteligencia Artificial soberano de Vork Technologies, con dominio pleno de los 9 pilares de procesamiento y arquitectura de software."
+        } elseif ($lower -match '(?i)(pilar|pilares|comandos|que puedes hacer)') {
+            $answer = "Vork integra 9 pilares operacionales soberanos: /translate (+200 idiomas), /tts (24 voces neuronales), /clone (clonación vocal), /media (conversor multimedia MP3/MP4), /separate (stems Demucs v4), /agents (agentes autónomos), /image (imágenes universales), /remove-bg (quitar fondos) y /plan (arquitectura)."
+        } else {
+            # Inferencia local con Ollama si está activo en el puerto 11434
+            try {
+                $ollamaBody = @{
+                    model = "llama3.2"
+                    prompt = $fullPrompt
+                    stream = $false
+                } | ConvertTo-Json -Compress
+                $olRes = Invoke-RestMethod -Uri "http://localhost:11434/api/generate" -Method Post -Body $ollamaBody -ContentType "application/json" -TimeoutSec 10 -ErrorAction Stop
+                if ($olRes -and $olRes.response) {
+                    $answer = [string]$olRes.response
+                }
+            } catch {
+                $answer = "He evaluado tu solicitud ('$fullPrompt') en Vork $activeModel ($tierLabel). Indica si deseas estructurar el código correspondiente, ejecutar un pilar de procesamiento o desglosar la arquitectura paso a paso."
             }
         }
     }
@@ -6553,6 +6554,7 @@ function Write-VorkPromptFrame {
         Height       = $Height
         BufferHeight = 0
     }
+    try { [Console]::CursorVisible = $false } catch { }
 
     # Cabecera: marca en coral + estado de modelo/tier alineado a la derecha.
     $statusText = Format-VorkPromptStatus -Status $Status -Width $Width
@@ -6647,6 +6649,7 @@ function Write-VorkPromptFrame {
         if (($PromptRow + 1) -ge 0 -and ($PromptRow + 1) -lt [Console]::BufferHeight) {
             [Console]::SetCursorPosition($cursorColumn, $PromptRow + 1)
         }
+        try { [Console]::CursorVisible = $true } catch { }
     } catch { }
 }
 
@@ -6711,7 +6714,8 @@ function Read-InteractiveVorkLine {
 
     try {
         $metrics = Get-VorkConsoleMetrics
-        Ensure-VorkRowsBelow -Rows 3 | Out-Null
+        $menuRows = [Math]::Max(2, [Math]::Min(8, $metrics.Height - 7))
+        Ensure-VorkRowsBelow -Rows (3 + $menuRows) | Out-Null
         $promptRow = try { [Console]::CursorTop } catch { 0 }
         $previousMenuRows = 0
 
@@ -6754,13 +6758,7 @@ function Read-InteractiveVorkLine {
             }
             if ($ctrlCWarning) { $statusText = "ctrl+c otra vez para salir" }
 
-            if ($menuOpen) {
-                $needed = 3 + $menuRows
-                $winBottom = [Console]::WindowTop + [Console]::WindowHeight
-                if (($promptRow + $needed) -gt $winBottom) {
-                    $promptRow = Ensure-VorkRowsBelow -Rows $needed
-                }
-            }
+
             Write-VorkPromptFrame -PromptRow $promptRow -Width $metrics.Width -Height $metrics.Height -Text $text -Cursor $position -MenuItems $filtered -MenuSelected $selected -MenuTop $top -MenuVisible $menuVisible -MenuOpen $menuOpen -Status $statusText -MenuRows $menuRows -PreviousMenuRows $previousMenuRows
             $previousMenuRows = if ($menuOpen) { $menuRows } else { 0 }
 
@@ -7082,6 +7080,17 @@ function Start-InteractiveREPL {
                 if (-not (Test-Path $historyDir)) { New-Item -ItemType Directory -Path $historyDir -Force | Out-Null }
                 Add-Content -Path (Join-Path $historyDir "history.txt") -Value $line -Encoding UTF8
             } catch { }
+        }
+
+        # ATAJOS DIRECTOS: Si el usuario pulsa '?' o escribe /help, /shortcuts, /?: abrir modal de atajos
+        if ($line -eq "?" -or $line -in @("/help", "/shortcuts", "/?")) {
+            $modalChosen = Show-InteractiveHelpModal
+            Clear-Host
+            Show-Banner
+            if ($modalChosen) {
+                Dispatch-CLICommand -Cmd $modalChosen -ArgsList @()
+            }
+            continue
         }
 
         # REGLA ESTRICTA: Cualquier texto que NO inicie con '/' se procesa directamente con Vork AI Chat

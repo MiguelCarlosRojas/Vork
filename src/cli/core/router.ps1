@@ -387,6 +387,7 @@ function Write-VorkPromptFrame {
         Height       = $Height
         BufferHeight = 0
     }
+    try { [Console]::CursorVisible = $false } catch { }
 
     # Cabecera: marca en coral + estado de modelo/tier alineado a la derecha.
     $statusText = Format-VorkPromptStatus -Status $Status -Width $Width
@@ -481,6 +482,7 @@ function Write-VorkPromptFrame {
         if (($PromptRow + 1) -ge 0 -and ($PromptRow + 1) -lt [Console]::BufferHeight) {
             [Console]::SetCursorPosition($cursorColumn, $PromptRow + 1)
         }
+        try { [Console]::CursorVisible = $true } catch { }
     } catch { }
 }
 
@@ -545,7 +547,8 @@ function Read-InteractiveVorkLine {
 
     try {
         $metrics = Get-VorkConsoleMetrics
-        Ensure-VorkRowsBelow -Rows 3 | Out-Null
+        $menuRows = [Math]::Max(2, [Math]::Min(8, $metrics.Height - 7))
+        Ensure-VorkRowsBelow -Rows (3 + $menuRows) | Out-Null
         $promptRow = try { [Console]::CursorTop } catch { 0 }
         $previousMenuRows = 0
 
@@ -588,13 +591,7 @@ function Read-InteractiveVorkLine {
             }
             if ($ctrlCWarning) { $statusText = "ctrl+c otra vez para salir" }
 
-            if ($menuOpen) {
-                $needed = 3 + $menuRows
-                $winBottom = [Console]::WindowTop + [Console]::WindowHeight
-                if (($promptRow + $needed) -gt $winBottom) {
-                    $promptRow = Ensure-VorkRowsBelow -Rows $needed
-                }
-            }
+
             Write-VorkPromptFrame -PromptRow $promptRow -Width $metrics.Width -Height $metrics.Height -Text $text -Cursor $position -MenuItems $filtered -MenuSelected $selected -MenuTop $top -MenuVisible $menuVisible -MenuOpen $menuOpen -Status $statusText -MenuRows $menuRows -PreviousMenuRows $previousMenuRows
             $previousMenuRows = if ($menuOpen) { $menuRows } else { 0 }
 
@@ -916,6 +913,17 @@ function Start-InteractiveREPL {
                 if (-not (Test-Path $historyDir)) { New-Item -ItemType Directory -Path $historyDir -Force | Out-Null }
                 Add-Content -Path (Join-Path $historyDir "history.txt") -Value $line -Encoding UTF8
             } catch { }
+        }
+
+        # ATAJOS DIRECTOS: Si el usuario pulsa '?' o escribe /help, /shortcuts, /?: abrir modal de atajos
+        if ($line -eq "?" -or $line -in @("/help", "/shortcuts", "/?")) {
+            $modalChosen = Show-InteractiveHelpModal
+            Clear-Host
+            Show-Banner
+            if ($modalChosen) {
+                Dispatch-CLICommand -Cmd $modalChosen -ArgsList @()
+            }
+            continue
         }
 
         # REGLA ESTRICTA: Cualquier texto que NO inicie con '/' se procesa directamente con Vork AI Chat
