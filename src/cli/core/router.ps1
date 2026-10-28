@@ -924,16 +924,6 @@ function Start-InteractiveREPL {
             Exit-VorkSession -ExitCode 0
         }
 
-        if ($line -eq "?") {
-            $modalChosen = Show-InteractiveHelpModal
-            Clear-Host
-            Show-Banner
-            if ($modalChosen) {
-                Dispatch-CLICommand -Cmd $modalChosen -ArgsList @()
-            }
-            continue
-        }
-
         $line = $line.Trim()
         if (-not $line) { continue }
 
@@ -947,21 +937,8 @@ function Start-InteractiveREPL {
             } catch { }
         }
 
-        # Si no comienza con '/', todo lo ingresado es conversacion directa con Vork AI
+        # REGLA ESTRICTA: Cualquier texto que NO inicie con '/' se procesa directamente con Vork AI Chat
         if (-not $line.StartsWith("/")) {
-            if ($line.ToLower() -in "exit", "quit", "q") {
-                Exit-VorkSession -ExitCode 0
-            }
-            if ($line.ToLower() -in "clear", "cls") {
-                Clear-Host
-                Show-Banner
-                continue
-            }
-            if ($line -eq "?" -or $line.ToLower() -eq "shortcuts") {
-                Show-Shortcuts
-                continue
-            }
-
             Invoke-VorkAIChat -Prompt $line
             continue
         }
@@ -994,8 +971,13 @@ function Start-InteractiveREPL {
             continue
         }
 
-        if ($cmdCheck -in "?", "shortcuts") {
-            Show-Shortcuts
+        if ($cmdCheck -in "help", "?", "shortcuts") {
+            $modalChosen = Show-InteractiveHelpModal
+            Clear-Host
+            Show-Banner
+            if ($modalChosen) {
+                Dispatch-CLICommand -Cmd $modalChosen -ArgsList @()
+            }
             continue
         }
 
