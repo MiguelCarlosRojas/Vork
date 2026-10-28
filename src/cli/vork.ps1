@@ -2009,7 +2009,18 @@ function Read-VorkInput {
             } catch { }
 
             $wait = Wait-VorkConsoleKey
-            if ($wait.Resized) { continue }
+            if ($wait.Resized) {
+                $metrics = Get-VorkConsoleMetrics
+                Clear-VorkPanel -Panel $panel
+                $visible = Get-VorkPickerVisibleRows -Metrics $metrics -ItemCount ([Math]::Max(1, $filtered.Count)) -ExtraRows $searchRows
+                $panelRows = $visible + 3 + $searchRows
+                Ensure-VorkRowsBelow -Rows $panelRows | Out-Null
+                $panel.Top = try { [Console]::CursorTop } catch { 0 }
+                $panel.Rows = $panelRows
+                $panel.Width = $metrics.Width
+                $panel.Height = $metrics.Height
+                continue
+            }
 
             $key = $wait.Key
             if (-not $key) { continue }
@@ -2212,8 +2223,20 @@ function Invoke-VorkPicker {
     $query = ""
     $selected = [Math]::Max(0, [Math]::Min($DefaultIndex, $Items.Count - 1))
     $top = 0
-    $panel = $null
     $searchRows = if ($Searchable) { 1 } else { 0 }
+
+    $metrics = Get-VorkConsoleMetrics
+    $visible = Get-VorkPickerVisibleRows -Metrics $metrics -ItemCount ([Math]::Max(1, $Items.Count)) -ExtraRows $searchRows
+    $panelRows = $visible + 3 + $searchRows
+    Ensure-VorkRowsBelow -Rows $panelRows | Out-Null
+    $panelTop = try { [Console]::CursorTop } catch { 0 }
+    $panel = [pscustomobject]@{
+        Top          = $panelTop
+        Rows         = $panelRows
+        Width        = $metrics.Width
+        Height       = $metrics.Height
+        BufferHeight = 0
+    }
 
     try {
         while ($true) {
@@ -2230,11 +2253,6 @@ function Invoke-VorkPicker {
                 if ($selected -ge $filtered.Count) { $selected = $filtered.Count - 1 }
                 if ($selected -lt 0) { $selected = 0 }
             }
-
-            $metrics = Get-VorkConsoleMetrics
-            $visible = Get-VorkPickerVisibleRows -Metrics $metrics -ItemCount ([Math]::Max(1, $filtered.Count)) -ExtraRows $searchRows
-            $panelRows = $visible + 3 + $searchRows
-            $panel = Update-VorkPanel -Panel $panel -Rows $panelRows
 
             if ($filtered.Count -gt 0) {
                 if ($selected -lt $top) { $top = $selected }
@@ -3140,15 +3158,7 @@ function Write-VorkModelFrame {
     $statusLine = ([string]::new(' ', $pad)) + "${LeadLight}$activeModelDisp${Reset} ${Lead}·${Reset} ${tierColor}$activeTierDisp${Reset}"
     Write-VorkPanelLine -Panel $Panel -Index $row -Text $statusLine
 
-    # Place console cursor right at Search input so the user can see typing
-    try {
-        $searchCol = 10 + (Get-VorkDisplayWidth $SearchQuery)
-        $searchRow = $Panel.Top + 2
-        if ($searchCol -lt ($Panel.Width - 1)) {
-            [Console]::SetCursorPosition($searchCol, $searchRow)
-            [Console]::CursorVisible = $true
-        }
-    } catch { }
+    try { [Console]::CursorVisible = $false } catch { }
 }
 
 function Show-InteractiveModelSwitcher {
@@ -3180,9 +3190,21 @@ function Show-InteractiveModelSwitcher {
     }
 
     $savedCursor = try { [Console]::CursorVisible } catch { $true }
+    try { [Console]::CursorVisible = $false } catch { }
     try { [Console]::TreatControlCAsInput = $true } catch { }
 
-    $panel = $null
+    $metrics = Get-VorkConsoleMetrics
+    $modalRows = 16
+    Ensure-VorkRowsBelow -Rows $modalRows | Out-Null
+    $panelTop = try { [Console]::CursorTop } catch { 0 }
+    $panel = [pscustomobject]@{
+        Top          = $panelTop
+        Rows         = $modalRows
+        Width        = $metrics.Width
+        Height       = $metrics.Height
+        BufferHeight = 0
+    }
+
     try {
         while ($true) {
             $filtered = @($catalog | Where-Object {
@@ -3198,8 +3220,6 @@ function Show-InteractiveModelSwitcher {
             } elseif ($selectedIndex -lt 0) {
                 $selectedIndex = 0
             }
-
-            $panel = Update-VorkPanel -Panel $panel -Rows 16
             Write-VorkModelFrame -Panel $panel -SelectedIndex $selectedIndex -FilteredModels $filtered -ActiveModelId $global:VorkModel -EffortIndex $effortIndex -SearchQuery $searchQuery
 
             $wait = Wait-VorkConsoleKey
@@ -3337,8 +3357,12 @@ function Write-VorkSettingsFrame {
     Write-VorkPanelLine -Panel $Panel -Index $row -Text (Format-VorkBorderTop -Title "Configuracion" -RightText "Vork CLI" -Width $Panel.Width)
     $row++
 
+    $inner = [Math]::Max(10, $Panel.Width - 6)
+
     $searchText = if ($Search) { "${White}${Bold}$Search${Reset}" } else { "${LeadDark}escribe para filtrar${Reset}" }
-    Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${Lead}$([char]0x2502)${Reset} ${LeadLight}Buscar:${Reset} $searchText"
+    $searchRaw = "Buscar: " + (if ($Search) { $Search } else { "escribe para filtrar" })
+    $searchPad = [Math]::Max(0, $inner - (Get-VorkDisplayWidth $searchRaw))
+    Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${Lead}$([char]0x2502)${Reset} ${LeadLight}Buscar:${Reset} $searchText$([string]::new(' ', $searchPad)) ${Lead}$([char]0x2502)${Reset}"
     $row++
 
     for ($i = 0; $i -lt $Visible; $i++) {
@@ -3350,9 +3374,12 @@ function Write-VorkSettingsFrame {
             $prefix = if ($isSelected) { "${Cyan}${Bold}$([char]0x25B8)${Reset} " } else { "  " }
             $label = if ($isSelected) { "${White}${Bold}$($item.Label)${Reset}" } else { "${White}$($item.Label)${Reset}" }
             $value = if ($isSelected) { "${Cyan}${Bold}$($item.Value)${Reset}" } else { "${LeadLight}$($item.Value)${Reset}" }
-            Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${Lead}$([char]0x2502)${Reset} $prefix$label  $value"
+            $rawLine = (if ($isSelected) { "$([char]0x25B8) " } else { "  " }) + "$($item.Label)  $($item.Value)"
+            $itemPad = [Math]::Max(0, $inner - (Get-VorkDisplayWidth $rawLine))
+            Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${Lead}$([char]0x2502)${Reset} $prefix$label  $value$([string]::new(' ', $itemPad)) ${Lead}$([char]0x2502)${Reset}"
         } else {
-            Write-VorkPanelLine -Panel $Panel -Index $row -Text ""
+            $blankPad = [string]::new(' ', $inner)
+            Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${Lead}$([char]0x2502)${Reset} $blankPad ${Lead}$([char]0x2502)${Reset}"
         }
         $row++
     }
@@ -3361,10 +3388,11 @@ function Write-VorkSettingsFrame {
     if ($FilteredKeys.Count -gt 0 -and $Selected -lt $FilteredKeys.Count) {
         $description = [string]$SettingsData[$FilteredKeys[$Selected]].Desc
     }
-    $descriptionLines = Get-VorkWrappedLines -Text $description -Width ([Math]::Max(10, $Panel.Width - 8)) -MaxLines 2
+    $descriptionLines = Get-VorkWrappedLines -Text $description -Width ($inner - 2) -MaxLines 2
     for ($d = 0; $d -lt 2; $d++) {
         $line = if ($d -lt $descriptionLines.Count) { $descriptionLines[$d] } else { "" }
-        Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${Lead}$([char]0x2502)${Reset} ${LeadLight}$line${Reset}"
+        $descPad = [Math]::Max(0, $inner - (Get-VorkDisplayWidth $line))
+        Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${Lead}$([char]0x2502)${Reset} ${LeadLight}$line${Reset}$([string]::new(' ', $descPad)) ${Lead}$([char]0x2502)${Reset}"
         $row++
     }
 
@@ -3423,7 +3451,19 @@ function Show-InteractiveSettings {
         } catch { }
     }
 
-    $panel = $null
+    $metrics = Get-VorkConsoleMetrics
+    $visible = [Math]::Max(1, [Math]::Min([Math]::Max(1, $keys.Count), $metrics.Height - 9))
+    $panelRows = $visible + 5
+    Ensure-VorkRowsBelow -Rows $panelRows | Out-Null
+    $panelTop = try { [Console]::CursorTop } catch { 0 }
+    $panel = [pscustomobject]@{
+        Top          = $panelTop
+        Rows         = $panelRows
+        Width        = $metrics.Width
+        Height       = $metrics.Height
+        BufferHeight = 0
+    }
+
     try {
         while ($true) {
             $filteredKeys = @($keys | Where-Object {
@@ -3439,11 +3479,6 @@ function Show-InteractiveSettings {
                 if ($selected -ge $filteredKeys.Count) { $selected = $filteredKeys.Count - 1 }
                 if ($selected -lt 0) { $selected = 0 }
             }
-
-            $metrics = Get-VorkConsoleMetrics
-            $visible = [Math]::Max(1, [Math]::Min([Math]::Max(1, $filteredKeys.Count), $metrics.Height - 9))
-            $panelRows = $visible + 5
-            $panel = Update-VorkPanel -Panel $panel -Rows $panelRows
 
             if ($filteredKeys.Count -gt 0) {
                 if ($selected -lt $top) { $top = $selected }
