@@ -20,10 +20,12 @@ function Invoke-PillarMedia {
     }
 
     if (-not $url) {
-        Write-VorkSectionHeader -Title "Conversor multimedia" -Subtitle "YouTube · TikTok · Instagram · Reels" -RightText "vork · media"
-        $url = Read-VorkInput -Prompt "  ${Coral}${Bold}$([char]0x203A)${Reset} "
+        Write-Host ""
+        Write-Host "  ${Cyan}${Bold}╭─ [04] Vork Conversor Multimedia Universal${Reset}"
+        Write-Host "  ${Lead}│${Reset} ${White}Ingresa la URL del video (YouTube, TikTok, Reels, IG):${Reset}"
+        $url = Read-VorkInput -Prompt "  ${Lead}│${Reset} ${Cyan}> ${Reset}"
         if (-not $url -or -not $url.Trim()) {
-            Write-VorkStatusLine -Kind warn -Text "Conversión cancelada."
+            Write-Host "  ${Lead}╰─ Conversión cancelada.${Reset}"
             Write-Host ""
             return
         }
@@ -32,23 +34,23 @@ function Invoke-PillarMedia {
 
     if (-not $hasExplicitFormat) {
         if (-not $fmt) {
-            $fmt = Select-VorkMediaFormatChoice -PromptTitle "Formato de salida"
+            $fmt = Select-VorkMediaFormatChoice -PromptTitle "Selecciona el formato de salida:"
             if (-not $fmt) {
-                Write-VorkStatusLine -Kind warn -Text "Conversión cancelada."
+                Write-Host "  ${Lead}╰─ Conversión cancelada.${Reset}"
                 Write-Host ""
                 return
             }
         }
 
-        $quality = Select-VorkMediaQualityChoice -Format $fmt -PromptTitle "Calidad para $($fmt.ToUpper())"
+        $quality = Select-VorkMediaQualityChoice -Format $fmt -PromptTitle "Selecciona la calidad deseada para $($fmt.ToUpper()):"
         if (-not $quality) {
-            Write-VorkStatusLine -Kind warn -Text "Conversión cancelada."
+            Write-Host "  ${Lead}╰─ Conversión cancelada.${Reset}"
             Write-Host ""
             return
         }
     } else {
         if (-not $quality) {
-            $quality = Select-VorkMediaQualityChoice -Format $fmt -PromptTitle "Calidad para $($fmt.ToUpper())"
+            $quality = Select-VorkMediaQualityChoice -Format $fmt -PromptTitle "Selecciona la calidad deseada para $($fmt.ToUpper()):"
             if (-not $quality) {
                 $quality = if ($fmt -eq "mp3") { "320k" } elseif ($fmt -eq "wav") { "lossless" } else { "720p" }
             }
@@ -56,11 +58,13 @@ function Invoke-PillarMedia {
     }
 
     $platformName = Get-VorkMediaPlatformName -Url $url
-    Write-VorkSectionHeader -Title "Procesando conversión" -RightText "vork · media"
-    Write-VorkInfoRow -Label "Plataforma" -Value $platformName -ValueColor $Yellow
-    Write-VorkInfoRow -Label "URL" -Value $url
-    Write-VorkInfoRow -Label "Formato" -Value "$($fmt.ToUpper())  ·  $quality" -ValueColor $Cyan
-    Write-VorkSectionRule
+    Write-Host ""
+    Write-Host "  $Cyan╭─ [04] VORK CONVERSOR MULTIMEDIA ──────────────────$Reset"
+    Write-Host "  $Cyan│$Reset  $Gray Plataforma:$Reset  $Yellow${Bold}$platformName$Reset"
+    Write-Host "  $Cyan│$Reset  $Gray URL:$Reset         $White$url$Reset"
+    Write-Host "  $Cyan│$Reset  $Gray Formato:$Reset     $Cyan${Bold}$($fmt.ToUpper())$Reset"
+    Write-Host "  $Cyan│$Reset  $Gray Calidad:$Reset     $Yellow$quality$Reset"
+    Write-Host "  $Cyan├───────────────────────────────────────────────────$Reset"
 
     $body = @{ url = $url; format = $fmt; quality = $quality } | ConvertTo-Json
     $endpoint = "$ApiBase/api/media/convert"
@@ -72,7 +76,7 @@ function Invoke-PillarMedia {
         $barLen = 22
         $pRow = -1
         try {
-            Write-Host "    ${LeadLight}Progreso${Reset} [${Gray}$([string]::new([char]0x2591, $barLen))${Reset}]   0%  ${LeadLight}Iniciando...${Reset}"
+            Write-Host "  $Cyan│$Reset  ${White}Progreso:${Reset} [${Gray}$([string]::new([char]0x2591, $barLen))${Reset}]   0%  ${LeadLight}Iniciando...${Reset}"
             $pRow = [Console]::CursorTop - 1
         } catch { }
 
@@ -109,44 +113,91 @@ function Invoke-PillarMedia {
                 }
 
                 $filledLen = [Math]::Floor(($pct / 100) * $barLen)
-                $emptyLen = $barLen - $filledLen
-                $filled = [string]::new([char]0x2588, $filledLen)
-                $empty = [string]::new([char]0x2591, $emptyLen)
-                $pctStr = ($pct.ToString() + "%").PadLeft(4)
+                $unfilledLen = $barLen - $filledLen
+                $barStr = [string]::new([char]0x2588, $filledLen) + [string]::new([char]0x2591, $unfilledLen)
+                $pctStr = "$pct".PadLeft(3)
 
                 if ($pRow -ge 0 -and $pRow -lt [Console]::BufferHeight) {
-                    try { [Console]::SetCursorPosition(0, $pRow) } catch { }
+                    try {
+                        [Console]::SetCursorPosition(0, $pRow)
+                        Write-Host "  $Cyan│$Reset  ${White}Progreso:${Reset} [${Yellow}$barStr${Reset}] $pctStr%  ${LeadLight}$phase${Reset}    $ClrToEnd" -NoNewline
+                    } catch { }
                 }
-                Write-Host "`r$ClrLine    ${LeadLight}Progreso${Reset} [${Cyan}$filled${Gray}$empty${Reset}] $Yellow$pctStr$Reset  ${LeadLight}$phase${Reset}" -NoNewline
 
                 Start-Sleep -Milliseconds 120
             }
 
             if ($task.IsFaulted) {
-                throw $task.Exception.InnerException
+                $ex = if ($task.Exception.InnerException) { $task.Exception.InnerException.Message } else { $task.Exception.Message }
+                throw $ex
             }
 
-            # 100% Finalizado
-            $filled100 = [string]::new([char]0x2588, $barLen)
-            if ($pRow -ge 0 -and $pRow -lt [Console]::BufferHeight) {
-                try { [Console]::SetCursorPosition(0, $pRow) } catch { }
-            }
-            Write-Host "`r$ClrLine    ${LeadLight}Progreso${Reset} [${Cyan}$filled100${Reset}] ${Green}100%${Reset}  ${Green}Completado${Reset}"
-
-            $jsonStr = $task.Result.Content.ReadAsStringAsync().Result
-            $res = $jsonStr | ConvertFrom-Json
+            $response = $task.Result
+            $statusCode = [int]$response.StatusCode
+            $jsonStr = $response.Content.ReadAsStringAsync().Result
+            try { $res = $jsonStr | ConvertFrom-Json } catch { }
         } else {
-            # Fallback síncrono si HttpClient no estuviera disponible
-            $res = Invoke-RestMethod -Uri $endpoint -Method Post -Body $body -ContentType "application/json"
+            try {
+                $res = Invoke-RestMethod -Uri $endpoint -Method Post -Body $body -ContentType "application/json"
+            } catch { }
         }
 
-        if ($res.status -eq "error" -or (-not $res.downloadUrl -and $res.error)) {
-            Write-VorkStatusLine -Kind error -Text "Error multimedia" -Detail $res.error
-            Write-VorkSectionRule
+        # Fallback local resiliente si la nube está bloqueada (por ejemplo datacenter IP en Instagram)
+        if (-not $res -or $res.status -eq "error" -or (-not $res.downloadUrl -and -not $res.directVideoUrl -and -not $res.directAudioUrl)) {
+            $nodeCmd = Get-Command "node" -ErrorAction SilentlyContinue
+            $possibleEngines = @(
+                "$PSScriptRoot\..\..\utils\mediaEngine.js",
+                "$HOME\Videos\Visual Studio Code\CloudTranslator\src\utils\mediaEngine.js",
+                "C:\Users\isaki\Videos\Visual Studio Code\CloudTranslator\src\utils\mediaEngine.js"
+            )
+            $engineJs = $possibleEngines | Where-Object { Test-Path $_ } | Select-Object -First 1
+
+            if ($nodeCmd -and $engineJs) {
+                try {
+                    $normEngine = ($engineJs -replace '\\', '/')
+                    $jsCode = "const { processConversion } = require('$normEngine'); processConversion({ url: '$url', format: '$fmt', quality: '$quality' }).then(r => console.log(JSON.stringify(r))).catch(e => console.error(JSON.stringify({ status: 'error', error: e.message })));"
+                    $localOut = & $nodeCmd.Source -e $jsCode 2>&1
+                    $parsed = ($localOut | Out-String).Trim() | ConvertFrom-Json
+                    if ($parsed -and $parsed.status -eq "success") {
+                        $res = $parsed
+                    }
+                } catch { }
+            }
+        }
+
+        $bar100 = [string]::new([char]0x2588, $barLen)
+        if ($pRow -ge 0 -and $pRow -lt [Console]::BufferHeight) {
+            try {
+                [Console]::SetCursorPosition(0, $pRow)
+                Write-Host "  $Cyan│$Reset  ${White}Progreso:${Reset} [${Green}$bar100${Reset}] 100%  ${Green}Completado${Reset}       $ClrToEnd"
+            } catch { }
+        }
+
+        if (-not $res -or $res.status -eq "error" -or (-not $res.downloadUrl -and -not $res.directVideoUrl -and -not $res.directAudioUrl)) {
+            $errDetail = if ($res -and $res.error) { $res.error } else { "No se pudo procesar la conversión para este enlace." }
+            Write-Host "  $Cyan├───────────────────────────────────────────────────$Reset"
+            Write-Host "  $Cyan│$Reset  ${Coral}[Error Multimedia]:${Reset} $errDetail"
+            Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
         } else {
-            Write-VorkStatusLine -Kind ok -Text "Conversión multimedia completada"
-            $dlFull = if ($res.downloadUrl.StartsWith("http")) { $res.downloadUrl } else { "$ApiBase$($res.downloadUrl)" }
-            $stFull = if ($res.streamUrl -and $res.streamUrl.StartsWith("http")) { $res.streamUrl } elseif ($res.streamUrl) { "$ApiBase$($res.streamUrl)" } else { "$ApiBase/api/media/stream?id=$($res.id)" }
+            Write-Host "  $Cyan├───────────────────────────────────────────────────$Reset"
+            Write-Host "  $Cyan│$Reset  $Green✓ Conversión multimedia completada exitosamente.$Reset"
+            $dlFull = if ($res.downloadUrl -and $res.downloadUrl.StartsWith("http")) {
+                $res.downloadUrl
+            } elseif ($res.downloadUrl) {
+                "$ApiBase$($res.downloadUrl)"
+            } elseif ($res.directVideoUrl) {
+                $res.directVideoUrl
+            } else {
+                $res.directAudioUrl
+            }
+
+            $stFull = if ($res.streamUrl -and $res.streamUrl.StartsWith("http")) {
+                $res.streamUrl
+            } elseif ($res.streamUrl) {
+                "$ApiBase$($res.streamUrl)"
+            } else {
+                "$ApiBase/api/media/stream?id=$($res.id)"
+            }
 
             $videoFull = if ($res.videoStreamUrl -and $res.videoStreamUrl.StartsWith("http")) {
                 $res.videoStreamUrl
@@ -174,7 +225,7 @@ function Invoke-PillarMedia {
 
             $localFile = if ($res.filename) { $res.filename } else { "media_output.$fmt" }
 
-            $outputMode = Select-VorkMediaOutputAction -PromptTitle "Entrega del archivo"
+            $outputMode = Select-VorkMediaOutputAction -PromptTitle "Selecciona cómo deseas obtener el archivo convertido:"
             if (-not $outputMode) { $outputMode = "all" }
 
             $hasLocal = $outputMode -in @("local", "local_video", "local_audio", "local_download", "local_stream", "all")
@@ -184,32 +235,44 @@ function Invoke-PillarMedia {
 
             if ($hasLocal) {
                 try {
-                    Invoke-WebRequest -Uri $dlFull -OutFile $localFile -UseBasicParsing -TimeoutSec 120
+                    $cachePaths = @(
+                        "C:\Users\isaki\Videos\Visual Studio Code\CloudTranslator\data\media_cache\$($res.id).$fmt",
+                        "$PSScriptRoot\..\..\..\data\media_cache\$($res.id).$fmt"
+                    )
+                    $foundCache = $cachePaths | Where-Object { Test-Path $_ } | Select-Object -First 1
+
+                    if ($foundCache) {
+                        Copy-Item -Path $foundCache -Destination $localFile -Force
+                    } else {
+                        Invoke-WebRequest -Uri $dlFull -OutFile $localFile -UseBasicParsing -TimeoutSec 120
+                    }
                     $resolvedOut = (Resolve-Path $localFile).Path
-                    Write-VorkInfoRow -Label "Guardado" -Value $resolvedOut -ValueColor $Green
+                    Write-Host "  $Cyan│$Reset  $Green✓ Guardado local:$Reset $White$resolvedOut$Reset"
                 } catch {
-                    Write-VorkInfoRow -Label "Descarga" -Value $dlFull -ValueColor $Yellow
+                    Write-Host "  $Cyan│$Reset    Descarga: $Yellow$dlFull$Reset"
                 }
             }
 
             if ($hasDownload) {
-                Write-VorkInfoRow -Label "Descarga" -Value $dlFull -ValueColor $Yellow
+                Write-Host "  $Cyan│$Reset  $Yellow✓ Descarga:$Reset       $White$dlFull$Reset"
             }
 
             if ($hasVideoStream -and $videoFull) {
-                Write-VorkInfoRow -Label "Video" -Value $videoFull -ValueColor $Purple
+                Write-Host "  $Cyan│$Reset  $Magenta✓ Stream Video:$Reset   $White$videoFull$Reset"
             }
 
             if ($hasAudioStream -and $audioFull) {
-                Write-VorkInfoRow -Label "Audio" -Value $audioFull -ValueColor $Cyan
+                Write-Host "  $Cyan│$Reset  $Cyan✓ Stream Música:$Reset  $White$audioFull$Reset"
             }
 
-            Write-VorkSectionRule
+            Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
             Send-VorkNotification -Title "Vork Conversor Multimedia" -Message "Conversión a $fmt ($quality) completada con éxito."
         }
     } catch {
-        Write-VorkStatusLine -Kind error -Text "Error multimedia" -Detail $_.Exception.Message
-        Write-VorkSectionRule
+        Write-Host ""
+        Write-Host "  $Cyan├───────────────────────────────────────────────────$Reset"
+        Write-Host "  $Cyan│$Reset  ${Coral}[Error Multimedia]:${Reset} $($_.Exception.Message)"
+        Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
     }
     Write-Host ""
 }
