@@ -15,38 +15,35 @@ function Invoke-PillarSeparate {
     }
 
     if (-not $target) {
-        Write-Host ""
-        Write-Host "  ${Cyan}${Bold}╭─ [05] Vork Separador de Stems (Demucs v4)${Reset}"
-        Write-Host "  ${Lead}│${Reset} ${White}Ingresa la ruta del archivo de audio o URL (ej: cancion.mp3):${Reset}"
-        $target = Read-VorkInput -Prompt "  ${Lead}│${Reset} ${Cyan}> ${Reset}"
+        Write-VorkSectionHeader -Title "Separación de stems" -Subtitle "Acapella y karaoke con Demucs v4" -RightText "vork · stems"
+        $target = Read-VorkInput -Prompt "  ${Coral}${Bold}$([char]0x203A)${Reset} "
         if (-not $target -or -not $target.Trim()) {
-            Write-Host "  ${Lead}╰─ Separación cancelada.${Reset}"
+            Write-VorkStatusLine -Kind warn -Text "Separación cancelada."
             Write-Host ""
             return
         }
         $target = $target.Trim()
 
         $sepOptions = @(
-            @{ Value = "2stems";  Label = "[1] 2 stems (Voz Acapella + Pista Instrumental / Karaoke)" },
-            @{ Value = "4stems";  Label = "[2] 4 stems (Vocals, Batería, Bajo, Otros instrumentos)" },
-            @{ Value = "vocals";  Label = "[3] Sólo Acapella (Aislamiento vocal puro con reducción de ruido)" },
-            @{ Value = "karaoke"; Label = "[4] Sólo Instrumental (Eliminación estricta de voz)" }
+            @{ Value = "2stems";  Label = "2 stems";  Description = "Voz acapella y pista instrumental" },
+            @{ Value = "4stems";  Label = "4 stems";  Description = "Voz, batería, bajo y otros instrumentos" },
+            @{ Value = "vocals";  Label = "Acapella"; Description = "Aislamiento vocal puro con reducción de ruido" },
+            @{ Value = "karaoke"; Label = "Karaoke";  Description = "Instrumental con eliminación estricta de voz" }
         )
 
-        $chosenMode = Select-InteractiveOption -PromptTitle "Selecciona el modo de separación de stems:" -Options $sepOptions -DefaultIndex 0
+        $chosenMode = Select-InteractiveOption -PromptTitle "Modo de separación" -Subtitle "pistas a extraer" -Options $sepOptions -DefaultIndex 0
         if (-not $chosenMode) {
-            Write-Host "  ${Lead}╰─ Separación cancelada.${Reset}"
+            Write-VorkStatusLine -Kind warn -Text "Separación cancelada."
             Write-Host ""
             return
         }
         $mode = $chosenMode
     }
 
-    Write-Host ""
-    Write-Host "  $Cyan╭─ [05] VORK SEPARADOR DE STEMS (DEMUCS V4) ───────$Reset"
-    Write-Host "  $Cyan│$Reset  $Gray Pista:$Reset    $White$target$Reset"
-    Write-Host "  $Cyan│$Reset  $Gray Modo:$Reset     $Yellow$mode$Reset"
-    Write-Host "  $Cyan├───────────────────────────────────────────────────$Reset"
+    Write-VorkSectionHeader -Title "Procesando separación" -RightText "vork · stems"
+    Write-VorkInfoRow -Label "Pista" -Value $target
+    Write-VorkInfoRow -Label "Modo" -Value $mode -ValueColor $Yellow
+    Write-VorkSectionRule
 
     $isLocal = try { Test-Path $target -PathType Leaf } catch { $false }
     $body = if ($isLocal) {
@@ -69,7 +66,7 @@ function Invoke-PillarSeparate {
         $pRow = -1
         $emptyBar = [string]::new([char]0x2591, $barLen)
         try {
-            Write-Host "  $Cyan│$Reset  ${White}Progreso:${Reset} [${Gray}$emptyBar${Reset}]   0%  ${LeadLight}Iniciando...${Reset}"
+            Write-Host "    ${LeadLight}Progreso${Reset} [${Gray}$emptyBar${Reset}]   0%  ${LeadLight}Iniciando...${Reset}"
             $pRow = [Console]::CursorTop - 1
         } catch { }
 
@@ -113,7 +110,7 @@ function Invoke-PillarSeparate {
                 if ($pRow -ge 0 -and $pRow -lt [Console]::BufferHeight) {
                     try {
                         [Console]::SetCursorPosition(0, $pRow)
-                        Write-Host "  $Cyan│$Reset  ${White}Progreso:${Reset} [${Yellow}$barStr${Reset}] $pctStr%  ${LeadLight}$phase${Reset}    $ClrToEnd" -NoNewline
+                        Write-Host "    ${LeadLight}Progreso${Reset} [${Yellow}$barStr${Reset}] $pctStr%  ${LeadLight}$phase${Reset}    $ClrToEnd" -NoNewline
                     } catch { }
                 }
 
@@ -128,7 +125,7 @@ function Invoke-PillarSeparate {
             if ($pRow -ge 0 -and $pRow -lt [Console]::BufferHeight) {
                 try { [Console]::SetCursorPosition(0, $pRow) } catch { }
             }
-            Write-Host "`r$ClrLine  $Cyan│$Reset  ${White}Progreso:${Reset} [${Green}$filled100${Reset}] 100%  ${Green}Completado${Reset}"
+            Write-Host "`r$ClrLine    ${LeadLight}Progreso${Reset} [${Green}$filled100${Reset}] 100%  ${Green}Completado${Reset}"
 
             $jsonStr = $task.Result.Content.ReadAsStringAsync().Result
             if (-not $task.Result.IsSuccessStatusCode) {
@@ -140,9 +137,8 @@ function Invoke-PillarSeparate {
                 if (-not $errDetail) {
                     $errDetail = "Error en el servidor ($([int]$task.Result.StatusCode)): $($task.Result.ReasonPhrase)"
                 }
-                Write-Host "  $Cyan├───────────────────────────────────────────────────$Reset"
-                Write-Host "  $Cyan│$Reset  ${Coral}[Error Separador]:${Reset} $errDetail"
-                Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
+                Write-VorkStatusLine -Kind error -Text "Error del separador" -Detail $errDetail
+                Write-VorkSectionRule
                 return
             }
             $res = try { $jsonStr | ConvertFrom-Json } catch { $null }
@@ -152,9 +148,8 @@ function Invoke-PillarSeparate {
 
         if (-not $res -or $res.status -eq "error" -or $res.error) {
             $errDetail = if ($res -and $res.error) { $res.error } else { "No se pudo completar la separación de stems." }
-            Write-Host "  $Cyan├───────────────────────────────────────────────────$Reset"
-            Write-Host "  $Cyan│$Reset  ${Coral}[Error Separador]:${Reset} $errDetail"
-            Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
+            Write-VorkStatusLine -Kind error -Text "Error del separador" -Detail $errDetail
+            Write-VorkSectionRule
             return
         }
 
@@ -176,10 +171,9 @@ function Invoke-PillarSeparate {
             if ($rawSt) { $instSt = if ($rawSt -match '^https?://') { $rawSt } else { "$ApiBase$rawSt" } }
         }
 
-        Write-Host "  $Cyan├───────────────────────────────────────────────────$Reset"
-        Write-Host "  $Cyan│$Reset  $Green✓ Separación de stems completada exitosamente con Demucs v4.$Reset"
+        Write-VorkStatusLine -Kind ok -Text "Separación completada con Demucs v4"
 
-        $outputMode = Select-VorkMediaOutputAction -PromptTitle "Selecciona cómo deseas obtener las pistas separadas:"
+        $outputMode = Select-VorkMediaOutputAction -PromptTitle "Entrega de las pistas"
         if (-not $outputMode) { $outputMode = "all" }
 
         $hasLocal = $outputMode -in @("local", "local_video", "local_audio", "local_download", "local_stream", "all")
@@ -192,38 +186,38 @@ function Invoke-PillarSeparate {
                 $localVoc = "vocals.wav"
                 try {
                     Invoke-WebRequest -Uri $vocDl -OutFile $localVoc -UseBasicParsing -TimeoutSec 120
-                    Write-Host "  $Cyan│$Reset  $Green✓ Guardado local:$Reset $White$((Resolve-Path $localVoc).Path)$Reset"
+                    Write-VorkInfoRow -Label "Guardado" -Value (Resolve-Path $localVoc).Path -ValueColor $Green
                 } catch {
-                    Write-Host "  $Cyan│$Reset    Descarga: $Yellow$vocDl$Reset"
+                    Write-VorkInfoRow -Label "Descarga" -Value $vocDl -ValueColor $Yellow
                 }
             }
             if ($hasDownload -and $vocDl) {
-                Write-Host "  $Cyan│$Reset  $Yellow✓ Descarga:$Reset       $White$vocDl$Reset"
+                Write-VorkInfoRow -Label "Descarga" -Value $vocDl -ValueColor $Yellow
             }
             if ($hasVideoStream -and $vocSt) {
-                Write-Host "  $Cyan│$Reset  $Magenta✓ Stream Video:$Reset   $White$vocSt$Reset"
+                Write-VorkInfoRow -Label "Video" -Value $vocSt -ValueColor $Purple
             }
             if ($hasAudioStream -and $vocSt) {
-                Write-Host "  $Cyan│$Reset  $Cyan✓ Stream Música:$Reset  $White$vocSt$Reset"
+                Write-VorkInfoRow -Label "Audio" -Value $vocSt -ValueColor $Cyan
             }
         } elseif ($mode -eq "karaoke") {
             if ($hasLocal -and $instDl) {
                 $localInst = "instrumental.wav"
                 try {
                     Invoke-WebRequest -Uri $instDl -OutFile $localInst -UseBasicParsing -TimeoutSec 120
-                    Write-Host "  $Cyan│$Reset  $Green✓ Guardado local:$Reset $White$((Resolve-Path $localInst).Path)$Reset"
+                    Write-VorkInfoRow -Label "Guardado" -Value (Resolve-Path $localInst).Path -ValueColor $Green
                 } catch {
-                    Write-Host "  $Cyan│$Reset    Descarga: $Yellow$instDl$Reset"
+                    Write-VorkInfoRow -Label "Descarga" -Value $instDl -ValueColor $Yellow
                 }
             }
             if ($hasDownload -and $instDl) {
-                Write-Host "  $Cyan│$Reset  $Yellow✓ Descarga:$Reset       $White$instDl$Reset"
+                Write-VorkInfoRow -Label "Descarga" -Value $instDl -ValueColor $Yellow
             }
             if ($hasVideoStream -and $instSt) {
-                Write-Host "  $Cyan│$Reset  $Magenta✓ Stream Video:$Reset   $White$instSt$Reset"
+                Write-VorkInfoRow -Label "Video" -Value $instSt -ValueColor $Purple
             }
             if ($hasAudioStream -and $instSt) {
-                Write-Host "  $Cyan│$Reset  $Cyan✓ Stream Música:$Reset  $White$instSt$Reset"
+                Write-VorkInfoRow -Label "Audio" -Value $instSt -ValueColor $Cyan
             }
         } else {
             if ($hasLocal) {
@@ -231,37 +225,35 @@ function Invoke-PillarSeparate {
                     $localVoc = "vocals.wav"
                     try {
                         Invoke-WebRequest -Uri $vocDl -OutFile $localVoc -UseBasicParsing -TimeoutSec 120
-                        Write-Host "  $Cyan│$Reset  $Green✓ Guardado local (Vocals):$Reset       $White$((Resolve-Path $localVoc).Path)$Reset"
+                        Write-VorkInfoRow -Label "Voz" -Value (Resolve-Path $localVoc).Path -ValueColor $Green
                     } catch {}
                 }
                 if ($instDl) {
                     $localInst = "instrumental.wav"
                     try {
                         Invoke-WebRequest -Uri $instDl -OutFile $localInst -UseBasicParsing -TimeoutSec 120
-                        Write-Host "  $Cyan│$Reset  $Green✓ Guardado local (Instrumental):$Reset $White$((Resolve-Path $localInst).Path)$Reset"
+                        Write-VorkInfoRow -Label "Instrumental" -Value (Resolve-Path $localInst).Path -ValueColor $Green
                     } catch {}
                 }
             }
             if ($hasDownload) {
-                if ($vocDl) { Write-Host "  $Cyan│$Reset  $Yellow✓ Descarga (Vocals):$Reset       $White$vocDl$Reset" }
-                if ($instDl) { Write-Host "  $Cyan│$Reset  $Yellow✓ Descarga (Instrumental):$Reset $White$instDl$Reset" }
+                if ($vocDl) { Write-VorkInfoRow -Label "Descarga voz" -Value $vocDl -ValueColor $Yellow }
+                if ($instDl) { Write-VorkInfoRow -Label "Descarga inst" -Value $instDl -ValueColor $Yellow }
             }
             if ($hasVideoStream) {
                 $stVid = if ($vocSt) { $vocSt } else { $instSt }
-                if ($stVid) { Write-Host "  $Cyan│$Reset  $Magenta✓ Stream Video:$Reset            $White$stVid$Reset" }
+                if ($stVid) { Write-VorkInfoRow -Label "Video" -Value $stVid -ValueColor $Purple }
             }
             if ($hasAudioStream) {
-                if ($vocSt) { Write-Host "  $Cyan│$Reset  $Cyan✓ Stream Música (Vocals):$Reset   $White$vocSt$Reset" }
-                if ($instSt) { Write-Host "  $Cyan│$Reset  $Cyan✓ Stream Música (Inst):$Reset     $White$instSt$Reset" }
+                if ($vocSt) { Write-VorkInfoRow -Label "Audio voz" -Value $vocSt -ValueColor $Cyan }
+                if ($instSt) { Write-VorkInfoRow -Label "Audio inst" -Value $instSt -ValueColor $Cyan }
             }
         }
-        Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
+        Write-VorkSectionRule
         Send-VorkNotification -Title "Vork Separador de Stems" -Message "Aislamiento de pistas completado con éxito."
     } catch {
-        Write-Host ""
-        Write-Host "  $Cyan├───────────────────────────────────────────────────$Reset"
-        Write-Host "  $Cyan│$Reset  ${Coral}[Error Separador]:${Reset} $($_.Exception.Message)"
-        Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
+        Write-VorkStatusLine -Kind error -Text "Error del separador" -Detail $_.Exception.Message
+        Write-VorkSectionRule
     }
     Write-Host ""
 }

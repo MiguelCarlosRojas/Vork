@@ -698,6 +698,115 @@ function Write-VorkSectionTitle {
 
 
 # ========================================================
+# COMPONENTES DE SECCION (DISENO PLANO VORK)
+# ========================================================
+# Lenguaje visual compartido por todos los pilares:
+#   ◆ Titulo
+#   ───────────────────────────────────────  contexto
+#     etiqueta   valor
+#     ✓ estado
+# Sin cajas ni numeracion de pilar: solo jerarquia, aire y color.
+# ========================================================
+
+function Format-VorkRuleLine {
+    param(
+        [int]$Width,
+        [string]$RightText = ""
+    )
+
+    $budget = [Math]::Max(4, $Width - 2)
+    $right = if ($RightText) { " $RightText " } else { "" }
+    $rightWidth = Get-VorkDisplayWidth $right
+    if ($RightText -and (($rightWidth + 8) -gt $budget)) { $right = ""; $rightWidth = 0 }
+    $lineLength = [Math]::Max(4, $budget - $rightWidth)
+
+    $line = "${Lead}" + [string]::new([char]0x2500, $lineLength)
+    if ($right) { $line += "${Reset}${LeadDark}$right" }
+    return "$line${Reset}"
+}
+
+function Write-VorkSectionHeader {
+    param(
+        [string]$Title,
+        [string]$Subtitle = "",
+        [string]$RightText = ""
+    )
+
+    $metrics = Get-VorkConsoleMetrics
+    $maxWidth = [Math]::Max(20, $metrics.Width - 1)
+
+    Write-Host ""
+    Write-Host "  ${Coral}${Bold}$([char]0x25C6)${Reset} ${White}${Bold}$Title${Reset}"
+    if ($Subtitle) {
+        Write-Host (Limit-VorkAnsiText -Text "    ${LeadLight}$Subtitle${Reset}" -MaxWidth $maxWidth)
+    }
+    Write-Host (Format-VorkRuleLine -Width $maxWidth -RightText $RightText)
+}
+
+function Write-VorkSectionRule {
+    param([string]$RightText = "")
+
+    $metrics = Get-VorkConsoleMetrics
+    $maxWidth = [Math]::Max(20, $metrics.Width - 1)
+    Write-Host (Format-VorkRuleLine -Width $maxWidth -RightText $RightText)
+}
+
+function Write-VorkInfoRow {
+    param(
+        [string]$Label,
+        [string]$Value,
+        [string]$ValueColor = "",
+        [int]$LabelWidth = 10,
+        [int]$Indent = 4
+    )
+
+    if (-not $ValueColor) { $ValueColor = $White }
+    if ($null -eq $Value -or $Value -eq "") { $Value = "-" }
+
+    $metrics = Get-VorkConsoleMetrics
+    $pad = [string]::new(' ', [Math]::Max(1, $LabelWidth - (Get-VorkDisplayWidth $Label)))
+    $line = (" " * $Indent) + "${Lead}$Label${Reset}" + $pad + "  " + "$ValueColor$Value${Reset}"
+    Write-Host (Limit-VorkAnsiText -Text $line -MaxWidth ([Math]::Max(16, $metrics.Width - 1)))
+}
+
+function Write-VorkStatusLine {
+    param(
+        [string]$Text,
+        [string]$Detail = "",
+        [ValidateSet("info", "step", "ok", "warn", "error")]
+        [string]$Kind = "info",
+        [int]$Indent = 4
+    )
+
+    $icon = [string][char]0x00B7
+    $color = $LeadLight
+
+    switch ($Kind) {
+        "step"  { $icon = [string][char]0x203A; $color = $Cyan }
+        "ok"    { $icon = [string][char]0x2713; $color = $Green }
+        "warn"  { $icon = "!";                  $color = $Yellow }
+        "error" { $icon = [string][char]0x00D7; $color = $Coral }
+    }
+
+    $body = "${color}$icon${Reset} $Text"
+    if ($Detail) { $body += "   ${LeadDark}$Detail${Reset}" }
+
+    $metrics = Get-VorkConsoleMetrics
+    Write-Host (Limit-VorkAnsiText -Text ((" " * $Indent) + $body) -MaxWidth ([Math]::Max(16, $metrics.Width - 1)))
+}
+
+function Write-VorkSectionHint {
+    param(
+        [string]$Text,
+        [int]$Indent = 4
+    )
+
+    if (-not $Text) { return }
+    $metrics = Get-VorkConsoleMetrics
+    Write-Host (Limit-VorkAnsiText -Text ((" " * $Indent) + "${LeadDark}$Text${Reset}") -MaxWidth ([Math]::Max(16, $metrics.Width - 1)))
+}
+
+# ========================================================
 # RENDERIZADOR AVANZADO DE RESPUESTAS VORK AI
 # ========================================================
 

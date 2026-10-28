@@ -17,12 +17,10 @@ function Invoke-PillarImage {
     }
 
     if (-not $rawTarget) {
-        Write-Host ""
-        Write-Host "  ${Cyan}${Bold}╭─ [07] Vork Conversor Universal de Imágenes${Reset}"
-        Write-Host "  ${Lead}│${Reset} ${White}Ingresa la ruta del archivo de imagen o URL (ej: logo.png o https://...):${Reset}"
-        $rawTarget = Read-VorkInput -Prompt "  ${Lead}│${Reset} ${Cyan}> ${Reset}"
+        Write-VorkSectionHeader -Title "Nueva conversión" -Subtitle "Ruta local o URL  ·  jpg · png · webp · ico · avif" -RightText "vork · imagen"
+        $rawTarget = Read-VorkInput -Prompt "  ${Coral}${Bold}$([char]0x203A)${Reset} "
         if (-not $rawTarget -or -not $rawTarget.Trim()) {
-            Write-Host "  ${Lead}╰─ Conversión cancelada.${Reset}"
+            Write-VorkStatusLine -Kind warn -Text "Conversión cancelada."
             Write-Host ""
             return
         }
@@ -32,13 +30,16 @@ function Invoke-PillarImage {
     $target = $rawTarget.Trim().Trim('"').Trim("'").Trim()
     $isUrl = ($target -match '^https?://')
 
+    Write-VorkSectionHeader -Title "Imagen de origen" -RightText "vork · imagen"
+    Write-VorkInfoRow -Label "Origen" -Value $target
+
     $imageBytes = $null
     $detectedFmt = "unknown"
     $detectedLabel = "Desconocido"
 
     if ($isUrl) {
         try {
-            Write-Host "  ${Lead}│${Reset} ${LeadLight}Conectando y analizando recurso web...${Reset}"
+            Write-VorkStatusLine -Kind step -Text "Conectando con el origen"
             try { Add-Type -AssemblyName System.Net.Http } catch { }
             $client = [System.Net.Http.HttpClient]::new()
             $client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
@@ -71,11 +72,11 @@ function Invoke-PillarImage {
                         $u = [System.Uri]$target
                         $realImgUrl = "$($u.Scheme)://$($u.Host)$realImgUrl"
                     }
-                    Write-Host "  ${Lead}│${Reset} ${LeadLight}Imagen detectada en metadatos:${Reset} $realImgUrl"
+                    Write-VorkStatusLine -Kind info -Text "Imagen detectada en metadatos" -Detail $realImgUrl
                     $respBytes = $client.GetByteArrayAsync($realImgUrl).Result
                     $target = $realImgUrl
                 } else {
-                    Write-Host "  ${Lead}╰─ La URL es una página web sin metadatos de imagen (og:image) detectable.${Reset}"
+                    Write-VorkStatusLine -Kind warn -Text "La URL es una página web sin imagen detectable (og:image)."
                     Write-Host ""
                     return
                 }
@@ -83,7 +84,7 @@ function Invoke-PillarImage {
 
             $imageBytes = $respBytes
         } catch {
-            Write-Host "  ${Lead}╰─ Error al descargar imagen desde URL: $($_.Exception.Message)${Reset}"
+            Write-VorkStatusLine -Kind error -Text "Error al descargar la imagen" -Detail $_.Exception.Message
             Write-Host ""
             return
         }
@@ -97,7 +98,7 @@ function Invoke-PillarImage {
         } catch { }
 
         if (-not $resolvedPath -or -not (Test-Path -LiteralPath $resolvedPath -PathType Leaf)) {
-            Write-Host "  ${Lead}╰─ Archivo no encontrado o cancelado.${Reset}"
+            Write-VorkStatusLine -Kind error -Text "Archivo no encontrado o ruta cancelada."
             Write-Host ""
             return
         }
@@ -106,7 +107,7 @@ function Invoke-PillarImage {
         try {
             $imageBytes = [System.IO.File]::ReadAllBytes($target)
         } catch {
-            Write-Host "  ${Lead}╰─ Error al leer el archivo: $($_.Exception.Message)${Reset}"
+            Write-VorkStatusLine -Kind error -Text "No se pudo leer el archivo" -Detail $_.Exception.Message
             Write-Host ""
             return
         }
@@ -115,19 +116,19 @@ function Invoke-PillarImage {
     # Detección precisa de formato mediante Magic Bytes
     if ($imageBytes -and $imageBytes.Length -ge 4) {
         if ($imageBytes[0] -eq 0xFF -and $imageBytes[1] -eq 0xD8 -and $imageBytes[2] -eq 0xFF) {
-            $detectedFmt = "jpg"; $detectedLabel = "JPEG / JPG (Joint Photographic Experts Group)"
+            $detectedFmt = "jpg"; $detectedLabel = "JPEG · Joint Photographic Experts Group"
         } elseif ($imageBytes[0] -eq 0x89 -and $imageBytes[1] -eq 0x50 -and $imageBytes[2] -eq 0x4E -and $imageBytes[3] -eq 0x47) {
-            $detectedFmt = "png"; $detectedLabel = "PNG (Portable Network Graphics - Con transparencia)"
+            $detectedFmt = "png"; $detectedLabel = "PNG · Portable Network Graphics con transparencia"
         } elseif ($imageBytes[0] -eq 0x47 -and $imageBytes[1] -eq 0x49 -and $imageBytes[2] -eq 0x46 -and $imageBytes[3] -eq 0x38) {
-            $detectedFmt = "gif"; $detectedLabel = "GIF (Graphics Interchange Format)"
+            $detectedFmt = "gif"; $detectedLabel = "GIF · Graphics Interchange Format"
         } elseif ($imageBytes[0] -eq 0x42 -and $imageBytes[1] -eq 0x4D) {
-            $detectedFmt = "bmp"; $detectedLabel = "BMP (Windows Bitmap Image)"
+            $detectedFmt = "bmp"; $detectedLabel = "BMP · Windows Bitmap Image"
         } elseif ($imageBytes[0] -eq 0x00 -and $imageBytes[1] -eq 0x00 -and $imageBytes[2] -eq 0x01 -and $imageBytes[3] -eq 0x00) {
-            $detectedFmt = "ico"; $detectedLabel = "ICO (Windows Icon / Favicon)"
+            $detectedFmt = "ico"; $detectedLabel = "ICO · Windows Icon / Favicon"
         } elseif ($imageBytes.Length -ge 12 -and ([System.Text.Encoding]::ASCII.GetString($imageBytes[0..3]) -eq "RIFF") -and ([System.Text.Encoding]::ASCII.GetString($imageBytes[8..11]) -eq "WEBP")) {
-            $detectedFmt = "webp"; $detectedLabel = "WEBP (Google WebP Modern Compressed Image)"
+            $detectedFmt = "webp"; $detectedLabel = "WEBP · Google WebP Modern Compressed Image"
         } elseif ($imageBytes.Length -ge 12 -and ([System.Text.Encoding]::ASCII.GetString($imageBytes[4..11]) -match 'ftypavif|ftypavis')) {
-            $detectedFmt = "avif"; $detectedLabel = "AVIF (AV1 Image File Format Ultra-HD)"
+            $detectedFmt = "avif"; $detectedLabel = "AVIF · AV1 Image File Format Ultra-HD"
         }
     }
 
@@ -144,15 +145,17 @@ function Invoke-PillarImage {
         elseif ($ext -eq "bmp") { $detectedFmt = "bmp"; $detectedLabel = "BMP" }
     }
 
-    Write-Host "  ${Lead}│${Reset}  ${Gray}Formato actual detectado:${Reset} ${Green}${Bold}$detectedLabel${Reset}"
+    Write-Host ""
+    Write-VorkInfoRow -Label "Formato" -Value $detectedLabel -ValueColor $Green
+    Write-VorkSectionRule
 
     # Catálogo de formatos de salida soportados
     $allFormats = @(
-        @{ Value = "webp"; Label = "webp (WebP Next-Gen - Máxima compresión y fidelidad visual)" },
-        @{ Value = "png";  Label = "png  (PNG Lossless con canal alfa transparente)" },
-        @{ Value = "jpg";  Label = "jpg  (JPEG estándar optimizado para fotografía)" },
-        @{ Value = "ico";  Label = "ico  (Icono Windows Favicon multirresolución)" },
-        @{ Value = "avif"; Label = "avif (AVIF Ultra-HD de nueva generación)" }
+        @{ Value = "webp"; Name = "WEBP"; Desc = "Máxima compresión, fidelidad visual" },
+        @{ Value = "png";  Name = "PNG";  Desc = "Sin pérdida, admite transparencia" },
+        @{ Value = "jpg";  Name = "JPG";  Desc = "Fotografía con compresión optimizada" },
+        @{ Value = "ico";  Name = "ICO";  Desc = "Favicon multirresolución de Windows" },
+        @{ Value = "avif"; Name = "AVIF"; Desc = "Ultra HD de nueva generación" }
     )
 
     # El formato actual detectado NO debe aparecer como opción de selección
@@ -160,29 +163,27 @@ function Invoke-PillarImage {
 
     if (-not $fmt -or $fmt -eq $detectedFmt) {
         $imgOptions = @()
-        for ($idx = 0; $idx -lt $availableFormats.Count; $idx++) {
-            $num = $idx + 1
+        foreach ($formatItem in $availableFormats) {
             $imgOptions += @{
-                Value = $availableFormats[$idx].Value
-                Label = "[$num] $($availableFormats[$idx].Label)"
+                Value = $formatItem.Value
+                Label = $formatItem.Name
+                Description = $formatItem.Desc
             }
         }
 
-        $chosenFmt = Select-InteractiveOption -PromptTitle "Selecciona el formato de imagen destino:" -Options $imgOptions -DefaultIndex 0
+        $chosenFmt = Select-InteractiveOption -PromptTitle "Formato de salida" -Subtitle "imagen de destino" -Options $imgOptions -DefaultIndex 0
         if (-not $chosenFmt) {
-            Write-Host "  ${Lead}╰─ Conversión cancelada.${Reset}"
+            Write-VorkStatusLine -Kind warn -Text "Conversión cancelada."
             Write-Host ""
             return
         }
         $fmt = $chosenFmt
     }
 
-    Write-Host ""
-    Write-Host "  $Cyan╭─ [07] VORK PROCESADOR DE IMÁGENES ────────────────$Reset"
-    Write-Host "  $Cyan│$Reset  $Gray Origen:$Reset     $White$target$Reset"
-    Write-Host "  $Cyan│$Reset  $Gray Detectado:$Reset  $Green$detectedFmt$Reset"
-    Write-Host "  $Cyan│$Reset  $Gray Destino:$Reset    $Yellow$fmt$Reset"
-    Write-Host "  $Cyan├───────────────────────────────────────────────────$Reset"
+    Write-VorkSectionHeader -Title "Procesando imagen" -RightText "vork · imagen"
+    Write-VorkInfoRow -Label "Destino" -Value $fmt.ToUpper() -ValueColor $Yellow
+    Write-VorkSectionRule
+    Write-VorkStatusLine -Kind step -Text "Convirtiendo $($detectedFmt.ToUpper()) a $($fmt.ToUpper())" -Detail "calidad $quality"
 
     $b64 = [System.Convert]::ToBase64String($imageBytes)
     $mimePrefix = switch ($detectedFmt) {
@@ -199,49 +200,40 @@ function Invoke-PillarImage {
     try {
         $res = Invoke-RestMethod -Uri "$ApiBase/api/image/convert" -Method Post -Body $body -ContentType "application/json"
         $dlUrl = if ($res.downloadUrl) { if ($res.downloadUrl.StartsWith("http")) { $res.downloadUrl } else { "$ApiBase$($res.downloadUrl)" } } else { "$ApiBase/api/image/download" }
-        $stUrl = if ($res.streamUrl) { if ($res.streamUrl.StartsWith("http")) { $res.streamUrl } else { "$ApiBase$($res.streamUrl)" } } else { "$ApiBase/api/image/stream" }
-        Write-Host "  $Cyan│$Reset  $Green✓ Conversión de imagen completada exitosamente.$Reset"
+
+        Write-VorkStatusLine -Kind ok -Text "Conversión completada" -Detail "$($detectedFmt.ToUpper()) a $($fmt.ToUpper())"
+
         $localImg = if ($target -and (Test-Path $target)) {
             [System.IO.Path]::GetFileNameWithoutExtension($target) + "_convertido.$fmt"
         } else {
             "imagen_convertida.$fmt"
         }
 
-        $outputMode = Select-VorkMediaOutputAction -PromptTitle "Selecciona cómo deseas obtener la imagen convertida:"
+        $outputMode = Select-VorkImageOutputAction -PromptTitle "Entrega de la imagen"
         if (-not $outputMode) { $outputMode = "all" }
 
-        $hasLocal = $outputMode -in @("local", "local_video", "local_audio", "local_download", "local_stream", "all")
-        $hasDownload = $outputMode -in @("download", "local_download", "download_stream", "all")
-        $hasVideoStream = $outputMode -in @("video_stream", "local_video", "video_audio", "stream", "local_stream", "download_stream", "all")
-        $hasAudioStream = $outputMode -in @("audio_stream", "local_audio", "video_audio", "stream", "local_stream", "download_stream", "all")
+        $hasLocal = $outputMode -in @("local", "all")
+        $hasDownload = $outputMode -in @("download", "all")
 
         if ($hasLocal) {
             try {
                 Invoke-WebRequest -Uri $dlUrl -OutFile $localImg -UseBasicParsing -TimeoutSec 60
                 $resolvedOut = (Resolve-Path $localImg).Path
-                Write-Host "  $Cyan│$Reset  $Green✓ Guardado local:$Reset $White$resolvedOut$Reset"
+                Write-VorkInfoRow -Label "Guardado" -Value $resolvedOut -ValueColor $Green
             } catch {
-                Write-Host "  $Cyan│$Reset    Descarga: $Yellow$dlUrl$Reset"
+                Write-VorkInfoRow -Label "Descarga" -Value $dlUrl -ValueColor $Yellow
             }
         }
 
         if ($hasDownload) {
-            Write-Host "  $Cyan│$Reset  $Yellow✓ Descarga:$Reset       $White$dlUrl$Reset"
+            Write-VorkInfoRow -Label "Enlace" -Value $dlUrl -ValueColor $Cyan
         }
 
-        if ($hasVideoStream -and $stUrl) {
-            Write-Host "  $Cyan│$Reset  $Magenta✓ Stream Video:$Reset   $White$stUrl$Reset"
-        }
-
-        if ($hasAudioStream -and $stUrl) {
-            Write-Host "  $Cyan│$Reset  $Cyan✓ Stream Música:$Reset  $White$stUrl$Reset"
-        }
-
-        Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
+        Write-VorkSectionRule
         Send-VorkNotification -Title "Vork Conversor de Imagen" -Message "Conversión a $fmt completada con éxito."
     } catch {
-        Write-Host "  $Cyan│$Reset  ${Coral}[Error Imagen]:${Reset} $($_.Exception.Message)"
-        Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
+        Write-VorkStatusLine -Kind error -Text "Error de conversión" -Detail $_.Exception.Message
+        Write-VorkSectionRule
     }
     Write-Host ""
 }

@@ -28,12 +28,10 @@ function Invoke-PillarRemoveBg {
     $isLocalFile = ($file -and (Test-Path $file))
 
     if (-not $isWebUrl -and -not $isLocalFile) {
-        Write-Host ""
-        Write-Host "  ${Cyan}${Bold}╭─ [08] Vork Modificador de Imagen & Fondo IA con Prompt${Reset}"
-        Write-Host "  ${Lead}│${Reset} ${White}Ingresa la ruta o URL de la imagen (ej: producto.jpg o enlace web):${Reset}"
-        $fileInput = Read-VorkInput -Prompt "  ${Lead}│${Reset} ${Cyan}> ${Reset}"
+        Write-VorkSectionHeader -Title "Edición de imagen con IA" -Subtitle "Ruta local o URL de la imagen" -RightText "vork · imagen ia"
+        $fileInput = Read-VorkInput -Prompt "  ${Coral}${Bold}$([char]0x203A)${Reset} "
         if (-not $fileInput -or -not $fileInput.Trim()) {
-            Write-Host "  ${Lead}╰─ Imagen no válida o cancelado.${Reset}"
+            Write-VorkStatusLine -Kind warn -Text "Edición cancelada."
             Write-Host ""
             return
         }
@@ -42,17 +40,15 @@ function Invoke-PillarRemoveBg {
         $isLocalFile = (Test-Path $file)
 
         if (-not $isWebUrl -and -not $isLocalFile) {
-            Write-Host "  ${Lead}╰─ [!] Archivo o URL no encontrado: $file${Reset}"
+            Write-VorkStatusLine -Kind error -Text "Archivo o URL no encontrado" -Detail $file
             Write-Host ""
             return
         }
     }
 
     if (-not $userPrompt) {
-        Write-Host "  ${Lead}│${Reset}"
-        Write-Host "  ${Lead}│${Reset} ${White}Describe qué deseas modificar en la imagen (prompt):${Reset}"
-        Write-Host "  ${Lead}│${Reset} ${LeadLight}(Ej: playa paradisíaca al atardecer, oficina moderna, fondo blanco, o enter para sin fondo)${Reset}"
-        $pInput = Read-VorkInput -Prompt "  ${Lead}│${Reset} ${Cyan}> ${Reset}"
+        Write-VorkSectionHeader -Title "Prompt de edición" -Subtitle "Ej: playa al atardecer, fondo blanco · enter para aislar el sujeto" -RightText "vork · imagen ia"
+        $pInput = Read-VorkInput -Prompt "  ${Coral}${Bold}$([char]0x203A)${Reset} "
         if ($pInput -and $pInput.Trim()) {
             $userPrompt = $pInput.Trim()
         }
@@ -87,11 +83,11 @@ function Invoke-PillarRemoveBg {
         }
     }
 
-    Write-Host ""
-    Write-Host "  $Cyan╭─ [08] VORK ESTUDIO Y MODIFICADOR DE IMAGEN IA ────────$Reset"
-    Write-Host "  $Cyan│$Reset  $Gray Origen:$Reset   $White$file$Reset"
-    Write-Host "  $Cyan│$Reset  $Gray Prompt:$Reset   $Cyan`"$userPrompt`"$Reset"
-    Write-Host "  $Cyan├───────────────────────────────────────────────────$Reset"
+    Write-VorkSectionHeader -Title "Procesando imagen" -RightText "vork · imagen ia"
+    Write-VorkInfoRow -Label "Origen" -Value $file
+    Write-VorkInfoRow -Label "Prompt" -Value $userPrompt -ValueColor $Cyan
+    Write-VorkInfoRow -Label "Salida" -Value $out -ValueColor $Yellow
+    Write-VorkSectionRule
 
     $bodyMap = @{ mode = $mode }
     if ($mode -eq "prompt") {
@@ -113,54 +109,43 @@ function Invoke-PillarRemoveBg {
 
     try {
         if ($mode -eq "prompt") {
-            Write-Host "  $Cyan│$Reset  ${LeadLight}Aislando sujeto con BRIA RMBG 1.4...${Reset}"
-            Write-Host "  $Cyan│$Reset  ${LeadLight}Generando modificación con IA FLUX.1 Neural...${Reset}"
-            Write-Host "  $Cyan│$Reset  ${LeadLight}Componiendo imagen final de alta resolución...${Reset}"
+            Write-VorkStatusLine -Kind step -Text "Aislando el sujeto con BRIA RMBG 1.4"
+            Write-VorkStatusLine -Kind step -Text "Generando la modificación con FLUX.1 Neural"
+            Write-VorkStatusLine -Kind step -Text "Componiendo la imagen final en alta resolución"
         } else {
-            Write-Host "  $Cyan│$Reset  ${LeadLight}Procesando silueta con IA neuronal...${Reset}"
+            Write-VorkStatusLine -Kind step -Text "Procesando la silueta con IA neuronal"
         }
 
         $res = Invoke-RestMethod -Uri "$ApiBase/api/image/remove-background" -Method Post -Body $body -ContentType "application/json" -TimeoutSec 180
         $dlUrl = if ($res.downloadUrl) { if ($res.downloadUrl.StartsWith("http")) { $res.downloadUrl } else { "$ApiBase$($res.downloadUrl)" } } else { "$ApiBase/api/image/download?id=$($res.id)" }
-        $stUrl = if ($res.streamUrl) { if ($res.streamUrl.StartsWith("http")) { $res.streamUrl } else { "$ApiBase$($res.streamUrl)" } } else { "$ApiBase/api/image/stream?id=$($res.id)" }
 
-        Write-Host "  $Cyan│$Reset  $Green✓ Modificación de imagen completada exitosamente.$Reset"
+        Write-VorkStatusLine -Kind ok -Text "Edición completada"
 
-        $outputMode = Select-VorkMediaOutputAction -PromptTitle "Selecciona cómo deseas obtener la imagen modificada:"
+        $outputMode = Select-VorkImageOutputAction -PromptTitle "Entrega de la imagen"
         if (-not $outputMode) { $outputMode = "all" }
 
-        $hasLocal = $outputMode -in @("local", "local_video", "local_audio", "local_download", "local_stream", "all")
-        $hasDownload = $outputMode -in @("download", "local_download", "download_stream", "all")
-        $hasVideoStream = $outputMode -in @("video_stream", "local_video", "video_audio", "stream", "local_stream", "download_stream", "all")
-        $hasAudioStream = $outputMode -in @("audio_stream", "local_audio", "video_audio", "stream", "local_stream", "download_stream", "all")
+        $hasLocal = $outputMode -in @("local", "all")
+        $hasDownload = $outputMode -in @("download", "all")
 
         if ($hasLocal) {
             try {
                 Invoke-WebRequest -Uri $dlUrl -OutFile $out -UseBasicParsing -TimeoutSec 90
                 $resolvedOut = (Resolve-Path $out).Path
-                Write-Host "  $Cyan│$Reset  $Green✓ Guardado local:$Reset $White$resolvedOut$Reset"
+                Write-VorkInfoRow -Label "Guardado" -Value $resolvedOut -ValueColor $Green
             } catch {
-                Write-Host "  $Cyan│$Reset    Descarga: $Yellow$dlUrl$Reset"
+                Write-VorkInfoRow -Label "Descarga" -Value $dlUrl -ValueColor $Yellow
             }
         }
 
         if ($hasDownload) {
-            Write-Host "  $Cyan│$Reset  $Yellow✓ Descarga:$Reset       $White$dlUrl$Reset"
+            Write-VorkInfoRow -Label "Enlace" -Value $dlUrl -ValueColor $Cyan
         }
 
-        if ($hasVideoStream -and $stUrl) {
-            Write-Host "  $Cyan│$Reset  $Magenta✓ Stream Video:$Reset   $White$stUrl$Reset"
-        }
-
-        if ($hasAudioStream -and $stUrl) {
-            Write-Host "  $Cyan│$Reset  $Cyan✓ Stream Música:$Reset  $White$stUrl$Reset"
-        }
-
-        Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
-        Send-VorkNotification -Title "Vork Fondo IA" -Message "Modificación de fondo completada con éxito."
+        Write-VorkSectionRule
+        Send-VorkNotification -Title "Vork Fondo IA" -Message "Edición de imagen completada con éxito."
     } catch {
-        Write-Host "  $Cyan│$Reset  ${Coral}[Error Imagen IA]:${Reset} $($_.Exception.Message)"
-        Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
+        Write-VorkStatusLine -Kind error -Text "Error de procesamiento IA" -Detail $_.Exception.Message
+        Write-VorkSectionRule
     }
     Write-Host ""
 }

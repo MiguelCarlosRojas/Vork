@@ -17,12 +17,10 @@ function Invoke-PillarTranslate {
     }
 
     if (-not $text) {
-        Write-Host ""
-        Write-Host "  ${Cyan}${Bold}╭─ [01] Vork Traductor en la Nube (+200 Idiomas)${Reset}"
-        Write-Host "  ${Lead}│${Reset} ${White}Ingresa el texto que deseas traducir:${Reset}"
-        $textInput = Read-VorkInput -Prompt "  ${Lead}│${Reset} ${Cyan}> ${Reset}"
+        Write-VorkSectionHeader -Title "Traducción" -Subtitle "Texto a traducir · más de 200 idiomas" -RightText "vork · translate"
+        $textInput = Read-VorkInput -Prompt "  ${Coral}${Bold}$([char]0x203A)${Reset} "
         if (-not $textInput -or -not $textInput.Trim()) {
-            Write-Host "  ${Lead}╰─ Traducción cancelada.${Reset}"
+            Write-VorkStatusLine -Kind warn -Text "Traducción cancelada."
             Write-Host ""
             return
         }
@@ -41,26 +39,26 @@ function Invoke-PillarTranslate {
             @{ Value = "ko"; Label = "ko (Coreano)" }
         )
 
-        $chosenLang = Select-InteractiveOption -PromptTitle "Selecciona el idioma destino:" -Options $langOptions -DefaultIndex 0
+        $chosenLang = Select-InteractiveOption -PromptTitle "Idioma destino" -Subtitle "traducción neuronal" -Options $langOptions -DefaultIndex 0
         if (-not $chosenLang) {
-            Write-Host "  ${Lead}╰─ Traducción cancelada.${Reset}"
+            Write-VorkStatusLine -Kind warn -Text "Traducción cancelada."
             Write-Host ""
             return
         }
         $to = $chosenLang
     }
 
-    Write-Host ""
-    Write-Host "  $Cyan╭─ [01] VORK TRANSLATOR ────────────────────────────$Reset"
-    Write-Host "  $Cyan│$Reset  $Gray Destino:$Reset  $Yellow$to$Reset"
-    Write-Host "  $Cyan│$Reset  $Gray Entrada:$Reset  $White`"$text`"$Reset"
-    Write-Host "  $Cyan├───────────────────────────────────────────────────$Reset"
-    
+    Write-VorkSectionHeader -Title "Procesando traducción" -RightText "vork · translate"
+    Write-VorkInfoRow -Label "Destino" -Value $to -ValueColor $Yellow
+    Write-VorkInfoRow -Label "Entrada" -Value "`"$text`""
+    Write-VorkSectionRule
+
     $body = @{ text = $text; targetLanguage = $to } | ConvertTo-Json
     try {
         $res = Invoke-RestMethod -Uri "$ApiBase/api/translate" -Method Post -Body $body -ContentType "application/json"
-        Write-Host "  $Cyan│$Reset  $Green✓ Traducción:$Reset $White$($res.translatedText)$Reset"
-        
+        Write-VorkStatusLine -Kind ok -Text "Traducción completada"
+        Write-VorkInfoRow -Label "Salida" -Value $res.translatedText -ValueColor $White
+
         $outFile = "traduccion.txt"
         $resolvedOut = Join-Path (Get-Location) $outFile
         $dlUrl = if ($res.downloadUrl) {
@@ -69,7 +67,7 @@ function Invoke-PillarTranslate {
             "$ApiBase/api/translate/download?translatedText=$([System.Uri]::EscapeDataString($res.translatedText))"
         }
 
-        $outputMode = Select-VorkTextOutputAction -PromptTitle "Selecciona cómo deseas obtener el texto traducido:"
+        $outputMode = Select-VorkTextOutputAction -PromptTitle "Entrega del texto"
         if (-not $outputMode) { $outputMode = "all" }
 
         $hasLocal = $outputMode -in @("local", "all")
@@ -78,18 +76,18 @@ function Invoke-PillarTranslate {
         if ($hasLocal) {
             [System.IO.File]::WriteAllText($resolvedOut, $res.translatedText, [System.Text.Encoding]::UTF8)
             $resolvedPath = (Resolve-Path $outFile).Path
-            Write-Host "  $Cyan│$Reset  $Green✓ Guardado local:$Reset $White$resolvedPath$Reset"
+            Write-VorkInfoRow -Label "Guardado" -Value $resolvedPath -ValueColor $Green
         }
 
         if ($hasDownload) {
-            Write-Host "  $Cyan│$Reset  $Yellow✓ Descarga:$Reset       $White$dlUrl$Reset"
+            Write-VorkInfoRow -Label "Enlace" -Value $dlUrl -ValueColor $Cyan
         }
 
-        Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
+        Write-VorkSectionRule
         Send-VorkNotification -Title "Vork Traductor" -Message "Traducción completada con éxito."
     } catch {
-        Write-Host "  $Cyan│$Reset  ${Coral}[Error al traducir]:${Reset} $($_.Exception.Message)"
-        Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
+        Write-VorkStatusLine -Kind error -Text "Error al traducir" -Detail $_.Exception.Message
+        Write-VorkSectionRule
     }
     Write-Host ""
 }

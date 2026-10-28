@@ -1,12 +1,12 @@
-﻿<#
+<#
 .SYNOPSIS
-    Vork CLI - Modulo UI: Banner y Logo Terminal V (Plomo Oscuro & Coral)
+    Vork CLI - Modulo UI: Banner y Tarjeta Terminal V (Adaptable a Temas y Modo Claro/Oscuro)
 
 .DESCRIPTION
-    Conserva el logo solido en bloque "V" y la cabecera clasica de Vork CLI,
-    pero calcula el ancho real de la terminal para recortar de forma segura
-    (sin romper colores ANSI) y cambia a una cabecera compacta cuando la
-    ventana es demasiado estrecha o baja.
+    Genera la tarjeta visual moderna de Vork CLI con insignia superior, logotipo V
+    vectorial estilizado a la derecha y datos de sesión (modelo y directorio) a la
+    izquierda. Se adapta automáticamente a los 10 temas visuales (/theme) y a la
+    paleta claro/oscuro/sistema configurada en /config.
 #>
 
 function Show-Banner {
@@ -23,41 +23,74 @@ function Show-Banner {
         default  { $Cyan }
     }
     $modelName = if ($global:VorkModel) { $global:VorkModel } else { "Vork 3" }
-    $endpointInfo = "$ApiBase (Vork AI)"
     $versionBadge = "v$VorkVersion"
 
-    # Logo V moderno solido de 15 columnas (identico al diseno original)
+    # Logo V estilizado a escala simétrica (5 líneas, 9 columnas exactas)
     $sF = [string][char]0x2588 # █
-    $v1 = "  " + ($sF * 2) + "       " + ($sF * 2) + "  "
-    $v2 = "  " + ($sF * 3) + "     " + ($sF * 3) + "  "
-    $v3 = "   " + ($sF * 3) + "   " + ($sF * 3) + "   "
-    $v4 = "    " + ($sF * 3) + " " + ($sF * 3) + "    "
-    $v5 = "     " + ($sF * 5) + "     "
+    $sU = [string][char]0x2580 # ▀
+    $vRows = @(
+        (($sF * 2) + "     " + ($sF * 2)),
+        ($sU + ($sF * 2) + "   " + ($sF * 2) + $sU),
+        (" " + $sU + ($sF * 2) + " " + ($sF * 2) + $sU + " "),
+        ("  " + $sU + ($sF * 3) + $sU + "  "),
+        ("    " + $sU + "    ")
+    )
+
+    $cH = [string][char]0x2500 # ─
+    $cV = [string][char]0x2502 # │
+    $cTL = [string][char]0x256D # ╭
+    $cTR = [string][char]0x256E # ╮
+    $cBL = [string][char]0x2570 # ╰
+    $cBR = [string][char]0x256F # ╯
+    $cChev = [string][char]0x276F # ❯
 
     Write-Host ""
 
-    if ($width -ge 58 -and $metrics.Height -ge 12) {
-        # Cabecera completa: logo a la izquierda, datos de sesion alineados a la derecha.
-        $lines = @(
-            "${Coral}${v1}${Reset}    ${Coral}${Bold}Vork CLI${Reset} ${BgSel}${Cyan}${Bold} $versionBadge ${Reset}",
-            "${Coral}${v2}${Reset}    ${LeadLight}$modelName ($tierLabel)${Reset}",
-            "${Coral}${v3}${Reset}    ${LeadLight}$endpointInfo${Reset}",
-            "${Coral}${v4}${Reset}    ${Lead}$currPath${Reset}",
-            "${Coral}${v5}${Reset}"
-        )
+    if ($width -ge 48 -and $metrics.Height -ge 9) {
+        $cardW = [Math]::Min(72, [Math]::Max(46, $width - 2))
+        $inner = $cardW - 2
+        $rightPad = if ($cardW -ge 60) { 4 } else { 2 }
+        $logoW = 9
+        $logoCol = $inner - $rightPad - $logoW
 
-        foreach ($line in $lines) {
-            Write-Host (Limit-VorkAnsiText -Text $line -MaxWidth $width)
+        $badgeStr = "${cH}${cH}[ ${White}${Bold}VORK CLI ${Cyan}$versionBadge${Lead} ]"
+        $badgeVis = 2 + 2 + 9 + 1 + $versionBadge.Length + 2
+        $remH = [Math]::Max(2, $inner - $badgeVis)
+        Write-Host "  ${Lead}${cTL}${badgeStr}$([string]::new($cH, $remH))${cTR}${Reset}"
+
+        # Presupuesto horizontal seguro para no desbordar en terminales medianas
+        $maxPathBudget = [Math]::Max(10, ($logoCol - 6))
+
+        for ($i = 0; $i -lt 5; $i++) {
+            $leftText = if ($i -eq 1) {
+                "${White}$modelName${Reset} ${tierColor}($tierLabel)${Reset}"
+            } elseif ($i -eq 2) {
+                $pathShown = $currPath
+                if ($pathShown.Length -gt $maxPathBudget) {
+                    $pathShown = "..." + $pathShown.Substring($pathShown.Length - ($maxPathBudget - 3))
+                }
+                "${Coral}${cChev}${Reset} ${LeadLight}$pathShown${Reset}"
+            } else {
+                ""
+            }
+
+            $logoText = "${Coral}$($vRows[$i])${Reset}"
+            $lVis = ($leftText -replace "\x1B\[[0-9;]*[a-zA-Z]", "").Length
+            $midSpaces = [Math]::Max(1, ($logoCol - 3) - $lVis)
+
+            Write-Host "  ${Lead}${cV}${Reset}   $leftText$([string]::new(' ', $midSpaces))$logoText$([string]::new(' ', $rightPad))${Lead}${cV}${Reset}"
         }
-    } else {
-        # Cabecera compacta para terminales estrechas o de poca altura.
-        $title = "  ${Coral}${Bold}Vork CLI${Reset}  ${BgSel}${Cyan}${Bold} $versionBadge ${Reset}"
-        $engine = "  ${LeadLight}$modelName${Reset} ${Lead}·${Reset} ${tierColor}${Bold}$tierLabel${Reset} ${Lead}·${Reset} ${LeadLight}$endpointInfo${Reset}"
-        $path = "  ${Lead}$currPath${Reset}"
 
-        Write-Host (Limit-VorkAnsiText -Text $title -MaxWidth $width)
-        Write-Host (Limit-VorkAnsiText -Text $engine -MaxWidth $width)
-        Write-Host (Limit-VorkAnsiText -Text $path -MaxWidth $width)
+        Write-Host "  ${Lead}${cBL}$([string]::new($cH, $inner))${cBR}${Reset}"
+    } else {
+        # Cabecera compacta responsive para terminales ultra estrechas (< 48 cols)
+        $badgeStr = "${cH}${cH}[ ${White}${Bold}VORK CLI ${Cyan}$versionBadge${Lead} ]"
+        $cW = [Math]::Max(20, $width - 2)
+        $remH = [Math]::Max(2, $cW - 2 - 16)
+        Write-Host "  ${Lead}${cTL}${badgeStr}$([string]::new($cH, $remH))${cTR}${Reset}"
+        Write-Host "  ${Lead}${cV}${Reset} ${White}$modelName${Reset} ${tierColor}($tierLabel)${Reset}"
+        Write-Host "  ${Lead}${cV}${Reset} ${Coral}${cChev}${Reset} ${LeadLight}$currPath${Reset}"
+        Write-Host "  ${Lead}${cBL}$([string]::new($cH, [Math]::Max(2, $cW - 2)))${cBR}${Reset}"
     }
 
     Write-Host ""

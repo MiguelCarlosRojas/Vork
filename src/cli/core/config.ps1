@@ -470,6 +470,42 @@ function Apply-VorkTheme {
             $global:BgSel         = "$ESC[48;2;38;44;56m"
         }
     }
+
+    # ----------------------------------------------------
+    # ADAPTABILIDAD: COLOR SCHEME (/config: dark, light, system)
+    # ----------------------------------------------------
+    $scheme = "dark"
+    try {
+        $stFile = Join-Path $HOME ".vork\settings.json"
+        if (Test-Path $stFile) {
+            $stJson = Get-Content -Path $stFile -Raw | ConvertFrom-Json
+            if ($stJson.color_scheme) { $scheme = [string]$stJson.color_scheme.Trim().ToLower() }
+        }
+    } catch { }
+
+    $isLight = $false
+    if ($scheme -in @("light", "blanco", "white")) {
+        $isLight = $true
+    } elseif ($scheme -in @("system", "sistema")) {
+        try {
+            $regVal = Get-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize" -Name "AppsUseLightTheme" -ErrorAction SilentlyContinue
+            if ($regVal -and $regVal.AppsUseLightTheme -eq 1) { $isLight = $true }
+        } catch { }
+    }
+
+    $global:VorkIsLightMode = $isLight
+    if ($isLight) {
+        $global:White     = "$ESC[38;2;24;24;27m"      # Texto de alto contraste sobre fondo blanco
+        $global:Gray      = "$ESC[38;2;82;82;91m"
+        $global:LeadLight = "$ESC[38;2;55;65;81m"      # Texto secundario nítido
+        $global:Lead      = "$ESC[38;2;148;163;184m"   # Bordes contrastados
+        $global:LeadDark  = "$ESC[38;2;203;213;225m"
+        $global:BgLead    = "$ESC[48;2;241;245;249m"
+        $global:BgSel     = "$ESC[48;2;226;232;240m"
+    } else {
+        $global:White     = "$ESC[38;2;240;246;252m"
+        $global:Gray      = "$ESC[38;2;120;128;140m"
+    }
 }
 
 # Cargar tema persistido al inicio

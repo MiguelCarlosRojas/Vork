@@ -17,20 +17,18 @@ function Invoke-PillarTTS {
     }
 
     if (-not $text) {
-        Write-Host ""
-        Write-Host "  ${Cyan}${Bold}╭─ [02] Vork Texto a Voz Neuronal (TTS Studio)${Reset}"
-        Write-Host "  ${Lead}│${Reset} ${White}Ingresa el texto a sintetizar:${Reset}"
-        $text = Read-VorkInput -Prompt "  ${Lead}│${Reset} ${Cyan}> ${Reset}"
+        Write-VorkSectionHeader -Title "Texto a voz" -Subtitle "Síntesis neuronal · 24 voces humanas" -RightText "vork · tts"
+        $text = Read-VorkInput -Prompt "  ${Coral}${Bold}$([char]0x203A)${Reset} "
         if (-not $text -or -not $text.Trim()) {
-            Write-Host "  ${Lead}╰─ Síntesis cancelada.${Reset}"
+            Write-VorkStatusLine -Kind warn -Text "Síntesis cancelada."
             Write-Host ""
             return
         }
         $text = $text.Trim()
 
-        $chosen = Select-InteractiveTTSVoice -PromptTitle "Selecciona el idioma y la voz neuronal:" -DefaultLang "Español" -DefaultVoiceId "es-ES-alvaro"
+        $chosen = Select-InteractiveTTSVoice -PromptTitle "Idioma y voz neuronal" -DefaultLang "Español" -DefaultVoiceId "es-ES-alvaro"
         if (-not $chosen) {
-            Write-Host "  ${Lead}╰─ Síntesis cancelada.${Reset}"
+            Write-VorkStatusLine -Kind warn -Text "Síntesis cancelada."
             Write-Host ""
             return
         }
@@ -42,11 +40,11 @@ function Invoke-PillarTTS {
         $voiceDisplay = $voice
     }
 
-    Write-Host ""
-    Write-Host "  $Cyan╭─ [02] VORK NEURAL TTS ────────────────────────────$Reset"
-    Write-Host "  $Cyan│$Reset  $Gray Voz:$Reset     $Yellow$voiceDisplay$Reset"
-    Write-Host "  $Cyan│$Reset  $Gray Salida:$Reset  $White$out$Reset"
-    Write-Host "  $Cyan├───────────────────────────────────────────────────$Reset"
+    Write-VorkSectionHeader -Title "Procesando síntesis" -RightText "vork · tts"
+    Write-VorkInfoRow -Label "Voz" -Value $voiceDisplay -ValueColor $Yellow
+    Write-VorkInfoRow -Label "Salida" -Value $out
+    Write-VorkSectionRule
+    Write-VorkStatusLine -Kind step -Text "Generando audio neuronal"
 
     if (-not $out) { $out = "audio_tts.mp3" }
 
@@ -65,8 +63,8 @@ function Invoke-PillarTTS {
         $videoFull = if ($res.videoStreamUrl) { if ($res.videoStreamUrl.StartsWith("http")) { $res.videoStreamUrl } else { "$ApiBase$($res.videoStreamUrl)" } } else { $stUrl }
         $audioFull = if ($res.audioStreamUrl) { if ($res.audioStreamUrl.StartsWith("http")) { $res.audioStreamUrl } else { "$ApiBase$($res.audioStreamUrl)" } } else { $stUrl }
 
-        Write-Host "  $Cyan│$Reset  $Green✓ Síntesis vocal completada con éxito.$Reset"
-        $outputMode = Select-VorkMediaOutputAction -PromptTitle "Selecciona cómo deseas obtener el audio sintetizado:"
+        Write-VorkStatusLine -Kind ok -Text "Síntesis vocal completada"
+        $outputMode = Select-VorkMediaOutputAction -PromptTitle "Entrega del audio"
         if (-not $outputMode) { $outputMode = "all" }
 
         $hasLocal = $outputMode -in @("local", "local_video", "local_audio", "local_download", "local_stream", "all")
@@ -86,27 +84,27 @@ function Invoke-PillarTTS {
             }
             if (Test-Path $targetFile) {
                 $resolvedOut = (Resolve-Path $targetFile).Path
-                Write-Host "  $Cyan│$Reset  $Green✓ Guardado local:$Reset $White$resolvedOut$Reset"
+                Write-VorkInfoRow -Label "Guardado" -Value $resolvedOut -ValueColor $Green
             }
         }
 
         if ($hasDownload) {
-            Write-Host "  $Cyan│$Reset  $Yellow✓ Descarga:$Reset       $White$dlUrl$Reset"
+            Write-VorkInfoRow -Label "Descarga" -Value $dlUrl -ValueColor $Yellow
         }
 
         if ($hasVideoStream -and $videoFull) {
-            Write-Host "  $Cyan│$Reset  $Magenta✓ Stream Video:$Reset   $White$videoFull$Reset"
+            Write-VorkInfoRow -Label "Video" -Value $videoFull -ValueColor $Purple
         }
 
         if ($hasAudioStream -and $audioFull) {
-            Write-Host "  $Cyan│$Reset  $Cyan✓ Stream Música:$Reset  $White$audioFull$Reset"
+            Write-VorkInfoRow -Label "Audio" -Value $audioFull -ValueColor $Cyan
         }
 
-        Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
+        Write-VorkSectionRule
         Send-VorkNotification -Title "Vork Síntesis TTS" -Message "Audio de voz neuronal generado con éxito."
     } catch {
-        Write-Host "  $Cyan│$Reset  ${Coral}[Error TTS]:${Reset} $($_.Exception.Message)"
-        Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
+        Write-VorkStatusLine -Kind error -Text "Error de TTS" -Detail $_.Exception.Message
+        Write-VorkSectionRule
     }
     Write-Host ""
 }
