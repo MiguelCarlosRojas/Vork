@@ -13,7 +13,7 @@ function Write-VorkHelpLine {
         $metrics = Get-VorkConsoleMetrics
         $Width = [Math]::Max(10, $metrics.Width - 1)
     }
-    Write-Host (Limit-VorkAnsiText -Text $Text -MaxWidth $Width)
+    Write-Host ((Limit-VorkAnsiText -Text $Text -MaxWidth $Width) + $ClrToEnd)
 }
 
 function Show-Shortcuts {
@@ -244,10 +244,11 @@ function Show-InteractiveHelpModal {
         @{ Cmd = "/undo";        Desc = "Deshacer la ultima accion o cambio de codigo" },
         @{ Cmd = "/status";      Desc = "Telemetria y estado operativo en vivo de los 9 pilares" },
         @{ Cmd = "/config";      Desc = "Panel interactivo de configuraciones y permisos" },
-        @{ Cmd = "/model";       Desc = "Configurar modelo Vork 3 y nivel de potencia" },
+        @{ Cmd = "/model";       Desc = "Configurar modelo Vork 3 y nivel de potencia (low/med/high/expert)" },
         @{ Cmd = "/theme";       Desc = "Alternar entre los 10 temas visuales oficiales" },
         @{ Cmd = "/env";         Desc = "Consultar y gestionar variables de entorno activas" },
         @{ Cmd = "/help";        Desc = "Manual interactivo de comandos y atajos de teclado" },
+        @{ Cmd = "/slash";       Desc = "Ver todos los comandos con barra clasificados" },
         @{ Cmd = "/update";      Desc = "Sincronizar y actualizar Vork CLI a la ultima version" },
         @{ Cmd = "/health";      Desc = "Telemetria en tiempo real de los 9 pilares" },
         @{ Cmd = "/ping";        Desc = "Prueba de latencia ultrarrrapida hacia la nube" },
@@ -265,7 +266,7 @@ function Show-InteractiveHelpModal {
         @{ Key = "ctrl+d";                 Desc = "Salir del CLI de forma segura" },
         @{ Key = "up / down";              Desc = "Navegar historial de comandos o menus" },
         @{ Key = "left / right";           Desc = "Cambiar de pestana en el navegador de ayuda" },
-        @{ Key = "shift+tab";              Desc = "Ciclar nivel de potencia (low, medium, high)" },
+        @{ Key = "shift+tab";              Desc = "Ciclar nivel de potencia (low, medium, high, expert)" },
         @{ Key = "home / end";             Desc = "Mover el cursor al inicio o final de linea" },
         @{ Key = "backspace";              Desc = "Borrar el caracter anterior" },
         @{ Key = "alt+enter, shift+enter"; Desc = "Insertar salto de linea sin enviar" },
@@ -281,6 +282,7 @@ function Show-InteractiveHelpModal {
     try {
         Clear-Host
         while ($true) {
+            try { [Console]::SetCursorPosition(0, 0) } catch { }
             $metrics = Get-VorkConsoleMetrics
             $width = [Math]::Max(20, $metrics.Width - 1)
             $height = [Math]::Max(8, $metrics.Height)
@@ -293,8 +295,11 @@ function Show-InteractiveHelpModal {
             $bodyBudget = [Math]::Max(1, $height - 6)
             $rule = [string]::new([char]0x2500, [Math]::Max(10, $width - 3))
 
+            $linesDrawn = 0
+
             # Encabezado con pestanas
-            Write-Host ""
+            Write-Host "$ClrLine"
+            $linesDrawn++
             $brand = "${Cyan}${Bold}Vork CLI v$VorkVersion${Reset}   "
             $tabStr = ""
             for ($t = 0; $t -lt $tabs.Count; $t++) {
@@ -306,7 +311,9 @@ function Show-InteractiveHelpModal {
                 }
             }
             Write-VorkHelpLine -Width $width -Text "  $brand$tabStr"
+            $linesDrawn++
             Write-VorkHelpLine -Width $width -Text "  ${Lead}$rule${Reset}"
+            $linesDrawn++
 
             switch ($curTab) {
                 0 {
@@ -329,7 +336,7 @@ function Show-InteractiveHelpModal {
                     $generalLines += "  ${White}${Bold}Tema Activo:${Reset}     ${Cyan}$global:VorkThemeName${Reset}"
                     $generalLines += ""
                     $generalLines += "  ${White}${Bold}Referencia Rapida:${Reset}"
-                    $generalLines += "    ${Cyan}/${Reset}   ${LeadLight}Escribe / para ver todos los 40 comandos con barra${Reset}"
+                    $generalLines += "    ${Cyan}/${Reset}   ${LeadLight}Escribe / para ver todos los comandos con barra${Reset}"
                     $generalLines += "    ${Cyan}?${Reset}   ${LeadLight}Presiona ? para abrir este navegador interactivo${Reset}"
                     $generalLines += ""
 
@@ -337,14 +344,22 @@ function Show-InteractiveHelpModal {
                         if ($g -lt $generalLines.Count) {
                             Write-VorkHelpLine -Width $width -Text $generalLines[$g]
                         } else {
-                            Write-Host ""
+                            Write-Host "$ClrLine$ClrToEnd"
                         }
+                        $linesDrawn++
                     }
                 }
                 1 {
-                    if (-not $compact) { Write-Host "" }
+                    if (-not $compact) {
+                        Write-Host "$ClrLine$ClrToEnd"
+                        $linesDrawn++
+                    }
                     Write-VorkHelpLine -Width $width -Text "  ${White}${Bold}Comandos Disponibles ($($allCommands.Count)):${Reset}"
-                    if (-not $compact) { Write-Host "" }
+                    $linesDrawn++
+                    if (-not $compact) {
+                        Write-Host "$ClrLine$ClrToEnd"
+                        $linesDrawn++
+                    }
 
                     if ($cmdIdx -lt $cmdTop) { $cmdTop = $cmdIdx }
                     elseif ($cmdIdx -ge ($cmdTop + $winSize)) { $cmdTop = $cmdIdx - $winSize + 1 }
@@ -363,20 +378,37 @@ function Show-InteractiveHelpModal {
                                 "    ${LeadLight}$cName${Reset} ${LeadLight}$($cmdItem.Desc)${Reset}"
                             }
                             Write-VorkHelpLine -Width $width -Text $line
+                        } else {
+                            Write-Host "$ClrLine$ClrToEnd"
                         }
+                        $linesDrawn++
                     }
 
                     $rangeEnd = [Math]::Min($allCommands.Count, $cmdTop + $winSize)
                     if ($height -ge 10) {
-                        if (-not $compact) { Write-Host "" }
+                        if (-not $compact) {
+                            Write-Host "$ClrLine$ClrToEnd"
+                            $linesDrawn++
+                        }
                         Write-VorkHelpLine -Width $width -Text "  ${LeadDark}[$($cmdTop + 1)-$rangeEnd de $($allCommands.Count) comandos]${Reset}"
+                        $linesDrawn++
                     }
                 }
                 2 {
-                    if (-not $compact) { Write-Host "" }
+                    if (-not $compact) {
+                        Write-Host "$ClrLine$ClrToEnd"
+                        $linesDrawn++
+                    }
                     Write-VorkHelpLine -Width $width -Text "  ${White}${Bold}Atajos de Teclado ($($shortcuts.Count)):${Reset}"
-                    if (-not $compact) { Write-VorkHelpLine -Width $width -Text "  ${LeadLight}? para ver todos los atajos${Reset}" }
-                    if (-not $compact) { Write-Host "" }
+                    $linesDrawn++
+                    if (-not $compact) {
+                        Write-VorkHelpLine -Width $width -Text "  ${LeadLight}? para ver todos los atajos${Reset}"
+                        $linesDrawn++
+                    }
+                    if (-not $compact) {
+                        Write-Host "$ClrLine$ClrToEnd"
+                        $linesDrawn++
+                    }
 
                     if ($scIdx -lt $scTop) { $scTop = $scIdx }
                     elseif ($scIdx -ge ($scTop + $winSize)) { $scTop = $scIdx - $winSize + 1 }
@@ -395,25 +427,40 @@ function Show-InteractiveHelpModal {
                                 "    ${LeadLight}$sKey${Reset} ${LeadLight}$($scItem.Desc)${Reset}"
                             }
                             Write-VorkHelpLine -Width $width -Text $line
+                        } else {
+                            Write-Host "$ClrLine$ClrToEnd"
                         }
+                        $linesDrawn++
                     }
 
                     $rangeEnd = [Math]::Min($shortcuts.Count, $scTop + $winSize)
                     if ($height -ge 10) {
-                        if (-not $compact) { Write-Host "" }
+                        if (-not $compact) {
+                            Write-Host "$ClrLine$ClrToEnd"
+                            $linesDrawn++
+                        }
                         Write-VorkHelpLine -Width $width -Text "  ${LeadDark}[$($scTop + 1)-$rangeEnd de $($shortcuts.Count) atajos]${Reset}"
+                        $linesDrawn++
                     }
                 }
             }
 
-            Write-Host ""
+            Write-Host "$ClrLine$ClrToEnd"
+            $linesDrawn++
             Write-VorkHelpLine -Width $width -Text "  ${Lead}$rule${Reset}"
+            $linesDrawn++
             $footer = if ($curTab -eq 1) {
                 "  ${LeadLight}Teclado: ${Cyan}$([char]0x2191)/$([char]0x2193)${Reset} ${LeadLight}Navegar  ${Cyan}enter${Reset} ${LeadLight}Seleccionar  ${Cyan}$([char]0x2190)/$([char]0x2192)/tab${Reset} ${LeadLight}Cambiar Vista  ${Coral}esc${Reset} ${LeadLight}Cerrar${Reset}"
             } else {
                 "  ${LeadLight}Teclado: ${Cyan}$([char]0x2191)/$([char]0x2193)${Reset} ${LeadLight}Navegar  ${Cyan}$([char]0x2190)/$([char]0x2192)/tab${Reset} ${LeadLight}Cambiar Vista  ${Coral}esc${Reset} ${LeadLight}Cerrar${Reset}"
             }
             Write-VorkHelpLine -Width $width -Text $footer
+            $linesDrawn++
+
+            while ($linesDrawn -lt $height) {
+                Write-Host "$ClrLine$ClrToEnd"
+                $linesDrawn++
+            }
 
             $wait = Wait-VorkConsoleKey
             if ($wait.Resized) {
@@ -429,13 +476,11 @@ function Show-InteractiveHelpModal {
 
             if ($key.Key -in [ConsoleKey]::RightArrow, [ConsoleKey]::Tab) {
                 $curTab = ($curTab + 1) % $tabs.Count
-                Clear-Host
                 continue
             }
 
             if ($key.Key -eq [ConsoleKey]::LeftArrow) {
                 $curTab = if ($curTab -gt 0) { $curTab - 1 } else { $tabs.Count - 1 }
-                Clear-Host
                 continue
             }
 
@@ -445,7 +490,6 @@ function Show-InteractiveHelpModal {
                 } elseif ($curTab -eq 2) {
                     $scIdx = if ($scIdx -gt 0) { $scIdx - 1 } else { $shortcuts.Count - 1 }
                 }
-                Clear-Host
                 continue
             }
 
@@ -455,21 +499,18 @@ function Show-InteractiveHelpModal {
                 } elseif ($curTab -eq 2) {
                     $scIdx = if ($scIdx -lt ($shortcuts.Count - 1)) { $scIdx + 1 } else { 0 }
                 }
-                Clear-Host
                 continue
             }
 
             if ($key.Key -eq [ConsoleKey]::Home) {
                 if ($curTab -eq 1) { $cmdIdx = 0 }
                 elseif ($curTab -eq 2) { $scIdx = 0 }
-                Clear-Host
                 continue
             }
 
             if ($key.Key -eq [ConsoleKey]::End) {
                 if ($curTab -eq 1) { $cmdIdx = $allCommands.Count - 1 }
                 elseif ($curTab -eq 2) { $scIdx = $shortcuts.Count - 1 }
-                Clear-Host
                 continue
             }
 

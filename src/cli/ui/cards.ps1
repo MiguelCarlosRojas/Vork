@@ -1430,7 +1430,7 @@ function Write-VorkSettingsFrame {
     $inner = [Math]::Max(10, $Panel.Width - 6)
 
     $searchText = if ($Search) { "${White}${Bold}$Search${Reset}" } else { "${LeadDark}escribe para filtrar${Reset}" }
-    $searchRaw = "Buscar: " + (if ($Search) { $Search } else { "escribe para filtrar" })
+    $searchRaw = if ($Search) { "Buscar: $Search" } else { "Buscar: escribe para filtrar" }
     $searchPad = [Math]::Max(0, $inner - (Get-VorkDisplayWidth $searchRaw))
     Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${Lead}$([char]0x2502)${Reset} ${LeadLight}Buscar:${Reset} $searchText$([string]::new(' ', $searchPad)) ${Lead}$([char]0x2502)${Reset}"
     $row++
