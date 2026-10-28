@@ -239,6 +239,16 @@ exports.streamMedia = async (req, res) => {
       return res.status(404).send("Medio no encontrado o expirado (TTL 30 min).");
     }
 
+    const streamType = (req.query.type || "").toLowerCase();
+
+    // Redirección inteligente si se solicita video para un archivo sólo audio o viceversa
+    if (streamType === "video" && item.format !== "mp4" && item.mp4Url) {
+      return res.redirect(item.mp4Url);
+    }
+    if (streamType === "audio" && item.format === "mp4" && item.mp3Url && item.mp3Url !== item.mp4Url) {
+      return res.redirect(item.mp3Url);
+    }
+
     // Servir desde archivo físico en disco (verificando confinamiento en MEDIA_CACHE_DIR)
     if (item.filePath && fs.existsSync(item.filePath)) {
       if (!isPathContained(item.filePath, MEDIA_CACHE_DIR)) {

@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Pilar 04: Vork Conversor Multimedia Universal (YouTube, TikTok, IG a MP3/MP4)
 #>
@@ -153,14 +153,40 @@ function Invoke-PillarMedia {
             Write-Host "  $Cyan│$Reset  $Green✓ Conversión multimedia completada exitosamente.$Reset"
             $dlFull = if ($res.downloadUrl.StartsWith("http")) { $res.downloadUrl } else { "$ApiBase$($res.downloadUrl)" }
             $stFull = if ($res.streamUrl -and $res.streamUrl.StartsWith("http")) { $res.streamUrl } elseif ($res.streamUrl) { "$ApiBase$($res.streamUrl)" } else { "$ApiBase/api/media/stream?id=$($res.id)" }
+
+            $videoFull = if ($res.videoStreamUrl -and $res.videoStreamUrl.StartsWith("http")) {
+                $res.videoStreamUrl
+            } elseif ($res.videoStreamUrl) {
+                "$ApiBase$($res.videoStreamUrl)"
+            } elseif ($res.directVideoUrl) {
+                $res.directVideoUrl
+            } elseif ($fmt -eq "mp4") {
+                $stFull
+            } else {
+                "$ApiBase/api/media/stream?id=$($res.id)&type=video"
+            }
+
+            $audioFull = if ($res.audioStreamUrl -and $res.audioStreamUrl.StartsWith("http")) {
+                $res.audioStreamUrl
+            } elseif ($res.audioStreamUrl) {
+                "$ApiBase$($res.audioStreamUrl)"
+            } elseif ($res.directAudioUrl) {
+                $res.directAudioUrl
+            } elseif ($fmt -eq "mp3" -or $fmt -eq "wav") {
+                $stFull
+            } else {
+                "$ApiBase/api/media/stream?id=$($res.id)&type=audio"
+            }
+
             $localFile = if ($res.filename) { $res.filename } else { "media_output.$fmt" }
 
             $outputMode = Select-VorkMediaOutputAction -PromptTitle "Selecciona cómo deseas obtener el archivo convertido:"
             if (-not $outputMode) { $outputMode = "all" }
 
-            $hasLocal = $outputMode -in @("local", "local_stream", "local_download", "all")
+            $hasLocal = $outputMode -in @("local", "local_video", "local_audio", "local_download", "local_stream", "all")
             $hasDownload = $outputMode -in @("download", "local_download", "download_stream", "all")
-            $hasStream = $outputMode -in @("stream", "local_stream", "download_stream", "all")
+            $hasVideoStream = $outputMode -in @("video_stream", "local_video", "video_audio", "stream", "local_stream", "download_stream", "all")
+            $hasAudioStream = $outputMode -in @("audio_stream", "local_audio", "video_audio", "stream", "local_stream", "download_stream", "all")
 
             if ($hasLocal) {
                 try {
@@ -176,8 +202,12 @@ function Invoke-PillarMedia {
                 Write-Host "  $Cyan│$Reset  $Yellow✓ Descarga:$Reset       $White$dlFull$Reset"
             }
 
-            if ($hasStream) {
-                Write-Host "  $Cyan│$Reset  $Cyan✓ Stream:  $Reset       $White$stFull$Reset"
+            if ($hasVideoStream -and $videoFull) {
+                Write-Host "  $Cyan│$Reset  $Magenta✓ Stream Video:$Reset   $White$videoFull$Reset"
+            }
+
+            if ($hasAudioStream -and $audioFull) {
+                Write-Host "  $Cyan│$Reset  $Cyan✓ Stream Música:$Reset  $White$audioFull$Reset"
             }
 
             Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"

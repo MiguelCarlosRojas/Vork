@@ -1192,11 +1192,15 @@ async function processConversion(options = {}) {
     durationSeconds: finalDurationSeconds,
     sizeBytes,
     thumbnail: finalThumbnail,
+    mp4Url: mediaInfo.mp4Url || null,
+    mp3Url: mediaInfo.mp3Url || null,
     createdAt: Date.now()
   });
 
   const baseUrl = ""; // Rutas relativas para compatibilidad universal
   const streamUrl = `${baseUrl}/api/media/stream?id=${jobId}`;
+  const videoStreamUrl = `${baseUrl}/api/media/stream?id=${jobId}&type=video`;
+  const audioStreamUrl = `${baseUrl}/api/media/stream?id=${jobId}&type=audio`;
   const downloadUrl = `${baseUrl}/api/media/download?id=${jobId}`;
 
   return {
@@ -1212,6 +1216,10 @@ async function processConversion(options = {}) {
     duration: finalDuration,
     durationSeconds: finalDurationSeconds,
     streamUrl,
+    videoStreamUrl,
+    audioStreamUrl,
+    directVideoUrl: mediaInfo.mp4Url || null,
+    directAudioUrl: mediaInfo.mp3Url || null,
     downloadUrl,
     filename: downloadFilename,
     mimeType,

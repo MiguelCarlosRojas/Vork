@@ -670,16 +670,18 @@ function Select-VorkMediaOutputAction {
     param([string]$PromptTitle = "¿Cómo deseas obtener el archivo multimedia convertido?")
 
     $items = @(
-        @{ Label = "Guardado local";                      Description = "Descargar y guardar archivo físico en esta carpeta"; Value = "local" },
-        @{ Label = "Enlace de Descarga";                  Description = "Obtener URL directa web para descargar en navegador"; Value = "download" },
-        @{ Label = "Enlace de Stream";                    Description = "Obtener URL directa para reproducción en streaming"; Value = "stream" },
-        @{ Label = "Guardado local + Enlace de Stream";   Description = "Descargar archivo local y obtener enlace de streaming"; Value = "local_stream" },
-        @{ Label = "Guardado local + Enlace de Descarga"; Description = "Descargar archivo local y obtener enlace web"; Value = "local_download" },
-        @{ Label = "Enlace de Descarga + Enlace de Stream"; Description = "Obtener ambos enlaces web (descarga y stream)"; Value = "download_stream" },
-        @{ Label = "Los tres (Local + Descarga + Stream)"; Description = "Guardado físico local + Enlace Descarga + Enlace Stream"; Value = "all" }
+        @{ Label = "Guardado local";                          Description = "Descargar y guardar archivo físico en esta carpeta"; Value = "local" },
+        @{ Label = "Enlace de Descarga directa";              Description = "Obtener URL directa web para descargar en navegador"; Value = "download" },
+        @{ Label = "Stream de Video";                         Description = "Obtener URL directa para reproducir video en línea"; Value = "video_stream" },
+        @{ Label = "Stream de Música / Audio";                Description = "Obtener URL directa para reproducir música/audio en línea"; Value = "audio_stream" },
+        @{ Label = "Guardado local + Stream de Video";        Description = "Guardar archivo local y obtener enlace de streaming de video"; Value = "local_video" },
+        @{ Label = "Guardado local + Stream de Música";       Description = "Guardar archivo local y obtener enlace de streaming de audio"; Value = "local_audio" },
+        @{ Label = "Stream Video + Stream Música";            Description = "Obtener ambos enlaces de reproducción (video y música)"; Value = "video_audio" },
+        @{ Label = "Guardado local + Enlace de Descarga";     Description = "Descargar archivo local y obtener enlace web de descarga"; Value = "local_download" },
+        @{ Label = "Todos (Local + Descarga + Video + Audio)"; Description = "Guardado físico + Enlace Descarga + Stream Video + Stream Música"; Value = "all" }
     )
 
-    return (Invoke-VorkPicker -Title $PromptTitle -Subtitle "Vork Media · Opciones de salida" -Items $items -DefaultIndex 0 -NumericSelect -Footer "flechas mover  ·  1-7 elegir  ·  enter seleccionar  ·  esc cancelar")
+    return (Invoke-VorkPicker -Title $PromptTitle -Subtitle "Vork Media · Opciones de salida" -Items $items -DefaultIndex 0 -NumericSelect -Footer "flechas mover  ·  1-9 elegir  ·  enter seleccionar  ·  esc cancelar")
 }
 
 function Write-VorkTTSFrame {
