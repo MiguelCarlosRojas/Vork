@@ -80,15 +80,7 @@ function Read-VorkInput {
 
             $wait = Wait-VorkConsoleKey
             if ($wait.Resized) {
-                $metrics = Get-VorkConsoleMetrics
-                Clear-VorkPanel -Panel $panel
-                $visible = Get-VorkPickerVisibleRows -Metrics $metrics -ItemCount ([Math]::Max(1, $filtered.Count)) -ExtraRows $searchRows
-                $panelRows = $visible + 3 + $searchRows
-                Ensure-VorkRowsBelow -Rows $panelRows | Out-Null
-                $panel.Top = try { [Console]::CursorTop } catch { 0 }
-                $panel.Rows = $panelRows
-                $panel.Width = $metrics.Width
-                $panel.Height = $metrics.Height
+                # La linea de entrada se redibuja completa en la siguiente vuelta.
                 continue
             }
 
@@ -209,6 +201,27 @@ function Get-VorkPickerVisibleRows {
     return [Math]::Max(1, [Math]::Min([Math]::Max(1, $ItemCount), $available))
 }
 
+function Get-VorkOptionParts {
+    param($Item)
+
+    $label = if ($Item -is [hashtable] -and $Item.ContainsKey('Label')) { [string]$Item.Label } else { [string]$Item }
+    $description = if ($Item -is [hashtable] -and $Item.ContainsKey('Description')) { [string]$Item.Description } else { "" }
+
+    # La numeracion la dibuja el selector: se elimina cualquier "[n]" manual.
+    $label = [regex]::Replace($label, '^\s*\[\d+\]\s*', '').Trim()
+
+    # "Etiqueta (descripcion)" se muestra como dos columnas legibles.
+    if (-not $description -and $label -match '^(.*?)\s+\((.+)\)$') {
+        $label = $Matches[1].Trim()
+        $description = $Matches[2].Trim()
+    }
+
+    return [pscustomobject]@{
+        Label       = $label
+        Description = $description
+    }
+}
+
 function Write-VorkPickerFrame {
     param(
         $Panel,
@@ -224,48 +237,69 @@ function Write-VorkPickerFrame {
     )
 
     $row = 0
-    Write-VorkPanelLine -Panel $Panel -Index $row -Text (Format-VorkBorderTop -Title $Title -RightText $Subtitle -Width $Panel.Width)
+
+    # Cabecera plana: marca, titulo y subtitulo sobre la regla.
+    Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${Coral}${Bold}$([char]0x25C6)${Reset} ${White}${Bold}$Title${Reset}"
+    $row++
+
+    Write-VorkPanelLine -Panel $Panel -Index $row -Text (Format-VorkRuleLine -Width $Panel.Width -RightText $Subtitle)
     $row++
 
     if ($ShowSearch) {
-        $searchText = if ($Search) { $Search } else { "escribe para filtrar" }
-        $searchColor = if ($Search) { "${White}${Bold}$Search${Reset}" } else { "${LeadDark}$searchText${Reset}" }
-        Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${Lead}$([char]0x2502)${Reset} ${LeadLight}Buscar:${Reset} $searchColor"
+        $searchText = if ($Search) {
+            "${White}${Bold}$Search${Reset}${Coral}${Bold}$([char]0x258F)${Reset}"
+        } else {
+            "${LeadDark}escribe para filtrar${Reset}"
+        }
+        Write-VorkPanelLine -Panel $Panel -Index $row -Text "    ${Lead}buscar${Reset}  $searchText"
         $row++
     }
+
+    # Ancho comun de la primera columna para alinear las descripciones.
+    $labelWidth = 0
+    for ($i = 0; $i -lt $Visible; $i++) {
+        $index = $Top + $i
+        if ($index -lt $Items.Count) {
+            $parts = Get-VorkOptionParts $Items[$index]
+            $w = Get-VorkDisplayWidth $parts.Label
+            if ($w -gt $labelWidth) { $labelWidth = $w }
+        }
+    }
+    $labelWidth = [Math]::Max(6, [Math]::Min(28, $labelWidth))
 
     for ($i = 0; $i -lt $Visible; $i++) {
         $itemIndex = $Top + $i
         if ($itemIndex -lt $Items.Count) {
-            $item = $Items[$itemIndex]
+            $parts = Get-VorkOptionParts $Items[$itemIndex]
             $isSelected = $itemIndex -eq $Selected
-            $prefix = if ($isSelected) { "${Cyan}${Bold}$([char]0x25B8)${Reset} " } else { "  " }
-            $badge = if ($item -is [hashtable] -and $item.ContainsKey('Badge') -and $item.Badge) { "$($item.Badge) " } else { "" }
-            $label = if ($item -is [hashtable] -and $item.ContainsKey('Label')) { [string]$item.Label } else { [string]$item }
-            $valueText = if ($item -is [hashtable] -and $item.ContainsKey('ValueText') -and $item.ValueText) { "  ${Cyan}$($item.ValueText)${Reset}" } else { "" }
-            $description = if ($item -is [hashtable] -and $item.ContainsKey('Description') -and $item.Description) { "  ${LeadLight}$($item.Description)${Reset}" } else { "" }
-            $labelText = if ($isSelected) { "${White}${Bold}$label${Reset}" } else { "${White}$label${Reset}" }
-            Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${Lead}$([char]0x2502)${Reset} $prefix$badge$labelText$valueText$description"
+
+            $badge = if ($Items[$itemIndex] -is [hashtable] -and $Items[$itemIndex].ContainsKey('Badge') -and $Items[$itemIndex].Badge) { "$($Items[$itemIndex].Badge) " } else { "" }
+            $marker = if ($isSelected) { "${Coral}${Bold}$([char]0x25B8)${Reset}" } else { " " }
+            $number = if (($itemIndex + 1) -lt 10) { [string]($itemIndex + 1) } else { [string][char]0x00B7 }
+            $numberColor = if ($isSelected) { "${Cyan}${Bold}" } else { $LeadDark }
+            $labelColor = if ($isSelected) { "${White}${Bold}" } else { $LeadLight }
+            $labelPad = [string]::new(' ', [Math]::Max(0, $labelWidth - (Get-VorkDisplayWidth $parts.Label)))
+
+            $line = "  $marker ${numberColor}$number${Reset}  $badge${labelColor}$($parts.Label)${Reset}$labelPad"
+            if ($parts.Description) {
+                $line += "   ${LeadLight}$($parts.Description)${Reset}"
+            }
+            Write-VorkPanelLine -Panel $Panel -Index $row -Text $line
         } else {
             Write-VorkPanelLine -Panel $Panel -Index $row -Text ""
         }
         $row++
     }
 
-    $below = [Math]::Max(0, $Items.Count - ($Top + $Visible))
-    $above = $Top
-    $scrollText = ""
-    if ($above -gt 0 -and $below -gt 0) {
-        $scrollText = "$([char]0x2191) $above arriba  ·  $([char]0x2193) $below abajo"
-    } elseif ($below -gt 0) {
-        $scrollText = "$([char]0x2193) $below mas resultados"
-    } elseif ($above -gt 0) {
-        $scrollText = "$([char]0x2191) $above mas resultados"
-    }
-    Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${Lead}$([char]0x2502)${Reset} ${LeadDark}$scrollText${Reset}"
+    Write-VorkPanelLine -Panel $Panel -Index $row -Text (Format-VorkRuleLine -Width $Panel.Width)
     $row++
 
-    Write-VorkPanelLine -Panel $Panel -Index $row -Text (Format-VorkBorderBottom -LeftText $Footer -Width $Panel.Width)
+    $position = ""
+    if ($Items.Count -gt 0) {
+        $lastVisible = [Math]::Min($Items.Count, $Top + $Visible)
+        $position = "   ${LeadDark}$($Top + 1)-$lastVisible/$($Items.Count)${Reset}"
+    }
+    Write-VorkPanelLine -Panel $Panel -Index $row -Text "    ${LeadLight}$Footer${Reset}$position"
 }
 
 function Invoke-VorkPicker {
@@ -297,7 +331,7 @@ function Invoke-VorkPicker {
 
     $metrics = Get-VorkConsoleMetrics
     $visible = Get-VorkPickerVisibleRows -Metrics $metrics -ItemCount ([Math]::Max(1, $Items.Count)) -ExtraRows $searchRows
-    $panelRows = $visible + 3 + $searchRows
+    $panelRows = $visible + 4 + $searchRows
     Ensure-VorkRowsBelow -Rows $panelRows | Out-Null
     $panelTop = try { [Console]::CursorTop } catch { 0 }
     $panel = [pscustomobject]@{
@@ -450,25 +484,41 @@ function Select-InteractiveOption {
     param(
         [string]$PromptTitle,
         [array]$Options,
-        [int]$DefaultIndex = 0
+        [int]$DefaultIndex = 0,
+        [string]$Subtitle = "",
+        [string]$Footer = ""
     )
 
     if (-not $Options -or $Options.Count -eq 0) { return $null }
 
     $items = @()
     foreach ($option in $Options) {
-        if ($option -is [hashtable]) {
-            $label = if ($option.ContainsKey('Label') -and $option.Label) { [string]$option.Label } else { [string]$option }
-            $value = if ($option.ContainsKey('Value')) { $option.Value } else { $label }
-            $description = if ($option.ContainsKey('Description')) { [string]$option.Description } else { "" }
-            $items += @{ Label = $label; Value = $value; Description = $description; Search = (Get-VorkPlainText $label) }
+        $parts = Get-VorkOptionParts $option
+        $value = if ($option -is [hashtable] -and $option.ContainsKey('Value')) { $option.Value } else { $parts.Label }
+        $badge = if ($option -is [hashtable] -and $option.ContainsKey('Badge')) { [string]$option.Badge } else { "" }
+        $search = if ($option -is [hashtable] -and $option.ContainsKey('Search') -and $option.Search) {
+            [string]$option.Search
         } else {
-            $label = [string]$option
-            $items += @{ Label = $label; Value = $option; Description = ""; Search = $label }
+            Get-VorkPlainText "$($parts.Label) $($parts.Description)"
+        }
+        $items += @{
+            Label       = $parts.Label
+            Value       = $value
+            Description = $parts.Description
+            Badge       = $badge
+            Search      = $search
         }
     }
 
-    return (Invoke-VorkPicker -Title $PromptTitle -Subtitle "Vork CLI" -Items $items -DefaultIndex $DefaultIndex -NumericSelect -Footer "flechas mover  ·  1-9 elegir  ·  enter seleccionar  ·  esc cancelar")
+    if (-not $Footer) {
+        $Footer = if ($items.Count -le 9) {
+            "flechas mover  ·  1-$($items.Count) elegir  ·  enter confirmar  ·  esc cancelar"
+        } else {
+            "flechas mover  ·  1-9 elegir  ·  enter confirmar  ·  esc cancelar"
+        }
+    }
+
+    return (Invoke-VorkPicker -Title $PromptTitle -Subtitle $Subtitle -Items $items -DefaultIndex $DefaultIndex -NumericSelect -Footer $Footer)
 }
 
 function Write-VorkMediaFormatFrame {
@@ -478,11 +528,15 @@ function Write-VorkMediaFormatFrame {
         [int]$Mp3Index,
         [int]$Mp4Index,
         [array]$Mp3Qualities,
-        [array]$Mp4Qualities
+        [array]$Mp4Qualities,
+        [string]$Title = "Formato y calidad"
     )
 
     $row = 0
-    Write-VorkPanelLine -Panel $Panel -Index $row -Text (Format-VorkBorderTop -Title "Formato y calidad de salida" -RightText "Vork Media" -Width $Panel.Width)
+    Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${Coral}${Bold}$([char]0x25C6)${Reset} ${White}${Bold}$Title${Reset}"
+    $row++
+
+    Write-VorkPanelLine -Panel $Panel -Index $row -Text (Format-VorkRuleLine -Width $Panel.Width -RightText "vork · media")
     $row++
 
     $mp3 = $Mp3Qualities[$Mp3Index]
@@ -491,24 +545,28 @@ function Write-VorkMediaFormatFrame {
     $rows = @(
         @{ Index = 0; Label = "MP3"; Quality = $mp3.Id; Desc = $mp3.Desc },
         @{ Index = 1; Label = "MP4"; Quality = $mp4.Id; Desc = $mp4.Desc },
-        @{ Index = 2; Label = "WAV"; Quality = "lossless"; Desc = "Audio PCM sin compresion" }
+        @{ Index = 2; Label = "WAV"; Quality = "lossless"; Desc = "Audio PCM sin compresión" }
     )
 
     foreach ($item in $rows) {
         $isSelected = $item.Index -eq $SelectedFormat
-        $prefix = if ($isSelected) { "${Cyan}${Bold}$([char]0x25B8)${Reset} " } else { "  " }
-        $number = "[$($item.Index + 1)]"
+        $marker = if ($isSelected) { "${Coral}${Bold}$([char]0x25B8)${Reset}" } else { " " }
+        $number = [string]($item.Index + 1)
+        $numberColor = if ($isSelected) { "${Cyan}${Bold}" } else { $LeadDark }
         $quality = if ($isSelected) {
             "${Yellow}${Bold}$([char]0x2039) $($item.Quality) $([char]0x203A)${Reset}"
         } else {
             "${LeadLight}$($item.Quality)${Reset}"
         }
-        $label = if ($isSelected) { "${White}${Bold}$($item.Label)${Reset}" } else { "${White}$($item.Label)${Reset}" }
-        Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${Lead}$([char]0x2502)${Reset} $prefix${Cyan}$number${Reset}  $label  $quality  ${LeadLight}· $($item.Desc)${Reset}"
+        $label = if ($isSelected) { "${White}${Bold}$($item.Label)${Reset}" } else { "${LeadLight}$($item.Label)${Reset}" }
+        Write-VorkPanelLine -Panel $Panel -Index $row -Text "  $marker ${numberColor}$number${Reset}  $label$([string]::new(' ', [Math]::Max(1, 4 - $item.Label.Length)))$quality   ${LeadLight}$($item.Desc)${Reset}"
         $row++
     }
 
-    Write-VorkPanelLine -Panel $Panel -Index $row -Text (Format-VorkBorderBottom -LeftText "flechas formato  ·  izquierda/derecha calidad  ·  enter confirmar  ·  esc cancelar" -Width $Panel.Width)
+    Write-VorkPanelLine -Panel $Panel -Index $row -Text (Format-VorkRuleLine -Width $Panel.Width)
+    $row++
+
+    Write-VorkPanelLine -Panel $Panel -Index $row -Text "    ${LeadLight}flechas formato  ·  izquierda/derecha calidad  ·  enter confirmar  ·  esc cancelar${Reset}"
 }
 
 function Select-InteractiveMediaFormat {
@@ -559,8 +617,8 @@ function Select-InteractiveMediaFormat {
     $panel = $null
     try {
         while ($true) {
-            $panel = Update-VorkPanel -Panel $panel -Rows 5
-            Write-VorkMediaFormatFrame -Panel $panel -SelectedFormat $selectedFormat -Mp3Index $mp3Index -Mp4Index $mp4Index -Mp3Qualities $mp3Qualities -Mp4Qualities $mp4Qualities
+            $panel = Update-VorkPanel -Panel $panel -Rows 7
+            Write-VorkMediaFormatFrame -Panel $panel -SelectedFormat $selectedFormat -Mp3Index $mp3Index -Mp4Index $mp4Index -Mp3Qualities $mp3Qualities -Mp4Qualities $mp4Qualities -Title $PromptTitle
 
             $wait = Wait-VorkConsoleKey
             if ($wait.Resized) { continue }
@@ -618,15 +676,15 @@ function Select-InteractiveMediaFormat {
 }
 
 function Select-VorkMediaFormatChoice {
-    param([string]$PromptTitle = "Selecciona el formato de salida:")
+    param([string]$PromptTitle = "Formato de salida")
 
     $items = @(
-        @{ Label = "MP3"; Description = "Audio y música (Máxima compatibilidad)"; Value = "mp3" },
-        @{ Label = "MP4"; Description = "Video en alta definición (con audio)"; Value = "mp4" },
-        @{ Label = "WAV"; Description = "Audio PCM sin compresión (Lossless)"; Value = "wav" }
+        @{ Label = "MP3"; Description = "Audio y música, máxima compatibilidad"; Value = "mp3" },
+        @{ Label = "MP4"; Description = "Video en alta definición con audio";     Value = "mp4" },
+        @{ Label = "WAV"; Description = "Audio PCM sin compresión";              Value = "wav" }
     )
 
-    return (Invoke-VorkPicker -Title $PromptTitle -Subtitle "Vork Media" -Items $items -DefaultIndex 0 -NumericSelect -Footer "flechas mover  ·  1-3 elegir  ·  enter seleccionar  ·  esc cancelar")
+    return (Invoke-VorkPicker -Title $PromptTitle -Subtitle "formato de salida" -Items $items -DefaultIndex 0 -NumericSelect -Footer "flechas mover  ·  1-3 elegir  ·  enter confirmar  ·  esc cancelar")
 }
 
 function Select-VorkMediaQualityChoice {
@@ -639,29 +697,29 @@ function Select-VorkMediaQualityChoice {
     if ($fmt -eq "wav") { return "lossless" }
 
     if (-not $PromptTitle) {
-        $PromptTitle = "Selecciona la calidad deseada para $($fmt.ToUpper()):"
+        $PromptTitle = "Calidad para $($fmt.ToUpper())"
     }
 
     $items = if ($fmt -eq "mp3") {
         @(
-            @{ Label = "320 kbps"; Description = "Máxima fidelidad (Recomendado para música)"; Value = "320k" },
+            @{ Label = "320 kbps"; Description = "Máxima fidelidad, recomendada para música"; Value = "320k" },
             @{ Label = "256 kbps"; Description = "Alta fidelidad"; Value = "256k" },
             @{ Label = "192 kbps"; Description = "Calidad balanceada"; Value = "192k" },
             @{ Label = "128 kbps"; Description = "Calidad estándar"; Value = "128k" },
             @{ Label = "96 kbps";  Description = "Ahorro de espacio"; Value = "96k" },
-            @{ Label = "64 kbps";  Description = "Mínimo tamaño"; Value = "64k" }
+            @{ Label = "64 kbps";  Description = "Tamaño mínimo"; Value = "64k" }
         )
     } else {
         @(
             @{ Label = "1080p"; Description = "Full HD 1080p"; Value = "1080p" },
-            @{ Label = "720p";  Description = "HD 720p (Recomendado)"; Value = "720p" },
-            @{ Label = "480p";  Description = "Definición estándar (SD)"; Value = "480p" },
+            @{ Label = "720p";  Description = "HD 720p, recomendado"; Value = "720p" },
+            @{ Label = "480p";  Description = "Definición estándar"; Value = "480p" },
             @{ Label = "360p";  Description = "Móvil ligero"; Value = "360p" }
         )
     }
 
     $defaultIdx = if ($fmt -eq "mp3") { 0 } else { 1 }
-    return (Invoke-VorkPicker -Title $PromptTitle -Subtitle "Vork Media · Calidad" -Items $items -DefaultIndex $defaultIdx -NumericSelect -Footer "flechas mover  ·  1-9 elegir  ·  enter seleccionar  ·  esc cancelar")
+    return (Invoke-VorkPicker -Title $PromptTitle -Subtitle "calidad de salida" -Items $items -DefaultIndex $defaultIdx -NumericSelect -Footer "flechas mover  ·  1-9 elegir  ·  enter confirmar  ·  esc cancelar")
 }
 
 function Get-VorkMediaPlatformName {
@@ -688,30 +746,42 @@ function Select-VorkMediaOutputAction {
     param([string]$PromptTitle = "¿Cómo deseas obtener el archivo multimedia convertido?")
 
     $items = @(
-        @{ Label = "Guardado local";                          Description = "Descargar y guardar archivo físico en esta carpeta"; Value = "local" },
-        @{ Label = "Enlace de Descarga directa";              Description = "Obtener URL directa web para descargar en navegador"; Value = "download" },
-        @{ Label = "Stream de Video";                         Description = "Obtener URL directa para reproducir video en línea"; Value = "video_stream" },
-        @{ Label = "Stream de Música / Audio";                Description = "Obtener URL directa para reproducir música/audio en línea"; Value = "audio_stream" },
-        @{ Label = "Guardado local + Stream de Video";        Description = "Guardar archivo local y obtener enlace de streaming de video"; Value = "local_video" },
-        @{ Label = "Guardado local + Stream de Música";       Description = "Guardar archivo local y obtener enlace de streaming de audio"; Value = "local_audio" },
-        @{ Label = "Stream Video + Stream Música";            Description = "Obtener ambos enlaces de reproducción (video y música)"; Value = "video_audio" },
-        @{ Label = "Guardado local + Enlace de Descarga";     Description = "Descargar archivo local y obtener enlace web de descarga"; Value = "local_download" },
-        @{ Label = "Todos (Local + Descarga + Video + Audio)"; Description = "Guardado físico + Enlace Descarga + Stream Video + Stream Música"; Value = "all" }
+        @{ Label = "Guardado local";             Description = "Descargar y guardar el archivo en esta carpeta"; Value = "local" },
+        @{ Label = "Descarga directa";           Description = "URL web para descargar desde el navegador";     Value = "download" },
+        @{ Label = "Stream de video";            Description = "URL para reproducir el video en linea";        Value = "video_stream" },
+        @{ Label = "Stream de audio";            Description = "URL para reproducir la musica o audio";        Value = "audio_stream" },
+        @{ Label = "Local + video";              Description = "Archivo en disco y enlace de video";           Value = "local_video" },
+        @{ Label = "Local + audio";              Description = "Archivo en disco y enlace de audio";           Value = "local_audio" },
+        @{ Label = "Video + audio";              Description = "Ambos enlaces de reproduccion";               Value = "video_audio" },
+        @{ Label = "Local + descarga";           Description = "Archivo en disco y enlace de descarga";        Value = "local_download" },
+        @{ Label = "Todo";                       Description = "Local, descarga, video y audio";               Value = "all" }
     )
 
-    return (Invoke-VorkPicker -Title $PromptTitle -Subtitle "Vork Media · Opciones de salida" -Items $items -DefaultIndex 0 -NumericSelect -Footer "flechas mover  ·  1-9 elegir  ·  enter seleccionar  ·  esc cancelar")
+    return (Invoke-VorkPicker -Title $PromptTitle -Subtitle "entrega del archivo" -Items $items -DefaultIndex 0 -NumericSelect -Footer "flechas mover  ·  1-9 elegir  ·  enter confirmar  ·  esc cancelar")
+}
+
+function Select-VorkImageOutputAction {
+    param([string]$PromptTitle = "¿Cómo deseas recibir la imagen?")
+
+    $items = @(
+        @{ Label = "Guardado local";       Description = "Descargar la imagen a esta carpeta"; Value = "local" },
+        @{ Label = "Enlace de descarga";   Description = "URL directa para abrir o compartir"; Value = "download" },
+        @{ Label = "Local + enlace";       Description = "Archivo en disco y URL de descarga"; Value = "all" }
+    )
+
+    return (Invoke-VorkPicker -Title $PromptTitle -Subtitle "entrega de la imagen" -Items $items -DefaultIndex 0 -NumericSelect -Footer "flechas mover  ·  1-3 elegir  ·  enter confirmar  ·  esc cancelar")
 }
 
 function Select-VorkTextOutputAction {
-    param([string]$PromptTitle = "¿Cómo deseas obtener el texto traducido?")
+    param([string]$PromptTitle = "¿Cómo deseas recibir el texto traducido?")
 
     $items = @(
-        @{ Label = "Guardado local";             Description = "Descargar archivo físico a disco (traduccion.txt)"; Value = "local" },
-        @{ Label = "Enlace de Descarga directa"; Description = "Obtener URL web de descarga directa";              Value = "download" },
-        @{ Label = "Todos (Local + Descarga)";   Description = "Guardado local + Enlace web de descarga directa";    Value = "all" }
+        @{ Label = "Guardado local";     Description = "Archivo traduccion.txt en esta carpeta"; Value = "local" },
+        @{ Label = "Enlace de descarga"; Description = "URL web de descarga directa";           Value = "download" },
+        @{ Label = "Local + enlace";     Description = "Archivo en disco y URL de descarga";     Value = "all" }
     )
 
-    return (Invoke-VorkPicker -Title $PromptTitle -Subtitle "Vork Translate · Opciones de salida" -Items $items -DefaultIndex 0 -NumericSelect -Footer "flechas mover  ·  1-3 elegir  ·  enter seleccionar  ·  esc cancelar")
+    return (Invoke-VorkPicker -Title $PromptTitle -Subtitle "entrega del texto" -Items $items -DefaultIndex 0 -NumericSelect -Footer "flechas mover  ·  1-3 elegir  ·  enter confirmar  ·  esc cancelar")
 }
 
 function Write-VorkTTSFrame {
@@ -721,11 +791,15 @@ function Write-VorkTTSFrame {
         [array]$VoiceIndices,
         [int]$SelectedLanguage,
         [int]$Top,
-        [int]$Visible
+        [int]$Visible,
+        [string]$Title = "Idioma y voz neuronal"
     )
 
     $row = 0
-    Write-VorkPanelLine -Panel $Panel -Index $row -Text (Format-VorkBorderTop -Title "Idioma y voz neuronal" -RightText "Vork TTS" -Width $Panel.Width)
+    Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${Coral}${Bold}$([char]0x25C6)${Reset} ${White}${Bold}$Title${Reset}"
+    $row++
+
+    Write-VorkPanelLine -Panel $Panel -Index $row -Text (Format-VorkRuleLine -Width $Panel.Width -RightText "vork · tts")
     $row++
 
     for ($i = 0; $i -lt $Visible; $i++) {
@@ -736,30 +810,30 @@ function Write-VorkTTSFrame {
             if ($voiceIndex -ge $language.Voices.Count) { $voiceIndex = 0 }
             $voice = $language.Voices[$voiceIndex]
             $isSelected = $index -eq $SelectedLanguage
-            $prefix = if ($isSelected) { "${Cyan}${Bold}$([char]0x25B8)${Reset} " } else { "  " }
-            $number = if (($index + 1) -lt 10) { "[$($index + 1)]" } else { "[$($index + 1)]" }
-            $languageName = $language.Name
+            $marker = if ($isSelected) { "${Coral}${Bold}$([char]0x25B8)${Reset}" } else { " " }
+            $number = [string]($index + 1)
+            $numberColor = if ($isSelected) { "${Cyan}${Bold}" } else { $LeadDark }
             $voiceText = if ($isSelected) {
                 "${Yellow}${Bold}$([char]0x2039) $($voice.Name) $([char]0x203A)${Reset}"
             } else {
                 "${LeadLight}$($voice.Name)${Reset}"
             }
-            $meta = if ($isSelected) { "  ${LeadLight}· $($voice.Country) · $($voice.Gender)${Reset}" } else { "" }
-            $label = if ($isSelected) { "${White}${Bold}$languageName${Reset}" } else { "${White}$languageName${Reset}" }
-            Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${Lead}$([char]0x2502)${Reset} $prefix${Cyan}$number${Reset} $label  $voiceText$meta"
+            $meta = "  ${LeadLight}$($voice.Country) · $($voice.Gender)${Reset}"
+            $label = if ($isSelected) { "${White}${Bold}$($language.Name)${Reset}" } else { "${LeadLight}$($language.Name)${Reset}" }
+            Write-VorkPanelLine -Panel $Panel -Index $row -Text "  $marker ${numberColor}$number${Reset}  $label   $voiceText$meta"
         } else {
             Write-VorkPanelLine -Panel $Panel -Index $row -Text ""
         }
         $row++
     }
 
-    $below = [Math]::Max(0, $Catalog.Count - ($Top + $Visible))
-    $above = $Top
-    $scrollText = if ($below -gt 0 -and $above -gt 0) { "$([char]0x2191) $above  ·  $([char]0x2193) $below" } elseif ($below -gt 0) { "$([char]0x2193) $below idiomas mas" } elseif ($above -gt 0) { "$([char]0x2191) $above idiomas mas" } else { "" }
-    Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${Lead}$([char]0x2502)${Reset} ${LeadDark}$scrollText${Reset}"
+    Write-VorkPanelLine -Panel $Panel -Index $row -Text (Format-VorkRuleLine -Width $Panel.Width)
     $row++
 
-    Write-VorkPanelLine -Panel $Panel -Index $row -Text (Format-VorkBorderBottom -LeftText "flechas idioma  ·  izquierda/derecha voz  ·  enter confirmar  ·  esc cancelar" -Width $Panel.Width)
+    $below = [Math]::Max(0, $Catalog.Count - ($Top + $Visible))
+    $above = $Top
+    $scrollText = if ($below -gt 0 -and $above -gt 0) { "   $([char]0x2191) $above  ·  $([char]0x2193) $below" } elseif ($below -gt 0) { "   $([char]0x2193) $below idiomas" } elseif ($above -gt 0) { "   $([char]0x2191) $above idiomas" } else { "" }
+    Write-VorkPanelLine -Panel $Panel -Index $row -Text "    ${LeadLight}flechas idioma  ·  izquierda/derecha voz  ·  enter confirmar  ·  esc cancelar${Reset}${LeadDark}$scrollText${Reset}"
 }
 
 function Select-InteractiveTTSVoice {
@@ -859,7 +933,7 @@ function Select-InteractiveTTSVoice {
         while ($true) {
             $metrics = Get-VorkConsoleMetrics
             $visible = [Math]::Max(1, [Math]::Min($catalog.Count, $metrics.Height - 6))
-            $panelRows = $visible + 3
+            $panelRows = $visible + 4
             $panel = Update-VorkPanel -Panel $panel -Rows $panelRows
 
             if ($selectedLanguage -lt $top) { $top = $selectedLanguage }
@@ -868,7 +942,7 @@ function Select-InteractiveTTSVoice {
             $maxTop = [Math]::Max(0, $catalog.Count - $visible)
             if ($top -gt $maxTop) { $top = $maxTop }
 
-            Write-VorkTTSFrame -Panel $panel -Catalog $catalog -VoiceIndices $voiceIndices -SelectedLanguage $selectedLanguage -Top $top -Visible $visible
+            Write-VorkTTSFrame -Panel $panel -Catalog $catalog -VoiceIndices $voiceIndices -SelectedLanguage $selectedLanguage -Top $top -Visible $visible -Title $PromptTitle
 
             $wait = Wait-VorkConsoleKey
             if ($wait.Resized) { continue }
