@@ -947,6 +947,26 @@ function Start-InteractiveREPL {
             } catch { }
         }
 
+        # Si no comienza con '/', todo lo ingresado es conversacion directa con Vork AI
+        if (-not $line.StartsWith("/")) {
+            if ($line.ToLower() -in "exit", "quit", "q") {
+                Exit-VorkSession -ExitCode 0
+            }
+            if ($line.ToLower() -in "clear", "cls") {
+                Clear-Host
+                Show-Banner
+                continue
+            }
+            if ($line -eq "?" -or $line.ToLower() -eq "shortcuts") {
+                Show-Shortcuts
+                continue
+            }
+
+            Invoke-VorkAIChat -Prompt $line
+            continue
+        }
+
+        # Procesamiento exclusivo de comandos con barra ('/')
         $tokens = $null
         $errors = $null
         [void][System.Management.Automation.Language.Parser]::ParseInput($line, [ref]$tokens, [ref]$errors)
