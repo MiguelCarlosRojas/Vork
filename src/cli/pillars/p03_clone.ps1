@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Pilar 03: Vork Clonacion de Voz IA (Extraccion Fundamental F0)
 #>
@@ -79,18 +79,48 @@ function Invoke-PillarClone {
                 [System.IO.File]::WriteAllBytes($targetFile, [System.Convert]::FromBase64String($rawB64))
             } catch {}
         }
-        $dlUrl = if ($res.downloadUrl) { "$ApiBase$($res.downloadUrl)" } else { "$ApiBase/api/voice-clone/download" }
-        if (-not (Test-Path $targetFile)) {
-            try { Invoke-WebRequest -Uri $dlUrl -OutFile $targetFile -UseBasicParsing } catch {}
-        }
+        $dlUrl = if ($res.downloadUrl) { if ($res.downloadUrl.StartsWith("http")) { $res.downloadUrl } else { "$ApiBase$($res.downloadUrl)" } } else { "$ApiBase/api/voice-clone/download" }
+        $stUrl = if ($res.streamUrl) { if ($res.streamUrl.StartsWith("http")) { $res.streamUrl } else { "$ApiBase$($res.streamUrl)" } } else { "$ApiBase/api/voice-clone/stream" }
+        $videoFull = if ($res.videoStreamUrl) { if ($res.videoStreamUrl.StartsWith("http")) { $res.videoStreamUrl } else { "$ApiBase$($res.videoStreamUrl)" } } else { $stUrl }
+        $audioFull = if ($res.audioStreamUrl) { if ($res.audioStreamUrl.StartsWith("http")) { $res.audioStreamUrl } else { "$ApiBase$($res.audioStreamUrl)" } } else { $stUrl }
 
         Write-Host "  $Cyan│$Reset  $Green✓ Clonación de voz completada exitosamente.$Reset"
-        if (Test-Path $targetFile) {
-            $resolvedOut = (Resolve-Path $targetFile).Path
-            Write-Host "  $Cyan│$Reset  $Green✓ Guardado local:$Reset $White$resolvedOut$Reset"
-        } else {
-            Write-Host "  $Cyan│$Reset    Descarga: $Yellow$dlUrl$Reset"
+        $outputMode = Select-VorkMediaOutputAction -PromptTitle "Selecciona cómo deseas obtener la voz clonada:"
+        if (-not $outputMode) { $outputMode = "all" }
+
+        $hasLocal = $outputMode -in @("local", "local_video", "local_audio", "local_download", "local_stream", "all")
+        $hasDownload = $outputMode -in @("download", "local_download", "download_stream", "all")
+        $hasVideoStream = $outputMode -in @("video_stream", "local_video", "video_audio", "stream", "local_stream", "download_stream", "all")
+        $hasAudioStream = $outputMode -in @("audio_stream", "local_audio", "video_audio", "stream", "local_stream", "download_stream", "all")
+
+        if ($hasLocal) {
+            if ($res.audioBase64) {
+                try {
+                    $rawB64 = $res.audioBase64 -replace '^data:audio/[^;]+;base64,', ''
+                    [System.IO.File]::WriteAllBytes($targetFile, [System.Convert]::FromBase64String($rawB64))
+                } catch {}
+            }
+            if (-not (Test-Path $targetFile)) {
+                try { Invoke-WebRequest -Uri $dlUrl -OutFile $targetFile -UseBasicParsing -TimeoutSec 120 } catch {}
+            }
+            if (Test-Path $targetFile) {
+                $resolvedOut = (Resolve-Path $targetFile).Path
+                Write-Host "  $Cyan│$Reset  $Green✓ Guardado local:$Reset $White$resolvedOut$Reset"
+            }
         }
+
+        if ($hasDownload) {
+            Write-Host "  $Cyan│$Reset  $Yellow✓ Descarga:$Reset       $White$dlUrl$Reset"
+        }
+
+        if ($hasVideoStream -and $videoFull) {
+            Write-Host "  $Cyan│$Reset  $Magenta✓ Stream Video:$Reset   $White$videoFull$Reset"
+        }
+
+        if ($hasAudioStream -and $audioFull) {
+            Write-Host "  $Cyan│$Reset  $Cyan✓ Stream Música:$Reset  $White$audioFull$Reset"
+        }
+
         Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
         Send-VorkNotification -Title "Vork Clonación Vocal" -Message "Clonación vocal F0 completada con éxito."
     } catch {

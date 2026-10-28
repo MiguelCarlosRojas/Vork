@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Pilar 07: Vork Conversor Universal de Formatos de Imagen (PNG, JPG, WEBP, ICO, AVIF)
 #>
@@ -206,13 +206,37 @@ function Invoke-PillarImage {
         } else {
             "imagen_convertida.$fmt"
         }
-        try {
-            Invoke-WebRequest -Uri $dlUrl -OutFile $localImg -UseBasicParsing -TimeoutSec 60
-            $resolvedOut = (Resolve-Path $localImg).Path
-            Write-Host "  $Cyan│$Reset  $Green✓ Guardado local:$Reset $White$resolvedOut$Reset"
-        } catch {
-            Write-Host "  $Cyan│$Reset    Descarga: $Yellow$dlUrl$Reset"
+
+        $outputMode = Select-VorkMediaOutputAction -PromptTitle "Selecciona cómo deseas obtener la imagen convertida:"
+        if (-not $outputMode) { $outputMode = "all" }
+
+        $hasLocal = $outputMode -in @("local", "local_video", "local_audio", "local_download", "local_stream", "all")
+        $hasDownload = $outputMode -in @("download", "local_download", "download_stream", "all")
+        $hasVideoStream = $outputMode -in @("video_stream", "local_video", "video_audio", "stream", "local_stream", "download_stream", "all")
+        $hasAudioStream = $outputMode -in @("audio_stream", "local_audio", "video_audio", "stream", "local_stream", "download_stream", "all")
+
+        if ($hasLocal) {
+            try {
+                Invoke-WebRequest -Uri $dlUrl -OutFile $localImg -UseBasicParsing -TimeoutSec 60
+                $resolvedOut = (Resolve-Path $localImg).Path
+                Write-Host "  $Cyan│$Reset  $Green✓ Guardado local:$Reset $White$resolvedOut$Reset"
+            } catch {
+                Write-Host "  $Cyan│$Reset    Descarga: $Yellow$dlUrl$Reset"
+            }
         }
+
+        if ($hasDownload) {
+            Write-Host "  $Cyan│$Reset  $Yellow✓ Descarga:$Reset       $White$dlUrl$Reset"
+        }
+
+        if ($hasVideoStream -and $stUrl) {
+            Write-Host "  $Cyan│$Reset  $Magenta✓ Stream Video:$Reset   $White$stUrl$Reset"
+        }
+
+        if ($hasAudioStream -and $stUrl) {
+            Write-Host "  $Cyan│$Reset  $Cyan✓ Stream Música:$Reset  $White$stUrl$Reset"
+        }
+
         Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
         Send-VorkNotification -Title "Vork Conversor de Imagen" -Message "Conversión a $fmt completada con éxito."
     } catch {

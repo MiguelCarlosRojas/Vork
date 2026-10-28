@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Pilar 01: Vork Traductor Neuronal en la Nube (+200 Idiomas)
 #>
@@ -62,9 +62,29 @@ function Invoke-PillarTranslate {
         Write-Host "  $Cyan│$Reset  $Green✓ Traducción:$Reset $White$($res.translatedText)$Reset"
         
         $outFile = "traduccion.txt"
-        [System.IO.File]::WriteAllText((Join-Path (Get-Location) $outFile), $res.translatedText, [System.Text.Encoding]::UTF8)
-        $resolvedOut = (Resolve-Path $outFile).Path
-        Write-Host "  $Cyan│$Reset  $Green✓ Guardado local:$Reset $White$resolvedOut$Reset"
+        $resolvedOut = Join-Path (Get-Location) $outFile
+        $dlUrl = if ($res.downloadUrl) {
+            if ($res.downloadUrl.StartsWith("http")) { $res.downloadUrl } else { "$ApiBase$($res.downloadUrl)" }
+        } else {
+            "$ApiBase/api/translate/download?translatedText=$([System.Uri]::EscapeDataString($res.translatedText))"
+        }
+
+        $outputMode = Select-VorkTextOutputAction -PromptTitle "Selecciona cómo deseas obtener el texto traducido:"
+        if (-not $outputMode) { $outputMode = "all" }
+
+        $hasLocal = $outputMode -in @("local", "all")
+        $hasDownload = $outputMode -in @("download", "all")
+
+        if ($hasLocal) {
+            [System.IO.File]::WriteAllText($resolvedOut, $res.translatedText, [System.Text.Encoding]::UTF8)
+            $resolvedPath = (Resolve-Path $outFile).Path
+            Write-Host "  $Cyan│$Reset  $Green✓ Guardado local:$Reset $White$resolvedPath$Reset"
+        }
+
+        if ($hasDownload) {
+            Write-Host "  $Cyan│$Reset  $Yellow✓ Descarga:$Reset       $White$dlUrl$Reset"
+        }
+
         Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
         Send-VorkNotification -Title "Vork Traductor" -Message "Traducción completada con éxito."
     } catch {

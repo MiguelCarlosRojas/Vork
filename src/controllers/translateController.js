@@ -32,10 +32,12 @@ exports.translateText = async (req, res, next) => {
     // 2. Manejo de Texto Unitario (/api/translate con text: "...")
     if (typeof text === "string") {
       const translatedText = await translationService.translateSingle(text, targetLanguage, sourceLanguage);
+      const downloadParam = encodeURIComponent(translatedText.slice(0, 500));
       return res.status(STATUS_CODES.OK).json({
         success: true,
         translatedText,
-        targetLanguage
+        targetLanguage,
+        downloadUrl: `/api/translate/download?translatedText=${downloadParam}`
       });
     }
 
@@ -55,3 +57,15 @@ exports.translateText = async (req, res, next) => {
 // Re-exports para retrocompatibilidad
 exports.getLanguages = baseController.getLanguages;
 exports.getHealth = baseController.getHealth;
+
+/**
+ * Descarga directa del texto traducido en archivo .txt
+ */
+exports.downloadTranslation = (req, res) => {
+  const data = req.method === "GET" ? req.query : req.body;
+  const { text, translatedText } = data;
+  const content = translatedText || text || "Traducción vacía";
+  res.setHeader("Content-Disposition", 'attachment; filename="traduccion.txt"');
+  res.setHeader("Content-Type", "text/plain; charset=utf-8");
+  return res.send(content);
+};

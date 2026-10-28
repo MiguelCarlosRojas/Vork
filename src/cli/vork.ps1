@@ -2608,6 +2608,18 @@ function Select-VorkMediaOutputAction {
     return (Invoke-VorkPicker -Title $PromptTitle -Subtitle "Vork Media · Opciones de salida" -Items $items -DefaultIndex 0 -NumericSelect -Footer "flechas mover  ·  1-9 elegir  ·  enter seleccionar  ·  esc cancelar")
 }
 
+function Select-VorkTextOutputAction {
+    param([string]$PromptTitle = "¿Cómo deseas obtener el texto traducido?")
+
+    $items = @(
+        @{ Label = "Guardado local";             Description = "Descargar archivo físico a disco (traduccion.txt)"; Value = "local" },
+        @{ Label = "Enlace de Descarga directa"; Description = "Obtener URL web de descarga directa";              Value = "download" },
+        @{ Label = "Todos (Local + Descarga)";   Description = "Guardado local + Enlace web de descarga directa";    Value = "all" }
+    )
+
+    return (Invoke-VorkPicker -Title $PromptTitle -Subtitle "Vork Translate · Opciones de salida" -Items $items -DefaultIndex 0 -NumericSelect -Footer "flechas mover  ·  1-3 elegir  ·  enter seleccionar  ·  esc cancelar")
+}
+
 function Write-VorkTTSFrame {
     param(
         $Panel,
@@ -4102,9 +4114,29 @@ function Invoke-PillarTranslate {
         Write-Host "  $Cyan│$Reset  $Green✓ Traducción:$Reset $White$($res.translatedText)$Reset"
         
         $outFile = "traduccion.txt"
-        [System.IO.File]::WriteAllText((Join-Path (Get-Location) $outFile), $res.translatedText, [System.Text.Encoding]::UTF8)
-        $resolvedOut = (Resolve-Path $outFile).Path
-        Write-Host "  $Cyan│$Reset  $Green✓ Guardado local:$Reset $White$resolvedOut$Reset"
+        $resolvedOut = Join-Path (Get-Location) $outFile
+        $dlUrl = if ($res.downloadUrl) {
+            if ($res.downloadUrl.StartsWith("http")) { $res.downloadUrl } else { "$ApiBase$($res.downloadUrl)" }
+        } else {
+            "$ApiBase/api/translate/download?translatedText=$([System.Uri]::EscapeDataString($res.translatedText))"
+        }
+
+        $outputMode = Select-VorkTextOutputAction -PromptTitle "Selecciona cómo deseas obtener el texto traducido:"
+        if (-not $outputMode) { $outputMode = "all" }
+
+        $hasLocal = $outputMode -in @("local", "all")
+        $hasDownload = $outputMode -in @("download", "all")
+
+        if ($hasLocal) {
+            [System.IO.File]::WriteAllText($resolvedOut, $res.translatedText, [System.Text.Encoding]::UTF8)
+            $resolvedPath = (Resolve-Path $outFile).Path
+            Write-Host "  $Cyan│$Reset  $Green✓ Guardado local:$Reset $White$resolvedPath$Reset"
+        }
+
+        if ($hasDownload) {
+            Write-Host "  $Cyan│$Reset  $Yellow✓ Descarga:$Reset       $White$dlUrl$Reset"
+        }
+
         Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
         Send-VorkNotification -Title "Vork Traductor" -Message "Traducción completada con éxito."
     } catch {
@@ -4180,18 +4212,48 @@ function Invoke-PillarTTS {
                 [System.IO.File]::WriteAllBytes($targetFile, [System.Convert]::FromBase64String($rawB64))
             } catch {}
         }
-        $dlUrl = if ($res.downloadUrl) { "$ApiBase$($res.downloadUrl)" } else { "$ApiBase/api/tts/download?file=$out" }
-        if (-not (Test-Path $targetFile)) {
-            try { Invoke-WebRequest -Uri $dlUrl -OutFile $targetFile -UseBasicParsing } catch {}
-        }
+        $dlUrl = if ($res.downloadUrl) { if ($res.downloadUrl.StartsWith("http")) { $res.downloadUrl } else { "$ApiBase$($res.downloadUrl)" } } else { "$ApiBase/api/tts/download?file=$out" }
+        $stUrl = if ($res.streamUrl) { if ($res.streamUrl.StartsWith("http")) { $res.streamUrl } else { "$ApiBase$($res.streamUrl)" } } else { "$ApiBase/api/tts/stream?file=$out" }
+        $videoFull = if ($res.videoStreamUrl) { if ($res.videoStreamUrl.StartsWith("http")) { $res.videoStreamUrl } else { "$ApiBase$($res.videoStreamUrl)" } } else { $stUrl }
+        $audioFull = if ($res.audioStreamUrl) { if ($res.audioStreamUrl.StartsWith("http")) { $res.audioStreamUrl } else { "$ApiBase$($res.audioStreamUrl)" } } else { $stUrl }
 
         Write-Host "  $Cyan│$Reset  $Green✓ Síntesis vocal completada con éxito.$Reset"
-        if (Test-Path $targetFile) {
-            $resolvedOut = (Resolve-Path $targetFile).Path
-            Write-Host "  $Cyan│$Reset  $Green✓ Guardado local:$Reset $White$resolvedOut$Reset"
-        } else {
-            Write-Host "  $Cyan│$Reset    Descarga: $Yellow$dlUrl$Reset"
+        $outputMode = Select-VorkMediaOutputAction -PromptTitle "Selecciona cómo deseas obtener el audio sintetizado:"
+        if (-not $outputMode) { $outputMode = "all" }
+
+        $hasLocal = $outputMode -in @("local", "local_video", "local_audio", "local_download", "local_stream", "all")
+        $hasDownload = $outputMode -in @("download", "local_download", "download_stream", "all")
+        $hasVideoStream = $outputMode -in @("video_stream", "local_video", "video_audio", "stream", "local_stream", "download_stream", "all")
+        $hasAudioStream = $outputMode -in @("audio_stream", "local_audio", "video_audio", "stream", "local_stream", "download_stream", "all")
+
+        if ($hasLocal) {
+            if ($res.audioBase64) {
+                try {
+                    $rawB64 = $res.audioBase64 -replace '^data:audio/[^;]+;base64,', ''
+                    [System.IO.File]::WriteAllBytes($targetFile, [System.Convert]::FromBase64String($rawB64))
+                } catch {}
+            }
+            if (-not (Test-Path $targetFile)) {
+                try { Invoke-WebRequest -Uri $dlUrl -OutFile $targetFile -UseBasicParsing -TimeoutSec 120 } catch {}
+            }
+            if (Test-Path $targetFile) {
+                $resolvedOut = (Resolve-Path $targetFile).Path
+                Write-Host "  $Cyan│$Reset  $Green✓ Guardado local:$Reset $White$resolvedOut$Reset"
+            }
         }
+
+        if ($hasDownload) {
+            Write-Host "  $Cyan│$Reset  $Yellow✓ Descarga:$Reset       $White$dlUrl$Reset"
+        }
+
+        if ($hasVideoStream -and $videoFull) {
+            Write-Host "  $Cyan│$Reset  $Magenta✓ Stream Video:$Reset   $White$videoFull$Reset"
+        }
+
+        if ($hasAudioStream -and $audioFull) {
+            Write-Host "  $Cyan│$Reset  $Cyan✓ Stream Música:$Reset  $White$audioFull$Reset"
+        }
+
         Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
         Send-VorkNotification -Title "Vork Síntesis TTS" -Message "Audio de voz neuronal generado con éxito."
     } catch {
@@ -4286,18 +4348,48 @@ function Invoke-PillarClone {
                 [System.IO.File]::WriteAllBytes($targetFile, [System.Convert]::FromBase64String($rawB64))
             } catch {}
         }
-        $dlUrl = if ($res.downloadUrl) { "$ApiBase$($res.downloadUrl)" } else { "$ApiBase/api/voice-clone/download" }
-        if (-not (Test-Path $targetFile)) {
-            try { Invoke-WebRequest -Uri $dlUrl -OutFile $targetFile -UseBasicParsing } catch {}
-        }
+        $dlUrl = if ($res.downloadUrl) { if ($res.downloadUrl.StartsWith("http")) { $res.downloadUrl } else { "$ApiBase$($res.downloadUrl)" } } else { "$ApiBase/api/voice-clone/download" }
+        $stUrl = if ($res.streamUrl) { if ($res.streamUrl.StartsWith("http")) { $res.streamUrl } else { "$ApiBase$($res.streamUrl)" } } else { "$ApiBase/api/voice-clone/stream" }
+        $videoFull = if ($res.videoStreamUrl) { if ($res.videoStreamUrl.StartsWith("http")) { $res.videoStreamUrl } else { "$ApiBase$($res.videoStreamUrl)" } } else { $stUrl }
+        $audioFull = if ($res.audioStreamUrl) { if ($res.audioStreamUrl.StartsWith("http")) { $res.audioStreamUrl } else { "$ApiBase$($res.audioStreamUrl)" } } else { $stUrl }
 
         Write-Host "  $Cyan│$Reset  $Green✓ Clonación de voz completada exitosamente.$Reset"
-        if (Test-Path $targetFile) {
-            $resolvedOut = (Resolve-Path $targetFile).Path
-            Write-Host "  $Cyan│$Reset  $Green✓ Guardado local:$Reset $White$resolvedOut$Reset"
-        } else {
-            Write-Host "  $Cyan│$Reset    Descarga: $Yellow$dlUrl$Reset"
+        $outputMode = Select-VorkMediaOutputAction -PromptTitle "Selecciona cómo deseas obtener la voz clonada:"
+        if (-not $outputMode) { $outputMode = "all" }
+
+        $hasLocal = $outputMode -in @("local", "local_video", "local_audio", "local_download", "local_stream", "all")
+        $hasDownload = $outputMode -in @("download", "local_download", "download_stream", "all")
+        $hasVideoStream = $outputMode -in @("video_stream", "local_video", "video_audio", "stream", "local_stream", "download_stream", "all")
+        $hasAudioStream = $outputMode -in @("audio_stream", "local_audio", "video_audio", "stream", "local_stream", "download_stream", "all")
+
+        if ($hasLocal) {
+            if ($res.audioBase64) {
+                try {
+                    $rawB64 = $res.audioBase64 -replace '^data:audio/[^;]+;base64,', ''
+                    [System.IO.File]::WriteAllBytes($targetFile, [System.Convert]::FromBase64String($rawB64))
+                } catch {}
+            }
+            if (-not (Test-Path $targetFile)) {
+                try { Invoke-WebRequest -Uri $dlUrl -OutFile $targetFile -UseBasicParsing -TimeoutSec 120 } catch {}
+            }
+            if (Test-Path $targetFile) {
+                $resolvedOut = (Resolve-Path $targetFile).Path
+                Write-Host "  $Cyan│$Reset  $Green✓ Guardado local:$Reset $White$resolvedOut$Reset"
+            }
         }
+
+        if ($hasDownload) {
+            Write-Host "  $Cyan│$Reset  $Yellow✓ Descarga:$Reset       $White$dlUrl$Reset"
+        }
+
+        if ($hasVideoStream -and $videoFull) {
+            Write-Host "  $Cyan│$Reset  $Magenta✓ Stream Video:$Reset   $White$videoFull$Reset"
+        }
+
+        if ($hasAudioStream -and $audioFull) {
+            Write-Host "  $Cyan│$Reset  $Cyan✓ Stream Música:$Reset  $White$audioFull$Reset"
+        }
+
         Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
         Send-VorkNotification -Title "Vork Clonación Vocal" -Message "Clonación vocal F0 completada con éxito."
     } catch {
@@ -4718,44 +4810,82 @@ function Invoke-PillarSeparate {
         }
 
         Write-Host "  $Cyan├───────────────────────────────────────────────────$Reset"
+        Write-Host "  $Cyan│$Reset  $Green✓ Separación de stems completada exitosamente con Demucs v4.$Reset"
 
-        if ($mode -eq "vocals" -and $vocDl) {
-            Write-Host "  $Cyan│$Reset  $Green✓ Voz Acapella aislada con éxito:$Reset"
-            $localVoc = "vocals.wav"
-            try {
-                Invoke-WebRequest -Uri $vocDl -OutFile $localVoc -UseBasicParsing -TimeoutSec 120
-                Write-Host "  $Cyan│$Reset  $Green✓ Guardado local:$Reset $White$((Resolve-Path $localVoc).Path)$Reset"
-            } catch {
-                Write-Host "  $Cyan│$Reset    Descarga: $Yellow$vocDl$Reset"
-            }
-        } elseif ($mode -eq "karaoke" -and $instDl) {
-            Write-Host "  $Cyan│$Reset  $Green✓ Pista Instrumental (Karaoke) aislada con éxito:$Reset"
-            $localInst = "instrumental.wav"
-            try {
-                Invoke-WebRequest -Uri $instDl -OutFile $localInst -UseBasicParsing -TimeoutSec 120
-                Write-Host "  $Cyan│$Reset  $Green✓ Guardado local:$Reset $White$((Resolve-Path $localInst).Path)$Reset"
-            } catch {
-                Write-Host "  $Cyan│$Reset    Descarga: $Yellow$instDl$Reset"
-            }
-        } else {
-            Write-Host "  $Cyan│$Reset  $Green✓ Separación de stems lista con Demucs v4:$Reset"
-            if ($vocDl) {
+        $outputMode = Select-VorkMediaOutputAction -PromptTitle "Selecciona cómo deseas obtener las pistas separadas:"
+        if (-not $outputMode) { $outputMode = "all" }
+
+        $hasLocal = $outputMode -in @("local", "local_video", "local_audio", "local_download", "local_stream", "all")
+        $hasDownload = $outputMode -in @("download", "local_download", "download_stream", "all")
+        $hasVideoStream = $outputMode -in @("video_stream", "local_video", "video_audio", "stream", "local_stream", "download_stream", "all")
+        $hasAudioStream = $outputMode -in @("audio_stream", "local_audio", "video_audio", "stream", "local_stream", "download_stream", "all")
+
+        if ($mode -eq "vocals") {
+            if ($hasLocal -and $vocDl) {
                 $localVoc = "vocals.wav"
                 try {
                     Invoke-WebRequest -Uri $vocDl -OutFile $localVoc -UseBasicParsing -TimeoutSec 120
-                    Write-Host "  $Cyan│$Reset  $Green✓ Guardado local (Vocals):$Reset       $White$((Resolve-Path $localVoc).Path)$Reset"
+                    Write-Host "  $Cyan│$Reset  $Green✓ Guardado local:$Reset $White$((Resolve-Path $localVoc).Path)$Reset"
                 } catch {
-                    Write-Host "  $Cyan│$Reset    ${White}${Bold}Voz Acapella:${Reset}  $Yellow$vocDl$Reset"
+                    Write-Host "  $Cyan│$Reset    Descarga: $Yellow$vocDl$Reset"
                 }
             }
-            if ($instDl) {
+            if ($hasDownload -and $vocDl) {
+                Write-Host "  $Cyan│$Reset  $Yellow✓ Descarga:$Reset       $White$vocDl$Reset"
+            }
+            if ($hasVideoStream -and $vocSt) {
+                Write-Host "  $Cyan│$Reset  $Magenta✓ Stream Video:$Reset   $White$vocSt$Reset"
+            }
+            if ($hasAudioStream -and $vocSt) {
+                Write-Host "  $Cyan│$Reset  $Cyan✓ Stream Música:$Reset  $White$vocSt$Reset"
+            }
+        } elseif ($mode -eq "karaoke") {
+            if ($hasLocal -and $instDl) {
                 $localInst = "instrumental.wav"
                 try {
                     Invoke-WebRequest -Uri $instDl -OutFile $localInst -UseBasicParsing -TimeoutSec 120
-                    Write-Host "  $Cyan│$Reset  $Green✓ Guardado local (Instrumental):$Reset $White$((Resolve-Path $localInst).Path)$Reset"
+                    Write-Host "  $Cyan│$Reset  $Green✓ Guardado local:$Reset $White$((Resolve-Path $localInst).Path)$Reset"
                 } catch {
-                    Write-Host "  $Cyan│$Reset    ${White}${Bold}Instrumental:${Reset}  $Cyan$instDl$Reset"
+                    Write-Host "  $Cyan│$Reset    Descarga: $Yellow$instDl$Reset"
                 }
+            }
+            if ($hasDownload -and $instDl) {
+                Write-Host "  $Cyan│$Reset  $Yellow✓ Descarga:$Reset       $White$instDl$Reset"
+            }
+            if ($hasVideoStream -and $instSt) {
+                Write-Host "  $Cyan│$Reset  $Magenta✓ Stream Video:$Reset   $White$instSt$Reset"
+            }
+            if ($hasAudioStream -and $instSt) {
+                Write-Host "  $Cyan│$Reset  $Cyan✓ Stream Música:$Reset  $White$instSt$Reset"
+            }
+        } else {
+            if ($hasLocal) {
+                if ($vocDl) {
+                    $localVoc = "vocals.wav"
+                    try {
+                        Invoke-WebRequest -Uri $vocDl -OutFile $localVoc -UseBasicParsing -TimeoutSec 120
+                        Write-Host "  $Cyan│$Reset  $Green✓ Guardado local (Vocals):$Reset       $White$((Resolve-Path $localVoc).Path)$Reset"
+                    } catch {}
+                }
+                if ($instDl) {
+                    $localInst = "instrumental.wav"
+                    try {
+                        Invoke-WebRequest -Uri $instDl -OutFile $localInst -UseBasicParsing -TimeoutSec 120
+                        Write-Host "  $Cyan│$Reset  $Green✓ Guardado local (Instrumental):$Reset $White$((Resolve-Path $localInst).Path)$Reset"
+                    } catch {}
+                }
+            }
+            if ($hasDownload) {
+                if ($vocDl) { Write-Host "  $Cyan│$Reset  $Yellow✓ Descarga (Vocals):$Reset       $White$vocDl$Reset" }
+                if ($instDl) { Write-Host "  $Cyan│$Reset  $Yellow✓ Descarga (Instrumental):$Reset $White$instDl$Reset" }
+            }
+            if ($hasVideoStream) {
+                $stVid = if ($vocSt) { $vocSt } else { $instSt }
+                if ($stVid) { Write-Host "  $Cyan│$Reset  $Magenta✓ Stream Video:$Reset            $White$stVid$Reset" }
+            }
+            if ($hasAudioStream) {
+                if ($vocSt) { Write-Host "  $Cyan│$Reset  $Cyan✓ Stream Música (Vocals):$Reset   $White$vocSt$Reset" }
+                if ($instSt) { Write-Host "  $Cyan│$Reset  $Cyan✓ Stream Música (Inst):$Reset     $White$instSt$Reset" }
             }
         }
         Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
@@ -4981,13 +5111,37 @@ function Invoke-PillarImage {
         } else {
             "imagen_convertida.$fmt"
         }
-        try {
-            Invoke-WebRequest -Uri $dlUrl -OutFile $localImg -UseBasicParsing -TimeoutSec 60
-            $resolvedOut = (Resolve-Path $localImg).Path
-            Write-Host "  $Cyan│$Reset  $Green✓ Guardado local:$Reset $White$resolvedOut$Reset"
-        } catch {
-            Write-Host "  $Cyan│$Reset    Descarga: $Yellow$dlUrl$Reset"
+
+        $outputMode = Select-VorkMediaOutputAction -PromptTitle "Selecciona cómo deseas obtener la imagen convertida:"
+        if (-not $outputMode) { $outputMode = "all" }
+
+        $hasLocal = $outputMode -in @("local", "local_video", "local_audio", "local_download", "local_stream", "all")
+        $hasDownload = $outputMode -in @("download", "local_download", "download_stream", "all")
+        $hasVideoStream = $outputMode -in @("video_stream", "local_video", "video_audio", "stream", "local_stream", "download_stream", "all")
+        $hasAudioStream = $outputMode -in @("audio_stream", "local_audio", "video_audio", "stream", "local_stream", "download_stream", "all")
+
+        if ($hasLocal) {
+            try {
+                Invoke-WebRequest -Uri $dlUrl -OutFile $localImg -UseBasicParsing -TimeoutSec 60
+                $resolvedOut = (Resolve-Path $localImg).Path
+                Write-Host "  $Cyan│$Reset  $Green✓ Guardado local:$Reset $White$resolvedOut$Reset"
+            } catch {
+                Write-Host "  $Cyan│$Reset    Descarga: $Yellow$dlUrl$Reset"
+            }
         }
+
+        if ($hasDownload) {
+            Write-Host "  $Cyan│$Reset  $Yellow✓ Descarga:$Reset       $White$dlUrl$Reset"
+        }
+
+        if ($hasVideoStream -and $stUrl) {
+            Write-Host "  $Cyan│$Reset  $Magenta✓ Stream Video:$Reset   $White$stUrl$Reset"
+        }
+
+        if ($hasAudioStream -and $stUrl) {
+            Write-Host "  $Cyan│$Reset  $Cyan✓ Stream Música:$Reset  $White$stUrl$Reset"
+        }
+
         Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
         Send-VorkNotification -Title "Vork Conversor de Imagen" -Message "Conversión a $fmt completada con éxito."
     } catch {
@@ -5124,16 +5278,41 @@ function Invoke-PillarRemoveBg {
         }
 
         $res = Invoke-RestMethod -Uri "$ApiBase/api/image/remove-background" -Method Post -Body $body -ContentType "application/json" -TimeoutSec 180
-        $dlUrl = if ($res.downloadUrl) { "$ApiBase$($res.downloadUrl)" } else { "$ApiBase/api/image/download?id=$($res.id)" }
+        $dlUrl = if ($res.downloadUrl) { if ($res.downloadUrl.StartsWith("http")) { $res.downloadUrl } else { "$ApiBase$($res.downloadUrl)" } } else { "$ApiBase/api/image/download?id=$($res.id)" }
+        $stUrl = if ($res.streamUrl) { if ($res.streamUrl.StartsWith("http")) { $res.streamUrl } else { "$ApiBase$($res.streamUrl)" } } else { "$ApiBase/api/image/stream?id=$($res.id)" }
 
         Write-Host "  $Cyan│$Reset  $Green✓ Modificación de imagen completada exitosamente.$Reset"
-        try {
-            Invoke-WebRequest -Uri $dlUrl -OutFile $out -UseBasicParsing -TimeoutSec 90
-            $resolvedOut = (Resolve-Path $out).Path
-            Write-Host "  $Cyan│$Reset  $Green✓ Guardado local:$Reset $White$resolvedOut$Reset"
-        } catch {
-            Write-Host "  $Cyan│$Reset  $Yellow URL de descarga:$Reset $White$dlUrl$Reset"
+
+        $outputMode = Select-VorkMediaOutputAction -PromptTitle "Selecciona cómo deseas obtener la imagen modificada:"
+        if (-not $outputMode) { $outputMode = "all" }
+
+        $hasLocal = $outputMode -in @("local", "local_video", "local_audio", "local_download", "local_stream", "all")
+        $hasDownload = $outputMode -in @("download", "local_download", "download_stream", "all")
+        $hasVideoStream = $outputMode -in @("video_stream", "local_video", "video_audio", "stream", "local_stream", "download_stream", "all")
+        $hasAudioStream = $outputMode -in @("audio_stream", "local_audio", "video_audio", "stream", "local_stream", "download_stream", "all")
+
+        if ($hasLocal) {
+            try {
+                Invoke-WebRequest -Uri $dlUrl -OutFile $out -UseBasicParsing -TimeoutSec 90
+                $resolvedOut = (Resolve-Path $out).Path
+                Write-Host "  $Cyan│$Reset  $Green✓ Guardado local:$Reset $White$resolvedOut$Reset"
+            } catch {
+                Write-Host "  $Cyan│$Reset    Descarga: $Yellow$dlUrl$Reset"
+            }
         }
+
+        if ($hasDownload) {
+            Write-Host "  $Cyan│$Reset  $Yellow✓ Descarga:$Reset       $White$dlUrl$Reset"
+        }
+
+        if ($hasVideoStream -and $stUrl) {
+            Write-Host "  $Cyan│$Reset  $Magenta✓ Stream Video:$Reset   $White$stUrl$Reset"
+        }
+
+        if ($hasAudioStream -and $stUrl) {
+            Write-Host "  $Cyan│$Reset  $Cyan✓ Stream Música:$Reset  $White$stUrl$Reset"
+        }
+
         Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
         Send-VorkNotification -Title "Vork Fondo IA" -Message "Modificación de fondo completada con éxito."
     } catch {

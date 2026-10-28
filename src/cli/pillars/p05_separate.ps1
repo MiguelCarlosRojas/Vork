@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Pilar 05: Vork Separador de Stems (Acapella y Karaoke con Demucs v4)
 #>
@@ -177,44 +177,82 @@ function Invoke-PillarSeparate {
         }
 
         Write-Host "  $Cyan├───────────────────────────────────────────────────$Reset"
+        Write-Host "  $Cyan│$Reset  $Green✓ Separación de stems completada exitosamente con Demucs v4.$Reset"
 
-        if ($mode -eq "vocals" -and $vocDl) {
-            Write-Host "  $Cyan│$Reset  $Green✓ Voz Acapella aislada con éxito:$Reset"
-            $localVoc = "vocals.wav"
-            try {
-                Invoke-WebRequest -Uri $vocDl -OutFile $localVoc -UseBasicParsing -TimeoutSec 120
-                Write-Host "  $Cyan│$Reset  $Green✓ Guardado local:$Reset $White$((Resolve-Path $localVoc).Path)$Reset"
-            } catch {
-                Write-Host "  $Cyan│$Reset    Descarga: $Yellow$vocDl$Reset"
-            }
-        } elseif ($mode -eq "karaoke" -and $instDl) {
-            Write-Host "  $Cyan│$Reset  $Green✓ Pista Instrumental (Karaoke) aislada con éxito:$Reset"
-            $localInst = "instrumental.wav"
-            try {
-                Invoke-WebRequest -Uri $instDl -OutFile $localInst -UseBasicParsing -TimeoutSec 120
-                Write-Host "  $Cyan│$Reset  $Green✓ Guardado local:$Reset $White$((Resolve-Path $localInst).Path)$Reset"
-            } catch {
-                Write-Host "  $Cyan│$Reset    Descarga: $Yellow$instDl$Reset"
-            }
-        } else {
-            Write-Host "  $Cyan│$Reset  $Green✓ Separación de stems lista con Demucs v4:$Reset"
-            if ($vocDl) {
+        $outputMode = Select-VorkMediaOutputAction -PromptTitle "Selecciona cómo deseas obtener las pistas separadas:"
+        if (-not $outputMode) { $outputMode = "all" }
+
+        $hasLocal = $outputMode -in @("local", "local_video", "local_audio", "local_download", "local_stream", "all")
+        $hasDownload = $outputMode -in @("download", "local_download", "download_stream", "all")
+        $hasVideoStream = $outputMode -in @("video_stream", "local_video", "video_audio", "stream", "local_stream", "download_stream", "all")
+        $hasAudioStream = $outputMode -in @("audio_stream", "local_audio", "video_audio", "stream", "local_stream", "download_stream", "all")
+
+        if ($mode -eq "vocals") {
+            if ($hasLocal -and $vocDl) {
                 $localVoc = "vocals.wav"
                 try {
                     Invoke-WebRequest -Uri $vocDl -OutFile $localVoc -UseBasicParsing -TimeoutSec 120
-                    Write-Host "  $Cyan│$Reset  $Green✓ Guardado local (Vocals):$Reset       $White$((Resolve-Path $localVoc).Path)$Reset"
+                    Write-Host "  $Cyan│$Reset  $Green✓ Guardado local:$Reset $White$((Resolve-Path $localVoc).Path)$Reset"
                 } catch {
-                    Write-Host "  $Cyan│$Reset    ${White}${Bold}Voz Acapella:${Reset}  $Yellow$vocDl$Reset"
+                    Write-Host "  $Cyan│$Reset    Descarga: $Yellow$vocDl$Reset"
                 }
             }
-            if ($instDl) {
+            if ($hasDownload -and $vocDl) {
+                Write-Host "  $Cyan│$Reset  $Yellow✓ Descarga:$Reset       $White$vocDl$Reset"
+            }
+            if ($hasVideoStream -and $vocSt) {
+                Write-Host "  $Cyan│$Reset  $Magenta✓ Stream Video:$Reset   $White$vocSt$Reset"
+            }
+            if ($hasAudioStream -and $vocSt) {
+                Write-Host "  $Cyan│$Reset  $Cyan✓ Stream Música:$Reset  $White$vocSt$Reset"
+            }
+        } elseif ($mode -eq "karaoke") {
+            if ($hasLocal -and $instDl) {
                 $localInst = "instrumental.wav"
                 try {
                     Invoke-WebRequest -Uri $instDl -OutFile $localInst -UseBasicParsing -TimeoutSec 120
-                    Write-Host "  $Cyan│$Reset  $Green✓ Guardado local (Instrumental):$Reset $White$((Resolve-Path $localInst).Path)$Reset"
+                    Write-Host "  $Cyan│$Reset  $Green✓ Guardado local:$Reset $White$((Resolve-Path $localInst).Path)$Reset"
                 } catch {
-                    Write-Host "  $Cyan│$Reset    ${White}${Bold}Instrumental:${Reset}  $Cyan$instDl$Reset"
+                    Write-Host "  $Cyan│$Reset    Descarga: $Yellow$instDl$Reset"
                 }
+            }
+            if ($hasDownload -and $instDl) {
+                Write-Host "  $Cyan│$Reset  $Yellow✓ Descarga:$Reset       $White$instDl$Reset"
+            }
+            if ($hasVideoStream -and $instSt) {
+                Write-Host "  $Cyan│$Reset  $Magenta✓ Stream Video:$Reset   $White$instSt$Reset"
+            }
+            if ($hasAudioStream -and $instSt) {
+                Write-Host "  $Cyan│$Reset  $Cyan✓ Stream Música:$Reset  $White$instSt$Reset"
+            }
+        } else {
+            if ($hasLocal) {
+                if ($vocDl) {
+                    $localVoc = "vocals.wav"
+                    try {
+                        Invoke-WebRequest -Uri $vocDl -OutFile $localVoc -UseBasicParsing -TimeoutSec 120
+                        Write-Host "  $Cyan│$Reset  $Green✓ Guardado local (Vocals):$Reset       $White$((Resolve-Path $localVoc).Path)$Reset"
+                    } catch {}
+                }
+                if ($instDl) {
+                    $localInst = "instrumental.wav"
+                    try {
+                        Invoke-WebRequest -Uri $instDl -OutFile $localInst -UseBasicParsing -TimeoutSec 120
+                        Write-Host "  $Cyan│$Reset  $Green✓ Guardado local (Instrumental):$Reset $White$((Resolve-Path $localInst).Path)$Reset"
+                    } catch {}
+                }
+            }
+            if ($hasDownload) {
+                if ($vocDl) { Write-Host "  $Cyan│$Reset  $Yellow✓ Descarga (Vocals):$Reset       $White$vocDl$Reset" }
+                if ($instDl) { Write-Host "  $Cyan│$Reset  $Yellow✓ Descarga (Instrumental):$Reset $White$instDl$Reset" }
+            }
+            if ($hasVideoStream) {
+                $stVid = if ($vocSt) { $vocSt } else { $instSt }
+                if ($stVid) { Write-Host "  $Cyan│$Reset  $Magenta✓ Stream Video:$Reset            $White$stVid$Reset" }
+            }
+            if ($hasAudioStream) {
+                if ($vocSt) { Write-Host "  $Cyan│$Reset  $Cyan✓ Stream Música (Vocals):$Reset   $White$vocSt$Reset" }
+                if ($instSt) { Write-Host "  $Cyan│$Reset  $Cyan✓ Stream Música (Inst):$Reset     $White$instSt$Reset" }
             }
         }
         Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"

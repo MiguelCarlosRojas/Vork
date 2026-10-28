@@ -684,6 +684,18 @@ function Select-VorkMediaOutputAction {
     return (Invoke-VorkPicker -Title $PromptTitle -Subtitle "Vork Media · Opciones de salida" -Items $items -DefaultIndex 0 -NumericSelect -Footer "flechas mover  ·  1-9 elegir  ·  enter seleccionar  ·  esc cancelar")
 }
 
+function Select-VorkTextOutputAction {
+    param([string]$PromptTitle = "¿Cómo deseas obtener el texto traducido?")
+
+    $items = @(
+        @{ Label = "Guardado local";             Description = "Descargar archivo físico a disco (traduccion.txt)"; Value = "local" },
+        @{ Label = "Enlace de Descarga directa"; Description = "Obtener URL web de descarga directa";              Value = "download" },
+        @{ Label = "Todos (Local + Descarga)";   Description = "Guardado local + Enlace web de descarga directa";    Value = "all" }
+    )
+
+    return (Invoke-VorkPicker -Title $PromptTitle -Subtitle "Vork Translate · Opciones de salida" -Items $items -DefaultIndex 0 -NumericSelect -Footer "flechas mover  ·  1-3 elegir  ·  enter seleccionar  ·  esc cancelar")
+}
+
 function Write-VorkTTSFrame {
     param(
         $Panel,

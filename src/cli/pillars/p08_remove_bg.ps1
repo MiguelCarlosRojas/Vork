@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Pilar 08: Vork Modificador de Imagen & Fondo IA con Prompt (BRIA RMBG + FLUX.1)
 #>
@@ -121,16 +121,41 @@ function Invoke-PillarRemoveBg {
         }
 
         $res = Invoke-RestMethod -Uri "$ApiBase/api/image/remove-background" -Method Post -Body $body -ContentType "application/json" -TimeoutSec 180
-        $dlUrl = if ($res.downloadUrl) { "$ApiBase$($res.downloadUrl)" } else { "$ApiBase/api/image/download?id=$($res.id)" }
+        $dlUrl = if ($res.downloadUrl) { if ($res.downloadUrl.StartsWith("http")) { $res.downloadUrl } else { "$ApiBase$($res.downloadUrl)" } } else { "$ApiBase/api/image/download?id=$($res.id)" }
+        $stUrl = if ($res.streamUrl) { if ($res.streamUrl.StartsWith("http")) { $res.streamUrl } else { "$ApiBase$($res.streamUrl)" } } else { "$ApiBase/api/image/stream?id=$($res.id)" }
 
         Write-Host "  $Cyan│$Reset  $Green✓ Modificación de imagen completada exitosamente.$Reset"
-        try {
-            Invoke-WebRequest -Uri $dlUrl -OutFile $out -UseBasicParsing -TimeoutSec 90
-            $resolvedOut = (Resolve-Path $out).Path
-            Write-Host "  $Cyan│$Reset  $Green✓ Guardado local:$Reset $White$resolvedOut$Reset"
-        } catch {
-            Write-Host "  $Cyan│$Reset  $Yellow URL de descarga:$Reset $White$dlUrl$Reset"
+
+        $outputMode = Select-VorkMediaOutputAction -PromptTitle "Selecciona cómo deseas obtener la imagen modificada:"
+        if (-not $outputMode) { $outputMode = "all" }
+
+        $hasLocal = $outputMode -in @("local", "local_video", "local_audio", "local_download", "local_stream", "all")
+        $hasDownload = $outputMode -in @("download", "local_download", "download_stream", "all")
+        $hasVideoStream = $outputMode -in @("video_stream", "local_video", "video_audio", "stream", "local_stream", "download_stream", "all")
+        $hasAudioStream = $outputMode -in @("audio_stream", "local_audio", "video_audio", "stream", "local_stream", "download_stream", "all")
+
+        if ($hasLocal) {
+            try {
+                Invoke-WebRequest -Uri $dlUrl -OutFile $out -UseBasicParsing -TimeoutSec 90
+                $resolvedOut = (Resolve-Path $out).Path
+                Write-Host "  $Cyan│$Reset  $Green✓ Guardado local:$Reset $White$resolvedOut$Reset"
+            } catch {
+                Write-Host "  $Cyan│$Reset    Descarga: $Yellow$dlUrl$Reset"
+            }
         }
+
+        if ($hasDownload) {
+            Write-Host "  $Cyan│$Reset  $Yellow✓ Descarga:$Reset       $White$dlUrl$Reset"
+        }
+
+        if ($hasVideoStream -and $stUrl) {
+            Write-Host "  $Cyan│$Reset  $Magenta✓ Stream Video:$Reset   $White$stUrl$Reset"
+        }
+
+        if ($hasAudioStream -and $stUrl) {
+            Write-Host "  $Cyan│$Reset  $Cyan✓ Stream Música:$Reset  $White$stUrl$Reset"
+        }
+
         Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
         Send-VorkNotification -Title "Vork Fondo IA" -Message "Modificación de fondo completada con éxito."
     } catch {
