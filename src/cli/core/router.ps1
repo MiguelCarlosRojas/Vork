@@ -33,17 +33,13 @@ function Dispatch-CLICommand {
         }
         "goal"       { Invoke-CmdGoal -ArgsList $ArgsList }
         "plan"       { Invoke-CmdPlan -ArgsList $ArgsList }
-        "grill-me"   { Invoke-CmdGrillMe }
         "teamwork"   { Invoke-CmdTeamwork -ArgsList $ArgsList }
-        "boost"      { Invoke-CmdBoost }
         "learn"      { Invoke-CmdLearn -ArgsList $ArgsList }
-        "browser"    { Invoke-CmdBrowser -ArgsList $ArgsList }
         "automation" { Invoke-CmdAutomation }
 
         # ========================================================
         # CATEGORIA 3: CONTEXTO, SESION & MEMORIA (7)
         # ========================================================
-        "compact" { Invoke-CmdCompact }
         { $_ -in "clear", "cls" } {
             Clear-Host
             Show-Banner
@@ -58,9 +54,6 @@ function Dispatch-CLICommand {
         # CATEGORIA 4: CODIGO, AUDITORIA & FLUJO (4)
         # ========================================================
         "status"   { Invoke-CmdStatus }
-        "review"   { Invoke-CmdReview }
-        "bug"      { Invoke-CmdBug -ArgsList $ArgsList }
-        "refactor" { Invoke-CmdRefactor }
 
         # ========================================================
         # CATEGORIA 5: CONFIGURACION & PREFERENCIAS (6)
@@ -70,7 +63,6 @@ function Dispatch-CLICommand {
             Write-Host "  ${LeadLight}Configuración cerrada.${Reset}"
             Write-Host ""
         }
-        "keybindings" { Invoke-CmdKeybindings }
         { $_ -in "mode", "modal", "model", "tier", "effort" } {
             $argVal = if ($ArgsList -and $ArgsList.Count -gt 0) { $ArgsList[0] } else { "" }
             if ($argVal -in "low", "medium", "high") {
@@ -534,13 +526,9 @@ function Read-InteractiveVorkLine {
         @{ Cmd = "/agents";      Desc = "Orquestacion de subagentes en terminal interactiva" },
         @{ Cmd = "/goal";        Desc = "Modo autonomo continuo para tareas exhaustivas" },
         @{ Cmd = "/plan";        Desc = "Planificacion guiada y desglose paso a paso" },
-        @{ Cmd = "/grill-me";    Desc = "Entrevista interactiva para decisiones de diseno" },
         @{ Cmd = "/teamwork";    Desc = "Coordinacion con multiples subagentes concurrentes" },
-        @{ Cmd = "/boost";       Desc = "Razonamiento profundo con verificacion estricta" },
         @{ Cmd = "/learn";       Desc = "Persistir reglas, correcciones y preferencias" },
-        @{ Cmd = "/browser";     Desc = "Navegacion e interaccion web automatizada" },
         @{ Cmd = "/automation";  Desc = "Disenar y programar tareas en segundo plano" },
-        @{ Cmd = "/compact";     Desc = "Compactar historial para liberar ventana de contexto" },
         @{ Cmd = "/clear";       Desc = "Limpiar pantalla de terminal conservando la sesion" },
         @{ Cmd = "/reset";       Desc = "Reiniciar variables y contexto de la sesion a cero" },
         @{ Cmd = "/history";     Desc = "Explorar historial cronologico de comandos ejecutados" },
@@ -548,12 +536,8 @@ function Read-InteractiveVorkLine {
         @{ Cmd = "/resume";      Desc = "Reanudar una sesion previa o restaurar estado" },
         @{ Cmd = "/undo";        Desc = "Deshacer la ultima accion o cambio de codigo" },
         @{ Cmd = "/status";      Desc = "Inspeccionar estado del entorno y tareas activas" },
-        @{ Cmd = "/review";      Desc = "Auditoria de codigo, buenas practicas y seguridad" },
-        @{ Cmd = "/bug";         Desc = "Diagnostico y depuracion asistida de excepciones" },
-        @{ Cmd = "/refactor";    Desc = "Reestructurar y optimizar codigo sin alterar salida" },
         @{ Cmd = "/settings";    Desc = "Panel interactivo de configuraciones y permisos" },
         @{ Cmd = "/config";      Desc = "Ajustar permisos, temas visuales y preferencias" },
-        @{ Cmd = "/keybindings"; Desc = "Personalizar atajos de teclado y combinaciones" },
         @{ Cmd = "/permissions"; Desc = "Administrar permisos de herramientas y comandos" },
         @{ Cmd = "/chat";        Desc = "Conversar directamente con Vork AI (3.0, 3.1 o 3.2 Expert)" },
         @{ Cmd = "/model";       Desc = "Selector de modelo (Vork 3, 3.1, 3.2 Expert) y potencia" },

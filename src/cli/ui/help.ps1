@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Vork CLI - Modulo UI: Catalogo visual, atajos y navegador de ayuda responsive.
 #>
@@ -148,22 +148,18 @@ function Show-SlashCommands {
             )
         },
         @{
-            Title = "[CATEGORIA 2] Agentes Autonomos & Planificacion IA (8)"
+            Title = "[CATEGORIA 2] Agentes Autonomos & Planificacion IA (5)"
             Items = @(
                 @{ Cmd = "/goal";       Desc = "Modo autonomo continuo para tareas exhaustivas" },
                 @{ Cmd = "/plan";       Desc = "Planificacion guiada y desglose paso a paso" },
-                @{ Cmd = "/grill-me";   Desc = "Entrevista interactiva para decisiones de diseno" },
                 @{ Cmd = "/teamwork";   Desc = "Coordinacion con multiples subagentes concurrentes" },
-                @{ Cmd = "/boost";      Desc = "Razonamiento profundo con verificacion estricta" },
                 @{ Cmd = "/learn";      Desc = "Persistir reglas, correcciones y preferencias" },
-                @{ Cmd = "/browser";    Desc = "Navegacion e interaccion web automatizada" },
                 @{ Cmd = "/automation"; Desc = "Disenar y programar tareas en segundo plano" }
             )
         },
         @{
-            Title = "[CATEGORIA 3] Contexto, Sesion & Memoria (7)"
+            Title = "[CATEGORIA 3] Contexto, Sesion & Memoria (6)"
             Items = @(
-                @{ Cmd = "/compact"; Desc = "Compactar historial para liberar ventana de contexto" },
                 @{ Cmd = "/clear";   Desc = "Limpiar pantalla de terminal conservando la sesion" },
                 @{ Cmd = "/reset";   Desc = "Reiniciar variables y contexto de la sesion a cero" },
                 @{ Cmd = "/history"; Desc = "Explorar historial cronologico de comandos ejecutados" },
@@ -173,19 +169,15 @@ function Show-SlashCommands {
             )
         },
         @{
-            Title = "[CATEGORIA 4] Codigo, Auditoria & Flujo de Trabajo (4)"
+            Title = "[CATEGORIA 4] Diagnostico & Estado del Sistema (1)"
             Items = @(
-                @{ Cmd = "/status";   Desc = "Inspeccionar estado del entorno, archivos y tareas activas" },
-                @{ Cmd = "/review";   Desc = "Auditoria de codigo, buenas practicas y seguridad" },
-                @{ Cmd = "/bug";      Desc = "Diagnostico y depuracion asistida de excepciones" },
-                @{ Cmd = "/refactor"; Desc = "Reestructurar y optimizar codigo sin alterar salida" }
+                @{ Cmd = "/status";   Desc = "Inspeccionar estado del entorno, archivos y tareas activas" }
             )
         },
         @{
-            Title = "[CATEGORIA 5] Configuracion & Preferencias (6)"
+            Title = "[CATEGORIA 5] Configuracion & Preferencias (5)"
             Items = @(
                 @{ Cmd = "/config";      Desc = "Ajustar permisos, temas visuales y preferencias" },
-                @{ Cmd = "/keybindings"; Desc = "Personalizar atajos de teclado y combinaciones" },
                 @{ Cmd = "/permissions"; Desc = "Administrar permisos de herramientas y comandos" },
                 @{ Cmd = "/model";       Desc = "Cambiar modelo IA y nivel de esfuerzo" },
                 @{ Cmd = "/theme";       Desc = "Alternar temas visuales (Dark, Cyberpunk, Coral)" },
@@ -242,13 +234,9 @@ function Show-InteractiveHelpModal {
         @{ Cmd = "/agents";      Desc = "Orquestacion de subagentes en terminal interactiva" },
         @{ Cmd = "/goal";        Desc = "Modo autonomo continuo para tareas exhaustivas" },
         @{ Cmd = "/plan";        Desc = "Planificacion guiada y desglose paso a paso" },
-        @{ Cmd = "/grill-me";    Desc = "Entrevista interactiva para decisiones de diseno" },
         @{ Cmd = "/teamwork";    Desc = "Coordinacion con multiples subagentes concurrentes" },
-        @{ Cmd = "/boost";       Desc = "Razonamiento profundo con verificacion estricta" },
         @{ Cmd = "/learn";       Desc = "Persistir reglas, correcciones y preferencias" },
-        @{ Cmd = "/browser";     Desc = "Navegacion e interaccion web automatizada" },
         @{ Cmd = "/automation";  Desc = "Disenar y programar tareas en segundo plano" },
-        @{ Cmd = "/compact";     Desc = "Compactar historial para liberar ventana de contexto" },
         @{ Cmd = "/clear";       Desc = "Limpiar pantalla de terminal conservando la sesion" },
         @{ Cmd = "/reset";       Desc = "Reiniciar variables y contexto de la sesion a cero" },
         @{ Cmd = "/history";     Desc = "Explorar historial cronologico de comandos ejecutados" },
@@ -256,11 +244,7 @@ function Show-InteractiveHelpModal {
         @{ Cmd = "/resume";      Desc = "Reanudar una sesion previa o restaurar estado" },
         @{ Cmd = "/undo";        Desc = "Deshacer la ultima accion o cambio de codigo" },
         @{ Cmd = "/status";      Desc = "Telemetria y estado operativo en vivo de los 9 pilares" },
-        @{ Cmd = "/review";      Desc = "Auditoria de codigo, buenas practicas y seguridad" },
-        @{ Cmd = "/bug";         Desc = "Diagnostico y depuracion asistida de excepciones" },
-        @{ Cmd = "/refactor";    Desc = "Reestructurar y optimizar codigo sin alterar salida" },
         @{ Cmd = "/config";      Desc = "Ajustar permisos, temas visuales y preferencias" },
-        @{ Cmd = "/keybindings"; Desc = "Personalizar atajos de teclado y combinaciones" },
         @{ Cmd = "/permissions"; Desc = "Administrar permisos de herramientas y comandos" },
         @{ Cmd = "/model";       Desc = "Configurar modelo Vork 3 y nivel de potencia" },
         @{ Cmd = "/theme";       Desc = "Alternar entre los 10 temas visuales oficiales" },
@@ -393,7 +377,7 @@ function Show-InteractiveHelpModal {
                 2 {
                     if (-not $compact) { Write-Host "" }
                     Write-VorkHelpLine -Width $width -Text "  ${White}${Bold}Atajos de Teclado ($($shortcuts.Count)):${Reset}"
-                    if (-not $compact) { Write-VorkHelpLine -Width $width -Text "  ${LeadLight}/keybindings para personalizar${Reset}" }
+                    if (-not $compact) { Write-VorkHelpLine -Width $width -Text "  ${LeadLight}? para ver todos los atajos${Reset}" }
                     if (-not $compact) { Write-Host "" }
 
                     if ($scIdx -lt $scTop) { $scTop = $scIdx }

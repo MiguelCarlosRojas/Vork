@@ -1454,27 +1454,11 @@ function Show-InteractiveSettings {
     }
 
     $settingsData = [ordered]@{
-        "agent_mode"            = @{ Label = "Agent Mode"; Options = @("default", "accept-edits", "auto", "plan"); Value = if ($savedSettings["agent_mode"]) { $savedSettings["agent_mode"] } else { "default" }; Desc = "Comportamiento del agente: default, accept-edits, auto o plan." }
-        "animation_speed"       = @{ Label = "Animation Speed"; Options = @("medium", "fast", "off"); Value = if ($savedSettings["animation_speed"]) { $savedSettings["animation_speed"] } else { "medium" }; Desc = "Velocidad de animaciones, spinners y barras de progreso." }
-        "artifact_review"       = @{ Label = "Artifact Review"; Options = @("asks for review", "always-approve", "off"); Value = if ($savedSettings["artifact_review"]) { $savedSettings["artifact_review"] } else { "asks for review" }; Desc = "Confirma artefactos, diffs y planes antes de ejecutarlos." }
-        "color_scheme"          = @{ Label = "Color Scheme"; Options = @("dark", "light", "system"); Value = if ($savedSettings["color_scheme"]) { $savedSettings["color_scheme"] } else { "dark" }; Desc = "Paleta de color de la terminal: dark, light o system." }
-        "conv_grouping"         = @{ Label = "Conversation Grouping"; Options = @("none", "project", "date"); Value = if ($savedSettings["conv_grouping"]) { $savedSettings["conv_grouping"] } else { "none" }; Desc = "Agrupacion del historial de conversaciones." }
-        "copy_on_select"        = @{ Label = "Copy on Select"; Options = @("on", "off"); Value = if ($savedSettings["copy_on_select"]) { $savedSettings["copy_on_select"] } else { "on" }; Desc = "Copia automaticamente el texto seleccionado al portapapeles." }
-        "editor"                = @{ Label = "Editor"; Options = @("auto ($EDITOR)", "code", "vim", "nano", "notepad"); Value = if ($savedSettings["editor"]) { $savedSettings["editor"] } else { "auto ($EDITOR)" }; Desc = "Editor externo para abrir archivos, configuraciones y diffs." }
-        "editor_mode"           = @{ Label = "Editor Mode"; Options = @("default", "vim", "emacs"); Value = if ($savedSettings["editor_mode"]) { $savedSettings["editor_mode"] } else { "default" }; Desc = "Atajos de edicion del prompt y de los campos de texto." }
-        "enable_telemetry"      = @{ Label = "Enable Telemetry"; Options = @("on", "off"); Value = if ($savedSettings["enable_telemetry"]) { $savedSettings["enable_telemetry"] } else { "on" }; Desc = "Envia metricas anonimas para diagnosticar los pilares." }
-        "non_workspace"         = @{ Label = "Non-Workspace Access"; Options = @("off", "on"); Value = if ($savedSettings["non_workspace"]) { $savedSettings["non_workspace"] } else { "off" }; Desc = "Permite inspeccionar archivos fuera del proyecto actual." }
-        "notifications"         = @{ Label = "Notifications"; Options = @("on", "off"); Value = if ($savedSettings["notifications"]) { $savedSettings["notifications"] } else { "on" }; Desc = "Notificaciones y avisos al terminar tareas en segundo plano." }
-        "queued_messages"       = @{ Label = "Queued Messages"; Options = @("Queue", "Discard", "Prompt"); Value = if ($savedSettings["queued_messages"]) { $savedSettings["queued_messages"] } else { "Queue" }; Desc = "Que hacer con mensajes nuevos mientras corre una tarea." }
-        "rendering_mode"        = @{ Label = "Rendering Mode"; Options = @("native terminal (inline)", "fullscreen alternate-screen"); Value = if ($savedSettings["rendering_mode"]) { $savedSettings["rendering_mode"] } else { "native terminal (inline)" }; Desc = "Modo de renderizado de la interfaz." }
-        "sandbox_mode"          = @{ Label = "Sandbox Mode"; Options = @("off", "on"); Value = if ($savedSettings["sandbox_mode"]) { $savedSettings["sandbox_mode"] } else { "off" }; Desc = "Restringe comandos y escritura a un directorio temporal." }
-        "seasonal_themes"       = @{ Label = "Seasonal Themes"; Options = @("off", "on"); Value = if ($savedSettings["seasonal_themes"]) { $savedSettings["seasonal_themes"] } else { "off" }; Desc = "Activa temas festivos segun la fecha del calendario." }
-        "show_active_tasks"     = @{ Label = "Show Active Tasks"; Options = @("on", "off"); Value = if ($savedSettings["show_active_tasks"]) { $savedSettings["show_active_tasks"] } else { "on" }; Desc = "Muestra tareas activas en segundo plano." }
-        "show_feedback_survey"  = @{ Label = "Show Feedback Survey"; Options = @("on", "off"); Value = if ($savedSettings["show_feedback_survey"]) { $savedSettings["show_feedback_survey"] } else { "on" }; Desc = "Muestra encuestas de opinion ocasionales." }
-        "show_tips"             = @{ Label = "Show Tips"; Options = @("on", "off"); Value = if ($savedSettings["show_tips"]) { $savedSettings["show_tips"] } else { "on" }; Desc = "Muestra atajos y consejos bajo el prompt." }
-        "tool_permission"       = @{ Label = "Tool Permission"; Options = @("always-proceed (overridden by dangerously-skip-permissions)", "ask-each", "deny-unsafe"); Value = if ($savedSettings["tool_permission"]) { $savedSettings["tool_permission"] } else { "always-proceed (overridden by dangerously-skip-permissions)" }; Desc = "Politica de ejecucion de herramientas del agente." }
-        "use_ai_credits"        = @{ Label = "Use AI Credits"; Options = @("off", "on"); Value = if ($savedSettings["use_ai_credits"]) { $savedSettings["use_ai_credits"] } else { "off" }; Desc = "Usa creditos para modelos premium y Demucs v4." }
-        "verbosity"             = @{ Label = "Verbosity"; Options = @("medium", "quiet", "verbose"); Value = if ($savedSettings["verbosity"]) { $savedSettings["verbosity"] } else { "medium" }; Desc = "Nivel de detalle de logs y diagnosticos." }
+        "notifications"   = @{ Label = "Notifications";     Options = @("on", "off"); Value = if ($savedSettings["notifications"]) { $savedSettings["notifications"] } else { "on" }; Desc = "Alertas toast de Windows al concluir tareas y pilares." }
+        "cloud_ai"        = @{ Label = "Cloud AI Engine";   Options = @("on", "off"); Value = if ($savedSettings["cloud_ai"]) { $savedSettings["cloud_ai"] } else { "on" }; Desc = "Inferencia remota con Vork 3, 3.1 y 3.2 Expert Edition." }
+        "media_download"  = @{ Label = "Media Download";    Options = @("on", "off"); Value = if ($savedSettings["media_download"]) { $savedSettings["media_download"] } else { "on" }; Desc = "Descargas y streams desde TikTok, YouTube, Reels y audio." }
+        "workspace_write" = @{ Label = "Workspace Write";   Options = @("on", "off"); Value = if ($savedSettings["workspace_write"]) { $savedSettings["workspace_write"] } else { "on" }; Desc = "Guardado físico de archivos convertidos en el directorio local." }
+        "color_scheme"    = @{ Label = "Color Scheme";      Options = @("dark", "light", "system"); Value = if ($savedSettings["color_scheme"]) { $savedSettings["color_scheme"] } else { "dark" }; Desc = "Paleta de color y contraste visual de la terminal." }
     }
 
     $keys = @($settingsData.Keys)
@@ -1497,6 +1481,15 @@ function Show-InteractiveSettings {
             $toExport = @{}
             foreach ($key in $settingsData.Keys) { $toExport[$key] = $settingsData[$key].Value }
             $toExport | ConvertTo-Json | Set-Content -Path $settingsFile -Encoding UTF8
+
+            $permFile = Join-Path $vorkDir "permissions.json"
+            $perms = @{
+                "notifications"   = ($toExport["notifications"] -ne "off")
+                "cloud_ai"        = ($toExport["cloud_ai"] -ne "off")
+                "media_download"  = ($toExport["media_download"] -ne "off")
+                "workspace_write" = ($toExport["workspace_write"] -ne "off")
+            }
+            $perms | ConvertTo-Json | Set-Content -Path $permFile -Encoding UTF8
         } catch { }
     }
 

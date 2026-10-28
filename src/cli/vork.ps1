@@ -3378,27 +3378,11 @@ function Show-InteractiveSettings {
     }
 
     $settingsData = [ordered]@{
-        "agent_mode"            = @{ Label = "Agent Mode"; Options = @("default", "accept-edits", "auto", "plan"); Value = if ($savedSettings["agent_mode"]) { $savedSettings["agent_mode"] } else { "default" }; Desc = "Comportamiento del agente: default, accept-edits, auto o plan." }
-        "animation_speed"       = @{ Label = "Animation Speed"; Options = @("medium", "fast", "off"); Value = if ($savedSettings["animation_speed"]) { $savedSettings["animation_speed"] } else { "medium" }; Desc = "Velocidad de animaciones, spinners y barras de progreso." }
-        "artifact_review"       = @{ Label = "Artifact Review"; Options = @("asks for review", "always-approve", "off"); Value = if ($savedSettings["artifact_review"]) { $savedSettings["artifact_review"] } else { "asks for review" }; Desc = "Confirma artefactos, diffs y planes antes de ejecutarlos." }
-        "color_scheme"          = @{ Label = "Color Scheme"; Options = @("dark", "light", "system"); Value = if ($savedSettings["color_scheme"]) { $savedSettings["color_scheme"] } else { "dark" }; Desc = "Paleta de color de la terminal: dark, light o system." }
-        "conv_grouping"         = @{ Label = "Conversation Grouping"; Options = @("none", "project", "date"); Value = if ($savedSettings["conv_grouping"]) { $savedSettings["conv_grouping"] } else { "none" }; Desc = "Agrupacion del historial de conversaciones." }
-        "copy_on_select"        = @{ Label = "Copy on Select"; Options = @("on", "off"); Value = if ($savedSettings["copy_on_select"]) { $savedSettings["copy_on_select"] } else { "on" }; Desc = "Copia automaticamente el texto seleccionado al portapapeles." }
-        "editor"                = @{ Label = "Editor"; Options = @("auto ($EDITOR)", "code", "vim", "nano", "notepad"); Value = if ($savedSettings["editor"]) { $savedSettings["editor"] } else { "auto ($EDITOR)" }; Desc = "Editor externo para abrir archivos, configuraciones y diffs." }
-        "editor_mode"           = @{ Label = "Editor Mode"; Options = @("default", "vim", "emacs"); Value = if ($savedSettings["editor_mode"]) { $savedSettings["editor_mode"] } else { "default" }; Desc = "Atajos de edicion del prompt y de los campos de texto." }
-        "enable_telemetry"      = @{ Label = "Enable Telemetry"; Options = @("on", "off"); Value = if ($savedSettings["enable_telemetry"]) { $savedSettings["enable_telemetry"] } else { "on" }; Desc = "Envia metricas anonimas para diagnosticar los pilares." }
-        "non_workspace"         = @{ Label = "Non-Workspace Access"; Options = @("off", "on"); Value = if ($savedSettings["non_workspace"]) { $savedSettings["non_workspace"] } else { "off" }; Desc = "Permite inspeccionar archivos fuera del proyecto actual." }
-        "notifications"         = @{ Label = "Notifications"; Options = @("on", "off"); Value = if ($savedSettings["notifications"]) { $savedSettings["notifications"] } else { "on" }; Desc = "Notificaciones y avisos al terminar tareas en segundo plano." }
-        "queued_messages"       = @{ Label = "Queued Messages"; Options = @("Queue", "Discard", "Prompt"); Value = if ($savedSettings["queued_messages"]) { $savedSettings["queued_messages"] } else { "Queue" }; Desc = "Que hacer con mensajes nuevos mientras corre una tarea." }
-        "rendering_mode"        = @{ Label = "Rendering Mode"; Options = @("native terminal (inline)", "fullscreen alternate-screen"); Value = if ($savedSettings["rendering_mode"]) { $savedSettings["rendering_mode"] } else { "native terminal (inline)" }; Desc = "Modo de renderizado de la interfaz." }
-        "sandbox_mode"          = @{ Label = "Sandbox Mode"; Options = @("off", "on"); Value = if ($savedSettings["sandbox_mode"]) { $savedSettings["sandbox_mode"] } else { "off" }; Desc = "Restringe comandos y escritura a un directorio temporal." }
-        "seasonal_themes"       = @{ Label = "Seasonal Themes"; Options = @("off", "on"); Value = if ($savedSettings["seasonal_themes"]) { $savedSettings["seasonal_themes"] } else { "off" }; Desc = "Activa temas festivos segun la fecha del calendario." }
-        "show_active_tasks"     = @{ Label = "Show Active Tasks"; Options = @("on", "off"); Value = if ($savedSettings["show_active_tasks"]) { $savedSettings["show_active_tasks"] } else { "on" }; Desc = "Muestra tareas activas en segundo plano." }
-        "show_feedback_survey"  = @{ Label = "Show Feedback Survey"; Options = @("on", "off"); Value = if ($savedSettings["show_feedback_survey"]) { $savedSettings["show_feedback_survey"] } else { "on" }; Desc = "Muestra encuestas de opinion ocasionales." }
-        "show_tips"             = @{ Label = "Show Tips"; Options = @("on", "off"); Value = if ($savedSettings["show_tips"]) { $savedSettings["show_tips"] } else { "on" }; Desc = "Muestra atajos y consejos bajo el prompt." }
-        "tool_permission"       = @{ Label = "Tool Permission"; Options = @("always-proceed (overridden by dangerously-skip-permissions)", "ask-each", "deny-unsafe"); Value = if ($savedSettings["tool_permission"]) { $savedSettings["tool_permission"] } else { "always-proceed (overridden by dangerously-skip-permissions)" }; Desc = "Politica de ejecucion de herramientas del agente." }
-        "use_ai_credits"        = @{ Label = "Use AI Credits"; Options = @("off", "on"); Value = if ($savedSettings["use_ai_credits"]) { $savedSettings["use_ai_credits"] } else { "off" }; Desc = "Usa creditos para modelos premium y Demucs v4." }
-        "verbosity"             = @{ Label = "Verbosity"; Options = @("medium", "quiet", "verbose"); Value = if ($savedSettings["verbosity"]) { $savedSettings["verbosity"] } else { "medium" }; Desc = "Nivel de detalle de logs y diagnosticos." }
+        "notifications"   = @{ Label = "Notifications";     Options = @("on", "off"); Value = if ($savedSettings["notifications"]) { $savedSettings["notifications"] } else { "on" }; Desc = "Alertas toast de Windows al concluir tareas y pilares." }
+        "cloud_ai"        = @{ Label = "Cloud AI Engine";   Options = @("on", "off"); Value = if ($savedSettings["cloud_ai"]) { $savedSettings["cloud_ai"] } else { "on" }; Desc = "Inferencia remota con Vork 3, 3.1 y 3.2 Expert Edition." }
+        "media_download"  = @{ Label = "Media Download";    Options = @("on", "off"); Value = if ($savedSettings["media_download"]) { $savedSettings["media_download"] } else { "on" }; Desc = "Descargas y streams desde TikTok, YouTube, Reels y audio." }
+        "workspace_write" = @{ Label = "Workspace Write";   Options = @("on", "off"); Value = if ($savedSettings["workspace_write"]) { $savedSettings["workspace_write"] } else { "on" }; Desc = "Guardado físico de archivos convertidos en el directorio local." }
+        "color_scheme"    = @{ Label = "Color Scheme";      Options = @("dark", "light", "system"); Value = if ($savedSettings["color_scheme"]) { $savedSettings["color_scheme"] } else { "dark" }; Desc = "Paleta de color y contraste visual de la terminal." }
     }
 
     $keys = @($settingsData.Keys)
@@ -3421,6 +3405,15 @@ function Show-InteractiveSettings {
             $toExport = @{}
             foreach ($key in $settingsData.Keys) { $toExport[$key] = $settingsData[$key].Value }
             $toExport | ConvertTo-Json | Set-Content -Path $settingsFile -Encoding UTF8
+
+            $permFile = Join-Path $vorkDir "permissions.json"
+            $perms = @{
+                "notifications"   = ($toExport["notifications"] -ne "off")
+                "cloud_ai"        = ($toExport["cloud_ai"] -ne "off")
+                "media_download"  = ($toExport["media_download"] -ne "off")
+                "workspace_write" = ($toExport["workspace_write"] -ne "off")
+            }
+            $perms | ConvertTo-Json | Set-Content -Path $permFile -Encoding UTF8
         } catch { }
     }
 
@@ -3692,22 +3685,18 @@ function Show-SlashCommands {
             )
         },
         @{
-            Title = "[CATEGORIA 2] Agentes Autonomos & Planificacion IA (8)"
+            Title = "[CATEGORIA 2] Agentes Autonomos & Planificacion IA (5)"
             Items = @(
                 @{ Cmd = "/goal";       Desc = "Modo autonomo continuo para tareas exhaustivas" },
                 @{ Cmd = "/plan";       Desc = "Planificacion guiada y desglose paso a paso" },
-                @{ Cmd = "/grill-me";   Desc = "Entrevista interactiva para decisiones de diseno" },
                 @{ Cmd = "/teamwork";   Desc = "Coordinacion con multiples subagentes concurrentes" },
-                @{ Cmd = "/boost";      Desc = "Razonamiento profundo con verificacion estricta" },
                 @{ Cmd = "/learn";      Desc = "Persistir reglas, correcciones y preferencias" },
-                @{ Cmd = "/browser";    Desc = "Navegacion e interaccion web automatizada" },
                 @{ Cmd = "/automation"; Desc = "Disenar y programar tareas en segundo plano" }
             )
         },
         @{
-            Title = "[CATEGORIA 3] Contexto, Sesion & Memoria (7)"
+            Title = "[CATEGORIA 3] Contexto, Sesion & Memoria (6)"
             Items = @(
-                @{ Cmd = "/compact"; Desc = "Compactar historial para liberar ventana de contexto" },
                 @{ Cmd = "/clear";   Desc = "Limpiar pantalla de terminal conservando la sesion" },
                 @{ Cmd = "/reset";   Desc = "Reiniciar variables y contexto de la sesion a cero" },
                 @{ Cmd = "/history"; Desc = "Explorar historial cronologico de comandos ejecutados" },
@@ -3717,19 +3706,15 @@ function Show-SlashCommands {
             )
         },
         @{
-            Title = "[CATEGORIA 4] Codigo, Auditoria & Flujo de Trabajo (4)"
+            Title = "[CATEGORIA 4] Diagnostico & Estado del Sistema (1)"
             Items = @(
-                @{ Cmd = "/status";   Desc = "Inspeccionar estado del entorno, archivos y tareas activas" },
-                @{ Cmd = "/review";   Desc = "Auditoria de codigo, buenas practicas y seguridad" },
-                @{ Cmd = "/bug";      Desc = "Diagnostico y depuracion asistida de excepciones" },
-                @{ Cmd = "/refactor"; Desc = "Reestructurar y optimizar codigo sin alterar salida" }
+                @{ Cmd = "/status";   Desc = "Inspeccionar estado del entorno, archivos y tareas activas" }
             )
         },
         @{
-            Title = "[CATEGORIA 5] Configuracion & Preferencias (6)"
+            Title = "[CATEGORIA 5] Configuracion & Preferencias (5)"
             Items = @(
                 @{ Cmd = "/config";      Desc = "Ajustar permisos, temas visuales y preferencias" },
-                @{ Cmd = "/keybindings"; Desc = "Personalizar atajos de teclado y combinaciones" },
                 @{ Cmd = "/permissions"; Desc = "Administrar permisos de herramientas y comandos" },
                 @{ Cmd = "/model";       Desc = "Cambiar modelo IA y nivel de esfuerzo" },
                 @{ Cmd = "/theme";       Desc = "Alternar temas visuales (Dark, Cyberpunk, Coral)" },
@@ -3786,13 +3771,9 @@ function Show-InteractiveHelpModal {
         @{ Cmd = "/agents";      Desc = "Orquestacion de subagentes en terminal interactiva" },
         @{ Cmd = "/goal";        Desc = "Modo autonomo continuo para tareas exhaustivas" },
         @{ Cmd = "/plan";        Desc = "Planificacion guiada y desglose paso a paso" },
-        @{ Cmd = "/grill-me";    Desc = "Entrevista interactiva para decisiones de diseno" },
         @{ Cmd = "/teamwork";    Desc = "Coordinacion con multiples subagentes concurrentes" },
-        @{ Cmd = "/boost";       Desc = "Razonamiento profundo con verificacion estricta" },
         @{ Cmd = "/learn";       Desc = "Persistir reglas, correcciones y preferencias" },
-        @{ Cmd = "/browser";     Desc = "Navegacion e interaccion web automatizada" },
         @{ Cmd = "/automation";  Desc = "Disenar y programar tareas en segundo plano" },
-        @{ Cmd = "/compact";     Desc = "Compactar historial para liberar ventana de contexto" },
         @{ Cmd = "/clear";       Desc = "Limpiar pantalla de terminal conservando la sesion" },
         @{ Cmd = "/reset";       Desc = "Reiniciar variables y contexto de la sesion a cero" },
         @{ Cmd = "/history";     Desc = "Explorar historial cronologico de comandos ejecutados" },
@@ -3800,11 +3781,7 @@ function Show-InteractiveHelpModal {
         @{ Cmd = "/resume";      Desc = "Reanudar una sesion previa o restaurar estado" },
         @{ Cmd = "/undo";        Desc = "Deshacer la ultima accion o cambio de codigo" },
         @{ Cmd = "/status";      Desc = "Telemetria y estado operativo en vivo de los 9 pilares" },
-        @{ Cmd = "/review";      Desc = "Auditoria de codigo, buenas practicas y seguridad" },
-        @{ Cmd = "/bug";         Desc = "Diagnostico y depuracion asistida de excepciones" },
-        @{ Cmd = "/refactor";    Desc = "Reestructurar y optimizar codigo sin alterar salida" },
         @{ Cmd = "/config";      Desc = "Ajustar permisos, temas visuales y preferencias" },
-        @{ Cmd = "/keybindings"; Desc = "Personalizar atajos de teclado y combinaciones" },
         @{ Cmd = "/permissions"; Desc = "Administrar permisos de herramientas y comandos" },
         @{ Cmd = "/model";       Desc = "Configurar modelo Vork 3 y nivel de potencia" },
         @{ Cmd = "/theme";       Desc = "Alternar entre los 10 temas visuales oficiales" },
@@ -3937,7 +3914,7 @@ function Show-InteractiveHelpModal {
                 2 {
                     if (-not $compact) { Write-Host "" }
                     Write-VorkHelpLine -Width $width -Text "  ${White}${Bold}Atajos de Teclado ($($shortcuts.Count)):${Reset}"
-                    if (-not $compact) { Write-VorkHelpLine -Width $width -Text "  ${LeadLight}/keybindings para personalizar${Reset}" }
+                    if (-not $compact) { Write-VorkHelpLine -Width $width -Text "  ${LeadLight}? para ver todos los atajos${Reset}" }
                     if (-not $compact) { Write-Host "" }
 
                     if ($scIdx -lt $scTop) { $scTop = $scIdx }
@@ -5340,8 +5317,7 @@ function Invoke-PillarAgents {
             @{ Value = "goal";     Label = "[2] Ejecutar /goal (Tarea autónoma de bucle continuo)" },
             @{ Value = "plan";     Label = "[3] Ejecutar /plan (Desglose guiado de arquitectura)" },
             @{ Value = "teamwork"; Label = "[4] Activar /teamwork (Coordinación de múltiples subagentes)" },
-            @{ Value = "boost";    Label = "[5] Alternar /boost (Razonamiento profundo con verificación)" },
-            @{ Value = "learn";    Label = "[6] Registrar regla con /learn (Persistencia en ~/.vork)" }
+            @{ Value = "learn";    Label = "[5] Registrar regla con /learn (Persistencia en ~/.vork)" }
         )
 
         $chosenAction = Select-InteractiveOption -PromptTitle "Selecciona una operación de Agentes Autónomos:" -Options $agentOptions -DefaultIndex 0
@@ -5351,7 +5327,6 @@ function Invoke-PillarAgents {
                 "goal" { Invoke-CmdGoal @(); return }
                 "plan" { Invoke-CmdPlan @(); return }
                 "teamwork" { Invoke-CmdTeamwork @(); return }
-                "boost" { Invoke-CmdBoost; return }
                 "learn" { Invoke-CmdLearn @(); return }
             }
         }
@@ -6215,17 +6190,13 @@ function Dispatch-CLICommand {
         }
         "goal"       { Invoke-CmdGoal -ArgsList $ArgsList }
         "plan"       { Invoke-CmdPlan -ArgsList $ArgsList }
-        "grill-me"   { Invoke-CmdGrillMe }
         "teamwork"   { Invoke-CmdTeamwork -ArgsList $ArgsList }
-        "boost"      { Invoke-CmdBoost }
         "learn"      { Invoke-CmdLearn -ArgsList $ArgsList }
-        "browser"    { Invoke-CmdBrowser -ArgsList $ArgsList }
         "automation" { Invoke-CmdAutomation }
 
         # ========================================================
         # CATEGORIA 3: CONTEXTO, SESION & MEMORIA (7)
         # ========================================================
-        "compact" { Invoke-CmdCompact }
         { $_ -in "clear", "cls" } {
             Clear-Host
             Show-Banner
@@ -6240,9 +6211,6 @@ function Dispatch-CLICommand {
         # CATEGORIA 4: CODIGO, AUDITORIA & FLUJO (4)
         # ========================================================
         "status"   { Invoke-CmdStatus }
-        "review"   { Invoke-CmdReview }
-        "bug"      { Invoke-CmdBug -ArgsList $ArgsList }
-        "refactor" { Invoke-CmdRefactor }
 
         # ========================================================
         # CATEGORIA 5: CONFIGURACION & PREFERENCIAS (6)
@@ -6252,7 +6220,6 @@ function Dispatch-CLICommand {
             Write-Host "  ${LeadLight}Configuración cerrada.${Reset}"
             Write-Host ""
         }
-        "keybindings" { Invoke-CmdKeybindings }
         { $_ -in "mode", "modal", "model", "tier", "effort" } {
             $argVal = if ($ArgsList -and $ArgsList.Count -gt 0) { $ArgsList[0] } else { "" }
             if ($argVal -in "low", "medium", "high") {
@@ -6716,13 +6683,9 @@ function Read-InteractiveVorkLine {
         @{ Cmd = "/agents";      Desc = "Orquestacion de subagentes en terminal interactiva" },
         @{ Cmd = "/goal";        Desc = "Modo autonomo continuo para tareas exhaustivas" },
         @{ Cmd = "/plan";        Desc = "Planificacion guiada y desglose paso a paso" },
-        @{ Cmd = "/grill-me";    Desc = "Entrevista interactiva para decisiones de diseno" },
         @{ Cmd = "/teamwork";    Desc = "Coordinacion con multiples subagentes concurrentes" },
-        @{ Cmd = "/boost";       Desc = "Razonamiento profundo con verificacion estricta" },
         @{ Cmd = "/learn";       Desc = "Persistir reglas, correcciones y preferencias" },
-        @{ Cmd = "/browser";     Desc = "Navegacion e interaccion web automatizada" },
         @{ Cmd = "/automation";  Desc = "Disenar y programar tareas en segundo plano" },
-        @{ Cmd = "/compact";     Desc = "Compactar historial para liberar ventana de contexto" },
         @{ Cmd = "/clear";       Desc = "Limpiar pantalla de terminal conservando la sesion" },
         @{ Cmd = "/reset";       Desc = "Reiniciar variables y contexto de la sesion a cero" },
         @{ Cmd = "/history";     Desc = "Explorar historial cronologico de comandos ejecutados" },
@@ -6730,12 +6693,8 @@ function Read-InteractiveVorkLine {
         @{ Cmd = "/resume";      Desc = "Reanudar una sesion previa o restaurar estado" },
         @{ Cmd = "/undo";        Desc = "Deshacer la ultima accion o cambio de codigo" },
         @{ Cmd = "/status";      Desc = "Inspeccionar estado del entorno y tareas activas" },
-        @{ Cmd = "/review";      Desc = "Auditoria de codigo, buenas practicas y seguridad" },
-        @{ Cmd = "/bug";         Desc = "Diagnostico y depuracion asistida de excepciones" },
-        @{ Cmd = "/refactor";    Desc = "Reestructurar y optimizar codigo sin alterar salida" },
         @{ Cmd = "/settings";    Desc = "Panel interactivo de configuraciones y permisos" },
         @{ Cmd = "/config";      Desc = "Ajustar permisos, temas visuales y preferencias" },
-        @{ Cmd = "/keybindings"; Desc = "Personalizar atajos de teclado y combinaciones" },
         @{ Cmd = "/permissions"; Desc = "Administrar permisos de herramientas y comandos" },
         @{ Cmd = "/chat";        Desc = "Conversar directamente con Vork AI (3.0, 3.1 o 3.2 Expert)" },
         @{ Cmd = "/model";       Desc = "Selector de modelo (Vork 3, 3.1, 3.2 Expert) y potencia" },

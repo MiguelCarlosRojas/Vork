@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Vork CLI - Modulo de Comandos Oficiales (Categorias 2, 3, 4, 5, 6)
 #>

@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Pilar 09: Vork Agentes Autónomos & Modo Interactivo TUI
 #>
@@ -12,8 +12,7 @@ function Invoke-PillarAgents {
             @{ Value = "goal";     Label = "[2] Ejecutar /goal (Tarea autónoma de bucle continuo)" },
             @{ Value = "plan";     Label = "[3] Ejecutar /plan (Desglose guiado de arquitectura)" },
             @{ Value = "teamwork"; Label = "[4] Activar /teamwork (Coordinación de múltiples subagentes)" },
-            @{ Value = "boost";    Label = "[5] Alternar /boost (Razonamiento profundo con verificación)" },
-            @{ Value = "learn";    Label = "[6] Registrar regla con /learn (Persistencia en ~/.vork)" }
+            @{ Value = "learn";    Label = "[5] Registrar regla con /learn (Persistencia en ~/.vork)" }
         )
 
         $chosenAction = Select-InteractiveOption -PromptTitle "Selecciona una operación de Agentes Autónomos:" -Options $agentOptions -DefaultIndex 0
@@ -23,7 +22,6 @@ function Invoke-PillarAgents {
                 "goal" { Invoke-CmdGoal @(); return }
                 "plan" { Invoke-CmdPlan @(); return }
                 "teamwork" { Invoke-CmdTeamwork @(); return }
-                "boost" { Invoke-CmdBoost; return }
                 "learn" { Invoke-CmdLearn @(); return }
             }
         }
