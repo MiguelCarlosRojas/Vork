@@ -1807,14 +1807,25 @@ function Send-VorkNotification {
         return
     }
 
+    # 1. Alerta sonora instantánea en el hilo principal
+    try {
+        [Console]::Beep(1046, 80)
+    } catch {
+        try { [System.Media.SystemSounds]::Asterisk.Play() } catch { }
+    }
+
+    # 2. Secuencia ANSI OSC 9 y OSC 777 (Activa la notificación nativa de Windows Terminal y VS Code)
+    try {
+        $esc = [char]0x1b
+        $bel = [char]0x07
+        [Console]::Write("$esc]9;${Title}: $Message$bel")
+        [Console]::Write("$esc]777;notify;$Title;$Message$bel")
+    } catch { }
+
+    # 3. Toast Moderno de Windows
     try {
         $scriptBlock = {
             param($t, $m)
-            # 1. Alerta sonora suave
-            try { [System.Media.SystemSounds]::Asterisk.Play() } catch { }
-
-            # 2. Toast Moderno Windows 10/11
-            $shown = $false
             try {
                 [Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] | Out-Null
                 $template = [Windows.UI.Notifications.ToastNotificationManager]::GetTemplateContent([Windows.UI.Notifications.ToastTemplateType]::ToastText02)
@@ -1827,13 +1838,10 @@ function Send-VorkNotification {
                 $toastDoc.LoadXml($toastXml.OuterXml)
 
                 $toast = [Windows.UI.Notifications.ToastNotification]::new($toastDoc)
-                $notifier = [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier("Vork CLI")
+                $appId = "{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}\WindowsPowerShell\v1.0\powershell.exe"
+                $notifier = [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier($appId)
                 $notifier.Show($toast)
-                $shown = $true
-            } catch { }
-
-            # 3. Fallback a NotifyIcon
-            if (-not $shown) {
+            } catch {
                 try {
                     Add-Type -AssemblyName System.Windows.Forms -ErrorAction SilentlyContinue
                     Add-Type -AssemblyName System.Drawing -ErrorAction SilentlyContinue
@@ -1842,17 +1850,14 @@ function Send-VorkNotification {
                     $notify.BalloonTipTitle = $t
                     $notify.BalloonTipText = $m
                     $notify.Visible = $true
-                    $notify.ShowBalloonTip(3000)
-                    Start-Sleep -Milliseconds 600
+                    $notify.ShowBalloonTip(2500)
+                    Start-Sleep -Milliseconds 500
                     $notify.Dispose()
                 } catch { }
             }
         }
-
         Start-Job -ScriptBlock $scriptBlock -ArgumentList $Title, $Message | Out-Null
-    } catch {
-        try { [System.Media.SystemSounds]::Asterisk.Play() } catch { }
-    }
+    } catch { }
 }
 
 
@@ -6320,7 +6325,7 @@ function Dispatch-CLICommand {
         }
         { $_ -in "mode", "modal", "model", "tier", "effort" } {
             $argVal = if ($ArgsList -and $ArgsList.Count -gt 0) { $ArgsList[0] } else { "" }
-            if ($argVal -in "low", "medium", "high") {
+            if ($argVal -in "low", "medium", "high", "expert") {
                 Set-VorkTier -NewTier $argVal
             } else {
                 $modelResult = Show-InteractiveModelSwitcher
@@ -7270,6 +7275,7 @@ function Start-InteractiveREPL {
             Write-Host "  ${LeadLight}$elbow  $outMsg${Reset}"
             Write-Host ""
             Save-VorkConversationRecord -Cmd $line -Output $outMsg
+            Send-VorkNotification -Title "Vork CLI" -Message "Comando $replCmd ejecutado con éxito."
         }
     }
 }

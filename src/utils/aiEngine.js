@@ -212,15 +212,150 @@ async function crawlWebPage(url) {
 }
 
 /**
+ * Motor Meteorológico y Pronóstico del Tiempo en Tiempo Real (vía Wttr.in Core)
+ */
+async function fetchWeatherForecast(query = "") {
+  try {
+    const locMatch = query.match(/\ben\s+([a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+)$/i) ||
+                     query.match(/\bde\s+([a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+)$/i);
+    let locationParam = "";
+    if (locMatch) {
+      locationParam = locMatch[1].trim().replace(/\s+/g, '+');
+    }
+
+    const url = `https://wttr.in/${encodeURIComponent(locationParam)}?format=j1`;
+    const res = await axios.get(url, {
+      headers: { 'User-Agent': 'curl/7.88.1' },
+      timeout: 5500
+    });
+
+    const data = res.data;
+    if (!data || !data.current_condition || !data.weather) return null;
+
+    const cur = data.current_condition[0];
+    const loc = data.nearest_area ? data.nearest_area[0] : null;
+    const city = loc ? loc.areaName[0].value : (locationParam || "Tu ubicación actual");
+    const country = loc ? loc.country[0].value : "";
+
+    const today = data.weather[0];
+    const tomorrow = data.weather[1];
+
+    const descMap = {
+      'Sunny': 'Soleado',
+      'Clear': 'Despejado',
+      'Partly cloudy': 'Parcialmente nublado',
+      'Partly Cloudy': 'Parcialmente nublado',
+      'Cloudy': 'Nublado',
+      'Overcast': 'Cubierto',
+      'Mist': 'Neblina',
+      'Patchy rain possible': 'Posibilidad de lluvia dispersa',
+      'Patchy rain nearby': 'Lluvia dispersa cercana',
+      'Patchy light rain': 'Lluvia ligera dispersa',
+      'Light rain': 'Lluvia ligera',
+      'Moderate rain': 'Lluvia moderada',
+      'Heavy rain': 'Lluvia fuerte',
+      'Light rain shower': 'Chubascos ligeros',
+      'Moderate or heavy rain shower': 'Chubascos moderados a fuertes',
+      'Thundery outbreaks possible': 'Posibilidad de tormentas eléctricas',
+      'Fog': 'Niebla'
+    };
+
+    function translateDesc(desc) {
+      return descMap[desc] || desc;
+    }
+
+    let maxRainChanceTomorrow = 0;
+    if (tomorrow && tomorrow.hourly) {
+      tomorrow.hourly.forEach(h => {
+        const chance = parseInt(h.chanceofrain, 10) || 0;
+        if (chance > maxRainChanceTomorrow) maxRainChanceTomorrow = chance;
+      });
+    }
+
+    const tomDesc = tomorrow && tomorrow.hourly && tomorrow.hourly[4]
+      ? translateDesc(tomorrow.hourly[4].weatherDesc[0].value)
+      : (tomorrow ? translateDesc(tomorrow.weatherDesc[0].value) : "Variables");
+
+    return {
+      city,
+      country,
+      current: {
+        tempC: cur.temp_C,
+        desc: translateDesc(cur.weatherDesc[0].value),
+        humidity: cur.humidity,
+        windKmph: cur.windspeedKmph
+      },
+      today: {
+        maxC: today.maxtempC,
+        minC: today.mintempC
+      },
+      tomorrow: {
+        maxC: tomorrow ? tomorrow.maxtempC : null,
+        minC: tomorrow ? tomorrow.mintempC : null,
+        desc: tomDesc,
+        rainChance: maxRainChanceTomorrow,
+        willRain: maxRainChanceTomorrow >= 50,
+        possibleRain: maxRainChanceTomorrow >= 25 && maxRainChanceTomorrow < 50
+      }
+    };
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
+ * Consulta Google News RSS en tiempo real para noticias y actualidad
+ */
+async function searchGoogleNews(query) {
+  try {
+    const cleanQ = query.replace(/^(noticias de|noticias sobre|novedades de|que paso con|qué pasó con)\s+/i, '').trim();
+    const res = await axios.get(`https://news.google.com/rss/search?q=${encodeURIComponent(cleanQ || query)}&hl=es&gl=ES&ceid=ES:es`, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+      },
+      timeout: 5000
+    });
+    if (res.data && res.data.includes('<item>')) {
+      const titles = [...res.data.matchAll(/<title>(.*?)<\/title>/gi)]
+        .map(m => m[1].replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1').replace(/&amp;/g, '&'))
+        .filter(t => !t.toLowerCase().includes('google news'))
+        .slice(0, 3);
+
+      const links = [...res.data.matchAll(/<link>(.*?)<\/link>/gi)]
+        .map(m => m[1])
+        .filter(l => l.startsWith('http'))
+        .slice(0, 3);
+
+      const pubs = [...res.data.matchAll(/<pubDate>(.*?)<\/pubDate>/gi)]
+        .map(m => m[1])
+        .slice(0, 3);
+
+      return titles.map((t, idx) => ({
+        title: t,
+        url: links[idx] || '',
+        pubDate: pubs[idx] || ''
+      }));
+    }
+  } catch (e) {}
+  return [];
+}
+
+/**
  * Consulta la enciclopedia Wikipedia abierta utilizando la API de búsqueda full-text y resumen
  */
 async function queryWikipedia(topic) {
   if (!topic || topic.trim().length < 2) return null;
   const clean = topic.replace(/^(quien|quién|cual|cuál|donde|dónde|cuando|cuándo|como|cómo|por que|por qué|que|qué|concepto de|definicion de|definición de|busca sobre|investiga|dime sobre|consulta internet sobre)\s+(es|fue|era|creo|creó|fundo|fundó|invento|inventó|gano|ganó|hizo|descubrio|descubrió|son|eran)?\s*(el|la|los|las|un|una)?\s*/i, '').trim();
 
-  if (['clear', 'cls', 'exit', 'quit', 'help', 'dir', 'ls'].includes(clean.toLowerCase())) {
+  // No buscar en Wikipedia preguntas de clima, comandos, terminal o intenciones no enciclopédicas
+  if (/(llov|lluvia|sol o lluvia|clima|tiempo ma[ñn]ana|tiempo hoy|pron[oó]stico|temperatura|hace calor|hace fr[ií]o|clear|cls|exit|quit|help|dir|ls)/i.test(clean)) {
     return null;
   }
+
+  // Extraer palabras clave de la consulta para verificar que el artículo tenga relevancia real
+  const stopWords = new Set(['para', 'sobre', 'este', 'esta', 'como', 'cómo', 'saber', 'sabes', 'quiero', 'tener', 'tiene', 'dime', 'decir', 'hacer']);
+  const queryKeywords = clean.toLowerCase().split(/\s+/).filter(w => w.length >= 3 && !stopWords.has(w));
+  if (queryKeywords.length === 0) return null;
 
   // 1. Intento en español con búsqueda de títulos
   try {
@@ -236,12 +371,17 @@ async function queryWikipedia(topic) {
         timeout: 4000
       });
       if (summaryRes.data && summaryRes.data.extract) {
-        return {
-          title: summaryRes.data.title || topTitle,
-          description: summaryRes.data.description || items[0].snippet.replace(/<[^>]+>/g, ''),
-          extract: summaryRes.data.extract,
-          url: summaryRes.data.content_urls ? summaryRes.data.content_urls.desktop.page : `https://es.wikipedia.org/wiki/${encodeURIComponent(topTitle)}`
-        };
+        const titleLower = (summaryRes.data.title || topTitle).toLowerCase();
+        const extractLower = summaryRes.data.extract.toLowerCase();
+        const isRelevant = queryKeywords.some(k => titleLower.includes(k) || extractLower.includes(k));
+        if (isRelevant) {
+          return {
+            title: summaryRes.data.title || topTitle,
+            description: summaryRes.data.description || items[0].snippet.replace(/<[^>]+>/g, ''),
+            extract: summaryRes.data.extract,
+            url: summaryRes.data.content_urls ? summaryRes.data.content_urls.desktop.page : `https://es.wikipedia.org/wiki/${encodeURIComponent(topTitle)}`
+          };
+        }
       }
     }
   } catch (e) {}
@@ -314,7 +454,9 @@ async function searchWebIntelligence(query) {
     .replace(/^(quien|quién|cual|cuál|donde|dónde|cuando|cuándo|como|cómo|por que|por qué|que|qué|concepto de|definicion de|definición de|busca sobre|investiga|dime sobre|consulta internet sobre|buscar|busca|que paso con|qué pasó con|noticias de)\s+(es|fue|era|creo|creó|fundo|fundó|invento|inventó|gano|ganó|hizo|descubrio|descubrió|son|eran)?\s*(el|la|los|las|un|una)?\s*/i, '')
     .trim();
 
-  const [wiki, gh, hn] = await Promise.all([
+  const isNewsIntent = /(noticia|novedad|actualidad|suceso|acontecimiento)/i.test(query);
+
+  const [wiki, gh, hn, news] = await Promise.all([
     queryWikipedia(cleanQuery || query),
     searchGitHubIntelligence(cleanQuery || query),
     (async () => {
@@ -331,7 +473,8 @@ async function searchWebIntelligence(query) {
         }
       } catch (e) {}
       return [];
-    })()
+    })(),
+    isNewsIntent ? searchGoogleNews(cleanQuery || query) : Promise.resolve([])
   ]);
 
   return {
@@ -339,7 +482,8 @@ async function searchWebIntelligence(query) {
     crawledPage,
     wiki,
     github: gh || [],
-    hn: hn || []
+    hn: hn || [],
+    news: news || []
   };
 }
 
@@ -383,7 +527,18 @@ function synthesizeWebIntelligence({ data, query, model, effort }) {
       `**Evaluación de Integración:** Se han filtrado scripts de rastreo y estilos para garantizar la seguridad del pipeline en memoria de Vork AI.`;
   }
 
-  // CASO 2: Enciclopedia Wikipedia y Fuentes en Tiempo Real
+  // CASO 2: Noticias en Vivo de Google News (Prioridad si la consulta pide actualidad)
+  if (data.news && data.news.length > 0) {
+    if (effort === "low") {
+      const topNews = data.news[0];
+      return `**Noticia Reciente:** ${topNews.title}\nFuente: ${topNews.url}`;
+    }
+    let ans = `### Titulares en Vivo (Google News) · ${model}\n\n`;
+    ans += data.news.map(n => `• **[${n.title}](${n.url})**${n.pubDate ? ` (${n.pubDate})` : ''}`).join('\n\n');
+    return ans;
+  }
+
+  // CASO 3: Enciclopedia Wikipedia y Fuentes en Tiempo Real
   if (wiki) {
     if (effort === "low") {
       return `**${wiki.title}:** ${wiki.extract}` + (wiki.url ? `\n\nFuente: ${wiki.url}` : "");
@@ -436,7 +591,8 @@ function synthesizeWebIntelligence({ data, query, model, effort }) {
     return ans;
   }
 
-  // CASO 3: Resultados en Hacker News o GitHub
+
+  // CASO 4: Resultados en Hacker News o GitHub
   if (hn.length > 0 || github.length > 0) {
     if (effort === "low") {
       const top = hn[0] || github[0];
@@ -705,6 +861,67 @@ async function processAIChat({ message, messages, model = "Vork 3.1", effort = "
         model: activeModel,
         effort: activeEffort,
         source: "vork-cloud-timezone-core",
+        response: stripEmojis(answer)
+      };
+    }
+  }
+
+  // -------------------------------------------------------------
+  // 1.5. CONSULTAS METEOROLÓGICAS (CLIMA, LLUVIA, SOL, TEMPERATURA)
+  // -------------------------------------------------------------
+  const isWeatherQuery = /(llov|lluvia|sol o lluvia|va a llover|clima|tiempo ma[ñn]ana|tiempo hoy|pron[oó]stico|temperatura|hace calor|hace fr[ií]o|soleado|nublado)/i.test(q);
+  if (isWeatherQuery) {
+    const weather = await fetchWeatherForecast(promptText);
+    if (weather) {
+      const willRainStr = weather.tomorrow.willRain
+        ? "Sí, hay alta probabilidad de lluvia."
+        : (weather.tomorrow.possibleRain ? "Posibilidad moderada de lluvia dispersa." : "No se prevén lluvias importantes; predominará tiempo estable o soleado.");
+
+      let answer = "";
+      if (activeEffort === "low") {
+        answer = `Pronóstico para mañana en **${weather.city}** (${weather.country}): **${weather.tomorrow.desc}**.\n` +
+          `• ${willRainStr} (Probabilidad de lluvia: **${weather.tomorrow.rainChance}%**)\n` +
+          `• Temperatura: **${weather.tomorrow.minC}°C** a **${weather.tomorrow.maxC}°C**.`;
+      } else if (activeEffort === "medium") {
+        answer = `### Pronóstico Meteorológico en Vivo · ${weather.city}, ${weather.country}\n\n` +
+          `• **Estado para mañana:** ${willRainStr}\n` +
+          `• **Condición prevista:** **${weather.tomorrow.desc}**\n` +
+          `• **Probabilidad de lluvia:** **${weather.tomorrow.rainChance}%**\n` +
+          `• **Temperaturas mañana:** Mínima **${weather.tomorrow.minC}°C** / Máxima **${weather.tomorrow.maxC}°C**\n\n` +
+          `*Tiempo actual:* ${weather.current.tempC}°C (${weather.current.desc}), Humedad: ${weather.current.humidity}%, Viento: ${weather.current.windKmph} km/h.`;
+      } else if (activeEffort === "high") {
+        answer = `### Diagnóstico Meteorológico Detallado · ${activeModel} (HIGH)\n\n` +
+          `**Ubicación Detectada:** ${weather.city}, ${weather.country}\n\n` +
+          `**Evaluación para mañana:**\n` +
+          `• **Comportamiento Pluvial:** ${willRainStr} (Índice de probabilidad: **${weather.tomorrow.rainChance}%**).\n` +
+          `• **Régimen Térmico:** Oscilación de **${weather.tomorrow.minC}°C** a **${weather.tomorrow.maxC}°C**.\n` +
+          `• **Cielos:** Cobertura ${weather.tomorrow.desc.toLowerCase()}.\n\n` +
+          `**Telemetría Actual de la Estación:**\n` +
+          `• Temperatura ambiente: ${weather.current.tempC}°C\n` +
+          `• Humedad relativa: ${weather.current.humidity}%\n` +
+          `• Velocidad del viento: ${weather.current.windKmph} km/h\n` +
+          `• Temperatura hoy: Mínima ${weather.today.minC}°C / Máxima ${weather.today.maxC}°C.`;
+      } else {
+        // expert
+        answer = `### Análisis Meteorológico de Precisión & Telemetría Atmosférica · ${activeModel} (EXPERT SOVEREIGN)\n\n` +
+          `• **Estación de Referencia:** ${weather.city}, ${weather.country}\n` +
+          `• **Resolución del Pronóstico:** Ventana de 24-48 horas con telemetría Wttr.in en vivo.\n\n` +
+          `**Predicción Sinóptica para Mañana:**\n` +
+          `• **Vector de Precipitación:** ${willRainStr}\n` +
+          `• **Probabilidad Máxima de Lluvia:** **${weather.tomorrow.rainChance}%**\n` +
+          `• **Perfil Térmico Diurno/Nocturno:** Gradiente de **${weather.tomorrow.minC}°C** (mínima) a **${weather.tomorrow.maxC}°C** (máxima).\n` +
+          `• **Tipología de Nubosidad:** ${weather.tomorrow.desc}.\n\n` +
+          `**Condiciones Atmosféricas de Base:**\n` +
+          `• Temperatura en superficie: ${weather.current.tempC}°C | Humedad barométrica: ${weather.current.humidity}%\n` +
+          `• Flujo de viento anfitrión: ${weather.current.windKmph} km/h.\n` +
+          `• Fuente: Red meteorológica global sincronizada en tiempo real.`;
+      }
+
+      return {
+        status: "success",
+        model: activeModel,
+        effort: activeEffort,
+        source: "vork-cloud-weather-engine",
         response: stripEmojis(answer)
       };
     }
@@ -1013,5 +1230,7 @@ module.exports = {
   searchGitHubIntelligence,
   searchWebIntelligence,
   queryWikipedia,
-  calculateInternationalTime
+  calculateInternationalTime,
+  fetchWeatherForecast,
+  searchGoogleNews
 };

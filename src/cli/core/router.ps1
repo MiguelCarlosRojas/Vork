@@ -62,7 +62,7 @@ function Dispatch-CLICommand {
         }
         { $_ -in "mode", "modal", "model", "tier", "effort" } {
             $argVal = if ($ArgsList -and $ArgsList.Count -gt 0) { $ArgsList[0] } else { "" }
-            if ($argVal -in "low", "medium", "high") {
+            if ($argVal -in "low", "medium", "high", "expert") {
                 Set-VorkTier -NewTier $argVal
             } else {
                 $modelResult = Show-InteractiveModelSwitcher
@@ -1012,6 +1012,7 @@ function Start-InteractiveREPL {
             Write-Host "  ${LeadLight}$elbow  $outMsg${Reset}"
             Write-Host ""
             Save-VorkConversationRecord -Cmd $line -Output $outMsg
+            Send-VorkNotification -Title "Vork CLI" -Message "Comando $replCmd ejecutado con éxito."
         }
     }
 }
