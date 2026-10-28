@@ -25,15 +25,14 @@ function Show-Banner {
     $modelName = if ($global:VorkModel) { $global:VorkModel } else { "Vork 3" }
     $versionBadge = "v$VorkVersion"
 
-    # Logo V estilizado a escala simétrica (5 líneas, 9 columnas exactas)
+    # Logo V estilizado a escala simétrica (4 líneas, 9 columnas exactas)
     $sF = [string][char]0x2588 # █
     $sU = [string][char]0x2580 # ▀
     $vRows = @(
         (($sF * 2) + "     " + ($sF * 2)),
         ($sU + ($sF * 2) + "   " + ($sF * 2) + $sU),
         (" " + $sU + ($sF * 2) + " " + ($sF * 2) + $sU + " "),
-        ("  " + $sU + ($sF * 3) + $sU + "  "),
-        ("    " + $sU + "    ")
+        ("  " + $sU + ($sF * 3) + $sU + "  ")
     )
 
     $cH = [string][char]0x2500 # ─
@@ -46,7 +45,7 @@ function Show-Banner {
 
     Write-Host ""
 
-    if ($width -ge 48 -and $metrics.Height -ge 9) {
+    if ($width -ge 48 -and $metrics.Height -ge 8) {
         $cardW = [Math]::Min(72, [Math]::Max(46, $width - 2))
         $inner = $cardW - 2
         $rightPad = if ($cardW -ge 60) { 4 } else { 2 }
@@ -61,7 +60,7 @@ function Show-Banner {
         # Presupuesto horizontal seguro para no desbordar en terminales medianas
         $maxPathBudget = [Math]::Max(10, ($logoCol - 6))
 
-        for ($i = 0; $i -lt 5; $i++) {
+        for ($i = 0; $i -lt 4; $i++) {
             $leftText = if ($i -eq 1) {
                 "${White}$modelName${Reset} ${tierColor}($tierLabel)${Reset}"
             } elseif ($i -eq 2) {
