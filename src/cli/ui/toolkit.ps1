@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Vork CLI - UI Toolkit responsive (ANSI, metricas de consola, paneles y teclado).
 
@@ -454,13 +454,13 @@ function Get-VorkCursorBoundary {
 
 function Format-VorkBorderTop {
     param(
-        [string]$Title,
+        [string]$Title = "",
         [string]$RightText = "",
         [int]$Width
     )
 
     $maxWidth = [Math]::Max(4, $Width - 1)
-    if (-not $Title) { $Title = "Vork" }
+    if ($Title -eq $null) { $Title = "" }
 
     if ($maxWidth -lt 10) {
         $n = [Math]::Max(0, $maxWidth - 2)
@@ -472,23 +472,29 @@ function Format-VorkBorderTop {
 
     # Ajusta el contenido para que el borde nunca exceda el ancho disponible.
     while ($true) {
-        $leftLen = 6 + (Get-VorkDisplayWidth $title)
+        $leftLen = if ($title) { 6 + (Get-VorkDisplayWidth $title) } else { 3 }
         $rightLen = if ($right) { 4 + (Get-VorkDisplayWidth $right) } else { 1 }
 
         if (($leftLen + $rightLen) -le $maxWidth) { break }
         if ($right) { $right = ""; continue }
 
-        $maxTitle = [Math]::Max(0, $maxWidth - 7)
-        if ((Get-VorkDisplayWidth $title) -le $maxTitle) { break }
-        $title = Limit-VorkAnsiText -Text $title -MaxWidth $maxTitle -Ellipsis ""
+        if ($title) {
+            $maxTitle = [Math]::Max(0, $maxWidth - 7)
+            if ((Get-VorkDisplayWidth $title) -le $maxTitle) { break }
+            $title = Limit-VorkAnsiText -Text $title -MaxWidth $maxTitle -Ellipsis ""
+        }
         break
     }
 
-    $leftLen = 6 + (Get-VorkDisplayWidth $title)
+    $leftLen = if ($title) { 6 + (Get-VorkDisplayWidth $title) } else { 3 }
     $rightLen = if ($right) { 4 + (Get-VorkDisplayWidth $right) } else { 1 }
     $fill = [Math]::Max(0, $maxWidth - $leftLen - $rightLen)
 
-    $leftColored = "  ${Lead}$([char]0x256D)$([char]0x2500) ${White}${Bold}$title${Reset}${Lead} "
+    $leftColored = if ($title) {
+        "  ${Lead}$([char]0x256D)$([char]0x2500) ${White}${Bold}$title${Reset}${Lead} "
+    } else {
+        "  ${Lead}$([char]0x256D)"
+    }
     $rightColored = if ($right) {
         " ${LeadLight}$right${Reset}${Lead} $([char]0x2500)$([char]0x256E)${Reset}"
     } else {

@@ -1138,13 +1138,13 @@ function Get-VorkCursorBoundary {
 
 function Format-VorkBorderTop {
     param(
-        [string]$Title,
+        [string]$Title = "",
         [string]$RightText = "",
         [int]$Width
     )
 
     $maxWidth = [Math]::Max(4, $Width - 1)
-    if (-not $Title) { $Title = "Vork" }
+    if ($Title -eq $null) { $Title = "" }
 
     if ($maxWidth -lt 10) {
         $n = [Math]::Max(0, $maxWidth - 2)
@@ -1156,23 +1156,29 @@ function Format-VorkBorderTop {
 
     # Ajusta el contenido para que el borde nunca exceda el ancho disponible.
     while ($true) {
-        $leftLen = 6 + (Get-VorkDisplayWidth $title)
+        $leftLen = if ($title) { 6 + (Get-VorkDisplayWidth $title) } else { 3 }
         $rightLen = if ($right) { 4 + (Get-VorkDisplayWidth $right) } else { 1 }
 
         if (($leftLen + $rightLen) -le $maxWidth) { break }
         if ($right) { $right = ""; continue }
 
-        $maxTitle = [Math]::Max(0, $maxWidth - 7)
-        if ((Get-VorkDisplayWidth $title) -le $maxTitle) { break }
-        $title = Limit-VorkAnsiText -Text $title -MaxWidth $maxTitle -Ellipsis ""
+        if ($title) {
+            $maxTitle = [Math]::Max(0, $maxWidth - 7)
+            if ((Get-VorkDisplayWidth $title) -le $maxTitle) { break }
+            $title = Limit-VorkAnsiText -Text $title -MaxWidth $maxTitle -Ellipsis ""
+        }
         break
     }
 
-    $leftLen = 6 + (Get-VorkDisplayWidth $title)
+    $leftLen = if ($title) { 6 + (Get-VorkDisplayWidth $title) } else { 3 }
     $rightLen = if ($right) { 4 + (Get-VorkDisplayWidth $right) } else { 1 }
     $fill = [Math]::Max(0, $maxWidth - $leftLen - $rightLen)
 
-    $leftColored = "  ${Lead}$([char]0x256D)$([char]0x2500) ${White}${Bold}$title${Reset}${Lead} "
+    $leftColored = if ($title) {
+        "  ${Lead}$([char]0x256D)$([char]0x2500) ${White}${Bold}$title${Reset}${Lead} "
+    } else {
+        "  ${Lead}$([char]0x256D)"
+    }
     $rightColored = if ($right) {
         " ${LeadLight}$right${Reset}${Lead} $([char]0x2500)$([char]0x256E)${Reset}"
     } else {
@@ -6383,32 +6389,21 @@ function Get-VorkPromptHints {
         )
     }
 
-    if ($Width -ge 88) {
+    if ($Width -ge 50) {
         return @(
-            @{ Key = "?";      Label = "atajos" },
-            @{ Key = "/";      Label = "comandos" },
-            @{ Key = "ctrl+l"; Label = "limpiar" },
-            @{ Key = "ctrl+c"; Label = "salir" }
+            @{ Key = "?";       Label = "for shortcuts" },
+            @{ Key = "ctrl+c:"; Label = "salir" }
         )
     }
-    if ($Width -ge 64) {
+    if ($Width -ge 35) {
         return @(
-            @{ Key = "?";      Label = "atajos" },
-            @{ Key = "/";      Label = "comandos" },
-            @{ Key = "ctrl+c"; Label = "salir" }
-        )
-    }
-    if ($Width -ge 46) {
-        return @(
-            @{ Key = "?";  Label = "ayuda" },
-            @{ Key = "/";  Label = "cmds" },
-            @{ Key = "^C"; Label = "salir" }
+            @{ Key = "?";       Label = "shortcuts" },
+            @{ Key = "ctrl+c:"; Label = "salir" }
         )
     }
     return @(
-        @{ Key = "?";  Label = "" },
-        @{ Key = "/";  Label = "" },
-        @{ Key = "^C"; Label = "" }
+        @{ Key = "?";       Label = "" },
+        @{ Key = "ctrl+c:"; Label = "" }
     )
 }
 
@@ -6556,7 +6551,7 @@ function Write-VorkPromptFrame {
 
     # Cabecera: marca en coral + estado de modelo/tier alineado a la derecha.
     $statusText = Format-VorkPromptStatus -Status $Status -Width $Width
-    $titleText = "${Coral}${Bold}Vork CLI${Reset}"
+    $titleText = ""
     Write-VorkPanelLine -Panel $panel -Index 0 -Text (Format-VorkBorderTop -Title $titleText -RightText $statusText -Width $Width)
 
     # Linea de entrada con placeholder atenuado cuando el buffer esta vacio.
@@ -6624,15 +6619,7 @@ function Write-VorkPromptFrame {
             }
         }
     } else {
-        if ($Width -ge 90) {
-            $remaining = $maxWidth - 8 - (Get-VorkDisplayWidth $leftText) - 4
-            if ($remaining -ge 12) {
-                $pathLabel = Get-VorkPromptPathLabel -MaxWidth ([Math]::Min(28, $remaining))
-                if ($pathLabel) { $rightText = "${Lead}$pathLabel" }
-            }
-        }
-
-        Write-VorkPanelLine -Panel $panel -Index 2 -Text (Format-VorkBorderBottom -LeftText $leftText -RightText $rightText -Width $Width)
+        Write-VorkPanelLine -Panel $panel -Index 2 -Text (Format-VorkBorderBottom -LeftText $leftText -RightText "" -Width $Width)
 
         # Limpiar filas del menu que hayan quedado de una apertura anterior
         if ($PreviousMenuRows -gt 0) {
