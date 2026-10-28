@@ -743,21 +743,36 @@ function Get-VorkMediaPlatformName {
 }
 
 function Select-VorkMediaOutputAction {
-    param([string]$PromptTitle = "¿Cómo deseas obtener el archivo multimedia convertido?")
-
-    $items = @(
-        @{ Label = "Guardado local";             Description = "Descargar y guardar el archivo en esta carpeta"; Value = "local" },
-        @{ Label = "Descarga directa";           Description = "URL web para descargar desde el navegador";     Value = "download" },
-        @{ Label = "Stream de video";            Description = "URL para reproducir el video en linea";        Value = "video_stream" },
-        @{ Label = "Stream de audio";            Description = "URL para reproducir la musica o audio";        Value = "audio_stream" },
-        @{ Label = "Local + video";              Description = "Archivo en disco y enlace de video";           Value = "local_video" },
-        @{ Label = "Local + audio";              Description = "Archivo en disco y enlace de audio";           Value = "local_audio" },
-        @{ Label = "Video + audio";              Description = "Ambos enlaces de reproduccion";               Value = "video_audio" },
-        @{ Label = "Local + descarga";           Description = "Archivo en disco y enlace de descarga";        Value = "local_download" },
-        @{ Label = "Todo";                       Description = "Local, descarga, video y audio";               Value = "all" }
+    param(
+        [string]$PromptTitle = "¿Cómo deseas obtener el archivo multimedia convertido?",
+        [string]$Format = "mp4"
     )
 
-    return (Invoke-VorkPicker -Title $PromptTitle -Subtitle "entrega del archivo" -Items $items -DefaultIndex 0 -NumericSelect -Footer "flechas mover  ·  1-9 elegir  ·  enter confirmar  ·  esc cancelar")
+    $fmt = if ($Format) { $Format.ToLower().Trim() } else { "mp4" }
+    $items = @()
+
+    if ($fmt -in @("mp3", "wav")) {
+        $items = @(
+            @{ Label = "Guardado local";             Description = "Descargar y guardar el audio en esta carpeta"; Value = "local" },
+            @{ Label = "Descarga directa";           Description = "URL web para descargar desde el navegador";     Value = "download" },
+            @{ Label = "Stream de audio";            Description = "URL para reproducir la musica o audio";        Value = "audio_stream" },
+            @{ Label = "Local + audio";              Description = "Archivo en disco y enlace de audio";           Value = "local_audio" },
+            @{ Label = "Local + descarga";           Description = "Archivo en disco y enlace de descarga";        Value = "local_download" },
+            @{ Label = "Todo";                       Description = "Local, descarga directa y enlace de audio";    Value = "all" }
+        )
+    } else {
+        $items = @(
+            @{ Label = "Guardado local";             Description = "Descargar y guardar el video en esta carpeta"; Value = "local" },
+            @{ Label = "Descarga directa";           Description = "URL web para descargar desde el navegador";     Value = "download" },
+            @{ Label = "Stream de video";            Description = "URL para reproducir el video en linea";        Value = "video_stream" },
+            @{ Label = "Local + video";              Description = "Archivo en disco y enlace de video";           Value = "local_video" },
+            @{ Label = "Local + descarga";           Description = "Archivo en disco y enlace de descarga";        Value = "local_download" },
+            @{ Label = "Todo";                       Description = "Local, descarga directa y enlace de video";    Value = "all" }
+        )
+    }
+
+    $c = $items.Count
+    return (Invoke-VorkPicker -Title $PromptTitle -Subtitle "entrega del archivo" -Items $items -DefaultIndex 0 -NumericSelect -Footer "flechas mover  ·  1-$c elegir  ·  enter confirmar  ·  esc cancelar")
 }
 
 function Select-VorkImageOutputAction {

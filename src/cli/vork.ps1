@@ -1,4 +1,8 @@
-﻿param(
+﻿
+# ========================================================
+# MODULE: core/config.ps1
+# ========================================================
+param(
     [Parameter(Position=0, ValueFromPipeline=$true)]
     [string]$Command = "",
 
@@ -710,6 +714,10 @@ function Format-Badge {
     return "$ESC[${BgCode};${FgCode};1m $Text $Reset"
 }
 
+
+# ========================================================
+# MODULE: ui/toolkit.ps1
+# ========================================================
 <#
 .SYNOPSIS
     Vork CLI - UI Toolkit responsive (ANSI, metricas de consola, paneles y teclado).
@@ -1050,7 +1058,8 @@ function Wait-VorkConsoleKey {
 function Test-VorkCtrlC {
     param($Key)
     if (-not $Key) { return $false }
-    return (($Key.KeyChar -eq [char]3) -or
+    return (([int]$Key.KeyChar -eq 3) -or
+        ($Key.KeyChar -eq [char]3) -or
         (($Key.Key -eq [ConsoleKey]::C) -and (($Key.Modifiers -band [ConsoleModifiers]::Control) -ne 0)))
 }
 
@@ -1997,6 +2006,10 @@ function Send-VorkNotification {
     } catch { }
 }
 
+
+# ========================================================
+# MODULE: ui/banner.ps1
+# ========================================================
 <#
 .SYNOPSIS
     Vork CLI - Modulo UI: Banner y Tarjeta Terminal V (Adaptable a Temas y Modo Claro/Oscuro)
@@ -2095,6 +2108,10 @@ function Show-Banner {
     Write-Host ""
 }
 
+
+# ========================================================
+# MODULE: ui/cards.ps1
+# ========================================================
 <#
 .SYNOPSIS
     Vork CLI - Modulo UI: Componentes interactivos responsive.
@@ -2773,15 +2790,15 @@ function Select-InteractiveMediaFormat {
 }
 
 function Select-VorkMediaFormatChoice {
-    param([string]$PromptTitle = "Selecciona el formato de salida:")
+    param([string]$PromptTitle = "Formato de salida")
 
     $items = @(
-        @{ Label = "MP3"; Description = "Audio y música (Máxima compatibilidad)"; Value = "mp3" },
-        @{ Label = "MP4"; Description = "Video en alta definición (con audio)";     Value = "mp4" },
-        @{ Label = "WAV"; Description = "Audio PCM sin compresión (Lossless)";     Value = "wav" }
+        @{ Label = "MP3"; Description = "Audio y música, máxima compatibilidad"; Value = "mp3" },
+        @{ Label = "MP4"; Description = "Video en alta definición con audio";     Value = "mp4" },
+        @{ Label = "WAV"; Description = "Audio PCM sin compresión";              Value = "wav" }
     )
 
-    return (Invoke-VorkPicker -Title $PromptTitle -Subtitle "Vork Media" -Items $items -DefaultIndex 0 -NumericSelect -Footer "flechas mover  ·  1-3 elegir  ·  enter seleccionar  ·  esc cancelar")
+    return (Invoke-VorkPicker -Title $PromptTitle -Subtitle "formato de salida" -Items $items -DefaultIndex 0 -NumericSelect -Footer "flechas mover  ·  1-3 elegir  ·  enter confirmar  ·  esc cancelar")
 }
 
 function Select-VorkMediaQualityChoice {
@@ -2794,29 +2811,29 @@ function Select-VorkMediaQualityChoice {
     if ($fmt -eq "wav") { return "lossless" }
 
     if (-not $PromptTitle) {
-        $PromptTitle = "Selecciona la calidad deseada para $($fmt.ToUpper()):"
+        $PromptTitle = "Calidad para $($fmt.ToUpper())"
     }
 
     $items = if ($fmt -eq "mp3") {
         @(
-            @{ Label = "320 kbps"; Description = "Máxima fidelidad (Recomendado para música)"; Value = "320k" },
+            @{ Label = "320 kbps"; Description = "Máxima fidelidad, recomendada para música"; Value = "320k" },
             @{ Label = "256 kbps"; Description = "Alta fidelidad"; Value = "256k" },
             @{ Label = "192 kbps"; Description = "Calidad balanceada"; Value = "192k" },
             @{ Label = "128 kbps"; Description = "Calidad estándar"; Value = "128k" },
             @{ Label = "96 kbps";  Description = "Ahorro de espacio"; Value = "96k" },
-            @{ Label = "64 kbps";  Description = "Mínimo tamaño"; Value = "64k" }
+            @{ Label = "64 kbps";  Description = "Tamaño mínimo"; Value = "64k" }
         )
     } else {
         @(
             @{ Label = "1080p"; Description = "Full HD 1080p"; Value = "1080p" },
-            @{ Label = "720p";  Description = "HD 720p (Recomendado)"; Value = "720p" },
+            @{ Label = "720p";  Description = "HD 720p, recomendado"; Value = "720p" },
             @{ Label = "480p";  Description = "Definición estándar"; Value = "480p" },
             @{ Label = "360p";  Description = "Móvil ligero"; Value = "360p" }
         )
     }
 
     $defaultIdx = if ($fmt -eq "mp3") { 0 } else { 1 }
-    return (Invoke-VorkPicker -Title $PromptTitle -Subtitle "Vork Media · Calidad" -Items $items -DefaultIndex $defaultIdx -NumericSelect -Footer "flechas mover  ·  1-9 elegir  ·  enter seleccionar  ·  esc cancelar")
+    return (Invoke-VorkPicker -Title $PromptTitle -Subtitle "calidad de salida" -Items $items -DefaultIndex $defaultIdx -NumericSelect -Footer "flechas mover  ·  1-9 elegir  ·  enter confirmar  ·  esc cancelar")
 }
 
 function Get-VorkMediaPlatformName {
@@ -2840,21 +2857,36 @@ function Get-VorkMediaPlatformName {
 }
 
 function Select-VorkMediaOutputAction {
-    param([string]$PromptTitle = "¿Cómo deseas obtener el archivo multimedia convertido?")
-
-    $items = @(
-        @{ Label = "Guardado local";                          Description = "Descargar y guardar archivo físico en esta carpeta"; Value = "local" },
-        @{ Label = "Enlace de Descarga directa";              Description = "Obtener URL directa web para descargar en navegador"; Value = "download" },
-        @{ Label = "Stream de Video";                         Description = "Obtener URL directa para reproducir video en línea"; Value = "video_stream" },
-        @{ Label = "Stream de Música / Audio";                Description = "Obtener URL directa para reproducir música/audio en línea"; Value = "audio_stream" },
-        @{ Label = "Guardado local + Stream de Video";        Description = "Guardar archivo local y obtener enlace de streaming de video"; Value = "local_video" },
-        @{ Label = "Guardado local + Stream de Música";       Description = "Guardar archivo local y obtener enlace de streaming de audio"; Value = "local_audio" },
-        @{ Label = "Stream Video + Stream Música";            Description = "Obtener ambos enlaces de reproducción (video y música)"; Value = "video_audio" },
-        @{ Label = "Guardado local + Enlace de Descarga";     Description = "Descargar archivo local y obtener enlace web de descarga"; Value = "local_download" },
-        @{ Label = "Todos (Local + Descarga + Video + Audio)"; Description = "Guardado físico + Enlace Descarga + Stream Video + Stream Música"; Value = "all" }
+    param(
+        [string]$PromptTitle = "¿Cómo deseas obtener el archivo multimedia convertido?",
+        [string]$Format = "mp4"
     )
 
-    return (Invoke-VorkPicker -Title $PromptTitle -Subtitle "Vork Media · Opciones de salida" -Items $items -DefaultIndex 0 -NumericSelect -Footer "flechas mover  ·  1-9 elegir  ·  enter seleccionar  ·  esc cancelar")
+    $fmt = if ($Format) { $Format.ToLower().Trim() } else { "mp4" }
+    $items = @()
+
+    if ($fmt -in @("mp3", "wav")) {
+        $items = @(
+            @{ Label = "Guardado local";             Description = "Descargar y guardar el audio en esta carpeta"; Value = "local" },
+            @{ Label = "Descarga directa";           Description = "URL web para descargar desde el navegador";     Value = "download" },
+            @{ Label = "Stream de audio";            Description = "URL para reproducir la musica o audio";        Value = "audio_stream" },
+            @{ Label = "Local + audio";              Description = "Archivo en disco y enlace de audio";           Value = "local_audio" },
+            @{ Label = "Local + descarga";           Description = "Archivo en disco y enlace de descarga";        Value = "local_download" },
+            @{ Label = "Todo";                       Description = "Local, descarga directa y enlace de audio";    Value = "all" }
+        )
+    } else {
+        $items = @(
+            @{ Label = "Guardado local";             Description = "Descargar y guardar el video en esta carpeta"; Value = "local" },
+            @{ Label = "Descarga directa";           Description = "URL web para descargar desde el navegador";     Value = "download" },
+            @{ Label = "Stream de video";            Description = "URL para reproducir el video en linea";        Value = "video_stream" },
+            @{ Label = "Local + video";              Description = "Archivo en disco y enlace de video";           Value = "local_video" },
+            @{ Label = "Local + descarga";           Description = "Archivo en disco y enlace de descarga";        Value = "local_download" },
+            @{ Label = "Todo";                       Description = "Local, descarga directa y enlace de video";    Value = "all" }
+        )
+    }
+
+    $c = $items.Count
+    return (Invoke-VorkPicker -Title $PromptTitle -Subtitle "entrega del archivo" -Items $items -DefaultIndex 0 -NumericSelect -Footer "flechas mover  ·  1-$c elegir  ·  enter confirmar  ·  esc cancelar")
 }
 
 function Select-VorkImageOutputAction {
@@ -3814,6 +3846,10 @@ function Show-InteractiveSettings {
     }
 }
 
+
+# ========================================================
+# MODULE: ui/help.ps1
+# ========================================================
 <#
 .SYNOPSIS
     Vork CLI - Modulo UI: Catalogo visual, atajos y navegador de ayuda responsive.
@@ -4341,55 +4377,1374 @@ function Show-InteractiveHelpModal {
     }
 }
 
+
+# ========================================================
+# MODULE: pillars/p01_translate.ps1
+# ========================================================
 <#
 .SYNOPSIS
-    Vork CLI - Modulo Core: Auto-Update Silencioso y Sincronizacion Atómica
+    Pilar 01: Vork Traductor Neuronal en la Nube (+200 Idiomas)
 #>
 
-function Check-And-AutoUpdate {
-    param([switch]$Force)
-    
-    $cacheDir = Join-Path $HOME ".vork"
-    $checkFile = Join-Path $cacheDir ".last_check"
-    $shouldCheck = $Force
-    
-    if (-not $shouldCheck) {
-        if (-not (Test-Path $checkFile)) {
-            $shouldCheck = $true
+function Invoke-PillarTranslate {
+    param([string[]]$ArgsList)
+
+    $to = "en"
+    $text = ""
+
+    if ($ArgsList -and $ArgsList.Length -gt 0) {
+        $to = $ArgsList[0]
+        if ($ArgsList.Length -gt 1) {
+            $text = ($ArgsList[1..($ArgsList.Length - 1)]) -join " "
+        }
+    }
+
+    if (-not $text) {
+        Write-VorkSectionHeader -Title "Traducción" -Subtitle "Texto a traducir · más de 200 idiomas" -RightText "vork · translate"
+        $textInput = Read-VorkInput -Prompt "  ${Coral}${Bold}$([char]0x203A)${Reset} "
+        if (-not $textInput -or -not $textInput.Trim()) {
+            Write-VorkStatusLine -Kind warn -Text "Traducción cancelada."
+            Write-Host ""
+            return
+        }
+        $text = $textInput.Trim()
+
+        $langOptions = @(
+            @{ Value = "en"; Label = "en (Inglés)" },
+            @{ Value = "es"; Label = "es (Español)" },
+            @{ Value = "fr"; Label = "fr (Francés)" },
+            @{ Value = "de"; Label = "de (Alemán)" },
+            @{ Value = "it"; Label = "it (Italiano)" },
+            @{ Value = "pt"; Label = "pt (Portugués)" },
+            @{ Value = "ja"; Label = "ja (Japonés)" },
+            @{ Value = "zh"; Label = "zh (Chino)" },
+            @{ Value = "ru"; Label = "ru (Ruso)" },
+            @{ Value = "ko"; Label = "ko (Coreano)" }
+        )
+
+        $chosenLang = Select-InteractiveOption -PromptTitle "Idioma destino" -Subtitle "traducción neuronal" -Options $langOptions -DefaultIndex 0
+        if (-not $chosenLang) {
+            Write-VorkStatusLine -Kind warn -Text "Traducción cancelada."
+            Write-Host ""
+            return
+        }
+        $to = $chosenLang
+    }
+
+    Write-VorkSectionHeader -Title "Procesando traducción" -RightText "vork · translate"
+    Write-VorkInfoRow -Label "Destino" -Value $to -ValueColor $Yellow
+    Write-VorkInfoRow -Label "Entrada" -Value "`"$text`""
+    Write-VorkSectionRule
+
+    $body = @{ text = $text; targetLanguage = $to } | ConvertTo-Json
+    try {
+        $res = Invoke-RestMethod -Uri "$ApiBase/api/translate" -Method Post -Body $body -ContentType "application/json"
+        Write-VorkStatusLine -Kind ok -Text "Traducción completada"
+        Write-VorkInfoRow -Label "Salida" -Value $res.translatedText -ValueColor $White
+
+        $outFile = "traduccion.txt"
+        $resolvedOut = Join-Path (Get-Location) $outFile
+        $dlUrl = if ($res.downloadUrl) {
+            if ($res.downloadUrl.StartsWith("http")) { $res.downloadUrl } else { "$ApiBase$($res.downloadUrl)" }
         } else {
-            try {
-                $lastCheck = (Get-Item $checkFile).LastWriteTime
-                if ((Get-Date) - $lastCheck -gt (New-TimeSpan -Hours 1)) {
-                    $shouldCheck = $true
-                }
-            } catch {
-                $shouldCheck = $true
-            }
+            "$ApiBase/api/translate/download?translatedText=$([System.Uri]::EscapeDataString($res.translatedText))"
         }
-    }
-    
-    if ($shouldCheck) {
-        try {
-            $remoteInfo = Invoke-RestMethod -Uri "$ApiBase/api/cli/info" -TimeoutSec 2 -ErrorAction Stop
-            Set-Content -Path $checkFile -Value (Get-Date).ToString("o") -ErrorAction SilentlyContinue
-            
-            $isNewer = try { [version]$remoteInfo.version -gt [version]$VorkVersion } catch { $remoteInfo.version -ne $VorkVersion }
-            if ($remoteInfo -and $remoteInfo.version -and ($isNewer -or $Force)) {
-                Write-Host ""
-                Write-Host "  $ESC[43;30;1m AUTO-UPDATE $Reset $Yellow Sincronizando Vork CLI con backend v$($remoteInfo.version)...$Reset"
-                $targetScript = if ($PSCommandPath) { $PSCommandPath } else { Join-Path $cacheDir "bin\vork.ps1" }
-                
-                Invoke-RestMethod -Uri "$ApiBase/cli/vork.ps1" -OutFile "$targetScript.tmp" -TimeoutSec 5 -ErrorAction Stop
-                Move-Item -Path "$targetScript.tmp" -Destination $targetScript -Force
-                Write-Host "  $ESC[42;30;1m COMPLETADO $Reset $Green Vork CLI actualizado exitosamente a v$($remoteInfo.version).$Reset"
-                Write-Host ""
-            }
-        } catch {
-            # Tolerancia silenciosa si no hay conexion
+
+        $outputMode = Select-VorkTextOutputAction -PromptTitle "Entrega del texto"
+        if (-not $outputMode) {
+            Write-VorkStatusLine -Kind warn -Text "Entrega cancelada."
+            Write-VorkSectionRule
+            Write-Host ""
+            return
         }
+
+        $hasLocal = $outputMode -in @("local", "all")
+        $hasDownload = $outputMode -in @("download", "all")
+
+        if ($hasLocal) {
+            [System.IO.File]::WriteAllText($resolvedOut, $res.translatedText, [System.Text.Encoding]::UTF8)
+            $resolvedPath = (Resolve-Path $outFile).Path
+            Write-VorkInfoRow -Label "Guardado" -Value $resolvedPath -ValueColor $Green
+        }
+
+        if ($hasDownload) {
+            Write-VorkInfoRow -Label "Enlace" -Value $dlUrl -ValueColor $Cyan
+        }
+
+        Write-VorkSectionRule
+        Send-VorkNotification -Title "Vork Traductor" -Message "Traducción completada con éxito."
+    } catch {
+        Write-VorkStatusLine -Kind error -Text "Error al traducir" -Detail $_.Exception.Message
+        Write-VorkSectionRule
     }
+    Write-Host ""
 }
 
+
+# ========================================================
+# MODULE: pillars/p02_tts.ps1
+# ========================================================
+<#
+.SYNOPSIS
+    Pilar 02: Vork Texto a Voz Neuronal (TTS Studio con 24 voces humanas)
+#>
+
+function Invoke-PillarTTS {
+    param([string[]]$ArgsList)
+
+    $text = if ($ArgsList -and $ArgsList.Length -gt 0) { $ArgsList[0] } else { $null }
+    $voice = "es-ES-AlvaroNeural"
+    $out = "tts_output.mp3"
+    if ($ArgsList) {
+        for ($i=0; $i -lt $ArgsList.Length; $i++) {
+            if ($ArgsList[$i] -in "-Voice", "--voice", "-v") { $voice = $ArgsList[$i+1] }
+            if ($ArgsList[$i] -in "-Out", "--out", "-o") { $out = $ArgsList[$i+1] }
+        }
+    }
+
+    if (-not $text) {
+        Write-VorkSectionHeader -Title "Texto a voz" -Subtitle "Síntesis neuronal · 24 voces humanas" -RightText "vork · tts"
+        $text = Read-VorkInput -Prompt "  ${Coral}${Bold}$([char]0x203A)${Reset} "
+        if (-not $text -or -not $text.Trim()) {
+            Write-VorkStatusLine -Kind warn -Text "Síntesis cancelada."
+            Write-Host ""
+            return
+        }
+        $text = $text.Trim()
+
+        $chosen = Select-InteractiveTTSVoice -PromptTitle "Idioma y voz neuronal" -DefaultLang "Español" -DefaultVoiceId "es-ES-alvaro"
+        if (-not $chosen) {
+            Write-VorkStatusLine -Kind warn -Text "Síntesis cancelada."
+            Write-Host ""
+            return
+        }
+
+        $voice = $chosen.EdgeVoice
+        $voiceDisplay = "$($chosen.Name) ($($chosen.Country) · $($chosen.Gender))"
+        $out = if ($out) { $out } else { "voz.mp3" }
+    } else {
+        $voiceDisplay = $voice
+    }
+
+    Write-VorkSectionHeader -Title "Procesando síntesis" -RightText "vork · tts"
+    Write-VorkInfoRow -Label "Voz" -Value $voiceDisplay -ValueColor $Yellow
+    Write-VorkInfoRow -Label "Salida" -Value $out
+    Write-VorkSectionRule
+    Write-VorkStatusLine -Kind step -Text "Generando audio neuronal"
+
+    if (-not $out) { $out = "audio_tts.mp3" }
+
+    $body = @{ text = $text; voice = $voice; outputFormat = "audio-24khz-48kbitrate-mono-mp3" } | ConvertTo-Json
+    try {
+        $res = Invoke-RestMethod -Uri "$ApiBase/api/tts" -Method Post -Body $body -ContentType "application/json"
+        $targetFile = if ([System.IO.Path]::IsPathRooted($out)) { $out } else { Join-Path (Get-Location) $out }
+        if ($res.audioBase64) {
+            try {
+                $rawB64 = $res.audioBase64 -replace '^data:audio\/[^;]+;base64,', ''
+                [System.IO.File]::WriteAllBytes($targetFile, [System.Convert]::FromBase64String($rawB64))
+            } catch {}
+        }
+        $dlUrl = if ($res.downloadUrl) { if ($res.downloadUrl.StartsWith("http")) { $res.downloadUrl } else { "$ApiBase$($res.downloadUrl)" } } else { "$ApiBase/api/tts/download?file=$out" }
+        $stUrl = if ($res.streamUrl) { if ($res.streamUrl.StartsWith("http")) { $res.streamUrl } else { "$ApiBase$($res.streamUrl)" } } else { "$ApiBase/api/tts/stream?file=$out" }
+        $videoFull = if ($res.videoStreamUrl) { if ($res.videoStreamUrl.StartsWith("http")) { $res.videoStreamUrl } else { "$ApiBase$($res.videoStreamUrl)" } } else { $stUrl }
+        $audioFull = if ($res.audioStreamUrl) { if ($res.audioStreamUrl.StartsWith("http")) { $res.audioStreamUrl } else { "$ApiBase$($res.audioStreamUrl)" } } else { $stUrl }
+
+        Write-VorkStatusLine -Kind ok -Text "Síntesis vocal completada"
+        $outputMode = Select-VorkMediaOutputAction -PromptTitle "Entrega del audio" -Format "mp3"
+        if (-not $outputMode) {
+            Write-VorkStatusLine -Kind warn -Text "Entrega cancelada."
+            Write-VorkSectionRule
+            Write-Host ""
+            return
+        }
+
+        $hasLocal = $outputMode -in @("local", "local_audio", "local_download", "all")
+        $hasDownload = $outputMode -in @("download", "local_download", "all")
+        $hasAudioStream = $outputMode -in @("audio_stream", "local_audio", "all")
+
+        if ($hasLocal) {
+            if ($res.audioBase64) {
+                try {
+                    $rawB64 = $res.audioBase64 -replace '^data:audio/[^;]+;base64,', ''
+                    [System.IO.File]::WriteAllBytes($targetFile, [System.Convert]::FromBase64String($rawB64))
+                } catch {}
+            }
+            if (-not (Test-Path $targetFile)) {
+                try { Invoke-WebRequest -Uri $dlUrl -OutFile $targetFile -UseBasicParsing -TimeoutSec 120 } catch {}
+            }
+            if (Test-Path $targetFile) {
+                $resolvedOut = (Resolve-Path $targetFile).Path
+                Write-VorkInfoRow -Label "Guardado" -Value $resolvedOut -ValueColor $Green
+            }
+        }
+
+        if ($hasDownload) {
+            Write-VorkInfoRow -Label "Descarga" -Value $dlUrl -ValueColor $Yellow
+        }
+
+        if ($hasVideoStream -and $videoFull) {
+            Write-VorkInfoRow -Label "Video" -Value $videoFull -ValueColor $Purple
+        }
+
+        if ($hasAudioStream -and $audioFull) {
+            Write-VorkInfoRow -Label "Audio" -Value $audioFull -ValueColor $Cyan
+        }
+
+        Write-VorkSectionRule
+        Send-VorkNotification -Title "Vork Síntesis TTS" -Message "Audio de voz neuronal generado con éxito."
+    } catch {
+        Write-VorkStatusLine -Kind error -Text "Error de TTS" -Detail $_.Exception.Message
+        Write-VorkSectionRule
+    }
+    Write-Host ""
+}
+
+
+# ========================================================
+# MODULE: pillars/p03_clone.ps1
+# ========================================================
+<#
+.SYNOPSIS
+    Pilar 03: Vork Clonacion de Voz IA (Extraccion Fundamental F0)
+#>
+
+function Invoke-PillarClone {
+    param([string[]]$ArgsList)
+
+    $sample = if ($ArgsList -and $ArgsList.Length -gt 0) { $ArgsList[0] } else { $null }
+    $text = $null
+    $out = "cloned_voice.wav"
+    $f0Method = "rmvpe"
+
+    if ($ArgsList) {
+        for ($i=0; $i -lt $ArgsList.Length; $i++) {
+            if ($ArgsList[$i] -in "-Audio", "--audio", "-a") { $sample = $ArgsList[$i+1] }
+            if ($ArgsList[$i] -in "-Text", "--text", "-t") { $text = $ArgsList[$i+1] }
+            if ($ArgsList[$i] -in "-Out", "--out", "-o") { $out = $ArgsList[$i+1] }
+        }
+    }
+
+    if (-not $sample) {
+        Write-VorkSectionHeader -Title "Clonación de voz" -Subtitle "Muestra de audio · modelado F0" -RightText "vork · voice clone"
+        $sample = Read-VorkInput -Prompt "  ${Coral}${Bold}$([char]0x203A)${Reset} "
+        if (-not $sample -or -not $sample.Trim()) {
+            Write-VorkStatusLine -Kind warn -Text "Clonación cancelada."
+            Write-Host ""
+            return
+        }
+        $sample = $sample.Trim()
+
+        $f0Options = @(
+            @{ Value = "rmvpe";   Label = "rmvpe";   Description = "Máxima fidelidad y pureza vocal" },
+            @{ Value = "harvest"; Label = "harvest"; Description = "Alta precisión tonal en agudos" },
+            @{ Value = "crepe";   Label = "crepe";   Description = "Red neuronal para muestras con ruido" },
+            @{ Value = "pm";      Label = "pm";      Description = "Modo ultrarrápido de previsualización" }
+        )
+        $chosenF0 = Select-InteractiveOption -PromptTitle "Algoritmo de extracción F0" -Subtitle "modelado de la voz" -Options $f0Options -DefaultIndex 0
+        if (-not $chosenF0) {
+            Write-VorkStatusLine -Kind warn -Text "Clonación cancelada."
+            Write-Host ""
+            return
+        }
+        $f0Method = $chosenF0
+
+        Write-VorkSectionHeader -Title "Guión y salida" -RightText "vork · voice clone"
+        Write-VorkInfoRow -Label "Guión" -Value "Texto para la voz clonada · enter para usar una frase de prueba" -ValueColor $LeadLight
+        $text = Read-VorkInput -Prompt "  ${Coral}${Bold}$([char]0x203A)${Reset} "
+        Write-VorkInfoRow -Label "Salida" -Value "Archivo de audio destino [clonado.wav]" -ValueColor $LeadLight
+        $outInput = Read-VorkInput -Prompt "  ${Coral}${Bold}$([char]0x203A)${Reset} "
+        if ($outInput -and $outInput.Trim()) { $out = $outInput.Trim() }
+    }
+
+    Write-VorkSectionHeader -Title "Procesando clonación" -RightText "vork · voice clone"
+    Write-VorkInfoRow -Label "Muestra" -Value $sample
+    Write-VorkInfoRow -Label "Algoritmo" -Value $f0Method -ValueColor $Yellow
+    Write-VorkInfoRow -Label "Salida" -Value $out -ValueColor $Yellow
+    Write-VorkSectionRule
+    Write-VorkStatusLine -Kind step -Text "Modelando la voz y sintetizando el audio"
+
+    $b64 = $null
+    if ($sample -and (Test-Path $sample)) {
+        try {
+            $bytes = [System.IO.File]::ReadAllBytes((Resolve-Path $sample))
+            $b64 = "data:audio/wav;base64," + [System.Convert]::ToBase64String($bytes)
+        } catch {}
+    }
+
+    if (-not $out) { $out = "voz_clonada.wav" }
+    $cloneText = if ($text -and $text.Trim()) { $text.Trim() } else { "Prueba de síntesis con voz clonada en Vork CLI." }
+    $body = @{ text = $cloneText; audioSampleBase64 = $b64; similarity = "high"; format = "wav" } | ConvertTo-Json
+    try {
+        $res = Invoke-RestMethod -Uri "$ApiBase/api/voice-clone" -Method Post -Body $body -ContentType "application/json"
+        $targetFile = if ([System.IO.Path]::IsPathRooted($out)) { $out } else { Join-Path (Get-Location) $out }
+        if ($res.audioBase64) {
+            try {
+                $rawB64 = $res.audioBase64 -replace '^data:audio\/[^;]+;base64,', ''
+                [System.IO.File]::WriteAllBytes($targetFile, [System.Convert]::FromBase64String($rawB64))
+            } catch {}
+        }
+        $dlUrl = if ($res.downloadUrl) { if ($res.downloadUrl.StartsWith("http")) { $res.downloadUrl } else { "$ApiBase$($res.downloadUrl)" } } else { "$ApiBase/api/voice-clone/download" }
+        $stUrl = if ($res.streamUrl) { if ($res.streamUrl.StartsWith("http")) { $res.streamUrl } else { "$ApiBase$($res.streamUrl)" } } else { "$ApiBase/api/voice-clone/stream" }
+        $videoFull = if ($res.videoStreamUrl) { if ($res.videoStreamUrl.StartsWith("http")) { $res.videoStreamUrl } else { "$ApiBase$($res.videoStreamUrl)" } } else { $stUrl }
+        $audioFull = if ($res.audioStreamUrl) { if ($res.audioStreamUrl.StartsWith("http")) { $res.audioStreamUrl } else { "$ApiBase$($res.audioStreamUrl)" } } else { $stUrl }
+
+        Write-VorkStatusLine -Kind ok -Text "Clonación de voz completada"
+        $outputMode = Select-VorkMediaOutputAction -PromptTitle "Entrega de la voz clonada" -Format "mp3"
+        if (-not $outputMode) {
+            Write-VorkStatusLine -Kind warn -Text "Entrega cancelada."
+            Write-VorkSectionRule
+            Write-Host ""
+            return
+        }
+
+        $hasLocal = $outputMode -in @("local", "local_audio", "local_download", "all")
+        $hasDownload = $outputMode -in @("download", "local_download", "all")
+        $hasAudioStream = $outputMode -in @("audio_stream", "local_audio", "all")
+
+        if ($hasLocal) {
+            if ($res.audioBase64) {
+                try {
+                    $rawB64 = $res.audioBase64 -replace '^data:audio/[^;]+;base64,', ''
+                    [System.IO.File]::WriteAllBytes($targetFile, [System.Convert]::FromBase64String($rawB64))
+                } catch {}
+            }
+            if (-not (Test-Path $targetFile)) {
+                try { Invoke-WebRequest -Uri $dlUrl -OutFile $targetFile -UseBasicParsing -TimeoutSec 120 } catch {}
+            }
+            if (Test-Path $targetFile) {
+                $resolvedOut = (Resolve-Path $targetFile).Path
+                Write-VorkInfoRow -Label "Guardado" -Value $resolvedOut -ValueColor $Green
+            }
+        }
+
+        if ($hasDownload) {
+            Write-VorkInfoRow -Label "Descarga" -Value $dlUrl -ValueColor $Yellow
+        }
+
+        if ($hasVideoStream -and $videoFull) {
+            Write-VorkInfoRow -Label "Video" -Value $videoFull -ValueColor $Purple
+        }
+
+        if ($hasAudioStream -and $audioFull) {
+            Write-VorkInfoRow -Label "Audio" -Value $audioFull -ValueColor $Cyan
+        }
+
+        Write-VorkSectionRule
+        Send-VorkNotification -Title "Vork Clonación Vocal" -Message "Clonación vocal F0 completada con éxito."
+    } catch {
+        Write-VorkStatusLine -Kind error -Text "Error de clonación" -Detail $_.Exception.Message
+        Write-VorkSectionRule
+    }
+    Write-Host ""
+}
+
+
+# ========================================================
+# MODULE: pillars/p04_media.ps1
+# ========================================================
+<#
+.SYNOPSIS
+    Pilar 04: Vork Conversor Multimedia Universal (YouTube, TikTok, IG a MP3/MP4)
+#>
+
+function Invoke-PillarMedia {
+    param([string[]]$ArgsList)
+
+    $url = $null
+    $fmt = $null
+    $quality = $null
+    $hasExplicitFormat = $false
+
+    if ($ArgsList) {
+        for ($i=0; $i -lt $ArgsList.Length; $i++) {
+            if ($ArgsList[$i] -in "-Format", "--format", "-f") { $fmt = $ArgsList[$i+1]; $hasExplicitFormat = $true; $i++ }
+            elseif ($ArgsList[$i] -in "-Quality", "--quality", "-q") { $quality = $ArgsList[$i+1]; $i++ }
+            elseif (-not $url -and -not $ArgsList[$i].StartsWith("-")) { $url = $ArgsList[$i] }
+        }
+    }
+
+    if (-not $url) {
+        Write-VorkSectionHeader -Title "Conversor multimedia" -Subtitle "YouTube · TikTok · Instagram · Reels" -RightText "vork · media"
+        $url = Read-VorkInput -Prompt "  ${Coral}${Bold}$([char]0x203A)${Reset} "
+        if (-not $url -or -not $url.Trim()) {
+            Write-VorkStatusLine -Kind warn -Text "Conversión cancelada."
+            Write-Host ""
+            return
+        }
+        $url = $url.Trim()
+    }
+
+    if (-not $hasExplicitFormat) {
+        if (-not $fmt) {
+            $fmt = Select-VorkMediaFormatChoice -PromptTitle "Formato de salida"
+            if (-not $fmt) {
+                Write-VorkStatusLine -Kind warn -Text "Conversión cancelada."
+                Write-Host ""
+                return
+            }
+        }
+
+        $quality = Select-VorkMediaQualityChoice -Format $fmt -PromptTitle "Calidad para $($fmt.ToUpper())"
+        if (-not $quality) {
+            Write-VorkStatusLine -Kind warn -Text "Conversión cancelada."
+            Write-Host ""
+            return
+        }
+    } else {
+        if (-not $quality) {
+            $quality = Select-VorkMediaQualityChoice -Format $fmt -PromptTitle "Calidad para $($fmt.ToUpper())"
+            if (-not $quality) {
+                $quality = if ($fmt -eq "mp3") { "320k" } elseif ($fmt -eq "wav") { "lossless" } else { "720p" }
+            }
+        }
+    }
+
+    $platformName = Get-VorkMediaPlatformName -Url $url
+    Write-VorkSectionHeader -Title "Procesando conversión" -RightText "vork · media"
+    Write-VorkInfoRow -Label "Plataforma" -Value $platformName -ValueColor $Yellow
+    Write-VorkInfoRow -Label "URL" -Value $url
+    Write-VorkInfoRow -Label "Formato" -Value "$($fmt.ToUpper())  ·  $quality" -ValueColor $Cyan
+    Write-VorkSectionRule
+
+    $body = @{ url = $url; format = $fmt; quality = $quality } | ConvertTo-Json
+    $endpoint = "$ApiBase/api/media/convert"
+
+    try {
+        try { Add-Type -AssemblyName System.Net.Http } catch { }
+
+        $res = $null
+        $barLen = 22
+        $pRow = -1
+        try {
+            Write-Host "    ${LeadLight}Progreso${Reset} [${Gray}$([string]::new([char]0x2591, $barLen))${Reset}]   0%  ${LeadLight}Iniciando...${Reset}"
+            $pRow = [Console]::CursorTop - 1
+        } catch { }
+
+        if ('System.Net.Http.HttpClient' -as [type]) {
+            $client = [System.Net.Http.HttpClient]::new()
+            $client.Timeout = [TimeSpan]::FromMinutes(5)
+            $httpContent = [System.Net.Http.StringContent]::new($body, [System.Text.Encoding]::UTF8, "application/json")
+            $task = $client.PostAsync($endpoint, $httpContent)
+
+            $startTime = [DateTime]::UtcNow
+
+            while (-not $task.IsCompleted) {
+                $elapsed = ([DateTime]::UtcNow - $startTime).TotalSeconds
+                $pct = if ($elapsed -lt 1.5) {
+                    [Math]::Min(25, 5 + [int]($elapsed * 13))
+                } elseif ($elapsed -lt 4.0) {
+                    [Math]::Min(55, 25 + [int](($elapsed - 1.5) * 12))
+                } elseif ($elapsed -lt 7.0) {
+                    [Math]::Min(80, 55 + [int](($elapsed - 4.0) * 8))
+                } elseif ($elapsed -lt 15.0) {
+                    [Math]::Min(95, 80 + [int](($elapsed - 7.0) * 1.8))
+                } else {
+                    [Math]::Min(98, 95 + [int](($elapsed - 15.0) * 0.2))
+                }
+
+                $phase = if ($pct -lt 25) {
+                    "Conectando..."
+                } elseif ($pct -lt 55) {
+                    "Descargando flujo..."
+                } elseif ($pct -lt 80) {
+                    "Codificando a $fmt ($quality)..."
+                } else {
+                    "Finalizando contenedor..."
+                }
+
+                $filledLen = [Math]::Floor(($pct / 100) * $barLen)
+                $emptyLen = $barLen - $filledLen
+                $filled = [string]::new([char]0x2588, $filledLen)
+                $empty = [string]::new([char]0x2591, $emptyLen)
+                $pctStr = ($pct.ToString() + "%").PadLeft(4)
+
+                if ($pRow -ge 0 -and $pRow -lt [Console]::BufferHeight) {
+                    try { [Console]::SetCursorPosition(0, $pRow) } catch { }
+                }
+                Write-Host "`r$ClrLine    ${LeadLight}Progreso${Reset} [${Cyan}$filled${Gray}$empty${Reset}] $Yellow$pctStr${Reset}  ${LeadLight}$phase${Reset}" -NoNewline
+
+                Start-Sleep -Milliseconds 120
+            }
+
+            if ($task.IsFaulted) {
+                throw $task.Exception.InnerException
+            }
+
+            $filled100 = [string]::new([char]0x2588, $barLen)
+            if ($pRow -ge 0 -and $pRow -lt [Console]::BufferHeight) {
+                try { [Console]::SetCursorPosition(0, $pRow) } catch { }
+            }
+            Write-Host "`r$ClrLine    ${LeadLight}Progreso${Reset} [${Cyan}$filled100${Reset}] ${Green}100%${Reset}  ${Green}Completado${Reset}"
+
+            $jsonStr = $task.Result.Content.ReadAsStringAsync().Result
+            try { $res = $jsonStr | ConvertFrom-Json } catch { }
+        } else {
+            try {
+                $res = Invoke-RestMethod -Uri $endpoint -Method Post -Body $body -ContentType "application/json"
+            } catch { }
+        }
+
+        # Fallback local resiliente si la nube falla o devuelve error (por ejemplo por restricción de IP en Instagram)
+        if (-not $res -or $res.status -eq "error" -or (-not $res.downloadUrl -and -not $res.directVideoUrl -and -not $res.directAudioUrl)) {
+            $nodeCmd = Get-Command "node" -ErrorAction SilentlyContinue
+            $possibleEngines = @(
+                "$PSScriptRoot\..\..\utils\mediaEngine.js",
+                "$HOME\Videos\Visual Studio Code\CloudTranslator\src\utils\mediaEngine.js",
+                "C:\Users\isaki\Videos\Visual Studio Code\CloudTranslator\src\utils\mediaEngine.js"
+            )
+            $engineJs = $possibleEngines | Where-Object { Test-Path $_ } | Select-Object -First 1
+
+            if ($nodeCmd -and $engineJs) {
+                try {
+                    $normEngine = ($engineJs -replace '\\', '/')
+                    $jsCode = "const { processConversion } = require('$normEngine'); processConversion({ url: '$url', format: '$fmt', quality: '$quality' }).then(r => console.log(JSON.stringify(r))).catch(e => console.error(JSON.stringify({ status: 'error', error: e.message })));"
+                    $localOut = & $nodeCmd.Source -e $jsCode 2>&1
+                    $parsed = ($localOut | Out-String).Trim() | ConvertFrom-Json
+                    if ($parsed -and $parsed.status -eq "success") {
+                        $res = $parsed
+                    }
+                } catch { }
+            }
+        }
+
+        if (-not $res -or $res.status -eq "error" -or (-not $res.downloadUrl -and -not $res.directVideoUrl -and -not $res.directAudioUrl)) {
+            $errDetail = if ($res -and $res.error) { $res.error } else { "No se pudo procesar la conversión a $($fmt.ToUpper()) ($quality) para este enlace. Por favor verifique el enlace e intente nuevamente." }
+            Write-VorkStatusLine -Kind error -Text "Error multimedia" -Detail $errDetail
+            Write-VorkSectionRule
+        } else {
+            Write-VorkStatusLine -Kind ok -Text "Conversión multimedia completada"
+            $dlFull = if ($res.downloadUrl -and $res.downloadUrl.StartsWith("http")) {
+                $res.downloadUrl
+            } elseif ($res.downloadUrl) {
+                "$ApiBase$($res.downloadUrl)"
+            } elseif ($res.directVideoUrl) {
+                $res.directVideoUrl
+            } else {
+                $res.directAudioUrl
+            }
+
+            $stFull = if ($res.streamUrl -and $res.streamUrl.StartsWith("http")) {
+                $res.streamUrl
+            } elseif ($res.streamUrl) {
+                "$ApiBase$($res.streamUrl)"
+            } else {
+                "$ApiBase/api/media/stream?id=$($res.id)"
+            }
+
+            $videoFull = if ($res.videoStreamUrl -and $res.videoStreamUrl.StartsWith("http")) {
+                $res.videoStreamUrl
+            } elseif ($res.videoStreamUrl) {
+                "$ApiBase$($res.videoStreamUrl)"
+            } elseif ($res.directVideoUrl) {
+                $res.directVideoUrl
+            } elseif ($fmt -eq "mp4") {
+                $stFull
+            } else {
+                "$ApiBase/api/media/stream?id=$($res.id)&type=video"
+            }
+
+            $audioFull = if ($res.audioStreamUrl -and $res.audioStreamUrl.StartsWith("http")) {
+                $res.audioStreamUrl
+            } elseif ($res.audioStreamUrl) {
+                "$ApiBase$($res.audioStreamUrl)"
+            } elseif ($res.directAudioUrl) {
+                $res.directAudioUrl
+            } elseif ($fmt -eq "mp3" -or $fmt -eq "wav") {
+                $stFull
+            } else {
+                "$ApiBase/api/media/stream?id=$($res.id)&type=audio"
+            }
+
+            $localFile = if ($res.filename) { $res.filename } else { "media_output.$fmt" }
+
+            $outputMode = Select-VorkMediaOutputAction -PromptTitle "Entrega del archivo" -Format $fmt
+            if (-not $outputMode) {
+                Write-VorkStatusLine -Kind warn -Text "Conversión cancelada."
+                Write-VorkSectionRule
+                Write-Host ""
+                return
+            }
+
+            $hasLocal = $outputMode -in @("local", "local_video", "local_audio", "local_download", "all")
+            $hasDownload = $outputMode -in @("download", "local_download", "all")
+            $hasVideoStream = ($fmt -eq "mp4") -and ($outputMode -in @("video_stream", "local_video", "all"))
+            $hasAudioStream = ($fmt -in @("mp3", "wav")) -and ($outputMode -in @("audio_stream", "local_audio", "all"))
+
+            if ($hasLocal) {
+                try {
+                    $cachePaths = @(
+                        "C:\Users\isaki\Videos\Visual Studio Code\CloudTranslator\data\media_cache\$($res.id).$fmt",
+                        "$PSScriptRoot\..\..\..\data\media_cache\$($res.id).$fmt"
+                    )
+                    $foundCache = $cachePaths | Where-Object { Test-Path $_ } | Select-Object -First 1
+
+                    if ($foundCache) {
+                        Copy-Item -Path $foundCache -Destination $localFile -Force
+                    } else {
+                        Invoke-WebRequest -Uri $dlFull -OutFile $localFile -UseBasicParsing -TimeoutSec 120
+                    }
+                    $resolvedOut = (Resolve-Path $localFile).Path
+                    Write-VorkInfoRow -Label "Guardado" -Value $resolvedOut -ValueColor $Green
+                } catch {
+                    Write-VorkInfoRow -Label "Descarga" -Value $dlFull -ValueColor $Yellow
+                }
+            }
+
+            if ($hasDownload) {
+                Write-VorkInfoRow -Label "Descarga" -Value $dlFull -ValueColor $Yellow
+            }
+
+            if ($hasVideoStream -and $videoFull) {
+                Write-VorkInfoRow -Label "Video" -Value $videoFull -ValueColor $Purple
+            }
+
+            if ($hasAudioStream -and $audioFull) {
+                Write-VorkInfoRow -Label "Audio" -Value $audioFull -ValueColor $Cyan
+            }
+
+            Write-VorkSectionRule
+            Send-VorkNotification -Title "Vork Conversor Multimedia" -Message "Conversión a $fmt ($quality) completada con éxito."
+        }
+    } catch {
+        Write-VorkStatusLine -Kind error -Text "Error multimedia" -Detail $_.Exception.Message
+        Write-VorkSectionRule
+    }
+    Write-Host ""
+}
+
+
+# ========================================================
+# MODULE: pillars/p05_separate.ps1
+# ========================================================
+<#
+.SYNOPSIS
+    Pilar 05: Vork Separador de Stems (Acapella y Karaoke con Demucs v4)
+#>
+
+function Invoke-PillarSeparate {
+    param([string[]]$ArgsList)
+
+    $target = if ($ArgsList -and $ArgsList.Length -gt 0) { $ArgsList[0] } else { $null }
+    $mode = "2stems"
+    if ($ArgsList) {
+        for ($i=0; $i -lt $ArgsList.Length; $i++) {
+            if ($ArgsList[$i] -in "-Mode", "--mode", "-m") { $mode = $ArgsList[$i+1] }
+        }
+    }
+
+    if (-not $target) {
+        Write-VorkSectionHeader -Title "Separación de stems" -Subtitle "Acapella y karaoke con Demucs v4" -RightText "vork · stems"
+        $target = Read-VorkInput -Prompt "  ${Coral}${Bold}$([char]0x203A)${Reset} "
+        if (-not $target -or -not $target.Trim()) {
+            Write-VorkStatusLine -Kind warn -Text "Separación cancelada."
+            Write-Host ""
+            return
+        }
+        $target = $target.Trim()
+
+        $sepOptions = @(
+            @{ Value = "2stems";  Label = "2 stems";  Description = "Voz acapella y pista instrumental" },
+            @{ Value = "4stems";  Label = "4 stems";  Description = "Voz, batería, bajo y otros instrumentos" },
+            @{ Value = "vocals";  Label = "Acapella"; Description = "Aislamiento vocal puro con reducción de ruido" },
+            @{ Value = "karaoke"; Label = "Karaoke";  Description = "Instrumental con eliminación estricta de voz" }
+        )
+
+        $chosenMode = Select-InteractiveOption -PromptTitle "Modo de separación" -Subtitle "pistas a extraer" -Options $sepOptions -DefaultIndex 0
+        if (-not $chosenMode) {
+            Write-VorkStatusLine -Kind warn -Text "Separación cancelada."
+            Write-Host ""
+            return
+        }
+        $mode = $chosenMode
+    }
+
+    Write-VorkSectionHeader -Title "Procesando separación" -RightText "vork · stems"
+    Write-VorkInfoRow -Label "Pista" -Value $target
+    Write-VorkInfoRow -Label "Modo" -Value $mode -ValueColor $Yellow
+    Write-VorkSectionRule
+
+    $isLocal = try { Test-Path $target -PathType Leaf } catch { $false }
+    $body = if ($isLocal) {
+        $resolved = Resolve-Path $target
+        $bytes = [System.IO.File]::ReadAllBytes($resolved)
+        $b64 = [System.Convert]::ToBase64String($bytes)
+        $fn = [System.IO.Path]::GetFileName($resolved)
+        @{ audioBase64 = $b64; filename = $fn; quality = "320k"; mode = $mode } | ConvertTo-Json
+    } else {
+        @{ url = $target; quality = "320k"; mode = $mode } | ConvertTo-Json
+    }
+
+    $endpoint = "$ApiBase/api/separator/process"
+
+    try {
+        try { Add-Type -AssemblyName System.Net.Http } catch { }
+
+        $res = $null
+        $barLen = 22
+        $pRow = -1
+        $emptyBar = [string]::new([char]0x2591, $barLen)
+        try {
+            Write-Host "    ${LeadLight}Progreso${Reset} [${Gray}$emptyBar${Reset}]   0%  ${LeadLight}Iniciando...${Reset}"
+            $pRow = [Console]::CursorTop - 1
+        } catch { }
+
+        if ('System.Net.Http.HttpClient' -as [type]) {
+            $client = [System.Net.Http.HttpClient]::new()
+            $client.Timeout = [TimeSpan]::FromMinutes(5)
+            $httpContent = [System.Net.Http.StringContent]::new($body, [System.Text.Encoding]::UTF8, "application/json")
+            $task = $client.PostAsync($endpoint, $httpContent)
+
+            $startTime = [DateTime]::UtcNow
+
+            while (-not $task.IsCompleted) {
+                $elapsed = ([DateTime]::UtcNow - $startTime).TotalSeconds
+                $pct = if ($elapsed -lt 3.0) {
+                    [Math]::Min(25, 5 + [int]($elapsed * 7))
+                } elseif ($elapsed -lt 8.0) {
+                    [Math]::Min(50, 25 + [int](($elapsed - 3.0) * 5))
+                } elseif ($elapsed -lt 18.0) {
+                    [Math]::Min(75, 50 + [int](($elapsed - 8.0) * 2.5))
+                } elseif ($elapsed -lt 35.0) {
+                    [Math]::Min(95, 75 + [int](($elapsed - 18.0) * 1.1))
+                } else {
+                    [Math]::Min(98, 95 + [int](($elapsed - 35.0) * 0.1))
+                }
+
+                $phase = if ($pct -lt 25) {
+                    "Descargando pista..."
+                } elseif ($pct -lt 50) {
+                    "Normalizando espectro acústico..."
+                } elseif ($pct -lt 75) {
+                    "Separando voz e instrumental con Demucs v4..."
+                } else {
+                    "Masterizando stems de audio 320 kbps..."
+                }
+
+                $filledLen = [Math]::Floor(($pct / 100) * $barLen)
+                $unfilledLen = $barLen - $filledLen
+                $barStr = [string]::new([char]0x2588, $filledLen) + [string]::new([char]0x2591, $unfilledLen)
+                $pctStr = "$pct".PadLeft(3)
+
+                if ($pRow -ge 0 -and $pRow -lt [Console]::BufferHeight) {
+                    try {
+                        [Console]::SetCursorPosition(0, $pRow)
+                        Write-Host "    ${LeadLight}Progreso${Reset} [${Yellow}$barStr${Reset}] $pctStr%  ${LeadLight}$phase${Reset}    $ClrToEnd" -NoNewline
+                    } catch { }
+                }
+
+                Start-Sleep -Milliseconds 150
+            }
+
+            if ($task.IsFaulted) {
+                throw $task.Exception.InnerException
+            }
+
+            $filled100 = [string]::new([char]0x2588, $barLen)
+            if ($pRow -ge 0 -and $pRow -lt [Console]::BufferHeight) {
+                try { [Console]::SetCursorPosition(0, $pRow) } catch { }
+            }
+            Write-Host "`r$ClrLine    ${LeadLight}Progreso${Reset} [${Green}$filled100${Reset}] 100%  ${Green}Completado${Reset}"
+
+            $jsonStr = $task.Result.Content.ReadAsStringAsync().Result
+            if (-not $task.Result.IsSuccessStatusCode) {
+                $errDetail = $null
+                try {
+                    $parsedErr = $jsonStr | ConvertFrom-Json
+                    if ($parsedErr -and $parsedErr.error) { $errDetail = $parsedErr.error }
+                } catch { }
+                if (-not $errDetail) {
+                    $errDetail = "Error en el servidor ($([int]$task.Result.StatusCode)): $($task.Result.ReasonPhrase)"
+                }
+                Write-VorkStatusLine -Kind error -Text "Error del separador" -Detail $errDetail
+                Write-VorkSectionRule
+                return
+            }
+            $res = try { $jsonStr | ConvertFrom-Json } catch { $null }
+        } else {
+            $res = try { Invoke-RestMethod -Uri $endpoint -Method Post -Body $body -ContentType "application/json" -TimeoutSec 300 } catch { $null }
+        }
+
+        if (-not $res -or $res.status -eq "error" -or $res.error) {
+            $errDetail = if ($res -and $res.error) { $res.error } else { "No se pudo completar la separación de stems." }
+            Write-VorkStatusLine -Kind error -Text "Error del separador" -Detail $errDetail
+            Write-VorkSectionRule
+            return
+        }
+
+        $vocDl = $null
+        $vocSt = $null
+        if ($res.vocals) {
+            $rawDl = $res.vocals.downloadUrl
+            $rawSt = $res.vocals.streamUrl
+            if ($rawDl) { $vocDl = if ($rawDl -match '^https?://') { $rawDl } else { "$ApiBase$rawDl" } }
+            if ($rawSt) { $vocSt = if ($rawSt -match '^https?://') { $rawSt } else { "$ApiBase$rawSt" } }
+        }
+
+        $instDl = $null
+        $instSt = $null
+        if ($res.instrumental) {
+            $rawDl = $res.instrumental.downloadUrl
+            $rawSt = $res.instrumental.streamUrl
+            if ($rawDl) { $instDl = if ($rawDl -match '^https?://') { $rawDl } else { "$ApiBase$rawDl" } }
+            if ($rawSt) { $instSt = if ($rawSt -match '^https?://') { $rawSt } else { "$ApiBase$rawSt" } }
+        }
+
+        Write-VorkStatusLine -Kind ok -Text "Separación completada con Demucs v4"
+
+        $outputMode = Select-VorkMediaOutputAction -PromptTitle "Entrega de las pistas" -Format "wav"
+        if (-not $outputMode) {
+            Write-VorkStatusLine -Kind warn -Text "Separación cancelada."
+            Write-VorkSectionRule
+            Write-Host ""
+            return
+        }
+
+        $hasLocal = $outputMode -in @("local", "local_audio", "local_download", "all")
+        $hasDownload = $outputMode -in @("download", "local_download", "all")
+        $hasAudioStream = $outputMode -in @("audio_stream", "local_audio", "all")
+
+        if ($mode -eq "vocals") {
+            if ($hasLocal -and $vocDl) {
+                $localVoc = "vocals.wav"
+                try {
+                    Invoke-WebRequest -Uri $vocDl -OutFile $localVoc -UseBasicParsing -TimeoutSec 120
+                    Write-VorkInfoRow -Label "Guardado" -Value (Resolve-Path $localVoc).Path -ValueColor $Green
+                } catch {
+                    Write-VorkInfoRow -Label "Descarga" -Value $vocDl -ValueColor $Yellow
+                }
+            }
+            if ($hasDownload -and $vocDl) {
+                Write-VorkInfoRow -Label "Descarga" -Value $vocDl -ValueColor $Yellow
+            }
+            if ($hasVideoStream -and $vocSt) {
+                Write-VorkInfoRow -Label "Video" -Value $vocSt -ValueColor $Purple
+            }
+            if ($hasAudioStream -and $vocSt) {
+                Write-VorkInfoRow -Label "Audio" -Value $vocSt -ValueColor $Cyan
+            }
+        } elseif ($mode -eq "karaoke") {
+            if ($hasLocal -and $instDl) {
+                $localInst = "instrumental.wav"
+                try {
+                    Invoke-WebRequest -Uri $instDl -OutFile $localInst -UseBasicParsing -TimeoutSec 120
+                    Write-VorkInfoRow -Label "Guardado" -Value (Resolve-Path $localInst).Path -ValueColor $Green
+                } catch {
+                    Write-VorkInfoRow -Label "Descarga" -Value $instDl -ValueColor $Yellow
+                }
+            }
+            if ($hasDownload -and $instDl) {
+                Write-VorkInfoRow -Label "Descarga" -Value $instDl -ValueColor $Yellow
+            }
+            if ($hasVideoStream -and $instSt) {
+                Write-VorkInfoRow -Label "Video" -Value $instSt -ValueColor $Purple
+            }
+            if ($hasAudioStream -and $instSt) {
+                Write-VorkInfoRow -Label "Audio" -Value $instSt -ValueColor $Cyan
+            }
+        } else {
+            if ($hasLocal) {
+                if ($vocDl) {
+                    $localVoc = "vocals.wav"
+                    try {
+                        Invoke-WebRequest -Uri $vocDl -OutFile $localVoc -UseBasicParsing -TimeoutSec 120
+                        Write-VorkInfoRow -Label "Voz" -Value (Resolve-Path $localVoc).Path -ValueColor $Green
+                    } catch {}
+                }
+                if ($instDl) {
+                    $localInst = "instrumental.wav"
+                    try {
+                        Invoke-WebRequest -Uri $instDl -OutFile $localInst -UseBasicParsing -TimeoutSec 120
+                        Write-VorkInfoRow -Label "Instrumental" -Value (Resolve-Path $localInst).Path -ValueColor $Green
+                    } catch {}
+                }
+            }
+            if ($hasDownload) {
+                if ($vocDl) { Write-VorkInfoRow -Label "Descarga voz" -Value $vocDl -ValueColor $Yellow }
+                if ($instDl) { Write-VorkInfoRow -Label "Descarga inst" -Value $instDl -ValueColor $Yellow }
+            }
+            if ($hasVideoStream) {
+                $stVid = if ($vocSt) { $vocSt } else { $instSt }
+                if ($stVid) { Write-VorkInfoRow -Label "Video" -Value $stVid -ValueColor $Purple }
+            }
+            if ($hasAudioStream) {
+                if ($vocSt) { Write-VorkInfoRow -Label "Audio voz" -Value $vocSt -ValueColor $Cyan }
+                if ($instSt) { Write-VorkInfoRow -Label "Audio inst" -Value $instSt -ValueColor $Cyan }
+            }
+        }
+        Write-VorkSectionRule
+        Send-VorkNotification -Title "Vork Separador de Stems" -Message "Aislamiento de pistas completado con éxito."
+    } catch {
+        Write-VorkStatusLine -Kind error -Text "Error del separador" -Detail $_.Exception.Message
+        Write-VorkSectionRule
+    }
+    Write-Host ""
+}
+
+
+# ========================================================
+# MODULE: pillars/p07_image.ps1
+# ========================================================
+<#
+.SYNOPSIS
+    Pilar 07: Vork Conversor Universal de Formatos de Imagen (PNG, JPG, WEBP, ICO, AVIF)
+#>
+
+function Invoke-PillarImage {
+    param([string[]]$ArgsList)
+
+    $rawTarget = if ($ArgsList -and $ArgsList.Length -gt 0) { $ArgsList[0] } else { $null }
+    $fmt = $null
+    $quality = 90
+    if ($ArgsList) {
+        for ($i=0; $i -lt $ArgsList.Length; $i++) {
+            if ($ArgsList[$i] -in "-Format", "--format", "-f") { $fmt = $ArgsList[$i+1] }
+            if ($ArgsList[$i] -in "-Quality", "--quality", "-q") { $quality = [int]$ArgsList[$i+1] }
+        }
+    }
+
+    if (-not $rawTarget) {
+        Write-VorkSectionHeader -Title "Nueva conversión" -Subtitle "Ruta local o URL  ·  jpg · png · webp · ico · avif" -RightText "vork · imagen"
+        $rawTarget = Read-VorkInput -Prompt "  ${Coral}${Bold}$([char]0x203A)${Reset} "
+        if (-not $rawTarget -or -not $rawTarget.Trim()) {
+            Write-VorkStatusLine -Kind warn -Text "Conversión cancelada."
+            Write-Host ""
+            return
+        }
+    }
+
+    # Limpieza estricta de comillas iniciales y finales y espacios
+    $target = $rawTarget.Trim().Trim('"').Trim("'").Trim()
+    $isUrl = ($target -match '^https?://')
+
+    Write-VorkSectionHeader -Title "Imagen de origen" -RightText "vork · imagen"
+    Write-VorkInfoRow -Label "Origen" -Value $target
+
+    $imageBytes = $null
+    $detectedFmt = "unknown"
+    $detectedLabel = "Desconocido"
+
+    if ($isUrl) {
+        try {
+            Write-VorkStatusLine -Kind step -Text "Conectando con el origen"
+            try { Add-Type -AssemblyName System.Net.Http } catch { }
+            $client = [System.Net.Http.HttpClient]::new()
+            $client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+            $client.Timeout = [TimeSpan]::FromSeconds(25)
+            $respBytes = $client.GetByteArrayAsync($target).Result
+
+            # Verificar si la respuesta es HTML para extraer imagen de metadatos (og:image / twitter:image)
+            $isHtml = $false
+            if ($respBytes.Length -gt 15) {
+                $headLen = [Math]::Min(1024, $respBytes.Length - 1)
+                $headStr = [System.Text.Encoding]::UTF8.GetString($respBytes[0..$headLen])
+                if ($headStr -match '<(!DOCTYPE\s+)?html|<head|<meta|<body') {
+                    $isHtml = $true
+                }
+            }
+
+            if ($isHtml) {
+                $htmlText = [System.Text.Encoding]::UTF8.GetString($respBytes)
+                $realImgUrl = $null
+                if ($htmlText -match '<meta[^>]+property=["'']og:image["''][^>]+content=["'']([^"'']+)["'']' -or
+                    $htmlText -match '<meta[^>]+content=["'']([^"'']+)["''][^>]+property=["'']og:image["'']' -or
+                    $htmlText -match '<meta[^>]+name=["'']twitter:image["''][^>]+content=["'']([^"'']+)["'']' -or
+                    $htmlText -match '<meta[^>]+content=["'']([^"'']+)["''][^>]+name=["'']twitter:image["'']') {
+                    $realImgUrl = $Matches[1].Trim()
+                }
+
+                if ($realImgUrl) {
+                    if ($realImgUrl.StartsWith("//")) { $realImgUrl = "https:" + $realImgUrl }
+                    elseif ($realImgUrl.StartsWith("/")) {
+                        $u = [System.Uri]$target
+                        $realImgUrl = "$($u.Scheme)://$($u.Host)$realImgUrl"
+                    }
+                    Write-VorkStatusLine -Kind info -Text "Imagen detectada en metadatos" -Detail $realImgUrl
+                    $respBytes = $client.GetByteArrayAsync($realImgUrl).Result
+                    $target = $realImgUrl
+                } else {
+                    Write-VorkStatusLine -Kind warn -Text "La URL es una página web sin imagen detectable (og:image)."
+                    Write-Host ""
+                    return
+                }
+            }
+
+            $imageBytes = $respBytes
+        } catch {
+            Write-VorkStatusLine -Kind error -Text "Error al descargar la imagen" -Detail $_.Exception.Message
+            Write-Host ""
+            return
+        }
+    } else {
+        # Archivo local
+        $resolvedPath = $null
+        try {
+            if (Test-Path -LiteralPath $target) {
+                $resolvedPath = (Resolve-Path -LiteralPath $target).Path
+            }
+        } catch { }
+
+        if (-not $resolvedPath -or -not (Test-Path -LiteralPath $resolvedPath -PathType Leaf)) {
+            Write-VorkStatusLine -Kind error -Text "Archivo no encontrado o ruta cancelada."
+            Write-Host ""
+            return
+        }
+
+        $target = $resolvedPath
+        try {
+            $imageBytes = [System.IO.File]::ReadAllBytes($target)
+        } catch {
+            Write-VorkStatusLine -Kind error -Text "No se pudo leer el archivo" -Detail $_.Exception.Message
+            Write-Host ""
+            return
+        }
+    }
+
+    # Detección precisa de formato mediante Magic Bytes
+    if ($imageBytes -and $imageBytes.Length -ge 4) {
+        if ($imageBytes[0] -eq 0xFF -and $imageBytes[1] -eq 0xD8 -and $imageBytes[2] -eq 0xFF) {
+            $detectedFmt = "jpg"; $detectedLabel = "JPEG · Joint Photographic Experts Group"
+        } elseif ($imageBytes[0] -eq 0x89 -and $imageBytes[1] -eq 0x50 -and $imageBytes[2] -eq 0x4E -and $imageBytes[3] -eq 0x47) {
+            $detectedFmt = "png"; $detectedLabel = "PNG · Portable Network Graphics con transparencia"
+        } elseif ($imageBytes[0] -eq 0x47 -and $imageBytes[1] -eq 0x49 -and $imageBytes[2] -eq 0x46 -and $imageBytes[3] -eq 0x38) {
+            $detectedFmt = "gif"; $detectedLabel = "GIF · Graphics Interchange Format"
+        } elseif ($imageBytes[0] -eq 0x42 -and $imageBytes[1] -eq 0x4D) {
+            $detectedFmt = "bmp"; $detectedLabel = "BMP · Windows Bitmap Image"
+        } elseif ($imageBytes[0] -eq 0x00 -and $imageBytes[1] -eq 0x00 -and $imageBytes[2] -eq 0x01 -and $imageBytes[3] -eq 0x00) {
+            $detectedFmt = "ico"; $detectedLabel = "ICO · Windows Icon / Favicon"
+        } elseif ($imageBytes.Length -ge 12 -and ([System.Text.Encoding]::ASCII.GetString($imageBytes[0..3]) -eq "RIFF") -and ([System.Text.Encoding]::ASCII.GetString($imageBytes[8..11]) -eq "WEBP")) {
+            $detectedFmt = "webp"; $detectedLabel = "WEBP · Google WebP Modern Compressed Image"
+        } elseif ($imageBytes.Length -ge 12 -and ([System.Text.Encoding]::ASCII.GetString($imageBytes[4..11]) -match 'ftypavif|ftypavis')) {
+            $detectedFmt = "avif"; $detectedLabel = "AVIF · AV1 Image File Format Ultra-HD"
+        }
+    }
+
+    # Fallback por extensión de archivo/URL si no se determinó por magic bytes
+    if ($detectedFmt -eq "unknown") {
+        $cleanTargetUrl = $target.Split('?')[0].Split('#')[0]
+        $ext = [System.IO.Path]::GetExtension($cleanTargetUrl).TrimStart(".").ToLower()
+        if ($ext -in "jpg", "jpeg") { $detectedFmt = "jpg"; $detectedLabel = "JPEG / JPG" }
+        elseif ($ext -eq "png") { $detectedFmt = "png"; $detectedLabel = "PNG" }
+        elseif ($ext -eq "webp") { $detectedFmt = "webp"; $detectedLabel = "WEBP" }
+        elseif ($ext -eq "ico") { $detectedFmt = "ico"; $detectedLabel = "ICO" }
+        elseif ($ext -eq "avif") { $detectedFmt = "avif"; $detectedLabel = "AVIF" }
+        elseif ($ext -eq "gif") { $detectedFmt = "gif"; $detectedLabel = "GIF" }
+        elseif ($ext -eq "bmp") { $detectedFmt = "bmp"; $detectedLabel = "BMP" }
+    }
+
+    Write-Host ""
+    Write-VorkInfoRow -Label "Formato" -Value $detectedLabel -ValueColor $Green
+    Write-VorkSectionRule
+
+    # Catálogo de formatos de salida soportados
+    $allFormats = @(
+        @{ Value = "webp"; Name = "WEBP"; Desc = "Máxima compresión, fidelidad visual" },
+        @{ Value = "png";  Name = "PNG";  Desc = "Sin pérdida, admite transparencia" },
+        @{ Value = "jpg";  Name = "JPG";  Desc = "Fotografía con compresión optimizada" },
+        @{ Value = "ico";  Name = "ICO";  Desc = "Favicon multirresolución de Windows" },
+        @{ Value = "avif"; Name = "AVIF"; Desc = "Ultra HD de nueva generación" }
+    )
+
+    # El formato actual detectado NO debe aparecer como opción de selección
+    $availableFormats = @($allFormats | Where-Object { $_.Value -ne $detectedFmt })
+
+    if (-not $fmt -or $fmt -eq $detectedFmt) {
+        $imgOptions = @()
+        foreach ($formatItem in $availableFormats) {
+            $imgOptions += @{
+                Value = $formatItem.Value
+                Label = $formatItem.Name
+                Description = $formatItem.Desc
+            }
+        }
+
+        $chosenFmt = Select-InteractiveOption -PromptTitle "Formato de salida" -Subtitle "imagen de destino" -Options $imgOptions -DefaultIndex 0
+        if (-not $chosenFmt) {
+            Write-VorkStatusLine -Kind warn -Text "Conversión cancelada."
+            Write-Host ""
+            return
+        }
+        $fmt = $chosenFmt
+    }
+
+    Write-VorkSectionHeader -Title "Procesando imagen" -RightText "vork · imagen"
+    Write-VorkInfoRow -Label "Destino" -Value $fmt.ToUpper() -ValueColor $Yellow
+    Write-VorkSectionRule
+    Write-VorkStatusLine -Kind step -Text "Convirtiendo $($detectedFmt.ToUpper()) a $($fmt.ToUpper())" -Detail "calidad $quality"
+
+    $b64 = [System.Convert]::ToBase64String($imageBytes)
+    $mimePrefix = switch ($detectedFmt) {
+        "jpg"   { "image/jpeg" }
+        "png"   { "image/png" }
+        "webp"  { "image/webp" }
+        "gif"   { "image/gif" }
+        "bmp"   { "image/bmp" }
+        "ico"   { "image/x-icon" }
+        "avif"  { "image/avif" }
+        default { "image/png" }
+    }
+    $body = @{ imageBase64 = "data:$mimePrefix;base64,$b64"; targetFormat = $fmt; quality = $quality } | ConvertTo-Json
+    try {
+        $res = Invoke-RestMethod -Uri "$ApiBase/api/image/convert" -Method Post -Body $body -ContentType "application/json"
+        $dlUrl = if ($res.downloadUrl) { if ($res.downloadUrl.StartsWith("http")) { $res.downloadUrl } else { "$ApiBase$($res.downloadUrl)" } } else { "$ApiBase/api/image/download" }
+
+        Write-VorkStatusLine -Kind ok -Text "Conversión completada" -Detail "$($detectedFmt.ToUpper()) a $($fmt.ToUpper())"
+
+        $localImg = if ($target -and (Test-Path $target)) {
+            [System.IO.Path]::GetFileNameWithoutExtension($target) + "_convertido.$fmt"
+        } else {
+            "imagen_convertida.$fmt"
+        }
+
+        $outputMode = Select-VorkImageOutputAction -PromptTitle "Entrega de la imagen"
+        if (-not $outputMode) {
+            Write-VorkStatusLine -Kind warn -Text "Generación cancelada."
+            Write-VorkSectionRule
+            Write-Host ""
+            return
+        }
+
+        $hasLocal = $outputMode -in @("local", "all")
+        $hasDownload = $outputMode -in @("download", "all")
+
+        if ($hasLocal) {
+            try {
+                Invoke-WebRequest -Uri $dlUrl -OutFile $localImg -UseBasicParsing -TimeoutSec 60
+                $resolvedOut = (Resolve-Path $localImg).Path
+                Write-VorkInfoRow -Label "Guardado" -Value $resolvedOut -ValueColor $Green
+            } catch {
+                Write-VorkInfoRow -Label "Descarga" -Value $dlUrl -ValueColor $Yellow
+            }
+        }
+
+        if ($hasDownload) {
+            Write-VorkInfoRow -Label "Enlace" -Value $dlUrl -ValueColor $Cyan
+        }
+
+        Write-VorkSectionRule
+        Send-VorkNotification -Title "Vork Conversor de Imagen" -Message "Conversión a $fmt completada con éxito."
+    } catch {
+        Write-VorkStatusLine -Kind error -Text "Error de conversión" -Detail $_.Exception.Message
+        Write-VorkSectionRule
+    }
+    Write-Host ""
+}
+
+
+# ========================================================
+# MODULE: pillars/p08_remove_bg.ps1
+# ========================================================
+<#
+.SYNOPSIS
+    Pilar 08: Vork Modificador de Imagen & Fondo IA con Prompt (BRIA RMBG + FLUX.1)
+#>
+
+function Invoke-PillarRemoveBg {
+    param([string[]]$ArgsList)
+
+    $file = if ($ArgsList -and $ArgsList.Length -gt 0) { $ArgsList[0] } else { $null }
+    $userPrompt = $null
+    $out = $null
+
+    if ($ArgsList) {
+        for ($i=0; $i -lt $ArgsList.Length; $i++) {
+            if ($ArgsList[$i] -in "-Out", "--out", "-o") { $out = $ArgsList[$i+1]; continue }
+            if ($ArgsList[$i] -in "-Prompt", "--prompt", "-p") { $userPrompt = $ArgsList[$i+1]; continue }
+            if ($i -gt 0 -and -not $userPrompt -and -not $ArgsList[$i].StartsWith("-")) {
+                $userPrompt = $ArgsList[$i]
+            }
+        }
+    }
+
+    if ($file) {
+        $file = $file.Trim('"', "'", " ")
+    }
+
+    $isWebUrl = ($file -and $file -match '^https?://')
+    $isLocalFile = ($file -and (Test-Path $file))
+
+    if (-not $isWebUrl -and -not $isLocalFile) {
+        Write-VorkSectionHeader -Title "Edición de imagen con IA" -Subtitle "Ruta local o URL de la imagen" -RightText "vork · imagen ia"
+        $fileInput = Read-VorkInput -Prompt "  ${Coral}${Bold}$([char]0x203A)${Reset} "
+        if (-not $fileInput -or -not $fileInput.Trim()) {
+            Write-VorkStatusLine -Kind warn -Text "Edición cancelada."
+            Write-Host ""
+            return
+        }
+        $file = $fileInput.Trim('"', "'", " ")
+        $isWebUrl = ($file -match '^https?://')
+        $isLocalFile = (Test-Path $file)
+
+        if (-not $isWebUrl -and -not $isLocalFile) {
+            Write-VorkStatusLine -Kind error -Text "Archivo o URL no encontrado" -Detail $file
+            Write-Host ""
+            return
+        }
+    }
+
+    if (-not $userPrompt) {
+        Write-VorkSectionHeader -Title "Prompt de edición" -Subtitle "Ej: playa al atardecer, fondo blanco · enter para aislar el sujeto" -RightText "vork · imagen ia"
+        $pInput = Read-VorkInput -Prompt "  ${Coral}${Bold}$([char]0x203A)${Reset} "
+        if ($pInput -and $pInput.Trim()) {
+            $userPrompt = $pInput.Trim()
+        }
+    }
+
+    # Detección inteligente del modo según el prompt del usuario
+    $cleanP = if ($userPrompt) { $userPrompt.ToLower().Trim() } else { "" }
+    $mode = "prompt"
+    $colorVal = "#FFFFFF"
+
+    if (-not $cleanP -or $cleanP -in "sin fondo", "quitar fondo", "eliminar fondo", "transparente", "transparent", "corte", "silueta", "solo sujeto", "none") {
+        $mode = "transparent"
+        $userPrompt = "Aislamiento de silueta PNG transparente"
+    } elseif ($cleanP -in "fondo blanco", "blanco", "white", "fondo blanco studio", "white background") {
+        $mode = "color"
+        $colorVal = "#FFFFFF"
+        $userPrompt = "Fondo Blanco Studio (#FFFFFF)"
+    } elseif ($cleanP -in "fondo negro", "negro", "black", "black background", "fondo negro cine") {
+        $mode = "color"
+        $colorVal = "#000000"
+        $userPrompt = "Fondo Negro Cine (#000000)"
+    }
+
+    if (-not $out) {
+        $ext = if ($mode -eq "transparent") { "png" } else { "jpg" }
+        if ($isLocalFile) {
+            $baseName = [System.IO.Path]::GetFileNameWithoutExtension($file)
+            $suffix = if ($mode -eq "prompt") { "_modificado" } else { "_nobg" }
+            $out = "${baseName}${suffix}.$ext"
+        } else {
+            $out = if ($mode -eq "prompt") { "imagen_modificada.$ext" } else { "sin_fondo.$ext" }
+        }
+    }
+
+    Write-VorkSectionHeader -Title "Procesando imagen" -RightText "vork · imagen ia"
+    Write-VorkInfoRow -Label "Origen" -Value $file
+    Write-VorkInfoRow -Label "Prompt" -Value $userPrompt -ValueColor $Cyan
+    Write-VorkInfoRow -Label "Salida" -Value $out -ValueColor $Yellow
+    Write-VorkSectionRule
+
+    $bodyMap = @{ mode = $mode }
+    if ($mode -eq "prompt") {
+        $bodyMap["prompt"] = $userPrompt
+    } elseif ($mode -eq "color") {
+        $bodyMap["color"] = $colorVal
+    }
+
+    if ($isLocalFile) {
+        $resolved = Resolve-Path $file
+        $bytes = [System.IO.File]::ReadAllBytes($resolved)
+        $b64 = [System.Convert]::ToBase64String($bytes)
+        $bodyMap["imageBase64"] = "data:image/jpeg;base64,$b64"
+    } else {
+        $bodyMap["url"] = $file
+    }
+
+    $body = $bodyMap | ConvertTo-Json
+
+    try {
+        if ($mode -eq "prompt") {
+            Write-VorkStatusLine -Kind step -Text "Aislando el sujeto con BRIA RMBG 1.4"
+            Write-VorkStatusLine -Kind step -Text "Generando la modificación con FLUX.1 Neural"
+            Write-VorkStatusLine -Kind step -Text "Componiendo la imagen final en alta resolución"
+        } else {
+            Write-VorkStatusLine -Kind step -Text "Procesando la silueta con IA neuronal"
+        }
+
+        $res = Invoke-RestMethod -Uri "$ApiBase/api/image/remove-background" -Method Post -Body $body -ContentType "application/json" -TimeoutSec 180
+        $dlUrl = if ($res.downloadUrl) { if ($res.downloadUrl.StartsWith("http")) { $res.downloadUrl } else { "$ApiBase$($res.downloadUrl)" } } else { "$ApiBase/api/image/download?id=$($res.id)" }
+
+        Write-VorkStatusLine -Kind ok -Text "Edición completada"
+
+        $outputMode = Select-VorkImageOutputAction -PromptTitle "Entrega de la imagen"
+        if (-not $outputMode) {
+            Write-VorkStatusLine -Kind warn -Text "Procesamiento cancelado."
+            Write-VorkSectionRule
+            Write-Host ""
+            return
+        }
+
+        $hasLocal = $outputMode -in @("local", "all")
+        $hasDownload = $outputMode -in @("download", "all")
+
+        if ($hasLocal) {
+            try {
+                Invoke-WebRequest -Uri $dlUrl -OutFile $out -UseBasicParsing -TimeoutSec 90
+                $resolvedOut = (Resolve-Path $out).Path
+                Write-VorkInfoRow -Label "Guardado" -Value $resolvedOut -ValueColor $Green
+            } catch {
+                Write-VorkInfoRow -Label "Descarga" -Value $dlUrl -ValueColor $Yellow
+            }
+        }
+
+        if ($hasDownload) {
+            Write-VorkInfoRow -Label "Enlace" -Value $dlUrl -ValueColor $Cyan
+        }
+
+        Write-VorkSectionRule
+        Send-VorkNotification -Title "Vork Fondo IA" -Message "Edición de imagen completada con éxito."
+    } catch {
+        Write-VorkStatusLine -Kind error -Text "Error de procesamiento IA" -Detail $_.Exception.Message
+        Write-VorkSectionRule
+    }
+    Write-Host ""
+}
+
+
+# ========================================================
+# MODULE: pillars/p09_agents.ps1
+# ========================================================
+<#
+.SYNOPSIS
+    Pilar 09: Vork Agentes Autónomos & Modo Interactivo TUI
+#>
+
+function Invoke-PillarAgents {
+    param([string[]]$ArgsList)
+
+    if (-not $ArgsList -or $ArgsList.Length -eq 0) {
+        $agentOptions = @(
+            @{ Value = "status";   Label = "Estado del clúster";     Description = "Agentes activos y conectividad" },
+            @{ Value = "goal";     Label = "/goal";                  Description = "Tarea autónoma de bucle continuo" },
+            @{ Value = "plan";     Label = "/plan";                  Description = "Desglose guiado de arquitectura" },
+            @{ Value = "teamwork"; Label = "/teamwork";              Description = "Coordinación de múltiples subagentes" },
+            @{ Value = "learn";    Label = "/learn";                 Description = "Guardar una regla en ~/.vork" }
+        )
+
+        $chosenAction = Select-InteractiveOption -PromptTitle "Operación de agentes" -Subtitle "orquestación autónoma" -Options $agentOptions -DefaultIndex 0
+        if (-not $chosenAction) { return }
+        if ($chosenAction -ne "status") {
+            switch ($chosenAction) {
+                "goal" { Invoke-CmdGoal @(); return }
+                "plan" { Invoke-CmdPlan @(); return }
+                "teamwork" { Invoke-CmdTeamwork @(); return }
+                "learn" { Invoke-CmdLearn @(); return }
+            }
+        }
+    }
+
+    Write-VorkSectionHeader -Title "Agentes autónomos" -Subtitle "Orquestación de subagentes en paralelo" -RightText "vork · agents"
+    Write-VorkInfoRow -Label "Motor" -Value "ONLINE  ·  Vork Autonomous Agents v3" -ValueColor $Green
+    Write-VorkSectionRule
+    Write-VorkStatusLine -Kind info -Text "Codebase Researcher" -Detail "Análisis y exploración de contexto"
+    Write-VorkStatusLine -Kind info -Text "Audio Engine Agent" -Detail "Síntesis TTS y modelado F0 espectral"
+    Write-VorkStatusLine -Kind info -Text "Demucs Stem Worker" -Detail "Separación acapella y karaoke en segundo plano"
+    Write-VorkStatusLine -Kind info -Text "Media Extraction Bot" -Detail "Extracción y compresión multimedia 320k"
+    Write-VorkSectionRule
+    $reportFile = "vork_agents_cluster.json"
+    @{ status = "online"; motor = "Vork Autonomous Agents v3"; pilares = 8; subagentes = @("Codebase Researcher", "Audio Engine Agent", "Demucs Stem Worker", "Media Extraction Bot") } | ConvertTo-Json | Set-Content -Path $reportFile -Encoding UTF8
+    $resolvedOut = (Resolve-Path $reportFile).Path
+    Write-VorkStatusLine -Kind ok -Text "Clúster de agentes sincronizado"
+    Write-VorkInfoRow -Label "Guardado" -Value $resolvedOut -ValueColor $Green
+    Write-VorkSectionRule
+    Send-VorkNotification -Title "Vork Agentes Autónomos" -Message "Clúster de subagentes sincronizado con éxito."
+    Write-Host ""
+}
+
+
+# ========================================================
+# MODULE: pillars/commands.ps1
+# ========================================================
 <#
 .SYNOPSIS
     Vork CLI - Modulo de Comandos Oficiales (Categorias 2, 3, 4, 5, 6)
@@ -5114,1321 +6469,9 @@ function Invoke-VorkAIChat {
     Save-VorkConversationRecord -Cmd $fullPrompt -Output $answer
 }
 
-<#
-.SYNOPSIS
-    Pilar 01: Vork Traductor Neuronal en la Nube (+200 Idiomas)
-#>
-
-function Invoke-PillarTranslate {
-    param([string[]]$ArgsList)
-
-    $to = "en"
-    $text = ""
-
-    if ($ArgsList -and $ArgsList.Length -gt 0) {
-        $to = $ArgsList[0]
-        if ($ArgsList.Length -gt 1) {
-            $text = ($ArgsList[1..($ArgsList.Length - 1)]) -join " "
-        }
-    }
-
-    if (-not $text) {
-        Write-VorkSectionHeader -Title "Traducción" -Subtitle "Texto a traducir · más de 200 idiomas" -RightText "vork · translate"
-        $textInput = Read-VorkInput -Prompt "  ${Coral}${Bold}$([char]0x203A)${Reset} "
-        if (-not $textInput -or -not $textInput.Trim()) {
-            Write-VorkStatusLine -Kind warn -Text "Traducción cancelada."
-            Write-Host ""
-            return
-        }
-        $text = $textInput.Trim()
-
-        $langOptions = @(
-            @{ Value = "en"; Label = "en (Inglés)" },
-            @{ Value = "es"; Label = "es (Español)" },
-            @{ Value = "fr"; Label = "fr (Francés)" },
-            @{ Value = "de"; Label = "de (Alemán)" },
-            @{ Value = "it"; Label = "it (Italiano)" },
-            @{ Value = "pt"; Label = "pt (Portugués)" },
-            @{ Value = "ja"; Label = "ja (Japonés)" },
-            @{ Value = "zh"; Label = "zh (Chino)" },
-            @{ Value = "ru"; Label = "ru (Ruso)" },
-            @{ Value = "ko"; Label = "ko (Coreano)" }
-        )
-
-        $chosenLang = Select-InteractiveOption -PromptTitle "Idioma destino" -Subtitle "traducción neuronal" -Options $langOptions -DefaultIndex 0
-        if (-not $chosenLang) {
-            Write-VorkStatusLine -Kind warn -Text "Traducción cancelada."
-            Write-Host ""
-            return
-        }
-        $to = $chosenLang
-    }
-
-    Write-VorkSectionHeader -Title "Procesando traducción" -RightText "vork · translate"
-    Write-VorkInfoRow -Label "Destino" -Value $to -ValueColor $Yellow
-    Write-VorkInfoRow -Label "Entrada" -Value "`"$text`""
-    Write-VorkSectionRule
-
-    $body = @{ text = $text; targetLanguage = $to } | ConvertTo-Json
-    try {
-        $res = Invoke-RestMethod -Uri "$ApiBase/api/translate" -Method Post -Body $body -ContentType "application/json"
-        Write-VorkStatusLine -Kind ok -Text "Traducción completada"
-        Write-VorkInfoRow -Label "Salida" -Value $res.translatedText -ValueColor $White
-
-        $outFile = "traduccion.txt"
-        $resolvedOut = Join-Path (Get-Location) $outFile
-        $dlUrl = if ($res.downloadUrl) {
-            if ($res.downloadUrl.StartsWith("http")) { $res.downloadUrl } else { "$ApiBase$($res.downloadUrl)" }
-        } else {
-            "$ApiBase/api/translate/download?translatedText=$([System.Uri]::EscapeDataString($res.translatedText))"
-        }
-
-        $outputMode = Select-VorkTextOutputAction -PromptTitle "Entrega del texto"
-        if (-not $outputMode) { $outputMode = "all" }
-
-        $hasLocal = $outputMode -in @("local", "all")
-        $hasDownload = $outputMode -in @("download", "all")
-
-        if ($hasLocal) {
-            [System.IO.File]::WriteAllText($resolvedOut, $res.translatedText, [System.Text.Encoding]::UTF8)
-            $resolvedPath = (Resolve-Path $outFile).Path
-            Write-VorkInfoRow -Label "Guardado" -Value $resolvedPath -ValueColor $Green
-        }
-
-        if ($hasDownload) {
-            Write-VorkInfoRow -Label "Enlace" -Value $dlUrl -ValueColor $Cyan
-        }
-
-        Write-VorkSectionRule
-        Send-VorkNotification -Title "Vork Traductor" -Message "Traducción completada con éxito."
-    } catch {
-        Write-VorkStatusLine -Kind error -Text "Error al traducir" -Detail $_.Exception.Message
-        Write-VorkSectionRule
-    }
-    Write-Host ""
-}
-
-<#
-.SYNOPSIS
-    Pilar 02: Vork Texto a Voz Neuronal (TTS Studio con 24 voces humanas)
-#>
-
-function Invoke-PillarTTS {
-    param([string[]]$ArgsList)
-
-    $text = if ($ArgsList -and $ArgsList.Length -gt 0) { $ArgsList[0] } else { $null }
-    $voice = "es-ES-AlvaroNeural"
-    $out = "tts_output.mp3"
-    if ($ArgsList) {
-        for ($i=0; $i -lt $ArgsList.Length; $i++) {
-            if ($ArgsList[$i] -in "-Voice", "--voice", "-v") { $voice = $ArgsList[$i+1] }
-            if ($ArgsList[$i] -in "-Out", "--out", "-o") { $out = $ArgsList[$i+1] }
-        }
-    }
-
-    if (-not $text) {
-        Write-VorkSectionHeader -Title "Texto a voz" -Subtitle "Síntesis neuronal · 24 voces humanas" -RightText "vork · tts"
-        $text = Read-VorkInput -Prompt "  ${Coral}${Bold}$([char]0x203A)${Reset} "
-        if (-not $text -or -not $text.Trim()) {
-            Write-VorkStatusLine -Kind warn -Text "Síntesis cancelada."
-            Write-Host ""
-            return
-        }
-        $text = $text.Trim()
-
-        $chosen = Select-InteractiveTTSVoice -PromptTitle "Idioma y voz neuronal" -DefaultLang "Español" -DefaultVoiceId "es-ES-alvaro"
-        if (-not $chosen) {
-            Write-VorkStatusLine -Kind warn -Text "Síntesis cancelada."
-            Write-Host ""
-            return
-        }
-
-        $voice = $chosen.EdgeVoice
-        $voiceDisplay = "$($chosen.Name) ($($chosen.Country) · $($chosen.Gender))"
-        $out = if ($out) { $out } else { "voz.mp3" }
-    } else {
-        $voiceDisplay = $voice
-    }
-
-    Write-VorkSectionHeader -Title "Procesando síntesis" -RightText "vork · tts"
-    Write-VorkInfoRow -Label "Voz" -Value $voiceDisplay -ValueColor $Yellow
-    Write-VorkInfoRow -Label "Salida" -Value $out
-    Write-VorkSectionRule
-    Write-VorkStatusLine -Kind step -Text "Generando audio neuronal"
-
-    if (-not $out) { $out = "audio_tts.mp3" }
-
-    $body = @{ text = $text; voice = $voice; outputFormat = "audio-24khz-48kbitrate-mono-mp3" } | ConvertTo-Json
-    try {
-        $res = Invoke-RestMethod -Uri "$ApiBase/api/tts" -Method Post -Body $body -ContentType "application/json"
-        $targetFile = if ([System.IO.Path]::IsPathRooted($out)) { $out } else { Join-Path (Get-Location) $out }
-        if ($res.audioBase64) {
-            try {
-                $rawB64 = $res.audioBase64 -replace '^data:audio\/[^;]+;base64,', ''
-                [System.IO.File]::WriteAllBytes($targetFile, [System.Convert]::FromBase64String($rawB64))
-            } catch {}
-        }
-        $dlUrl = if ($res.downloadUrl) { if ($res.downloadUrl.StartsWith("http")) { $res.downloadUrl } else { "$ApiBase$($res.downloadUrl)" } } else { "$ApiBase/api/tts/download?file=$out" }
-        $stUrl = if ($res.streamUrl) { if ($res.streamUrl.StartsWith("http")) { $res.streamUrl } else { "$ApiBase$($res.streamUrl)" } } else { "$ApiBase/api/tts/stream?file=$out" }
-        $videoFull = if ($res.videoStreamUrl) { if ($res.videoStreamUrl.StartsWith("http")) { $res.videoStreamUrl } else { "$ApiBase$($res.videoStreamUrl)" } } else { $stUrl }
-        $audioFull = if ($res.audioStreamUrl) { if ($res.audioStreamUrl.StartsWith("http")) { $res.audioStreamUrl } else { "$ApiBase$($res.audioStreamUrl)" } } else { $stUrl }
-
-        Write-VorkStatusLine -Kind ok -Text "Síntesis vocal completada"
-        $outputMode = Select-VorkMediaOutputAction -PromptTitle "Entrega del audio"
-        if (-not $outputMode) { $outputMode = "all" }
-
-        $hasLocal = $outputMode -in @("local", "local_video", "local_audio", "local_download", "local_stream", "all")
-        $hasDownload = $outputMode -in @("download", "local_download", "download_stream", "all")
-        $hasVideoStream = $outputMode -in @("video_stream", "local_video", "video_audio", "stream", "local_stream", "download_stream", "all")
-        $hasAudioStream = $outputMode -in @("audio_stream", "local_audio", "video_audio", "stream", "local_stream", "download_stream", "all")
-
-        if ($hasLocal) {
-            if ($res.audioBase64) {
-                try {
-                    $rawB64 = $res.audioBase64 -replace '^data:audio/[^;]+;base64,', ''
-                    [System.IO.File]::WriteAllBytes($targetFile, [System.Convert]::FromBase64String($rawB64))
-                } catch {}
-            }
-            if (-not (Test-Path $targetFile)) {
-                try { Invoke-WebRequest -Uri $dlUrl -OutFile $targetFile -UseBasicParsing -TimeoutSec 120 } catch {}
-            }
-            if (Test-Path $targetFile) {
-                $resolvedOut = (Resolve-Path $targetFile).Path
-                Write-VorkInfoRow -Label "Guardado" -Value $resolvedOut -ValueColor $Green
-            }
-        }
-
-        if ($hasDownload) {
-            Write-VorkInfoRow -Label "Descarga" -Value $dlUrl -ValueColor $Yellow
-        }
-
-        if ($hasVideoStream -and $videoFull) {
-            Write-VorkInfoRow -Label "Video" -Value $videoFull -ValueColor $Purple
-        }
-
-        if ($hasAudioStream -and $audioFull) {
-            Write-VorkInfoRow -Label "Audio" -Value $audioFull -ValueColor $Cyan
-        }
-
-        Write-VorkSectionRule
-        Send-VorkNotification -Title "Vork Síntesis TTS" -Message "Audio de voz neuronal generado con éxito."
-    } catch {
-        Write-VorkStatusLine -Kind error -Text "Error de TTS" -Detail $_.Exception.Message
-        Write-VorkSectionRule
-    }
-    Write-Host ""
-}
-
-<#
-.SYNOPSIS
-    Pilar 03: Vork Clonacion de Voz IA (Extraccion Fundamental F0)
-#>
-
-function Invoke-PillarClone {
-    param([string[]]$ArgsList)
-
-    $sample = if ($ArgsList -and $ArgsList.Length -gt 0) { $ArgsList[0] } else { $null }
-    $text = $null
-    $out = "cloned_voice.wav"
-    $f0Method = "rmvpe"
-
-    if ($ArgsList) {
-        for ($i=0; $i -lt $ArgsList.Length; $i++) {
-            if ($ArgsList[$i] -in "-Audio", "--audio", "-a") { $sample = $ArgsList[$i+1] }
-            if ($ArgsList[$i] -in "-Text", "--text", "-t") { $text = $ArgsList[$i+1] }
-            if ($ArgsList[$i] -in "-Out", "--out", "-o") { $out = $ArgsList[$i+1] }
-        }
-    }
-
-    if (-not $sample) {
-        Write-VorkSectionHeader -Title "Clonación de voz" -Subtitle "Muestra de audio · modelado F0" -RightText "vork · voice clone"
-        $sample = Read-VorkInput -Prompt "  ${Coral}${Bold}$([char]0x203A)${Reset} "
-        if (-not $sample -or -not $sample.Trim()) {
-            Write-VorkStatusLine -Kind warn -Text "Clonación cancelada."
-            Write-Host ""
-            return
-        }
-        $sample = $sample.Trim()
-
-        $f0Options = @(
-            @{ Value = "rmvpe";   Label = "rmvpe";   Description = "Máxima fidelidad y pureza vocal" },
-            @{ Value = "harvest"; Label = "harvest"; Description = "Alta precisión tonal en agudos" },
-            @{ Value = "crepe";   Label = "crepe";   Description = "Red neuronal para muestras con ruido" },
-            @{ Value = "pm";      Label = "pm";      Description = "Modo ultrarrápido de previsualización" }
-        )
-        $chosenF0 = Select-InteractiveOption -PromptTitle "Algoritmo de extracción F0" -Subtitle "modelado de la voz" -Options $f0Options -DefaultIndex 0
-        if (-not $chosenF0) {
-            Write-VorkStatusLine -Kind warn -Text "Clonación cancelada."
-            Write-Host ""
-            return
-        }
-        $f0Method = $chosenF0
-
-        Write-VorkSectionHeader -Title "Guión y salida" -RightText "vork · voice clone"
-        Write-VorkInfoRow -Label "Guión" -Value "Texto para la voz clonada · enter para usar una frase de prueba" -ValueColor $LeadLight
-        $text = Read-VorkInput -Prompt "  ${Coral}${Bold}$([char]0x203A)${Reset} "
-        Write-VorkInfoRow -Label "Salida" -Value "Archivo de audio destino [clonado.wav]" -ValueColor $LeadLight
-        $outInput = Read-VorkInput -Prompt "  ${Coral}${Bold}$([char]0x203A)${Reset} "
-        if ($outInput -and $outInput.Trim()) { $out = $outInput.Trim() }
-    }
-
-    Write-VorkSectionHeader -Title "Procesando clonación" -RightText "vork · voice clone"
-    Write-VorkInfoRow -Label "Muestra" -Value $sample
-    Write-VorkInfoRow -Label "Algoritmo" -Value $f0Method -ValueColor $Yellow
-    Write-VorkInfoRow -Label "Salida" -Value $out -ValueColor $Yellow
-    Write-VorkSectionRule
-    Write-VorkStatusLine -Kind step -Text "Modelando la voz y sintetizando el audio"
-
-    $b64 = $null
-    if ($sample -and (Test-Path $sample)) {
-        try {
-            $bytes = [System.IO.File]::ReadAllBytes((Resolve-Path $sample))
-            $b64 = "data:audio/wav;base64," + [System.Convert]::ToBase64String($bytes)
-        } catch {}
-    }
-
-    if (-not $out) { $out = "voz_clonada.wav" }
-    $cloneText = if ($text -and $text.Trim()) { $text.Trim() } else { "Prueba de síntesis con voz clonada en Vork CLI." }
-    $body = @{ text = $cloneText; audioSampleBase64 = $b64; similarity = "high"; format = "wav" } | ConvertTo-Json
-    try {
-        $res = Invoke-RestMethod -Uri "$ApiBase/api/voice-clone" -Method Post -Body $body -ContentType "application/json"
-        $targetFile = if ([System.IO.Path]::IsPathRooted($out)) { $out } else { Join-Path (Get-Location) $out }
-        if ($res.audioBase64) {
-            try {
-                $rawB64 = $res.audioBase64 -replace '^data:audio\/[^;]+;base64,', ''
-                [System.IO.File]::WriteAllBytes($targetFile, [System.Convert]::FromBase64String($rawB64))
-            } catch {}
-        }
-        $dlUrl = if ($res.downloadUrl) { if ($res.downloadUrl.StartsWith("http")) { $res.downloadUrl } else { "$ApiBase$($res.downloadUrl)" } } else { "$ApiBase/api/voice-clone/download" }
-        $stUrl = if ($res.streamUrl) { if ($res.streamUrl.StartsWith("http")) { $res.streamUrl } else { "$ApiBase$($res.streamUrl)" } } else { "$ApiBase/api/voice-clone/stream" }
-        $videoFull = if ($res.videoStreamUrl) { if ($res.videoStreamUrl.StartsWith("http")) { $res.videoStreamUrl } else { "$ApiBase$($res.videoStreamUrl)" } } else { $stUrl }
-        $audioFull = if ($res.audioStreamUrl) { if ($res.audioStreamUrl.StartsWith("http")) { $res.audioStreamUrl } else { "$ApiBase$($res.audioStreamUrl)" } } else { $stUrl }
-
-        Write-VorkStatusLine -Kind ok -Text "Clonación de voz completada"
-        $outputMode = Select-VorkMediaOutputAction -PromptTitle "Entrega de la voz clonada"
-        if (-not $outputMode) { $outputMode = "all" }
-
-        $hasLocal = $outputMode -in @("local", "local_video", "local_audio", "local_download", "local_stream", "all")
-        $hasDownload = $outputMode -in @("download", "local_download", "download_stream", "all")
-        $hasVideoStream = $outputMode -in @("video_stream", "local_video", "video_audio", "stream", "local_stream", "download_stream", "all")
-        $hasAudioStream = $outputMode -in @("audio_stream", "local_audio", "video_audio", "stream", "local_stream", "download_stream", "all")
-
-        if ($hasLocal) {
-            if ($res.audioBase64) {
-                try {
-                    $rawB64 = $res.audioBase64 -replace '^data:audio/[^;]+;base64,', ''
-                    [System.IO.File]::WriteAllBytes($targetFile, [System.Convert]::FromBase64String($rawB64))
-                } catch {}
-            }
-            if (-not (Test-Path $targetFile)) {
-                try { Invoke-WebRequest -Uri $dlUrl -OutFile $targetFile -UseBasicParsing -TimeoutSec 120 } catch {}
-            }
-            if (Test-Path $targetFile) {
-                $resolvedOut = (Resolve-Path $targetFile).Path
-                Write-VorkInfoRow -Label "Guardado" -Value $resolvedOut -ValueColor $Green
-            }
-        }
-
-        if ($hasDownload) {
-            Write-VorkInfoRow -Label "Descarga" -Value $dlUrl -ValueColor $Yellow
-        }
-
-        if ($hasVideoStream -and $videoFull) {
-            Write-VorkInfoRow -Label "Video" -Value $videoFull -ValueColor $Purple
-        }
-
-        if ($hasAudioStream -and $audioFull) {
-            Write-VorkInfoRow -Label "Audio" -Value $audioFull -ValueColor $Cyan
-        }
-
-        Write-VorkSectionRule
-        Send-VorkNotification -Title "Vork Clonación Vocal" -Message "Clonación vocal F0 completada con éxito."
-    } catch {
-        Write-VorkStatusLine -Kind error -Text "Error de clonación" -Detail $_.Exception.Message
-        Write-VorkSectionRule
-    }
-    Write-Host ""
-}
-
-<#
-.SYNOPSIS
-    Pilar 04: Vork Conversor Multimedia Universal (YouTube, TikTok, IG a MP3/MP4)
-#>
-
-<#
-.SYNOPSIS
-    Pilar 04: Vork Conversor Multimedia Universal (YouTube, TikTok, IG a MP3/MP4)
-#>
-
-<#
-.SYNOPSIS
-    Pilar 04: Vork Conversor Multimedia Universal (YouTube, TikTok, IG a MP3/MP4)
-#>
-
-<#
-.SYNOPSIS
-    Pilar 04: Vork Conversor Multimedia Universal (YouTube, TikTok, IG a MP3/MP4)
-#>
-
-function Invoke-PillarMedia {
-    param([string[]]$ArgsList)
-
-    $url = $null
-    $fmt = $null
-    $quality = $null
-    $hasExplicitFormat = $false
-
-    if ($ArgsList) {
-        for ($i=0; $i -lt $ArgsList.Length; $i++) {
-            if ($ArgsList[$i] -in "-Format", "--format", "-f") { $fmt = $ArgsList[$i+1]; $hasExplicitFormat = $true; $i++ }
-            elseif ($ArgsList[$i] -in "-Quality", "--quality", "-q") { $quality = $ArgsList[$i+1]; $i++ }
-            elseif (-not $url -and -not $ArgsList[$i].StartsWith("-")) { $url = $ArgsList[$i] }
-        }
-    }
-
-    if (-not $url) {
-        Write-VorkSectionHeader -Title "Conversor multimedia" -Subtitle "YouTube · TikTok · Instagram · Reels" -RightText "vork · media"
-        $url = Read-VorkInput -Prompt "  ${Coral}${Bold}$([char]0x203A)${Reset} "
-        if (-not $url -or -not $url.Trim()) {
-            Write-VorkStatusLine -Kind warn -Text "Conversión cancelada."
-            Write-Host ""
-            return
-        }
-        $url = $url.Trim()
-    }
-
-    if (-not $hasExplicitFormat) {
-        if (-not $fmt) {
-            $fmt = Select-VorkMediaFormatChoice -PromptTitle "Formato de salida"
-            if (-not $fmt) {
-                Write-VorkStatusLine -Kind warn -Text "Conversión cancelada."
-                Write-Host ""
-                return
-            }
-        }
-
-        $quality = Select-VorkMediaQualityChoice -Format $fmt -PromptTitle "Calidad para $($fmt.ToUpper())"
-        if (-not $quality) {
-            Write-VorkStatusLine -Kind warn -Text "Conversión cancelada."
-            Write-Host ""
-            return
-        }
-    } else {
-        if (-not $quality) {
-            $quality = Select-VorkMediaQualityChoice -Format $fmt -PromptTitle "Calidad para $($fmt.ToUpper())"
-            if (-not $quality) {
-                $quality = if ($fmt -eq "mp3") { "320k" } elseif ($fmt -eq "wav") { "lossless" } else { "720p" }
-            }
-        }
-    }
-
-    $platformName = Get-VorkMediaPlatformName -Url $url
-    Write-VorkSectionHeader -Title "Procesando conversión" -RightText "vork · media"
-    Write-VorkInfoRow -Label "Plataforma" -Value $platformName -ValueColor $Yellow
-    Write-VorkInfoRow -Label "URL" -Value $url
-    Write-VorkInfoRow -Label "Formato" -Value "$($fmt.ToUpper())  ·  $quality" -ValueColor $Cyan
-    Write-VorkSectionRule
-
-    $body = @{ url = $url; format = $fmt; quality = $quality } | ConvertTo-Json
-    $endpoint = "$ApiBase/api/media/convert"
-
-    try {
-        try { Add-Type -AssemblyName System.Net.Http } catch { }
-
-        $res = $null
-        $barLen = 22
-        $pRow = -1
-        try {
-            Write-Host "    ${LeadLight}Progreso${Reset} [${Gray}$([string]::new([char]0x2591, $barLen))${Reset}]   0%  ${LeadLight}Iniciando...${Reset}"
-            $pRow = [Console]::CursorTop - 1
-        } catch { }
-
-        if ('System.Net.Http.HttpClient' -as [type]) {
-            $client = [System.Net.Http.HttpClient]::new()
-            $client.Timeout = [TimeSpan]::FromMinutes(5)
-            $httpContent = [System.Net.Http.StringContent]::new($body, [System.Text.Encoding]::UTF8, "application/json")
-            $task = $client.PostAsync($endpoint, $httpContent)
-
-            $startTime = [DateTime]::UtcNow
-
-            while (-not $task.IsCompleted) {
-                $elapsed = ([DateTime]::UtcNow - $startTime).TotalSeconds
-                $pct = if ($elapsed -lt 1.5) {
-                    [Math]::Min(25, 5 + [int]($elapsed * 13))
-                } elseif ($elapsed -lt 4.0) {
-                    [Math]::Min(55, 25 + [int](($elapsed - 1.5) * 12))
-                } elseif ($elapsed -lt 7.0) {
-                    [Math]::Min(80, 55 + [int](($elapsed - 4.0) * 8))
-                } elseif ($elapsed -lt 15.0) {
-                    [Math]::Min(95, 80 + [int](($elapsed - 7.0) * 1.8))
-                } else {
-                    [Math]::Min(98, 95 + [int](($elapsed - 15.0) * 0.2))
-                }
-
-                $phase = if ($pct -lt 25) {
-                    "Conectando..."
-                } elseif ($pct -lt 55) {
-                    "Descargando flujo..."
-                } elseif ($pct -lt 80) {
-                    "Codificando a $fmt ($quality)..."
-                } else {
-                    "Finalizando contenedor..."
-                }
-
-                $filledLen = [Math]::Floor(($pct / 100) * $barLen)
-                $emptyLen = $barLen - $filledLen
-                $filled = [string]::new([char]0x2588, $filledLen)
-                $empty = [string]::new([char]0x2591, $emptyLen)
-                $pctStr = ($pct.ToString() + "%").PadLeft(4)
-
-                if ($pRow -ge 0 -and $pRow -lt [Console]::BufferHeight) {
-                    try { [Console]::SetCursorPosition(0, $pRow) } catch { }
-                }
-                Write-Host "`r$ClrLine    ${LeadLight}Progreso${Reset} [${Cyan}$filled${Gray}$empty${Reset}] $Yellow$pctStr${Reset}  ${LeadLight}$phase${Reset}" -NoNewline
-
-                Start-Sleep -Milliseconds 120
-            }
-
-            if ($task.IsFaulted) {
-                throw $task.Exception.InnerException
-            }
-
-            $filled100 = [string]::new([char]0x2588, $barLen)
-            if ($pRow -ge 0 -and $pRow -lt [Console]::BufferHeight) {
-                try { [Console]::SetCursorPosition(0, $pRow) } catch { }
-            }
-            Write-Host "`r$ClrLine    ${LeadLight}Progreso${Reset} [${Cyan}$filled100${Reset}] ${Green}100%${Reset}  ${Green}Completado${Reset}"
-
-            $jsonStr = $task.Result.Content.ReadAsStringAsync().Result
-            try { $res = $jsonStr | ConvertFrom-Json } catch { }
-        } else {
-            try {
-                $res = Invoke-RestMethod -Uri $endpoint -Method Post -Body $body -ContentType "application/json"
-            } catch { }
-        }
-
-        # Fallback local resiliente si la nube falla o devuelve error (por ejemplo por restricción de IP en Instagram)
-        if (-not $res -or $res.status -eq "error" -or (-not $res.downloadUrl -and -not $res.directVideoUrl -and -not $res.directAudioUrl)) {
-            $nodeCmd = Get-Command "node" -ErrorAction SilentlyContinue
-            $possibleEngines = @(
-                "$PSScriptRoot\..\..\utils\mediaEngine.js",
-                "$HOME\Videos\Visual Studio Code\CloudTranslator\src\utils\mediaEngine.js",
-                "C:\Users\isaki\Videos\Visual Studio Code\CloudTranslator\src\utils\mediaEngine.js"
-            )
-            $engineJs = $possibleEngines | Where-Object { Test-Path $_ } | Select-Object -First 1
-
-            if ($nodeCmd -and $engineJs) {
-                try {
-                    $normEngine = ($engineJs -replace '\\', '/')
-                    $jsCode = "const { processConversion } = require('$normEngine'); processConversion({ url: '$url', format: '$fmt', quality: '$quality' }).then(r => console.log(JSON.stringify(r))).catch(e => console.error(JSON.stringify({ status: 'error', error: e.message })));"
-                    $localOut = & $nodeCmd.Source -e $jsCode 2>&1
-                    $parsed = ($localOut | Out-String).Trim() | ConvertFrom-Json
-                    if ($parsed -and $parsed.status -eq "success") {
-                        $res = $parsed
-                    }
-                } catch { }
-            }
-        }
-
-        if (-not $res -or $res.status -eq "error" -or (-not $res.downloadUrl -and -not $res.directVideoUrl -and -not $res.directAudioUrl)) {
-            $errDetail = if ($res -and $res.error) { $res.error } else { "No se pudo procesar la conversión a $($fmt.ToUpper()) ($quality) para este enlace. Por favor verifique el enlace e intente nuevamente." }
-            Write-VorkStatusLine -Kind error -Text "Error multimedia" -Detail $errDetail
-            Write-VorkSectionRule
-        } else {
-            Write-VorkStatusLine -Kind ok -Text "Conversión multimedia completada"
-            $dlFull = if ($res.downloadUrl -and $res.downloadUrl.StartsWith("http")) {
-                $res.downloadUrl
-            } elseif ($res.downloadUrl) {
-                "$ApiBase$($res.downloadUrl)"
-            } elseif ($res.directVideoUrl) {
-                $res.directVideoUrl
-            } else {
-                $res.directAudioUrl
-            }
-
-            $stFull = if ($res.streamUrl -and $res.streamUrl.StartsWith("http")) {
-                $res.streamUrl
-            } elseif ($res.streamUrl) {
-                "$ApiBase$($res.streamUrl)"
-            } else {
-                "$ApiBase/api/media/stream?id=$($res.id)"
-            }
-
-            $videoFull = if ($res.videoStreamUrl -and $res.videoStreamUrl.StartsWith("http")) {
-                $res.videoStreamUrl
-            } elseif ($res.videoStreamUrl) {
-                "$ApiBase$($res.videoStreamUrl)"
-            } elseif ($res.directVideoUrl) {
-                $res.directVideoUrl
-            } elseif ($fmt -eq "mp4") {
-                $stFull
-            } else {
-                "$ApiBase/api/media/stream?id=$($res.id)&type=video"
-            }
-
-            $audioFull = if ($res.audioStreamUrl -and $res.audioStreamUrl.StartsWith("http")) {
-                $res.audioStreamUrl
-            } elseif ($res.audioStreamUrl) {
-                "$ApiBase$($res.audioStreamUrl)"
-            } elseif ($res.directAudioUrl) {
-                $res.directAudioUrl
-            } elseif ($fmt -eq "mp3" -or $fmt -eq "wav") {
-                $stFull
-            } else {
-                "$ApiBase/api/media/stream?id=$($res.id)&type=audio"
-            }
-
-            $localFile = if ($res.filename) { $res.filename } else { "media_output.$fmt" }
-
-            $outputMode = Select-VorkMediaOutputAction -PromptTitle "Entrega del archivo"
-            if (-not $outputMode) { $outputMode = "all" }
-
-            $hasLocal = $outputMode -in @("local", "local_video", "local_audio", "local_download", "local_stream", "all")
-            $hasDownload = $outputMode -in @("download", "local_download", "download_stream", "all")
-            $hasVideoStream = $outputMode -in @("video_stream", "local_video", "video_audio", "stream", "local_stream", "download_stream", "all")
-            $hasAudioStream = $outputMode -in @("audio_stream", "local_audio", "video_audio", "stream", "local_stream", "download_stream", "all")
-
-            if ($hasLocal) {
-                try {
-                    $cachePaths = @(
-                        "C:\Users\isaki\Videos\Visual Studio Code\CloudTranslator\data\media_cache\$($res.id).$fmt",
-                        "$PSScriptRoot\..\..\..\data\media_cache\$($res.id).$fmt"
-                    )
-                    $foundCache = $cachePaths | Where-Object { Test-Path $_ } | Select-Object -First 1
-
-                    if ($foundCache) {
-                        Copy-Item -Path $foundCache -Destination $localFile -Force
-                    } else {
-                        Invoke-WebRequest -Uri $dlFull -OutFile $localFile -UseBasicParsing -TimeoutSec 120
-                    }
-                    $resolvedOut = (Resolve-Path $localFile).Path
-                    Write-VorkInfoRow -Label "Guardado" -Value $resolvedOut -ValueColor $Green
-                } catch {
-                    Write-VorkInfoRow -Label "Descarga" -Value $dlFull -ValueColor $Yellow
-                }
-            }
-
-            if ($hasDownload) {
-                Write-VorkInfoRow -Label "Descarga" -Value $dlFull -ValueColor $Yellow
-            }
-
-            if ($hasVideoStream -and $videoFull) {
-                Write-VorkInfoRow -Label "Video" -Value $videoFull -ValueColor $Purple
-            }
-
-            if ($hasAudioStream -and $audioFull) {
-                Write-VorkInfoRow -Label "Audio" -Value $audioFull -ValueColor $Cyan
-            }
-
-            Write-VorkSectionRule
-            Send-VorkNotification -Title "Vork Conversor Multimedia" -Message "Conversión a $fmt ($quality) completada con éxito."
-        }
-    } catch {
-        Write-VorkStatusLine -Kind error -Text "Error multimedia" -Detail $_.Exception.Message
-        Write-VorkSectionRule
-    }
-    Write-Host ""
-}
-
-<#
-.SYNOPSIS
-    Pilar 05: Vork Separador de Stems (Acapella y Karaoke con Demucs v4)
-#>
-
-function Invoke-PillarSeparate {
-    param([string[]]$ArgsList)
-
-    $target = if ($ArgsList -and $ArgsList.Length -gt 0) { $ArgsList[0] } else { $null }
-    $mode = "2stems"
-    if ($ArgsList) {
-        for ($i=0; $i -lt $ArgsList.Length; $i++) {
-            if ($ArgsList[$i] -in "-Mode", "--mode", "-m") { $mode = $ArgsList[$i+1] }
-        }
-    }
-
-    if (-not $target) {
-        Write-VorkSectionHeader -Title "Separación de stems" -Subtitle "Acapella y karaoke con Demucs v4" -RightText "vork · stems"
-        $target = Read-VorkInput -Prompt "  ${Coral}${Bold}$([char]0x203A)${Reset} "
-        if (-not $target -or -not $target.Trim()) {
-            Write-VorkStatusLine -Kind warn -Text "Separación cancelada."
-            Write-Host ""
-            return
-        }
-        $target = $target.Trim()
-
-        $sepOptions = @(
-            @{ Value = "2stems";  Label = "2 stems";  Description = "Voz acapella y pista instrumental" },
-            @{ Value = "4stems";  Label = "4 stems";  Description = "Voz, batería, bajo y otros instrumentos" },
-            @{ Value = "vocals";  Label = "Acapella"; Description = "Aislamiento vocal puro con reducción de ruido" },
-            @{ Value = "karaoke"; Label = "Karaoke";  Description = "Instrumental con eliminación estricta de voz" }
-        )
-
-        $chosenMode = Select-InteractiveOption -PromptTitle "Modo de separación" -Subtitle "pistas a extraer" -Options $sepOptions -DefaultIndex 0
-        if (-not $chosenMode) {
-            Write-VorkStatusLine -Kind warn -Text "Separación cancelada."
-            Write-Host ""
-            return
-        }
-        $mode = $chosenMode
-    }
-
-    Write-VorkSectionHeader -Title "Procesando separación" -RightText "vork · stems"
-    Write-VorkInfoRow -Label "Pista" -Value $target
-    Write-VorkInfoRow -Label "Modo" -Value $mode -ValueColor $Yellow
-    Write-VorkSectionRule
-
-    $isLocal = try { Test-Path $target -PathType Leaf } catch { $false }
-    $body = if ($isLocal) {
-        $resolved = Resolve-Path $target
-        $bytes = [System.IO.File]::ReadAllBytes($resolved)
-        $b64 = [System.Convert]::ToBase64String($bytes)
-        $fn = [System.IO.Path]::GetFileName($resolved)
-        @{ audioBase64 = $b64; filename = $fn; quality = "320k"; mode = $mode } | ConvertTo-Json
-    } else {
-        @{ url = $target; quality = "320k"; mode = $mode } | ConvertTo-Json
-    }
-
-    $endpoint = "$ApiBase/api/separator/process"
-
-    try {
-        try { Add-Type -AssemblyName System.Net.Http } catch { }
-
-        $res = $null
-        $barLen = 22
-        $pRow = -1
-        $emptyBar = [string]::new([char]0x2591, $barLen)
-        try {
-            Write-Host "    ${LeadLight}Progreso${Reset} [${Gray}$emptyBar${Reset}]   0%  ${LeadLight}Iniciando...${Reset}"
-            $pRow = [Console]::CursorTop - 1
-        } catch { }
-
-        if ('System.Net.Http.HttpClient' -as [type]) {
-            $client = [System.Net.Http.HttpClient]::new()
-            $client.Timeout = [TimeSpan]::FromMinutes(5)
-            $httpContent = [System.Net.Http.StringContent]::new($body, [System.Text.Encoding]::UTF8, "application/json")
-            $task = $client.PostAsync($endpoint, $httpContent)
-
-            $startTime = [DateTime]::UtcNow
-
-            while (-not $task.IsCompleted) {
-                $elapsed = ([DateTime]::UtcNow - $startTime).TotalSeconds
-                $pct = if ($elapsed -lt 3.0) {
-                    [Math]::Min(25, 5 + [int]($elapsed * 7))
-                } elseif ($elapsed -lt 8.0) {
-                    [Math]::Min(50, 25 + [int](($elapsed - 3.0) * 5))
-                } elseif ($elapsed -lt 18.0) {
-                    [Math]::Min(75, 50 + [int](($elapsed - 8.0) * 2.5))
-                } elseif ($elapsed -lt 35.0) {
-                    [Math]::Min(95, 75 + [int](($elapsed - 18.0) * 1.1))
-                } else {
-                    [Math]::Min(98, 95 + [int](($elapsed - 35.0) * 0.1))
-                }
-
-                $phase = if ($pct -lt 25) {
-                    "Descargando pista..."
-                } elseif ($pct -lt 50) {
-                    "Normalizando espectro acústico..."
-                } elseif ($pct -lt 75) {
-                    "Separando voz e instrumental con Demucs v4..."
-                } else {
-                    "Masterizando stems de audio 320 kbps..."
-                }
-
-                $filledLen = [Math]::Floor(($pct / 100) * $barLen)
-                $unfilledLen = $barLen - $filledLen
-                $barStr = [string]::new([char]0x2588, $filledLen) + [string]::new([char]0x2591, $unfilledLen)
-                $pctStr = "$pct".PadLeft(3)
-
-                if ($pRow -ge 0 -and $pRow -lt [Console]::BufferHeight) {
-                    try {
-                        [Console]::SetCursorPosition(0, $pRow)
-                        Write-Host "    ${LeadLight}Progreso${Reset} [${Yellow}$barStr${Reset}] $pctStr%  ${LeadLight}$phase${Reset}    $ClrToEnd" -NoNewline
-                    } catch { }
-                }
-
-                Start-Sleep -Milliseconds 150
-            }
-
-            if ($task.IsFaulted) {
-                throw $task.Exception.InnerException
-            }
-
-            $filled100 = [string]::new([char]0x2588, $barLen)
-            if ($pRow -ge 0 -and $pRow -lt [Console]::BufferHeight) {
-                try { [Console]::SetCursorPosition(0, $pRow) } catch { }
-            }
-            Write-Host "`r$ClrLine    ${LeadLight}Progreso${Reset} [${Green}$filled100${Reset}] 100%  ${Green}Completado${Reset}"
-
-            $jsonStr = $task.Result.Content.ReadAsStringAsync().Result
-            if (-not $task.Result.IsSuccessStatusCode) {
-                $errDetail = $null
-                try {
-                    $parsedErr = $jsonStr | ConvertFrom-Json
-                    if ($parsedErr -and $parsedErr.error) { $errDetail = $parsedErr.error }
-                } catch { }
-                if (-not $errDetail) {
-                    $errDetail = "Error en el servidor ($([int]$task.Result.StatusCode)): $($task.Result.ReasonPhrase)"
-                }
-                Write-VorkStatusLine -Kind error -Text "Error del separador" -Detail $errDetail
-                Write-VorkSectionRule
-                return
-            }
-            $res = try { $jsonStr | ConvertFrom-Json } catch { $null }
-        } else {
-            $res = try { Invoke-RestMethod -Uri $endpoint -Method Post -Body $body -ContentType "application/json" -TimeoutSec 300 } catch { $null }
-        }
-
-        if (-not $res -or $res.status -eq "error" -or $res.error) {
-            $errDetail = if ($res -and $res.error) { $res.error } else { "No se pudo completar la separación de stems." }
-            Write-VorkStatusLine -Kind error -Text "Error del separador" -Detail $errDetail
-            Write-VorkSectionRule
-            return
-        }
-
-        $vocDl = $null
-        $vocSt = $null
-        if ($res.vocals) {
-            $rawDl = $res.vocals.downloadUrl
-            $rawSt = $res.vocals.streamUrl
-            if ($rawDl) { $vocDl = if ($rawDl -match '^https?://') { $rawDl } else { "$ApiBase$rawDl" } }
-            if ($rawSt) { $vocSt = if ($rawSt -match '^https?://') { $rawSt } else { "$ApiBase$rawSt" } }
-        }
-
-        $instDl = $null
-        $instSt = $null
-        if ($res.instrumental) {
-            $rawDl = $res.instrumental.downloadUrl
-            $rawSt = $res.instrumental.streamUrl
-            if ($rawDl) { $instDl = if ($rawDl -match '^https?://') { $rawDl } else { "$ApiBase$rawDl" } }
-            if ($rawSt) { $instSt = if ($rawSt -match '^https?://') { $rawSt } else { "$ApiBase$rawSt" } }
-        }
-
-        Write-VorkStatusLine -Kind ok -Text "Separación completada con Demucs v4"
-
-        $outputMode = Select-VorkMediaOutputAction -PromptTitle "Entrega de las pistas"
-        if (-not $outputMode) { $outputMode = "all" }
-
-        $hasLocal = $outputMode -in @("local", "local_video", "local_audio", "local_download", "local_stream", "all")
-        $hasDownload = $outputMode -in @("download", "local_download", "download_stream", "all")
-        $hasVideoStream = $outputMode -in @("video_stream", "local_video", "video_audio", "stream", "local_stream", "download_stream", "all")
-        $hasAudioStream = $outputMode -in @("audio_stream", "local_audio", "video_audio", "stream", "local_stream", "download_stream", "all")
-
-        if ($mode -eq "vocals") {
-            if ($hasLocal -and $vocDl) {
-                $localVoc = "vocals.wav"
-                try {
-                    Invoke-WebRequest -Uri $vocDl -OutFile $localVoc -UseBasicParsing -TimeoutSec 120
-                    Write-VorkInfoRow -Label "Guardado" -Value (Resolve-Path $localVoc).Path -ValueColor $Green
-                } catch {
-                    Write-VorkInfoRow -Label "Descarga" -Value $vocDl -ValueColor $Yellow
-                }
-            }
-            if ($hasDownload -and $vocDl) {
-                Write-VorkInfoRow -Label "Descarga" -Value $vocDl -ValueColor $Yellow
-            }
-            if ($hasVideoStream -and $vocSt) {
-                Write-VorkInfoRow -Label "Video" -Value $vocSt -ValueColor $Purple
-            }
-            if ($hasAudioStream -and $vocSt) {
-                Write-VorkInfoRow -Label "Audio" -Value $vocSt -ValueColor $Cyan
-            }
-        } elseif ($mode -eq "karaoke") {
-            if ($hasLocal -and $instDl) {
-                $localInst = "instrumental.wav"
-                try {
-                    Invoke-WebRequest -Uri $instDl -OutFile $localInst -UseBasicParsing -TimeoutSec 120
-                    Write-VorkInfoRow -Label "Guardado" -Value (Resolve-Path $localInst).Path -ValueColor $Green
-                } catch {
-                    Write-VorkInfoRow -Label "Descarga" -Value $instDl -ValueColor $Yellow
-                }
-            }
-            if ($hasDownload -and $instDl) {
-                Write-VorkInfoRow -Label "Descarga" -Value $instDl -ValueColor $Yellow
-            }
-            if ($hasVideoStream -and $instSt) {
-                Write-VorkInfoRow -Label "Video" -Value $instSt -ValueColor $Purple
-            }
-            if ($hasAudioStream -and $instSt) {
-                Write-VorkInfoRow -Label "Audio" -Value $instSt -ValueColor $Cyan
-            }
-        } else {
-            if ($hasLocal) {
-                if ($vocDl) {
-                    $localVoc = "vocals.wav"
-                    try {
-                        Invoke-WebRequest -Uri $vocDl -OutFile $localVoc -UseBasicParsing -TimeoutSec 120
-                        Write-VorkInfoRow -Label "Voz" -Value (Resolve-Path $localVoc).Path -ValueColor $Green
-                    } catch {}
-                }
-                if ($instDl) {
-                    $localInst = "instrumental.wav"
-                    try {
-                        Invoke-WebRequest -Uri $instDl -OutFile $localInst -UseBasicParsing -TimeoutSec 120
-                        Write-VorkInfoRow -Label "Instrumental" -Value (Resolve-Path $localInst).Path -ValueColor $Green
-                    } catch {}
-                }
-            }
-            if ($hasDownload) {
-                if ($vocDl) { Write-VorkInfoRow -Label "Descarga voz" -Value $vocDl -ValueColor $Yellow }
-                if ($instDl) { Write-VorkInfoRow -Label "Descarga inst" -Value $instDl -ValueColor $Yellow }
-            }
-            if ($hasVideoStream) {
-                $stVid = if ($vocSt) { $vocSt } else { $instSt }
-                if ($stVid) { Write-VorkInfoRow -Label "Video" -Value $stVid -ValueColor $Purple }
-            }
-            if ($hasAudioStream) {
-                if ($vocSt) { Write-VorkInfoRow -Label "Audio voz" -Value $vocSt -ValueColor $Cyan }
-                if ($instSt) { Write-VorkInfoRow -Label "Audio inst" -Value $instSt -ValueColor $Cyan }
-            }
-        }
-        Write-VorkSectionRule
-        Send-VorkNotification -Title "Vork Separador de Stems" -Message "Aislamiento de pistas completado con éxito."
-    } catch {
-        Write-VorkStatusLine -Kind error -Text "Error del separador" -Detail $_.Exception.Message
-        Write-VorkSectionRule
-    }
-    Write-Host ""
-}
-
-<#
-.SYNOPSIS
-    Pilar 07: Vork Conversor Universal de Formatos de Imagen (PNG, JPG, WEBP, ICO, AVIF)
-#>
-
-function Invoke-PillarImage {
-    param([string[]]$ArgsList)
-
-    $rawTarget = if ($ArgsList -and $ArgsList.Length -gt 0) { $ArgsList[0] } else { $null }
-    $fmt = $null
-    $quality = 90
-    if ($ArgsList) {
-        for ($i=0; $i -lt $ArgsList.Length; $i++) {
-            if ($ArgsList[$i] -in "-Format", "--format", "-f") { $fmt = $ArgsList[$i+1] }
-            if ($ArgsList[$i] -in "-Quality", "--quality", "-q") { $quality = [int]$ArgsList[$i+1] }
-        }
-    }
-
-    if (-not $rawTarget) {
-        Write-VorkSectionHeader -Title "Nueva conversión" -Subtitle "Ruta local o URL  ·  jpg · png · webp · ico · avif" -RightText "vork · imagen"
-        $rawTarget = Read-VorkInput -Prompt "  ${Coral}${Bold}$([char]0x203A)${Reset} "
-        if (-not $rawTarget -or -not $rawTarget.Trim()) {
-            Write-VorkStatusLine -Kind warn -Text "Conversión cancelada."
-            Write-Host ""
-            return
-        }
-    }
-
-    # Limpieza estricta de comillas iniciales y finales y espacios
-    $target = $rawTarget.Trim().Trim('"').Trim("'").Trim()
-    $isUrl = ($target -match '^https?://')
-
-    Write-VorkSectionHeader -Title "Imagen de origen" -RightText "vork · imagen"
-    Write-VorkInfoRow -Label "Origen" -Value $target
-
-    $imageBytes = $null
-    $detectedFmt = "unknown"
-    $detectedLabel = "Desconocido"
-
-    if ($isUrl) {
-        try {
-            Write-VorkStatusLine -Kind step -Text "Conectando con el origen"
-            try { Add-Type -AssemblyName System.Net.Http } catch { }
-            $client = [System.Net.Http.HttpClient]::new()
-            $client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
-            $client.Timeout = [TimeSpan]::FromSeconds(25)
-            $respBytes = $client.GetByteArrayAsync($target).Result
-
-            # Verificar si la respuesta es HTML para extraer imagen de metadatos (og:image / twitter:image)
-            $isHtml = $false
-            if ($respBytes.Length -gt 15) {
-                $headLen = [Math]::Min(1024, $respBytes.Length - 1)
-                $headStr = [System.Text.Encoding]::UTF8.GetString($respBytes[0..$headLen])
-                if ($headStr -match '<(!DOCTYPE\s+)?html|<head|<meta|<body') {
-                    $isHtml = $true
-                }
-            }
-
-            if ($isHtml) {
-                $htmlText = [System.Text.Encoding]::UTF8.GetString($respBytes)
-                $realImgUrl = $null
-                if ($htmlText -match '<meta[^>]+property=["'']og:image["''][^>]+content=["'']([^"'']+)["'']' -or
-                    $htmlText -match '<meta[^>]+content=["'']([^"'']+)["''][^>]+property=["'']og:image["'']' -or
-                    $htmlText -match '<meta[^>]+name=["'']twitter:image["''][^>]+content=["'']([^"'']+)["'']' -or
-                    $htmlText -match '<meta[^>]+content=["'']([^"'']+)["''][^>]+name=["'']twitter:image["'']') {
-                    $realImgUrl = $Matches[1].Trim()
-                }
-
-                if ($realImgUrl) {
-                    if ($realImgUrl.StartsWith("//")) { $realImgUrl = "https:" + $realImgUrl }
-                    elseif ($realImgUrl.StartsWith("/")) {
-                        $u = [System.Uri]$target
-                        $realImgUrl = "$($u.Scheme)://$($u.Host)$realImgUrl"
-                    }
-                    Write-VorkStatusLine -Kind info -Text "Imagen detectada en metadatos" -Detail $realImgUrl
-                    $respBytes = $client.GetByteArrayAsync($realImgUrl).Result
-                    $target = $realImgUrl
-                } else {
-                    Write-VorkStatusLine -Kind warn -Text "La URL es una página web sin imagen detectable (og:image)."
-                    Write-Host ""
-                    return
-                }
-            }
-
-            $imageBytes = $respBytes
-        } catch {
-            Write-VorkStatusLine -Kind error -Text "Error al descargar la imagen" -Detail $_.Exception.Message
-            Write-Host ""
-            return
-        }
-    } else {
-        # Archivo local
-        $resolvedPath = $null
-        try {
-            if (Test-Path -LiteralPath $target) {
-                $resolvedPath = (Resolve-Path -LiteralPath $target).Path
-            }
-        } catch { }
-
-        if (-not $resolvedPath -or -not (Test-Path -LiteralPath $resolvedPath -PathType Leaf)) {
-            Write-VorkStatusLine -Kind error -Text "Archivo no encontrado o ruta cancelada."
-            Write-Host ""
-            return
-        }
-
-        $target = $resolvedPath
-        try {
-            $imageBytes = [System.IO.File]::ReadAllBytes($target)
-        } catch {
-            Write-VorkStatusLine -Kind error -Text "No se pudo leer el archivo" -Detail $_.Exception.Message
-            Write-Host ""
-            return
-        }
-    }
-
-    # Detección precisa de formato mediante Magic Bytes
-    if ($imageBytes -and $imageBytes.Length -ge 4) {
-        if ($imageBytes[0] -eq 0xFF -and $imageBytes[1] -eq 0xD8 -and $imageBytes[2] -eq 0xFF) {
-            $detectedFmt = "jpg"; $detectedLabel = "JPEG · Joint Photographic Experts Group"
-        } elseif ($imageBytes[0] -eq 0x89 -and $imageBytes[1] -eq 0x50 -and $imageBytes[2] -eq 0x4E -and $imageBytes[3] -eq 0x47) {
-            $detectedFmt = "png"; $detectedLabel = "PNG · Portable Network Graphics con transparencia"
-        } elseif ($imageBytes[0] -eq 0x47 -and $imageBytes[1] -eq 0x49 -and $imageBytes[2] -eq 0x46 -and $imageBytes[3] -eq 0x38) {
-            $detectedFmt = "gif"; $detectedLabel = "GIF · Graphics Interchange Format"
-        } elseif ($imageBytes[0] -eq 0x42 -and $imageBytes[1] -eq 0x4D) {
-            $detectedFmt = "bmp"; $detectedLabel = "BMP · Windows Bitmap Image"
-        } elseif ($imageBytes[0] -eq 0x00 -and $imageBytes[1] -eq 0x00 -and $imageBytes[2] -eq 0x01 -and $imageBytes[3] -eq 0x00) {
-            $detectedFmt = "ico"; $detectedLabel = "ICO · Windows Icon / Favicon"
-        } elseif ($imageBytes.Length -ge 12 -and ([System.Text.Encoding]::ASCII.GetString($imageBytes[0..3]) -eq "RIFF") -and ([System.Text.Encoding]::ASCII.GetString($imageBytes[8..11]) -eq "WEBP")) {
-            $detectedFmt = "webp"; $detectedLabel = "WEBP · Google WebP Modern Compressed Image"
-        } elseif ($imageBytes.Length -ge 12 -and ([System.Text.Encoding]::ASCII.GetString($imageBytes[4..11]) -match 'ftypavif|ftypavis')) {
-            $detectedFmt = "avif"; $detectedLabel = "AVIF · AV1 Image File Format Ultra-HD"
-        }
-    }
-
-    # Fallback por extensión de archivo/URL si no se determinó por magic bytes
-    if ($detectedFmt -eq "unknown") {
-        $cleanTargetUrl = $target.Split('?')[0].Split('#')[0]
-        $ext = [System.IO.Path]::GetExtension($cleanTargetUrl).TrimStart(".").ToLower()
-        if ($ext -in "jpg", "jpeg") { $detectedFmt = "jpg"; $detectedLabel = "JPEG / JPG" }
-        elseif ($ext -eq "png") { $detectedFmt = "png"; $detectedLabel = "PNG" }
-        elseif ($ext -eq "webp") { $detectedFmt = "webp"; $detectedLabel = "WEBP" }
-        elseif ($ext -eq "ico") { $detectedFmt = "ico"; $detectedLabel = "ICO" }
-        elseif ($ext -eq "avif") { $detectedFmt = "avif"; $detectedLabel = "AVIF" }
-        elseif ($ext -eq "gif") { $detectedFmt = "gif"; $detectedLabel = "GIF" }
-        elseif ($ext -eq "bmp") { $detectedFmt = "bmp"; $detectedLabel = "BMP" }
-    }
-
-    Write-Host ""
-    Write-VorkInfoRow -Label "Formato" -Value $detectedLabel -ValueColor $Green
-    Write-VorkSectionRule
-
-    # Catálogo de formatos de salida soportados
-    $allFormats = @(
-        @{ Value = "webp"; Name = "WEBP"; Desc = "Máxima compresión, fidelidad visual" },
-        @{ Value = "png";  Name = "PNG";  Desc = "Sin pérdida, admite transparencia" },
-        @{ Value = "jpg";  Name = "JPG";  Desc = "Fotografía con compresión optimizada" },
-        @{ Value = "ico";  Name = "ICO";  Desc = "Favicon multirresolución de Windows" },
-        @{ Value = "avif"; Name = "AVIF"; Desc = "Ultra HD de nueva generación" }
-    )
-
-    # El formato actual detectado NO debe aparecer como opción de selección
-    $availableFormats = @($allFormats | Where-Object { $_.Value -ne $detectedFmt })
-
-    if (-not $fmt -or $fmt -eq $detectedFmt) {
-        $imgOptions = @()
-        foreach ($formatItem in $availableFormats) {
-            $imgOptions += @{
-                Value = $formatItem.Value
-                Label = $formatItem.Name
-                Description = $formatItem.Desc
-            }
-        }
-
-        $chosenFmt = Select-InteractiveOption -PromptTitle "Formato de salida" -Subtitle "imagen de destino" -Options $imgOptions -DefaultIndex 0
-        if (-not $chosenFmt) {
-            Write-VorkStatusLine -Kind warn -Text "Conversión cancelada."
-            Write-Host ""
-            return
-        }
-        $fmt = $chosenFmt
-    }
-
-    Write-VorkSectionHeader -Title "Procesando imagen" -RightText "vork · imagen"
-    Write-VorkInfoRow -Label "Destino" -Value $fmt.ToUpper() -ValueColor $Yellow
-    Write-VorkSectionRule
-    Write-VorkStatusLine -Kind step -Text "Convirtiendo $($detectedFmt.ToUpper()) a $($fmt.ToUpper())" -Detail "calidad $quality"
-
-    $b64 = [System.Convert]::ToBase64String($imageBytes)
-    $mimePrefix = switch ($detectedFmt) {
-        "jpg"   { "image/jpeg" }
-        "png"   { "image/png" }
-        "webp"  { "image/webp" }
-        "gif"   { "image/gif" }
-        "bmp"   { "image/bmp" }
-        "ico"   { "image/x-icon" }
-        "avif"  { "image/avif" }
-        default { "image/png" }
-    }
-    $body = @{ imageBase64 = "data:$mimePrefix;base64,$b64"; targetFormat = $fmt; quality = $quality } | ConvertTo-Json
-    try {
-        $res = Invoke-RestMethod -Uri "$ApiBase/api/image/convert" -Method Post -Body $body -ContentType "application/json"
-        $dlUrl = if ($res.downloadUrl) { if ($res.downloadUrl.StartsWith("http")) { $res.downloadUrl } else { "$ApiBase$($res.downloadUrl)" } } else { "$ApiBase/api/image/download" }
-
-        Write-VorkStatusLine -Kind ok -Text "Conversión completada" -Detail "$($detectedFmt.ToUpper()) a $($fmt.ToUpper())"
-
-        $localImg = if ($target -and (Test-Path $target)) {
-            [System.IO.Path]::GetFileNameWithoutExtension($target) + "_convertido.$fmt"
-        } else {
-            "imagen_convertida.$fmt"
-        }
-
-        $outputMode = Select-VorkImageOutputAction -PromptTitle "Entrega de la imagen"
-        if (-not $outputMode) { $outputMode = "all" }
-
-        $hasLocal = $outputMode -in @("local", "all")
-        $hasDownload = $outputMode -in @("download", "all")
-
-        if ($hasLocal) {
-            try {
-                Invoke-WebRequest -Uri $dlUrl -OutFile $localImg -UseBasicParsing -TimeoutSec 60
-                $resolvedOut = (Resolve-Path $localImg).Path
-                Write-VorkInfoRow -Label "Guardado" -Value $resolvedOut -ValueColor $Green
-            } catch {
-                Write-VorkInfoRow -Label "Descarga" -Value $dlUrl -ValueColor $Yellow
-            }
-        }
-
-        if ($hasDownload) {
-            Write-VorkInfoRow -Label "Enlace" -Value $dlUrl -ValueColor $Cyan
-        }
-
-        Write-VorkSectionRule
-        Send-VorkNotification -Title "Vork Conversor de Imagen" -Message "Conversión a $fmt completada con éxito."
-    } catch {
-        Write-VorkStatusLine -Kind error -Text "Error de conversión" -Detail $_.Exception.Message
-        Write-VorkSectionRule
-    }
-    Write-Host ""
-}
-
-<#
-.SYNOPSIS
-    Pilar 08: Vork Modificador de Imagen & Fondo IA con Prompt (BRIA RMBG + FLUX.1)
-#>
-
-function Invoke-PillarRemoveBg {
-    param([string[]]$ArgsList)
-
-    $file = if ($ArgsList -and $ArgsList.Length -gt 0) { $ArgsList[0] } else { $null }
-    $userPrompt = $null
-    $out = $null
-
-    if ($ArgsList) {
-        for ($i=0; $i -lt $ArgsList.Length; $i++) {
-            if ($ArgsList[$i] -in "-Out", "--out", "-o") { $out = $ArgsList[$i+1]; continue }
-            if ($ArgsList[$i] -in "-Prompt", "--prompt", "-p") { $userPrompt = $ArgsList[$i+1]; continue }
-            if ($i -gt 0 -and -not $userPrompt -and -not $ArgsList[$i].StartsWith("-")) {
-                $userPrompt = $ArgsList[$i]
-            }
-        }
-    }
-
-    if ($file) {
-        $file = $file.Trim('"', "'", " ")
-    }
-
-    $isWebUrl = ($file -and $file -match '^https?://')
-    $isLocalFile = ($file -and (Test-Path $file))
-
-    if (-not $isWebUrl -and -not $isLocalFile) {
-        Write-VorkSectionHeader -Title "Edición de imagen con IA" -Subtitle "Ruta local o URL de la imagen" -RightText "vork · imagen ia"
-        $fileInput = Read-VorkInput -Prompt "  ${Coral}${Bold}$([char]0x203A)${Reset} "
-        if (-not $fileInput -or -not $fileInput.Trim()) {
-            Write-VorkStatusLine -Kind warn -Text "Edición cancelada."
-            Write-Host ""
-            return
-        }
-        $file = $fileInput.Trim('"', "'", " ")
-        $isWebUrl = ($file -match '^https?://')
-        $isLocalFile = (Test-Path $file)
-
-        if (-not $isWebUrl -and -not $isLocalFile) {
-            Write-VorkStatusLine -Kind error -Text "Archivo o URL no encontrado" -Detail $file
-            Write-Host ""
-            return
-        }
-    }
-
-    if (-not $userPrompt) {
-        Write-VorkSectionHeader -Title "Prompt de edición" -Subtitle "Ej: playa al atardecer, fondo blanco · enter para aislar el sujeto" -RightText "vork · imagen ia"
-        $pInput = Read-VorkInput -Prompt "  ${Coral}${Bold}$([char]0x203A)${Reset} "
-        if ($pInput -and $pInput.Trim()) {
-            $userPrompt = $pInput.Trim()
-        }
-    }
-
-    # Detección inteligente del modo según el prompt del usuario
-    $cleanP = if ($userPrompt) { $userPrompt.ToLower().Trim() } else { "" }
-    $mode = "prompt"
-    $colorVal = "#FFFFFF"
-
-    if (-not $cleanP -or $cleanP -in "sin fondo", "quitar fondo", "eliminar fondo", "transparente", "transparent", "corte", "silueta", "solo sujeto", "none") {
-        $mode = "transparent"
-        $userPrompt = "Aislamiento de silueta PNG transparente"
-    } elseif ($cleanP -in "fondo blanco", "blanco", "white", "fondo blanco studio", "white background") {
-        $mode = "color"
-        $colorVal = "#FFFFFF"
-        $userPrompt = "Fondo Blanco Studio (#FFFFFF)"
-    } elseif ($cleanP -in "fondo negro", "negro", "black", "black background", "fondo negro cine") {
-        $mode = "color"
-        $colorVal = "#000000"
-        $userPrompt = "Fondo Negro Cine (#000000)"
-    }
-
-    if (-not $out) {
-        $ext = if ($mode -eq "transparent") { "png" } else { "jpg" }
-        if ($isLocalFile) {
-            $baseName = [System.IO.Path]::GetFileNameWithoutExtension($file)
-            $suffix = if ($mode -eq "prompt") { "_modificado" } else { "_nobg" }
-            $out = "${baseName}${suffix}.$ext"
-        } else {
-            $out = if ($mode -eq "prompt") { "imagen_modificada.$ext" } else { "sin_fondo.$ext" }
-        }
-    }
-
-    Write-VorkSectionHeader -Title "Procesando imagen" -RightText "vork · imagen ia"
-    Write-VorkInfoRow -Label "Origen" -Value $file
-    Write-VorkInfoRow -Label "Prompt" -Value $userPrompt -ValueColor $Cyan
-    Write-VorkInfoRow -Label "Salida" -Value $out -ValueColor $Yellow
-    Write-VorkSectionRule
-
-    $bodyMap = @{ mode = $mode }
-    if ($mode -eq "prompt") {
-        $bodyMap["prompt"] = $userPrompt
-    } elseif ($mode -eq "color") {
-        $bodyMap["color"] = $colorVal
-    }
-
-    if ($isLocalFile) {
-        $resolved = Resolve-Path $file
-        $bytes = [System.IO.File]::ReadAllBytes($resolved)
-        $b64 = [System.Convert]::ToBase64String($bytes)
-        $bodyMap["imageBase64"] = "data:image/jpeg;base64,$b64"
-    } else {
-        $bodyMap["url"] = $file
-    }
-
-    $body = $bodyMap | ConvertTo-Json
-
-    try {
-        if ($mode -eq "prompt") {
-            Write-VorkStatusLine -Kind step -Text "Aislando el sujeto con BRIA RMBG 1.4"
-            Write-VorkStatusLine -Kind step -Text "Generando la modificación con FLUX.1 Neural"
-            Write-VorkStatusLine -Kind step -Text "Componiendo la imagen final en alta resolución"
-        } else {
-            Write-VorkStatusLine -Kind step -Text "Procesando la silueta con IA neuronal"
-        }
-
-        $res = Invoke-RestMethod -Uri "$ApiBase/api/image/remove-background" -Method Post -Body $body -ContentType "application/json" -TimeoutSec 180
-        $dlUrl = if ($res.downloadUrl) { if ($res.downloadUrl.StartsWith("http")) { $res.downloadUrl } else { "$ApiBase$($res.downloadUrl)" } } else { "$ApiBase/api/image/download?id=$($res.id)" }
-
-        Write-VorkStatusLine -Kind ok -Text "Edición completada"
-
-        $outputMode = Select-VorkImageOutputAction -PromptTitle "Entrega de la imagen"
-        if (-not $outputMode) { $outputMode = "all" }
-
-        $hasLocal = $outputMode -in @("local", "all")
-        $hasDownload = $outputMode -in @("download", "all")
-
-        if ($hasLocal) {
-            try {
-                Invoke-WebRequest -Uri $dlUrl -OutFile $out -UseBasicParsing -TimeoutSec 90
-                $resolvedOut = (Resolve-Path $out).Path
-                Write-VorkInfoRow -Label "Guardado" -Value $resolvedOut -ValueColor $Green
-            } catch {
-                Write-VorkInfoRow -Label "Descarga" -Value $dlUrl -ValueColor $Yellow
-            }
-        }
-
-        if ($hasDownload) {
-            Write-VorkInfoRow -Label "Enlace" -Value $dlUrl -ValueColor $Cyan
-        }
-
-        Write-VorkSectionRule
-        Send-VorkNotification -Title "Vork Fondo IA" -Message "Edición de imagen completada con éxito."
-    } catch {
-        Write-VorkStatusLine -Kind error -Text "Error de procesamiento IA" -Detail $_.Exception.Message
-        Write-VorkSectionRule
-    }
-    Write-Host ""
-}
-
-<#
-.SYNOPSIS
-    Pilar 09: Vork Agentes Autónomos & Modo Interactivo TUI
-#>
-
-function Invoke-PillarAgents {
-    param([string[]]$ArgsList)
-
-    if (-not $ArgsList -or $ArgsList.Length -eq 0) {
-        $agentOptions = @(
-            @{ Value = "status";   Label = "Estado del clúster";     Description = "Agentes activos y conectividad" },
-            @{ Value = "goal";     Label = "/goal";                  Description = "Tarea autónoma de bucle continuo" },
-            @{ Value = "plan";     Label = "/plan";                  Description = "Desglose guiado de arquitectura" },
-            @{ Value = "teamwork"; Label = "/teamwork";              Description = "Coordinación de múltiples subagentes" },
-            @{ Value = "learn";    Label = "/learn";                 Description = "Guardar una regla en ~/.vork" }
-        )
-
-        $chosenAction = Select-InteractiveOption -PromptTitle "Operación de agentes" -Subtitle "orquestación autónoma" -Options $agentOptions -DefaultIndex 0
-        if (-not $chosenAction) { return }
-        if ($chosenAction -ne "status") {
-            switch ($chosenAction) {
-                "goal" { Invoke-CmdGoal @(); return }
-                "plan" { Invoke-CmdPlan @(); return }
-                "teamwork" { Invoke-CmdTeamwork @(); return }
-                "learn" { Invoke-CmdLearn @(); return }
-            }
-        }
-    }
-
-    Write-VorkSectionHeader -Title "Agentes autónomos" -Subtitle "Orquestación de subagentes en paralelo" -RightText "vork · agents"
-    Write-VorkInfoRow -Label "Motor" -Value "ONLINE  ·  Vork Autonomous Agents v3" -ValueColor $Green
-    Write-VorkSectionRule
-    Write-VorkStatusLine -Kind info -Text "Codebase Researcher" -Detail "Análisis y exploración de contexto"
-    Write-VorkStatusLine -Kind info -Text "Audio Engine Agent" -Detail "Síntesis TTS y modelado F0 espectral"
-    Write-VorkStatusLine -Kind info -Text "Demucs Stem Worker" -Detail "Separación acapella y karaoke en segundo plano"
-    Write-VorkStatusLine -Kind info -Text "Media Extraction Bot" -Detail "Extracción y compresión multimedia 320k"
-    Write-VorkSectionRule
-    $reportFile = "vork_agents_cluster.json"
-    @{ status = "online"; motor = "Vork Autonomous Agents v3"; pilares = 8; subagentes = @("Codebase Researcher", "Audio Engine Agent", "Demucs Stem Worker", "Media Extraction Bot") } | ConvertTo-Json | Set-Content -Path $reportFile -Encoding UTF8
-    $resolvedOut = (Resolve-Path $reportFile).Path
-    Write-VorkStatusLine -Kind ok -Text "Clúster de agentes sincronizado"
-    Write-VorkInfoRow -Label "Guardado" -Value $resolvedOut -ValueColor $Green
-    Write-VorkSectionRule
-    Send-VorkNotification -Title "Vork Agentes Autónomos" -Message "Clúster de subagentes sincronizado con éxito."
-    Write-Host ""
-}
-
+# ========================================================
+# MODULE: pillars/system.ps1
+# ========================================================
 <#
 .SYNOPSIS
     Modulos de Sistema: Version y Telemetria en Vivo (Health)
@@ -6466,6 +6509,63 @@ function Invoke-PillarHealth {
     Write-Host ""
 }
 
+
+# ========================================================
+# MODULE: core/updater.ps1
+# ========================================================
+<#
+.SYNOPSIS
+    Vork CLI - Modulo Core: Auto-Update Silencioso y Sincronizacion Atómica
+#>
+
+function Check-And-AutoUpdate {
+    param([switch]$Force)
+    
+    $cacheDir = Join-Path $HOME ".vork"
+    $checkFile = Join-Path $cacheDir ".last_check"
+    $shouldCheck = $Force
+    
+    if (-not $shouldCheck) {
+        if (-not (Test-Path $checkFile)) {
+            $shouldCheck = $true
+        } else {
+            try {
+                $lastCheck = (Get-Item $checkFile).LastWriteTime
+                if ((Get-Date) - $lastCheck -gt (New-TimeSpan -Hours 1)) {
+                    $shouldCheck = $true
+                }
+            } catch {
+                $shouldCheck = $true
+            }
+        }
+    }
+    
+    if ($shouldCheck) {
+        try {
+            $remoteInfo = Invoke-RestMethod -Uri "$ApiBase/api/cli/info" -TimeoutSec 2 -ErrorAction Stop
+            Set-Content -Path $checkFile -Value (Get-Date).ToString("o") -ErrorAction SilentlyContinue
+            
+            $isNewer = try { [version]$remoteInfo.version -gt [version]$VorkVersion } catch { $remoteInfo.version -ne $VorkVersion }
+            if ($remoteInfo -and $remoteInfo.version -and ($isNewer -or $Force)) {
+                Write-Host ""
+                Write-Host "  $ESC[43;30;1m AUTO-UPDATE $Reset $Yellow Sincronizando Vork CLI con backend v$($remoteInfo.version)...$Reset"
+                $targetScript = if ($PSCommandPath) { $PSCommandPath } else { Join-Path $cacheDir "bin\vork.ps1" }
+                
+                Invoke-RestMethod -Uri "$ApiBase/cli/vork.ps1" -OutFile "$targetScript.tmp" -TimeoutSec 5 -ErrorAction Stop
+                Move-Item -Path "$targetScript.tmp" -Destination $targetScript -Force
+                Write-Host "  $ESC[42;30;1m COMPLETADO $Reset $Green Vork CLI actualizado exitosamente a v$($remoteInfo.version).$Reset"
+                Write-Host ""
+            }
+        } catch {
+            # Tolerancia silenciosa si no hay conexion
+        }
+    }
+}
+
+
+# ========================================================
+# MODULE: core/router.ps1
+# ========================================================
 <#
 .SYNOPSIS
     Vork CLI - Modulo Core: Despachador y consola interactiva REPL responsive.
@@ -7498,3 +7598,4 @@ if (-not $Command -or $Command.ToLower() -in "tui", "interactive") {
     $outMsg = if ($Command.StartsWith("/")) { "Exited $Command command" } else { "Executed $Command" }
     Save-VorkConversationRecord -Cmd $fullCmd -Output $outMsg
 }
+

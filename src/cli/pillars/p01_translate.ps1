@@ -68,7 +68,12 @@ function Invoke-PillarTranslate {
         }
 
         $outputMode = Select-VorkTextOutputAction -PromptTitle "Entrega del texto"
-        if (-not $outputMode) { $outputMode = "all" }
+        if (-not $outputMode) {
+            Write-VorkStatusLine -Kind warn -Text "Entrega cancelada."
+            Write-VorkSectionRule
+            Write-Host ""
+            return
+        }
 
         $hasLocal = $outputMode -in @("local", "all")
         $hasDownload = $outputMode -in @("download", "all")

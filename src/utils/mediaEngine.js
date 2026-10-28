@@ -46,31 +46,6 @@ function withTimeout(promise, ms = 12000) {
  * Consulta de alta disponibilidad y concurrencia a proveedores y espejos de extracción para YouTube
  */
 async function fetchYouTubeStreams(normalizedUrl) {
-  const fetchRahad = async () => {
-    if (!rahad || !rahad.alldl) throw new Error("rahad no disponible");
-    const r = await withTimeout(rahad.alldl(normalizedUrl), 10000);
-    if (r && r.data && r.data.download) {
-      const dl = r.data.download;
-      let audioUrl = dl.audio || dl.video;
-      let videoUrl = dl.video || dl.audio;
-      if (audioUrl && audioUrl.includes("googlevideo.com") && !audioUrl.includes("vidsnap.app")) {
-        audioUrl = `https://api.vidsnap.app/proxy?u=${encodeURIComponent(audioUrl)}`;
-      }
-      if (videoUrl && videoUrl.includes("googlevideo.com") && !videoUrl.includes("vidsnap.app")) {
-        videoUrl = `https://api.vidsnap.app/proxy?u=${encodeURIComponent(videoUrl)}`;
-      }
-      if (audioUrl || videoUrl) {
-        return {
-          title: r.data.title,
-          mp4: videoUrl,
-          mp3: audioUrl,
-          thumbnail: r.data.thumbnail ? (r.data.thumbnail.startsWith("http") ? r.data.thumbnail : `https://i.ytimg.com${r.data.thumbnail}`) : null
-        };
-      }
-    }
-    throw new Error("rahad no retornó streams");
-  };
-
   const fetchBtch = async () => {
     const directRes = await withTimeout(btch.youtube(normalizedUrl), 10000);
     if (directRes && (directRes.mp4 || directRes.mp3)) {
@@ -105,11 +80,43 @@ async function fetchYouTubeStreams(normalizedUrl) {
     throw new Error("backend2 tioo no retornó streams");
   };
 
+  const fetchRahad = async () => {
+    if (!rahad || !rahad.alldl) throw new Error("rahad no disponible");
+    const r = await withTimeout(rahad.alldl(normalizedUrl), 10000);
+    if (r && r.data && r.data.download) {
+      const dl = r.data.download;
+      let audioUrl = dl.audio || dl.video;
+      let videoUrl = dl.video || dl.audio;
+      if (audioUrl && audioUrl.includes("googlevideo.com") && !audioUrl.includes("vidsnap.app")) {
+        audioUrl = `https://api.vidsnap.app/proxy?u=${encodeURIComponent(audioUrl)}`;
+      }
+      if (videoUrl && videoUrl.includes("googlevideo.com") && !videoUrl.includes("vidsnap.app")) {
+        videoUrl = `https://api.vidsnap.app/proxy?u=${encodeURIComponent(videoUrl)}`;
+      }
+      if (audioUrl || videoUrl) {
+        return {
+          title: r.data.title,
+          mp4: videoUrl,
+          mp3: audioUrl,
+          separateAudio: Boolean(videoUrl && audioUrl && videoUrl !== audioUrl),
+          thumbnail: r.data.thumbnail ? (r.data.thumbnail.startsWith("http") ? r.data.thumbnail : `https://i.ytimg.com${r.data.thumbnail}`) : null
+        };
+      }
+    }
+    throw new Error("rahad no retornó streams");
+  };
+
+  // Priorizamos fuentes con video progresivo de alta resolución que ya integran audio (btch, tioo)
   try {
-    return await Promise.any([fetchRahad(), fetchBtch(), fetchMirror1(), fetchMirror2()]);
-  } catch (err) {
-    logger.warn(`Todos los proveedores de streams para YouTube fallaron para ${normalizedUrl}: ${err.message}`);
-    return null;
+    return await Promise.any([fetchBtch(), fetchMirror1(), fetchMirror2()]);
+  } catch (errHighRes) {
+    logger.warn(`Proveedores directos de alta resolución fallaron para ${normalizedUrl}, recurriendo a rahad: ${errHighRes.message}`);
+    try {
+      return await fetchRahad();
+    } catch (errRahad) {
+      logger.warn(`Todos los proveedores de streams para YouTube fallaron para ${normalizedUrl}: ${errRahad.message}`);
+      return null;
+    }
   }
 }
 
@@ -933,19 +940,34 @@ function transcodeToWav(streamUrl, outputPath) {
 /**
  * Remuxea o transcodifica un stream remoto a MP4 estándar para reproducción web instantánea
  */
-function transcodeToMp4(streamUrl, outputPath, quality = "1080p") {
+function transcodeToMp4(streamUrl, outputPath, quality = "1080p", audioStreamUrl = null) {
   return new Promise((resolve, reject) => {
     try {
-      // Intento 1: Copia de stream directa con FFmpeg
-      const ff = spawn(ffmpegPath, [
+      const hasSeparateAudio = Boolean(audioStreamUrl && audioStreamUrl !== streamUrl);
+      const directArgs = [
         "-y",
         "-user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-        "-i", streamUrl,
-        "-c", "copy",
-        "-movflags", "+faststart",
-        "-f", "mp4",
-        outputPath
-      ]);
+        "-i", streamUrl
+      ];
+
+      if (hasSeparateAudio) {
+        directArgs.push(
+          "-user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+          "-i", audioStreamUrl,
+          "-c:v", "copy",
+          "-c:a", "aac",
+          "-b:a", "192k",
+          "-map", "0:v:0?",
+          "-map", "1:a:0?",
+          "-shortest"
+        );
+      } else {
+        directArgs.push("-c", "copy");
+      }
+
+      directArgs.push("-movflags", "+faststart", "-f", "mp4", outputPath);
+
+      const ff = spawn(ffmpegPath, directArgs);
 
       let stderr = "";
       ff.stderr.on("data", d => { stderr += d.toString(); });
@@ -966,37 +988,47 @@ function transcodeToMp4(streamUrl, outputPath, quality = "1080p") {
           return resolve({ sizeBytes: stats.size, duration, durationSeconds });
         }
 
-        // Intento 2: Fallback vía Axios stream piping con remux (-c copy)
-        logger.warn(`FFmpeg copy directo terminó con código ${code}, probando stream pipe axios...`);
-        axios({
-          method: "get",
-          url: streamUrl,
-          responseType: "stream",
-          headers: {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-            "Accept": "*/*"
-          },
-          timeout: 60000
-        }).then(response => {
-          const ffPipe = spawn(ffmpegPath, [
-            "-y",
-            "-i", "pipe:0",
-            "-c", "copy",
-            "-movflags", "+faststart",
-            "-f", "mp4",
-            outputPath
-          ]);
-          let pipeStderr = "";
-          ffPipe.stderr.on("data", d => { pipeStderr += d.toString(); });
-          response.data.pipe(ffPipe.stdin);
-          ffPipe.on("close", (pipeCode) => {
-            if (pipeCode === 0 && fs.existsSync(outputPath) && fs.statSync(outputPath).size > 1000) {
-              const statsPipe = fs.statSync(outputPath);
-              return resolve({ sizeBytes: statsPipe.size, duration: null, durationSeconds: 0 });
-            }
+        // Intento 2: Transcodificación directa si -c copy falla o requiere remuxing complejo
+        logger.warn(`FFmpeg copy directo terminó con código ${code}, probando transcodificación...`);
+        const transArgs = [
+          "-y",
+          "-user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+          "-i", streamUrl
+        ];
+        if (hasSeparateAudio) {
+          transArgs.push(
+            "-user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+            "-i", audioStreamUrl,
+            "-c:v", "libx264",
+            "-preset", "ultrafast",
+            "-crf", "23",
+            "-c:a", "aac",
+            "-b:a", "128k",
+            "-map", "0:v:0?",
+            "-map", "1:a:0?",
+            "-shortest"
+          );
+        } else {
+          transArgs.push(
+            "-c:v", "libx264",
+            "-preset", "ultrafast",
+            "-crf", "23",
+            "-c:a", "aac",
+            "-b:a", "128k"
+          );
+        }
+        transArgs.push("-movflags", "+faststart", "-f", "mp4", outputPath);
 
-            // Intento 3: Transcodificación H.264 ultrafast si -c copy falla
-            logger.warn(`FFmpeg pipe copy falló (${pipeCode}), reintentando transcodificación x264...`);
+        const ffTrans = spawn(ffmpegPath, transArgs);
+        let stderrTrans = "";
+        ffTrans.stderr.on("data", d => { stderrTrans += d.toString(); });
+        ffTrans.on("close", (tCode) => {
+          if (tCode === 0 && fs.existsSync(outputPath) && fs.statSync(outputPath).size > 1000) {
+            const statsTrans = fs.statSync(outputPath);
+            return resolve({ sizeBytes: statsTrans.size, duration: null, durationSeconds: 0 });
+          }
+
+          if (!hasSeparateAudio) {
             axios({
               method: "get",
               url: streamUrl,
@@ -1006,57 +1038,29 @@ function transcodeToMp4(streamUrl, outputPath, quality = "1080p") {
                 "Accept": "*/*"
               },
               timeout: 60000
-            }).then(response2 => {
-              const ffPipe2 = spawn(ffmpegPath, [
+            }).then(response => {
+              const ffPipe = spawn(ffmpegPath, [
                 "-y",
                 "-i", "pipe:0",
-                "-c:v", "libx264",
-                "-preset", "ultrafast",
-                "-crf", "23",
-                "-c:a", "aac",
+                "-c", "copy",
                 "-movflags", "+faststart",
                 "-f", "mp4",
                 outputPath
               ]);
-              let pipeStderr2 = "";
-              ffPipe2.stderr.on("data", d => { pipeStderr2 += d.toString(); });
-              response2.data.pipe(ffPipe2.stdin);
-              ffPipe2.on("close", (pipeCode2) => {
-                if (pipeCode2 === 0 && fs.existsSync(outputPath) && fs.statSync(outputPath).size > 1000) {
-                  const statsPipe2 = fs.statSync(outputPath);
-                  return resolve({ sizeBytes: statsPipe2.size, duration: null, durationSeconds: 0 });
+              response.data.pipe(ffPipe.stdin);
+              ffPipe.on("close", (pCode) => {
+                if (pCode === 0 && fs.existsSync(outputPath) && fs.statSync(outputPath).size > 1000) {
+                  return resolve({ sizeBytes: fs.statSync(outputPath).size, duration: null, durationSeconds: 0 });
                 }
-                reject(new Error(`FFmpeg MP4 transcode failed: ${pipeStderr2.slice(-250)}`));
+                reject(new Error(`FFmpeg MP4 transcode failed: ${stderrTrans.slice(-250)}`));
               });
-              response2.data.on("error", reject);
-            }).catch(reject);
-          });
-          response.data.on("error", reject);
-        }).catch(err => {
-          // Intento 4: Transcodificación directa x264 como último recurso
-          const ffDirectX264 = spawn(ffmpegPath, [
-            "-y",
-            "-user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-            "-i", streamUrl,
-            "-c:v", "libx264",
-            "-preset", "ultrafast",
-            "-crf", "23",
-            "-c:a", "aac",
-            "-movflags", "+faststart",
-            "-f", "mp4",
-            outputPath
-          ]);
-          let stderrDirect = "";
-          ffDirectX264.stderr.on("data", d => { stderrDirect += d.toString(); });
-          ffDirectX264.on("close", (dxCode) => {
-            if (dxCode === 0 && fs.existsSync(outputPath) && fs.statSync(outputPath).size > 1000) {
-              const statsDirect = fs.statSync(outputPath);
-              return resolve({ sizeBytes: statsDirect.size, duration: null, durationSeconds: 0 });
-            }
-            reject(new Error(`FFmpeg MP4 transcode failed: ${stderrDirect.slice(-250) || err.message}`));
-          });
-          ffDirectX264.on("error", reject);
+              response.data.on("error", reject);
+            }).catch(() => reject(new Error(`FFmpeg MP4 transcode failed: ${stderrTrans.slice(-250)}`)));
+          } else {
+            reject(new Error(`FFmpeg MP4 transcode failed: ${stderrTrans.slice(-250)}`));
+          }
         });
+        ffTrans.on("error", reject);
       });
 
       ff.on("error", err => {
@@ -1133,7 +1137,8 @@ async function processConversion(options = {}) {
         transSuccess = true;
         break;
       } else {
-        const transRes = await transcodeToMp4(streamUrl, outputPath, quality);
+        const separateAudioUrl = mediaInfo.separateAudio ? mediaInfo.mp3Url : null;
+        const transRes = await transcodeToMp4(streamUrl, outputPath, quality, separateAudioUrl);
         sizeBytes = transRes.sizeBytes;
         if (transRes.duration && (finalDuration === "00:00" || !finalDurationSeconds)) {
           finalDuration = transRes.duration;

@@ -122,7 +122,12 @@ function Invoke-PillarRemoveBg {
         Write-VorkStatusLine -Kind ok -Text "Edición completada"
 
         $outputMode = Select-VorkImageOutputAction -PromptTitle "Entrega de la imagen"
-        if (-not $outputMode) { $outputMode = "all" }
+        if (-not $outputMode) {
+            Write-VorkStatusLine -Kind warn -Text "Procesamiento cancelado."
+            Write-VorkSectionRule
+            Write-Host ""
+            return
+        }
 
         $hasLocal = $outputMode -in @("local", "all")
         $hasDownload = $outputMode -in @("download", "all")

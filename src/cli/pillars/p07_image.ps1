@@ -210,7 +210,12 @@ function Invoke-PillarImage {
         }
 
         $outputMode = Select-VorkImageOutputAction -PromptTitle "Entrega de la imagen"
-        if (-not $outputMode) { $outputMode = "all" }
+        if (-not $outputMode) {
+            Write-VorkStatusLine -Kind warn -Text "Generación cancelada."
+            Write-VorkSectionRule
+            Write-Host ""
+            return
+        }
 
         $hasLocal = $outputMode -in @("local", "all")
         $hasDownload = $outputMode -in @("download", "all")

@@ -64,13 +64,17 @@ function Invoke-PillarTTS {
         $audioFull = if ($res.audioStreamUrl) { if ($res.audioStreamUrl.StartsWith("http")) { $res.audioStreamUrl } else { "$ApiBase$($res.audioStreamUrl)" } } else { $stUrl }
 
         Write-VorkStatusLine -Kind ok -Text "Síntesis vocal completada"
-        $outputMode = Select-VorkMediaOutputAction -PromptTitle "Entrega del audio"
-        if (-not $outputMode) { $outputMode = "all" }
+        $outputMode = Select-VorkMediaOutputAction -PromptTitle "Entrega del audio" -Format "mp3"
+        if (-not $outputMode) {
+            Write-VorkStatusLine -Kind warn -Text "Entrega cancelada."
+            Write-VorkSectionRule
+            Write-Host ""
+            return
+        }
 
-        $hasLocal = $outputMode -in @("local", "local_video", "local_audio", "local_download", "local_stream", "all")
-        $hasDownload = $outputMode -in @("download", "local_download", "download_stream", "all")
-        $hasVideoStream = $outputMode -in @("video_stream", "local_video", "video_audio", "stream", "local_stream", "download_stream", "all")
-        $hasAudioStream = $outputMode -in @("audio_stream", "local_audio", "video_audio", "stream", "local_stream", "download_stream", "all")
+        $hasLocal = $outputMode -in @("local", "local_audio", "local_download", "all")
+        $hasDownload = $outputMode -in @("download", "local_download", "all")
+        $hasAudioStream = $outputMode -in @("audio_stream", "local_audio", "all")
 
         if ($hasLocal) {
             if ($res.audioBase64) {

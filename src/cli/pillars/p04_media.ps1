@@ -213,13 +213,18 @@ function Invoke-PillarMedia {
 
             $localFile = if ($res.filename) { $res.filename } else { "media_output.$fmt" }
 
-            $outputMode = Select-VorkMediaOutputAction -PromptTitle "Entrega del archivo"
-            if (-not $outputMode) { $outputMode = "all" }
+            $outputMode = Select-VorkMediaOutputAction -PromptTitle "Entrega del archivo" -Format $fmt
+            if (-not $outputMode) {
+                Write-VorkStatusLine -Kind warn -Text "Conversión cancelada."
+                Write-VorkSectionRule
+                Write-Host ""
+                return
+            }
 
-            $hasLocal = $outputMode -in @("local", "local_video", "local_audio", "local_download", "local_stream", "all")
-            $hasDownload = $outputMode -in @("download", "local_download", "download_stream", "all")
-            $hasVideoStream = $outputMode -in @("video_stream", "local_video", "video_audio", "stream", "local_stream", "download_stream", "all")
-            $hasAudioStream = $outputMode -in @("audio_stream", "local_audio", "video_audio", "stream", "local_stream", "download_stream", "all")
+            $hasLocal = $outputMode -in @("local", "local_video", "local_audio", "local_download", "all")
+            $hasDownload = $outputMode -in @("download", "local_download", "all")
+            $hasVideoStream = ($fmt -eq "mp4") -and ($outputMode -in @("video_stream", "local_video", "all"))
+            $hasAudioStream = ($fmt -in @("mp3", "wav")) -and ($outputMode -in @("audio_stream", "local_audio", "all"))
 
             if ($hasLocal) {
                 try {

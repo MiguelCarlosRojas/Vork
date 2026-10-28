@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Vork CLI - UI Toolkit responsive (ANSI, metricas de consola, paneles y teclado).
 
@@ -338,7 +338,8 @@ function Wait-VorkConsoleKey {
 function Test-VorkCtrlC {
     param($Key)
     if (-not $Key) { return $false }
-    return (($Key.KeyChar -eq [char]3) -or
+    return (([int]$Key.KeyChar -eq 3) -or
+        ($Key.KeyChar -eq [char]3) -or
         (($Key.Key -eq [ConsoleKey]::C) -and (($Key.Modifiers -band [ConsoleModifiers]::Control) -ne 0)))
 }
 
