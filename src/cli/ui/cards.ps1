@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Vork CLI - Modulo UI: Componentes interactivos responsive.
 
@@ -597,6 +597,66 @@ function Select-InteractiveMediaFormat {
         try { [Console]::TreatControlCAsInput = $false } catch { }
         try { [Console]::CursorVisible = $savedCursor } catch { }
     }
+}
+
+function Select-VorkMediaFormatChoice {
+    param([string]$PromptTitle = "Selecciona el formato de salida:")
+
+    $items = @(
+        @{ Label = "MP3"; Description = "Audio y música (Máxima compatibilidad)"; Value = "mp3" },
+        @{ Label = "MP4"; Description = "Video en alta definición (con audio)"; Value = "mp4" },
+        @{ Label = "WAV"; Description = "Audio PCM sin compresión (Lossless)"; Value = "wav" }
+    )
+
+    return (Invoke-VorkPicker -Title $PromptTitle -Subtitle "Vork Media" -Items $items -DefaultIndex 0 -NumericSelect -Footer "flechas mover  ·  1-3 elegir  ·  enter seleccionar  ·  esc cancelar")
+}
+
+function Select-VorkMediaQualityChoice {
+    param(
+        [string]$Format = "mp3",
+        [string]$PromptTitle = ""
+    )
+
+    $fmt = if ($Format) { $Format.ToLower() } else { "mp3" }
+    if ($fmt -eq "wav") { return "lossless" }
+
+    if (-not $PromptTitle) {
+        $PromptTitle = "Selecciona la calidad deseada para $($fmt.ToUpper()):"
+    }
+
+    $items = if ($fmt -eq "mp3") {
+        @(
+            @{ Label = "320 kbps"; Description = "Máxima fidelidad (Recomendado para música)"; Value = "320k" },
+            @{ Label = "256 kbps"; Description = "Alta fidelidad"; Value = "256k" },
+            @{ Label = "192 kbps"; Description = "Calidad balanceada"; Value = "192k" },
+            @{ Label = "128 kbps"; Description = "Calidad estándar"; Value = "128k" },
+            @{ Label = "96 kbps";  Description = "Ahorro de espacio"; Value = "96k" },
+            @{ Label = "64 kbps";  Description = "Mínimo tamaño"; Value = "64k" }
+        )
+    } else {
+        @(
+            @{ Label = "1080p"; Description = "Full HD 1080p"; Value = "1080p" },
+            @{ Label = "720p";  Description = "HD 720p (Recomendado)"; Value = "720p" },
+            @{ Label = "480p";  Description = "Definición estándar (SD)"; Value = "480p" },
+            @{ Label = "360p";  Description = "Móvil ligero"; Value = "360p" }
+        )
+    }
+
+    $defaultIdx = if ($fmt -eq "mp3") { 0 } else { 1 }
+    return (Invoke-VorkPicker -Title $PromptTitle -Subtitle "Vork Media · Calidad" -Items $items -DefaultIndex $defaultIdx -NumericSelect -Footer "flechas mover  ·  1-9 elegir  ·  enter seleccionar  ·  esc cancelar")
+}
+
+function Select-VorkMediaOutputAction {
+    param([string]$PromptTitle = "¿Cómo deseas obtener el archivo multimedia convertido?")
+
+    $items = @(
+        @{ Label = "Guardado local";    Description = "Descargar y guardar archivo físico en esta carpeta"; Value = "local" },
+        @{ Label = "Enlace de Descarga"; Description = "Obtener URL directa web para descargar en navegador"; Value = "download" },
+        @{ Label = "Enlace de Stream";   Description = "Obtener URL directa para reproducción en streaming"; Value = "stream" },
+        @{ Label = "Los tres";           Description = "Guardado local + Enlace Descarga + Enlace Stream"; Value = "all" }
+    )
+
+    return (Invoke-VorkPicker -Title $PromptTitle -Subtitle "Vork Media · Salida" -Items $items -DefaultIndex 0 -NumericSelect -Footer "flechas mover  ·  1-4 elegir  ·  enter seleccionar  ·  esc cancelar")
 }
 
 function Write-VorkTTSFrame {

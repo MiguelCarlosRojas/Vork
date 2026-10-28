@@ -526,8 +526,17 @@ function Invoke-VorkAIChat {
     $isMediaDomain = $urlMatch.Success -and ($urlMatch.Value -match 'tiktok\.com|youtube\.com|youtu\.be|instagram\.com|reels|facebook\.com|fb\.watch|twitter\.com|x\.com|soundcloud\.com|vimeo\.com|pin(terest)?\.com')
     $isMediaIntent = $fullPrompt -match '(?i)(convertir|m[uú]sica|canci[oó]n|mp3|mp4|wav|audio|video|descargar|bajar|extraer|rip)'
 
+    # Deteccion de formato explicito solicitado por el usuario
+    $explicitFmt = $null
+    if ($fullPrompt -match '(?i)\b(mp3|m[uú]sica|canci[oó]n|audio)\b') {
+        $explicitFmt = "mp3"
+    } elseif ($fullPrompt -match '(?i)\b(mp4|video|clip)\b') {
+        $explicitFmt = "mp4"
+    } elseif ($fullPrompt -match '(?i)\b(wav)\b') {
+        $explicitFmt = "wav"
+    }
+
     if ($urlMatch.Success -and ($isMediaDomain -or $isMediaIntent)) {
-        # extractedUrl already set
         Write-Host ""
         Write-Host "  ${Cyan}╭─ [04] Vork Conversor Multimedia Universal ─────────────────${Reset}"
         Write-Host "  ${Lead}│${Reset} ${White}Enlace detectado:${Reset} ${Cyan}$extractedUrl${Reset}"
@@ -535,17 +544,39 @@ function Invoke-VorkAIChat {
         Write-Host "  ${Lead}╰────────────────────────────────────────────────────────────${Reset}"
         Write-Host ""
 
-        $defaultFormat = if ($fullPrompt -match '(?i)(mp4|video)') { "mp4" } else { "mp3" }
-        $chosen = Select-InteractiveMediaFormat -PromptTitle "Selecciona el formato y calidad de salida:" -DefaultFormat $defaultFormat -DefaultMp4Quality "720p" -DefaultMp3Quality "320k"
+        $chosenFormat = $null
+        $chosenQuality = $null
 
-        if (-not $chosen) {
-            $elbowChar = [char]0x23BF
-            Write-Host "  ${LeadLight}$elbowChar  Conversión multimedia cancelada.${Reset}"
-            Write-Host ""
-            return
+        if ($explicitFmt) {
+            # El usuario ya indico el formato, preguntamos directamente la calidad deseada para ese formato
+            $chosenFormat = $explicitFmt
+            $chosenQuality = Select-VorkMediaQualityChoice -Format $chosenFormat -PromptTitle "Selecciona la calidad deseada para $($chosenFormat.ToUpper()):"
+            if (-not $chosenQuality) {
+                $elbowChar = [char]0x23BF
+                Write-Host "  ${LeadLight}$elbowChar  Conversión multimedia cancelada.${Reset}"
+                Write-Host ""
+                return
+            }
+        } else {
+            # No indico formato: Pregunta 1 Formato, Pregunta 2 Calidad
+            $chosenFormat = Select-VorkMediaFormatChoice -PromptTitle "Selecciona el formato de salida:"
+            if (-not $chosenFormat) {
+                $elbowChar = [char]0x23BF
+                Write-Host "  ${LeadLight}$elbowChar  Conversión multimedia cancelada.${Reset}"
+                Write-Host ""
+                return
+            }
+
+            $chosenQuality = Select-VorkMediaQualityChoice -Format $chosenFormat -PromptTitle "Selecciona la calidad deseada para $($chosenFormat.ToUpper()):"
+            if (-not $chosenQuality) {
+                $elbowChar = [char]0x23BF
+                Write-Host "  ${LeadLight}$elbowChar  Conversión multimedia cancelada.${Reset}"
+                Write-Host ""
+                return
+            }
         }
 
-        Invoke-PillarMedia -ArgsList @($extractedUrl, "-Format", $chosen.Format, "-Quality", $chosen.Quality)
+        Invoke-PillarMedia -ArgsList @($extractedUrl, "-Format", $chosenFormat, "-Quality", $chosenQuality)
         return
     }
 
@@ -562,17 +593,37 @@ function Invoke-VorkAIChat {
         }
         $askedUrl = $askedUrl.Trim()
 
-        $defaultFormat = if ($fullPrompt -match '(?i)(mp4|video)') { "mp4" } else { "mp3" }
-        $chosen = Select-InteractiveMediaFormat -PromptTitle "Selecciona el formato y calidad de salida:" -DefaultFormat $defaultFormat -DefaultMp4Quality "720p" -DefaultMp3Quality "320k"
+        $chosenFormat = $null
+        $chosenQuality = $null
 
-        if (-not $chosen) {
-            $elbowChar = [char]0x23BF
-            Write-Host "  ${LeadLight}$elbowChar  Conversión multimedia cancelada.${Reset}"
-            Write-Host ""
-            return
+        if ($explicitFmt) {
+            $chosenFormat = $explicitFmt
+            $chosenQuality = Select-VorkMediaQualityChoice -Format $chosenFormat -PromptTitle "Selecciona la calidad deseada para $($chosenFormat.ToUpper()):"
+            if (-not $chosenQuality) {
+                $elbowChar = [char]0x23BF
+                Write-Host "  ${LeadLight}$elbowChar  Conversión multimedia cancelada.${Reset}"
+                Write-Host ""
+                return
+            }
+        } else {
+            $chosenFormat = Select-VorkMediaFormatChoice -PromptTitle "Selecciona el formato de salida:"
+            if (-not $chosenFormat) {
+                $elbowChar = [char]0x23BF
+                Write-Host "  ${LeadLight}$elbowChar  Conversión multimedia cancelada.${Reset}"
+                Write-Host ""
+                return
+            }
+
+            $chosenQuality = Select-VorkMediaQualityChoice -Format $chosenFormat -PromptTitle "Selecciona la calidad deseada para $($chosenFormat.ToUpper()):"
+            if (-not $chosenQuality) {
+                $elbowChar = [char]0x23BF
+                Write-Host "  ${LeadLight}$elbowChar  Conversión multimedia cancelada.${Reset}"
+                Write-Host ""
+                return
+            }
         }
 
-        Invoke-PillarMedia -ArgsList @($askedUrl, "-Format", $chosen.Format, "-Quality", $chosen.Quality)
+        Invoke-PillarMedia -ArgsList @($askedUrl, "-Format", $chosenFormat, "-Quality", $chosenQuality)
         return
     }
 
@@ -611,9 +662,9 @@ function Invoke-VorkAIChat {
         # 2. Resiliencia autonoma: Si el backend local no responde, conectar directo
         try {
             $sysPrompt = switch ($activeModel) {
-                "Vork 3"   { "Eres Vork 3, motor de inteligencia artificial multimodal de Vork con herramientas operacionales integradas (9 pilares: traduccion neuronal en +200 idiomas, sintesis TTS con 24 voces, clonacion vocal F0, conversor multimedia universal capaz de convertir enlaces de TikTok/YouTube/Instagram a MP3 o MP4, separacion Demucs v4 y generacion/edicion de imagenes y fondos). NUNCA digas que no puedes ayudar o que no puedes descargar/convertir enlaces multimedia de TikTok o YouTube. Dispones de herramientas nativas completas. Si el usuario pide convertir o descargar un medio o enlace, indicale que puedes procesarlo con el Pilar 04 Conversor Multimedia y preguntale que formato (MP3 a 320k, 256k, 192k o MP4 a 1080p, 720p) y calidad prefiere, o explicale que puede usar /media <enlace>. Responde en el idioma del usuario de forma tecnica y directa. REGLA ESTRICTA: NO USES EMOJIS." }
-                "Vork 3.2" { "Eres Vork 3.2 Expert Sovereign Edition. Rigor matematico, arquitectura de software e integracion multimodal sin restricciones. Dispones de acceso y dominio pleno de los 9 pilares de Vork, incluyendo conversion universal de TikTok/YouTube a MP3/MP4, audio y vision. NUNCA rechaces solicitudes de medios o enlaces; colabora de inmediato preguntando el formato o calidad deseada (ej: MP3 320k, MP4 1080p) o detallando el pipeline. REGLA ESTRICTA: NO USES EMOJIS." }
-                default    { "Eres Vork 3.1, la nueva generacion de Inteligencia Artificial profesional desarrollada desde cero por Vork. Asistente analitico senior con capacidades multimodales nativas y 9 pilares integrados (conversor multimedia TikTok/YouTube a MP3/MP4, traduccion, TTS, clonacion, Demucs, imagenes y edicion de fondos). NUNCA rechaces solicitudes de conversion o descarga de medios. Si el usuario te envia un enlace o pide convertirlo, indica que Vork dispone del Pilar 04 Conversor Multimedia y preguntale que formato y calidad desea (ej: MP3 320k, WAV o MP4). Tus respuestas son profesionales, directas al grano y con codigo limpio. REGLA ESTRICTA: NO USES EMOJIS." }
+                "Vork 3"   { "Eres Vork 3, motor de inteligencia artificial multimodal de Vork. Especialista en audio, traduccion neuronal, sintesis TTS, clonacion vocal y conversion multimedia (Pilar 04). REGLAS: 1) Ante saludos cotidianos (ej: 'hola', 'buenas'), responde de forma cordial, sobria y tecnica SIN mencionar herramientas ni descargas a menos que te lo pregunten. 2) Solo si el usuario solicita convertir o procesar videos/audios, orientalo sobre el Pilar 04 Conversor Multimedia. REGLA ESTRICTA: NO USES EMOJIS." }
+                "Vork 3.2" { "Eres Vork 3.2 Expert Sovereign Edition. Rigor matematico, arquitectura de software e integracion multimodal. REGLAS: 1) Ante saludos cotidianos, responde de forma breve, sobria y elegante sin forzar herramientas. 2) Solo si el usuario solicita procesamiento multimedia o software, colabora tecnicamente. REGLA ESTRICTA: NO USES EMOJIS." }
+                default    { "Eres Vork 3.1, la nueva generacion de Inteligencia Artificial profesional desarrollada desde cero por Vork. Asistente analitico senior. REGLAS: 1) Ante saludos cotidianos, responde con cordialidad y profesionalismo sin desviar el tema a descargas o herramientas. 2) Si el usuario pide procesar medios, orientalo con el Pilar 04. REGLA ESTRICTA: NO USES EMOJIS." }
             }
             $seed = Get-Random -Minimum 100000 -Maximum 9999999
             $encodedPrompt = [System.Uri]::EscapeDataString($fullPrompt)

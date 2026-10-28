@@ -2523,6 +2523,66 @@ function Select-InteractiveMediaFormat {
     }
 }
 
+function Select-VorkMediaFormatChoice {
+    param([string]$PromptTitle = "Selecciona el formato de salida:")
+
+    $items = @(
+        @{ Label = "MP3"; Description = "Audio y música (Máxima compatibilidad)"; Value = "mp3" },
+        @{ Label = "MP4"; Description = "Video en alta definición (con audio)"; Value = "mp4" },
+        @{ Label = "WAV"; Description = "Audio PCM sin compresión (Lossless)"; Value = "wav" }
+    )
+
+    return (Invoke-VorkPicker -Title $PromptTitle -Subtitle "Vork Media" -Items $items -DefaultIndex 0 -NumericSelect -Footer "flechas mover  ·  1-3 elegir  ·  enter seleccionar  ·  esc cancelar")
+}
+
+function Select-VorkMediaQualityChoice {
+    param(
+        [string]$Format = "mp3",
+        [string]$PromptTitle = ""
+    )
+
+    $fmt = if ($Format) { $Format.ToLower() } else { "mp3" }
+    if ($fmt -eq "wav") { return "lossless" }
+
+    if (-not $PromptTitle) {
+        $PromptTitle = "Selecciona la calidad deseada para $($fmt.ToUpper()):"
+    }
+
+    $items = if ($fmt -eq "mp3") {
+        @(
+            @{ Label = "320 kbps"; Description = "Máxima fidelidad (Recomendado para música)"; Value = "320k" },
+            @{ Label = "256 kbps"; Description = "Alta fidelidad"; Value = "256k" },
+            @{ Label = "192 kbps"; Description = "Calidad balanceada"; Value = "192k" },
+            @{ Label = "128 kbps"; Description = "Calidad estándar"; Value = "128k" },
+            @{ Label = "96 kbps";  Description = "Ahorro de espacio"; Value = "96k" },
+            @{ Label = "64 kbps";  Description = "Mínimo tamaño"; Value = "64k" }
+        )
+    } else {
+        @(
+            @{ Label = "1080p"; Description = "Full HD 1080p"; Value = "1080p" },
+            @{ Label = "720p";  Description = "HD 720p (Recomendado)"; Value = "720p" },
+            @{ Label = "480p";  Description = "Definición estándar (SD)"; Value = "480p" },
+            @{ Label = "360p";  Description = "Móvil ligero"; Value = "360p" }
+        )
+    }
+
+    $defaultIdx = if ($fmt -eq "mp3") { 0 } else { 1 }
+    return (Invoke-VorkPicker -Title $PromptTitle -Subtitle "Vork Media · Calidad" -Items $items -DefaultIndex $defaultIdx -NumericSelect -Footer "flechas mover  ·  1-9 elegir  ·  enter seleccionar  ·  esc cancelar")
+}
+
+function Select-VorkMediaOutputAction {
+    param([string]$PromptTitle = "¿Cómo deseas obtener el archivo multimedia convertido?")
+
+    $items = @(
+        @{ Label = "Guardado local";    Description = "Descargar y guardar archivo físico en esta carpeta"; Value = "local" },
+        @{ Label = "Enlace de Descarga"; Description = "Obtener URL directa web para descargar en navegador"; Value = "download" },
+        @{ Label = "Enlace de Stream";   Description = "Obtener URL directa para reproducción en streaming"; Value = "stream" },
+        @{ Label = "Los tres";           Description = "Guardado local + Enlace Descarga + Enlace Stream"; Value = "all" }
+    )
+
+    return (Invoke-VorkPicker -Title $PromptTitle -Subtitle "Vork Media · Salida" -Items $items -DefaultIndex 0 -NumericSelect -Footer "flechas mover  ·  1-4 elegir  ·  enter seleccionar  ·  esc cancelar")
+}
+
 function Write-VorkTTSFrame {
     param(
         $Panel,
@@ -4261,18 +4321,27 @@ function Invoke-PillarMedia {
     }
 
     if (-not $hasExplicitFormat) {
-        $defaultFmt = if ($fmt) { $fmt } else { "mp3" }
-        $chosen = Select-InteractiveMediaFormat -PromptTitle "Selecciona el formato y calidad de salida:" -DefaultFormat $defaultFmt -DefaultMp4Quality "720p" -DefaultMp3Quality "320k"
-        if (-not $chosen) {
+        if (-not $fmt) {
+            $fmt = Select-VorkMediaFormatChoice -PromptTitle "Selecciona el formato de salida:"
+            if (-not $fmt) {
+                Write-Host "  ${Lead}╰─ Conversión cancelada.${Reset}"
+                Write-Host ""
+                return
+            }
+        }
+
+        $quality = Select-VorkMediaQualityChoice -Format $fmt -PromptTitle "Selecciona la calidad deseada para $($fmt.ToUpper()):"
+        if (-not $quality) {
             Write-Host "  ${Lead}╰─ Conversión cancelada.${Reset}"
             Write-Host ""
             return
         }
-        $fmt = $chosen.Format
-        $quality = $chosen.Quality
     } else {
         if (-not $quality) {
-            $quality = if ($fmt -eq "mp3") { "320" } elseif ($fmt -eq "wav") { "lossless" } else { "720p" }
+            $quality = Select-VorkMediaQualityChoice -Format $fmt -PromptTitle "Selecciona la calidad deseada para $($fmt.ToUpper()):"
+            if (-not $quality) {
+                $quality = if ($fmt -eq "mp3") { "320k" } elseif ($fmt -eq "wav") { "lossless" } else { "720p" }
+            }
         }
     }
 
@@ -4368,14 +4437,30 @@ function Invoke-PillarMedia {
             Write-Host "  $Cyan├───────────────────────────────────────────────────$Reset"
             Write-Host "  $Cyan│$Reset  $Green✓ Conversión multimedia completada exitosamente.$Reset"
             $dlFull = if ($res.downloadUrl.StartsWith("http")) { $res.downloadUrl } else { "$ApiBase$($res.downloadUrl)" }
+            $stFull = if ($res.streamUrl -and $res.streamUrl.StartsWith("http")) { $res.streamUrl } elseif ($res.streamUrl) { "$ApiBase$($res.streamUrl)" } else { "$ApiBase/api/media/stream?id=$($res.id)" }
             $localFile = if ($res.filename) { $res.filename } else { "media_output.$fmt" }
-            try {
-                Invoke-WebRequest -Uri $dlFull -OutFile $localFile -UseBasicParsing -TimeoutSec 120
-                $resolvedOut = (Resolve-Path $localFile).Path
-                Write-Host "  $Cyan│$Reset  $Green✓ Guardado local:$Reset $White$resolvedOut$Reset"
-            } catch {
+
+            $outputMode = Select-VorkMediaOutputAction -PromptTitle "Selecciona cómo deseas obtener el archivo convertido:"
+            if (-not $outputMode) { $outputMode = "all" }
+
+            if ($outputMode -in "local", "all") {
+                try {
+                    Invoke-WebRequest -Uri $dlFull -OutFile $localFile -UseBasicParsing -TimeoutSec 120
+                    $resolvedOut = (Resolve-Path $localFile).Path
+                    Write-Host "  $Cyan│$Reset  $Green✓ Guardado local:$Reset $White$resolvedOut$Reset"
+                } catch {
+                    Write-Host "  $Cyan│$Reset    Descarga: $Yellow$dlFull$Reset"
+                }
+            }
+
+            if ($outputMode -in "download", "all") {
                 Write-Host "  $Cyan│$Reset    Descarga: $Yellow$dlFull$Reset"
             }
+
+            if ($outputMode -in "stream", "all") {
+                Write-Host "  $Cyan│$Reset    Stream:   $Cyan$stFull$Reset"
+            }
+
             Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
             Send-VorkNotification -Title "Vork Conversor Multimedia" -Message "Conversión a $fmt ($quality) completada con éxito."
         }
@@ -5582,8 +5667,17 @@ function Invoke-VorkAIChat {
     $isMediaDomain = $urlMatch.Success -and ($urlMatch.Value -match 'tiktok\.com|youtube\.com|youtu\.be|instagram\.com|reels|facebook\.com|fb\.watch|twitter\.com|x\.com|soundcloud\.com|vimeo\.com|pin(terest)?\.com')
     $isMediaIntent = $fullPrompt -match '(?i)(convertir|m[uú]sica|canci[oó]n|mp3|mp4|wav|audio|video|descargar|bajar|extraer|rip)'
 
+    # Deteccion de formato explicito solicitado por el usuario
+    $explicitFmt = $null
+    if ($fullPrompt -match '(?i)\b(mp3|m[uú]sica|canci[oó]n|audio)\b') {
+        $explicitFmt = "mp3"
+    } elseif ($fullPrompt -match '(?i)\b(mp4|video|clip)\b') {
+        $explicitFmt = "mp4"
+    } elseif ($fullPrompt -match '(?i)\b(wav)\b') {
+        $explicitFmt = "wav"
+    }
+
     if ($urlMatch.Success -and ($isMediaDomain -or $isMediaIntent)) {
-        # extractedUrl already set
         Write-Host ""
         Write-Host "  ${Cyan}╭─ [04] Vork Conversor Multimedia Universal ─────────────────${Reset}"
         Write-Host "  ${Lead}│${Reset} ${White}Enlace detectado:${Reset} ${Cyan}$extractedUrl${Reset}"
@@ -5591,17 +5685,39 @@ function Invoke-VorkAIChat {
         Write-Host "  ${Lead}╰────────────────────────────────────────────────────────────${Reset}"
         Write-Host ""
 
-        $defaultFormat = if ($fullPrompt -match '(?i)(mp4|video)') { "mp4" } else { "mp3" }
-        $chosen = Select-InteractiveMediaFormat -PromptTitle "Selecciona el formato y calidad de salida:" -DefaultFormat $defaultFormat -DefaultMp4Quality "720p" -DefaultMp3Quality "320k"
+        $chosenFormat = $null
+        $chosenQuality = $null
 
-        if (-not $chosen) {
-            $elbowChar = [char]0x23BF
-            Write-Host "  ${LeadLight}$elbowChar  Conversión multimedia cancelada.${Reset}"
-            Write-Host ""
-            return
+        if ($explicitFmt) {
+            # El usuario ya indico el formato, preguntamos directamente la calidad deseada para ese formato
+            $chosenFormat = $explicitFmt
+            $chosenQuality = Select-VorkMediaQualityChoice -Format $chosenFormat -PromptTitle "Selecciona la calidad deseada para $($chosenFormat.ToUpper()):"
+            if (-not $chosenQuality) {
+                $elbowChar = [char]0x23BF
+                Write-Host "  ${LeadLight}$elbowChar  Conversión multimedia cancelada.${Reset}"
+                Write-Host ""
+                return
+            }
+        } else {
+            # No indico formato: Pregunta 1 Formato, Pregunta 2 Calidad
+            $chosenFormat = Select-VorkMediaFormatChoice -PromptTitle "Selecciona el formato de salida:"
+            if (-not $chosenFormat) {
+                $elbowChar = [char]0x23BF
+                Write-Host "  ${LeadLight}$elbowChar  Conversión multimedia cancelada.${Reset}"
+                Write-Host ""
+                return
+            }
+
+            $chosenQuality = Select-VorkMediaQualityChoice -Format $chosenFormat -PromptTitle "Selecciona la calidad deseada para $($chosenFormat.ToUpper()):"
+            if (-not $chosenQuality) {
+                $elbowChar = [char]0x23BF
+                Write-Host "  ${LeadLight}$elbowChar  Conversión multimedia cancelada.${Reset}"
+                Write-Host ""
+                return
+            }
         }
 
-        Invoke-PillarMedia -ArgsList @($extractedUrl, "-Format", $chosen.Format, "-Quality", $chosen.Quality)
+        Invoke-PillarMedia -ArgsList @($extractedUrl, "-Format", $chosenFormat, "-Quality", $chosenQuality)
         return
     }
 
@@ -5618,17 +5734,37 @@ function Invoke-VorkAIChat {
         }
         $askedUrl = $askedUrl.Trim()
 
-        $defaultFormat = if ($fullPrompt -match '(?i)(mp4|video)') { "mp4" } else { "mp3" }
-        $chosen = Select-InteractiveMediaFormat -PromptTitle "Selecciona el formato y calidad de salida:" -DefaultFormat $defaultFormat -DefaultMp4Quality "720p" -DefaultMp3Quality "320k"
+        $chosenFormat = $null
+        $chosenQuality = $null
 
-        if (-not $chosen) {
-            $elbowChar = [char]0x23BF
-            Write-Host "  ${LeadLight}$elbowChar  Conversión multimedia cancelada.${Reset}"
-            Write-Host ""
-            return
+        if ($explicitFmt) {
+            $chosenFormat = $explicitFmt
+            $chosenQuality = Select-VorkMediaQualityChoice -Format $chosenFormat -PromptTitle "Selecciona la calidad deseada para $($chosenFormat.ToUpper()):"
+            if (-not $chosenQuality) {
+                $elbowChar = [char]0x23BF
+                Write-Host "  ${LeadLight}$elbowChar  Conversión multimedia cancelada.${Reset}"
+                Write-Host ""
+                return
+            }
+        } else {
+            $chosenFormat = Select-VorkMediaFormatChoice -PromptTitle "Selecciona el formato de salida:"
+            if (-not $chosenFormat) {
+                $elbowChar = [char]0x23BF
+                Write-Host "  ${LeadLight}$elbowChar  Conversión multimedia cancelada.${Reset}"
+                Write-Host ""
+                return
+            }
+
+            $chosenQuality = Select-VorkMediaQualityChoice -Format $chosenFormat -PromptTitle "Selecciona la calidad deseada para $($chosenFormat.ToUpper()):"
+            if (-not $chosenQuality) {
+                $elbowChar = [char]0x23BF
+                Write-Host "  ${LeadLight}$elbowChar  Conversión multimedia cancelada.${Reset}"
+                Write-Host ""
+                return
+            }
         }
 
-        Invoke-PillarMedia -ArgsList @($askedUrl, "-Format", $chosen.Format, "-Quality", $chosen.Quality)
+        Invoke-PillarMedia -ArgsList @($askedUrl, "-Format", $chosenFormat, "-Quality", $chosenQuality)
         return
     }
 
@@ -5667,9 +5803,9 @@ function Invoke-VorkAIChat {
         # 2. Resiliencia autonoma: Si el backend local no responde, conectar directo
         try {
             $sysPrompt = switch ($activeModel) {
-                "Vork 3"   { "Eres Vork 3, motor de inteligencia artificial multimodal de Vork con herramientas operacionales integradas (9 pilares: traduccion neuronal en +200 idiomas, sintesis TTS con 24 voces, clonacion vocal F0, conversor multimedia universal capaz de convertir enlaces de TikTok/YouTube/Instagram a MP3 o MP4, separacion Demucs v4 y generacion/edicion de imagenes y fondos). NUNCA digas que no puedes ayudar o que no puedes descargar/convertir enlaces multimedia de TikTok o YouTube. Dispones de herramientas nativas completas. Si el usuario pide convertir o descargar un medio o enlace, indicale que puedes procesarlo con el Pilar 04 Conversor Multimedia y preguntale que formato (MP3 a 320k, 256k, 192k o MP4 a 1080p, 720p) y calidad prefiere, o explicale que puede usar /media <enlace>. Responde en el idioma del usuario de forma tecnica y directa. REGLA ESTRICTA: NO USES EMOJIS." }
-                "Vork 3.2" { "Eres Vork 3.2 Expert Sovereign Edition. Rigor matematico, arquitectura de software e integracion multimodal sin restricciones. Dispones de acceso y dominio pleno de los 9 pilares de Vork, incluyendo conversion universal de TikTok/YouTube a MP3/MP4, audio y vision. NUNCA rechaces solicitudes de medios o enlaces; colabora de inmediato preguntando el formato o calidad deseada (ej: MP3 320k, MP4 1080p) o detallando el pipeline. REGLA ESTRICTA: NO USES EMOJIS." }
-                default    { "Eres Vork 3.1, la nueva generacion de Inteligencia Artificial profesional desarrollada desde cero por Vork. Asistente analitico senior con capacidades multimodales nativas y 9 pilares integrados (conversor multimedia TikTok/YouTube a MP3/MP4, traduccion, TTS, clonacion, Demucs, imagenes y edicion de fondos). NUNCA rechaces solicitudes de conversion o descarga de medios. Si el usuario te envia un enlace o pide convertirlo, indica que Vork dispone del Pilar 04 Conversor Multimedia y preguntale que formato y calidad desea (ej: MP3 320k, WAV o MP4). Tus respuestas son profesionales, directas al grano y con codigo limpio. REGLA ESTRICTA: NO USES EMOJIS." }
+                "Vork 3"   { "Eres Vork 3, motor de inteligencia artificial multimodal de Vork. Especialista en audio, traduccion neuronal, sintesis TTS, clonacion vocal y conversion multimedia (Pilar 04). REGLAS: 1) Ante saludos cotidianos (ej: 'hola', 'buenas'), responde de forma cordial, sobria y tecnica SIN mencionar herramientas ni descargas a menos que te lo pregunten. 2) Solo si el usuario solicita convertir o procesar videos/audios, orientalo sobre el Pilar 04 Conversor Multimedia. REGLA ESTRICTA: NO USES EMOJIS." }
+                "Vork 3.2" { "Eres Vork 3.2 Expert Sovereign Edition. Rigor matematico, arquitectura de software e integracion multimodal. REGLAS: 1) Ante saludos cotidianos, responde de forma breve, sobria y elegante sin forzar herramientas. 2) Solo si el usuario solicita procesamiento multimedia o software, colabora tecnicamente. REGLA ESTRICTA: NO USES EMOJIS." }
+                default    { "Eres Vork 3.1, la nueva generacion de Inteligencia Artificial profesional desarrollada desde cero por Vork. Asistente analitico senior. REGLAS: 1) Ante saludos cotidianos, responde con cordialidad y profesionalismo sin desviar el tema a descargas o herramientas. 2) Si el usuario pide procesar medios, orientalo con el Pilar 04. REGLA ESTRICTA: NO USES EMOJIS." }
             }
             $seed = Get-Random -Minimum 100000 -Maximum 9999999
             $encodedPrompt = [System.Uri]::EscapeDataString($fullPrompt)

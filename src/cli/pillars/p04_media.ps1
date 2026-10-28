@@ -33,18 +33,27 @@ function Invoke-PillarMedia {
     }
 
     if (-not $hasExplicitFormat) {
-        $defaultFmt = if ($fmt) { $fmt } else { "mp3" }
-        $chosen = Select-InteractiveMediaFormat -PromptTitle "Selecciona el formato y calidad de salida:" -DefaultFormat $defaultFmt -DefaultMp4Quality "720p" -DefaultMp3Quality "320k"
-        if (-not $chosen) {
+        if (-not $fmt) {
+            $fmt = Select-VorkMediaFormatChoice -PromptTitle "Selecciona el formato de salida:"
+            if (-not $fmt) {
+                Write-Host "  ${Lead}╰─ Conversión cancelada.${Reset}"
+                Write-Host ""
+                return
+            }
+        }
+
+        $quality = Select-VorkMediaQualityChoice -Format $fmt -PromptTitle "Selecciona la calidad deseada para $($fmt.ToUpper()):"
+        if (-not $quality) {
             Write-Host "  ${Lead}╰─ Conversión cancelada.${Reset}"
             Write-Host ""
             return
         }
-        $fmt = $chosen.Format
-        $quality = $chosen.Quality
     } else {
         if (-not $quality) {
-            $quality = if ($fmt -eq "mp3") { "320" } elseif ($fmt -eq "wav") { "lossless" } else { "720p" }
+            $quality = Select-VorkMediaQualityChoice -Format $fmt -PromptTitle "Selecciona la calidad deseada para $($fmt.ToUpper()):"
+            if (-not $quality) {
+                $quality = if ($fmt -eq "mp3") { "320k" } elseif ($fmt -eq "wav") { "lossless" } else { "720p" }
+            }
         }
     }
 
@@ -140,14 +149,30 @@ function Invoke-PillarMedia {
             Write-Host "  $Cyan├───────────────────────────────────────────────────$Reset"
             Write-Host "  $Cyan│$Reset  $Green✓ Conversión multimedia completada exitosamente.$Reset"
             $dlFull = if ($res.downloadUrl.StartsWith("http")) { $res.downloadUrl } else { "$ApiBase$($res.downloadUrl)" }
+            $stFull = if ($res.streamUrl -and $res.streamUrl.StartsWith("http")) { $res.streamUrl } elseif ($res.streamUrl) { "$ApiBase$($res.streamUrl)" } else { "$ApiBase/api/media/stream?id=$($res.id)" }
             $localFile = if ($res.filename) { $res.filename } else { "media_output.$fmt" }
-            try {
-                Invoke-WebRequest -Uri $dlFull -OutFile $localFile -UseBasicParsing -TimeoutSec 120
-                $resolvedOut = (Resolve-Path $localFile).Path
-                Write-Host "  $Cyan│$Reset  $Green✓ Guardado local:$Reset $White$resolvedOut$Reset"
-            } catch {
+
+            $outputMode = Select-VorkMediaOutputAction -PromptTitle "Selecciona cómo deseas obtener el archivo convertido:"
+            if (-not $outputMode) { $outputMode = "all" }
+
+            if ($outputMode -in "local", "all") {
+                try {
+                    Invoke-WebRequest -Uri $dlFull -OutFile $localFile -UseBasicParsing -TimeoutSec 120
+                    $resolvedOut = (Resolve-Path $localFile).Path
+                    Write-Host "  $Cyan│$Reset  $Green✓ Guardado local:$Reset $White$resolvedOut$Reset"
+                } catch {
+                    Write-Host "  $Cyan│$Reset    Descarga: $Yellow$dlFull$Reset"
+                }
+            }
+
+            if ($outputMode -in "download", "all") {
                 Write-Host "  $Cyan│$Reset    Descarga: $Yellow$dlFull$Reset"
             }
+
+            if ($outputMode -in "stream", "all") {
+                Write-Host "  $Cyan│$Reset    Stream:   $Cyan$stFull$Reset"
+            }
+
             Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
             Send-VorkNotification -Title "Vork Conversor Multimedia" -Message "Conversión a $fmt ($quality) completada con éxito."
         }
