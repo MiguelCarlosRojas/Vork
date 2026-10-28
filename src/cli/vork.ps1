@@ -2570,17 +2570,40 @@ function Select-VorkMediaQualityChoice {
     return (Invoke-VorkPicker -Title $PromptTitle -Subtitle "Vork Media · Calidad" -Items $items -DefaultIndex $defaultIdx -NumericSelect -Footer "flechas mover  ·  1-9 elegir  ·  enter seleccionar  ·  esc cancelar")
 }
 
+function Get-VorkMediaPlatformName {
+    param([string]$Url)
+
+    if (-not $Url) { return "Multimedia Web" }
+    $u = $Url.ToLower()
+
+    if ($u -match 'tiktok\.com|byteoversea|ibytedtos') { return "TikTok" }
+    if ($u -match 'youtube\.com|youtu\.be') { return "YouTube" }
+    if ($u -match 'instagram\.com|cdninstagram') { return "Instagram (Reels/Post)" }
+    if ($u -match 'twitter\.com|x\.com') { return "X (Twitter)" }
+    if ($u -match 'facebook\.com|fb\.watch|fbcdn') { return "Facebook Video" }
+    if ($u -match 'soundcloud\.com') { return "SoundCloud" }
+    if ($u -match 'vimeo\.com') { return "Vimeo" }
+    if ($u -match 'pin(terest)?\.com') { return "Pinterest" }
+    if ($u -match 'twitch\.tv') { return "Twitch" }
+    if ($u -match 'reddit\.com') { return "Reddit" }
+
+    return "Plataforma Multimedia Web"
+}
+
 function Select-VorkMediaOutputAction {
     param([string]$PromptTitle = "¿Cómo deseas obtener el archivo multimedia convertido?")
 
     $items = @(
-        @{ Label = "Guardado local";    Description = "Descargar y guardar archivo físico en esta carpeta"; Value = "local" },
-        @{ Label = "Enlace de Descarga"; Description = "Obtener URL directa web para descargar en navegador"; Value = "download" },
-        @{ Label = "Enlace de Stream";   Description = "Obtener URL directa para reproducción en streaming"; Value = "stream" },
-        @{ Label = "Los tres";           Description = "Guardado local + Enlace Descarga + Enlace Stream"; Value = "all" }
+        @{ Label = "Guardado local";                      Description = "Descargar y guardar archivo físico en esta carpeta"; Value = "local" },
+        @{ Label = "Enlace de Descarga";                  Description = "Obtener URL directa web para descargar en navegador"; Value = "download" },
+        @{ Label = "Enlace de Stream";                    Description = "Obtener URL directa para reproducción en streaming"; Value = "stream" },
+        @{ Label = "Guardado local + Enlace de Stream";   Description = "Descargar archivo local y obtener enlace de streaming"; Value = "local_stream" },
+        @{ Label = "Guardado local + Enlace de Descarga"; Description = "Descargar archivo local y obtener enlace web"; Value = "local_download" },
+        @{ Label = "Enlace de Descarga + Enlace de Stream"; Description = "Obtener ambos enlaces web (descarga y stream)"; Value = "download_stream" },
+        @{ Label = "Los tres (Local + Descarga + Stream)"; Description = "Guardado físico local + Enlace Descarga + Enlace Stream"; Value = "all" }
     )
 
-    return (Invoke-VorkPicker -Title $PromptTitle -Subtitle "Vork Media · Salida" -Items $items -DefaultIndex 0 -NumericSelect -Footer "flechas mover  ·  1-4 elegir  ·  enter seleccionar  ·  esc cancelar")
+    return (Invoke-VorkPicker -Title $PromptTitle -Subtitle "Vork Media · Opciones de salida" -Items $items -DefaultIndex 0 -NumericSelect -Footer "flechas mover  ·  1-7 elegir  ·  enter seleccionar  ·  esc cancelar")
 }
 
 function Write-VorkTTSFrame {
@@ -4345,10 +4368,13 @@ function Invoke-PillarMedia {
         }
     }
 
+    $platformName = Get-VorkMediaPlatformName -Url $url
     Write-Host ""
     Write-Host "  $Cyan╭─ [04] VORK CONVERSOR MULTIMEDIA ──────────────────$Reset"
-    Write-Host "  $Cyan│$Reset  $Gray URL:$Reset      $White$url$Reset"
-    Write-Host "  $Cyan│$Reset  $Gray Formato:$Reset  $Yellow$fmt ($quality)$Reset"
+    Write-Host "  $Cyan│$Reset  $Gray Plataforma:$Reset  $Yellow${Bold}$platformName$Reset"
+    Write-Host "  $Cyan│$Reset  $Gray URL:$Reset         $White$url$Reset"
+    Write-Host "  $Cyan│$Reset  $Gray Formato:$Reset     $Cyan${Bold}$($fmt.ToUpper())$Reset"
+    Write-Host "  $Cyan│$Reset  $Gray Calidad:$Reset     $Yellow$quality$Reset"
     Write-Host "  $Cyan├───────────────────────────────────────────────────$Reset"
 
     $body = @{ url = $url; format = $fmt; quality = $quality } | ConvertTo-Json
@@ -4443,7 +4469,11 @@ function Invoke-PillarMedia {
             $outputMode = Select-VorkMediaOutputAction -PromptTitle "Selecciona cómo deseas obtener el archivo convertido:"
             if (-not $outputMode) { $outputMode = "all" }
 
-            if ($outputMode -in "local", "all") {
+            $hasLocal = $outputMode -in @("local", "local_stream", "local_download", "all")
+            $hasDownload = $outputMode -in @("download", "local_download", "download_stream", "all")
+            $hasStream = $outputMode -in @("stream", "local_stream", "download_stream", "all")
+
+            if ($hasLocal) {
                 try {
                     Invoke-WebRequest -Uri $dlFull -OutFile $localFile -UseBasicParsing -TimeoutSec 120
                     $resolvedOut = (Resolve-Path $localFile).Path
@@ -4453,12 +4483,12 @@ function Invoke-PillarMedia {
                 }
             }
 
-            if ($outputMode -in "download", "all") {
-                Write-Host "  $Cyan│$Reset    Descarga: $Yellow$dlFull$Reset"
+            if ($hasDownload) {
+                Write-Host "  $Cyan│$Reset  $Yellow✓ Descarga:$Reset       $White$dlFull$Reset"
             }
 
-            if ($outputMode -in "stream", "all") {
-                Write-Host "  $Cyan│$Reset    Stream:   $Cyan$stFull$Reset"
+            if ($hasStream) {
+                Write-Host "  $Cyan│$Reset  $Cyan✓ Stream:  $Reset       $White$stFull$Reset"
             }
 
             Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
@@ -5678,9 +5708,11 @@ function Invoke-VorkAIChat {
     }
 
     if ($urlMatch.Success -and ($isMediaDomain -or $isMediaIntent)) {
+        $platformName = Get-VorkMediaPlatformName -Url $extractedUrl
         Write-Host ""
         Write-Host "  ${Cyan}╭─ [04] Vork Conversor Multimedia Universal ─────────────────${Reset}"
-        Write-Host "  ${Lead}│${Reset} ${White}Enlace detectado:${Reset} ${Cyan}$extractedUrl${Reset}"
+        Write-Host "  ${Lead}│${Reset} ${White}Plataforma:${Reset}  ${Yellow}${Bold}$platformName${Reset}"
+        Write-Host "  ${Lead}│${Reset} ${White}Enlace:${Reset}      ${Cyan}$extractedUrl${Reset}"
         Write-Host "  ${Lead}│${Reset} ${LeadLight}Pilar 04 listo para procesar la conversión multimedia.${Reset}"
         Write-Host "  ${Lead}╰────────────────────────────────────────────────────────────${Reset}"
         Write-Host ""
@@ -5733,6 +5765,11 @@ function Invoke-VorkAIChat {
             return
         }
         $askedUrl = $askedUrl.Trim()
+        $platformName = Get-VorkMediaPlatformName -Url $askedUrl
+        Write-Host "  ${Lead}│${Reset} ${White}Plataforma:${Reset}  ${Yellow}${Bold}$platformName${Reset}"
+        Write-Host "  ${Lead}│${Reset} ${White}Enlace:${Reset}      ${Cyan}$askedUrl${Reset}"
+        Write-Host "  ${Lead}╰────────────────────────────────────────────────────────────${Reset}"
+        Write-Host ""
 
         $chosenFormat = $null
         $chosenQuality = $null

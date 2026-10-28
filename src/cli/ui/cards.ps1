@@ -646,17 +646,40 @@ function Select-VorkMediaQualityChoice {
     return (Invoke-VorkPicker -Title $PromptTitle -Subtitle "Vork Media · Calidad" -Items $items -DefaultIndex $defaultIdx -NumericSelect -Footer "flechas mover  ·  1-9 elegir  ·  enter seleccionar  ·  esc cancelar")
 }
 
+function Get-VorkMediaPlatformName {
+    param([string]$Url)
+
+    if (-not $Url) { return "Multimedia Web" }
+    $u = $Url.ToLower()
+
+    if ($u -match 'tiktok\.com|byteoversea|ibytedtos') { return "TikTok" }
+    if ($u -match 'youtube\.com|youtu\.be') { return "YouTube" }
+    if ($u -match 'instagram\.com|cdninstagram') { return "Instagram (Reels/Post)" }
+    if ($u -match 'twitter\.com|x\.com') { return "X (Twitter)" }
+    if ($u -match 'facebook\.com|fb\.watch|fbcdn') { return "Facebook Video" }
+    if ($u -match 'soundcloud\.com') { return "SoundCloud" }
+    if ($u -match 'vimeo\.com') { return "Vimeo" }
+    if ($u -match 'pin(terest)?\.com') { return "Pinterest" }
+    if ($u -match 'twitch\.tv') { return "Twitch" }
+    if ($u -match 'reddit\.com') { return "Reddit" }
+
+    return "Plataforma Multimedia Web"
+}
+
 function Select-VorkMediaOutputAction {
     param([string]$PromptTitle = "¿Cómo deseas obtener el archivo multimedia convertido?")
 
     $items = @(
-        @{ Label = "Guardado local";    Description = "Descargar y guardar archivo físico en esta carpeta"; Value = "local" },
-        @{ Label = "Enlace de Descarga"; Description = "Obtener URL directa web para descargar en navegador"; Value = "download" },
-        @{ Label = "Enlace de Stream";   Description = "Obtener URL directa para reproducción en streaming"; Value = "stream" },
-        @{ Label = "Los tres";           Description = "Guardado local + Enlace Descarga + Enlace Stream"; Value = "all" }
+        @{ Label = "Guardado local";                      Description = "Descargar y guardar archivo físico en esta carpeta"; Value = "local" },
+        @{ Label = "Enlace de Descarga";                  Description = "Obtener URL directa web para descargar en navegador"; Value = "download" },
+        @{ Label = "Enlace de Stream";                    Description = "Obtener URL directa para reproducción en streaming"; Value = "stream" },
+        @{ Label = "Guardado local + Enlace de Stream";   Description = "Descargar archivo local y obtener enlace de streaming"; Value = "local_stream" },
+        @{ Label = "Guardado local + Enlace de Descarga"; Description = "Descargar archivo local y obtener enlace web"; Value = "local_download" },
+        @{ Label = "Enlace de Descarga + Enlace de Stream"; Description = "Obtener ambos enlaces web (descarga y stream)"; Value = "download_stream" },
+        @{ Label = "Los tres (Local + Descarga + Stream)"; Description = "Guardado físico local + Enlace Descarga + Enlace Stream"; Value = "all" }
     )
 
-    return (Invoke-VorkPicker -Title $PromptTitle -Subtitle "Vork Media · Salida" -Items $items -DefaultIndex 0 -NumericSelect -Footer "flechas mover  ·  1-4 elegir  ·  enter seleccionar  ·  esc cancelar")
+    return (Invoke-VorkPicker -Title $PromptTitle -Subtitle "Vork Media · Opciones de salida" -Items $items -DefaultIndex 0 -NumericSelect -Footer "flechas mover  ·  1-7 elegir  ·  enter seleccionar  ·  esc cancelar")
 }
 
 function Write-VorkTTSFrame {

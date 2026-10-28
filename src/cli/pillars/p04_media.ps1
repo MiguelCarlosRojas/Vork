@@ -57,10 +57,13 @@ function Invoke-PillarMedia {
         }
     }
 
+    $platformName = Get-VorkMediaPlatformName -Url $url
     Write-Host ""
     Write-Host "  $Cyan╭─ [04] VORK CONVERSOR MULTIMEDIA ──────────────────$Reset"
-    Write-Host "  $Cyan│$Reset  $Gray URL:$Reset      $White$url$Reset"
-    Write-Host "  $Cyan│$Reset  $Gray Formato:$Reset  $Yellow$fmt ($quality)$Reset"
+    Write-Host "  $Cyan│$Reset  $Gray Plataforma:$Reset  $Yellow${Bold}$platformName$Reset"
+    Write-Host "  $Cyan│$Reset  $Gray URL:$Reset         $White$url$Reset"
+    Write-Host "  $Cyan│$Reset  $Gray Formato:$Reset     $Cyan${Bold}$($fmt.ToUpper())$Reset"
+    Write-Host "  $Cyan│$Reset  $Gray Calidad:$Reset     $Yellow$quality$Reset"
     Write-Host "  $Cyan├───────────────────────────────────────────────────$Reset"
 
     $body = @{ url = $url; format = $fmt; quality = $quality } | ConvertTo-Json
@@ -155,7 +158,11 @@ function Invoke-PillarMedia {
             $outputMode = Select-VorkMediaOutputAction -PromptTitle "Selecciona cómo deseas obtener el archivo convertido:"
             if (-not $outputMode) { $outputMode = "all" }
 
-            if ($outputMode -in "local", "all") {
+            $hasLocal = $outputMode -in @("local", "local_stream", "local_download", "all")
+            $hasDownload = $outputMode -in @("download", "local_download", "download_stream", "all")
+            $hasStream = $outputMode -in @("stream", "local_stream", "download_stream", "all")
+
+            if ($hasLocal) {
                 try {
                     Invoke-WebRequest -Uri $dlFull -OutFile $localFile -UseBasicParsing -TimeoutSec 120
                     $resolvedOut = (Resolve-Path $localFile).Path
@@ -165,12 +172,12 @@ function Invoke-PillarMedia {
                 }
             }
 
-            if ($outputMode -in "download", "all") {
-                Write-Host "  $Cyan│$Reset    Descarga: $Yellow$dlFull$Reset"
+            if ($hasDownload) {
+                Write-Host "  $Cyan│$Reset  $Yellow✓ Descarga:$Reset       $White$dlFull$Reset"
             }
 
-            if ($outputMode -in "stream", "all") {
-                Write-Host "  $Cyan│$Reset    Stream:   $Cyan$stFull$Reset"
+            if ($hasStream) {
+                Write-Host "  $Cyan│$Reset  $Cyan✓ Stream:  $Reset       $White$stFull$Reset"
             }
 
             Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"

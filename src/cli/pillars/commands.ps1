@@ -537,9 +537,11 @@ function Invoke-VorkAIChat {
     }
 
     if ($urlMatch.Success -and ($isMediaDomain -or $isMediaIntent)) {
+        $platformName = Get-VorkMediaPlatformName -Url $extractedUrl
         Write-Host ""
         Write-Host "  ${Cyan}╭─ [04] Vork Conversor Multimedia Universal ─────────────────${Reset}"
-        Write-Host "  ${Lead}│${Reset} ${White}Enlace detectado:${Reset} ${Cyan}$extractedUrl${Reset}"
+        Write-Host "  ${Lead}│${Reset} ${White}Plataforma:${Reset}  ${Yellow}${Bold}$platformName${Reset}"
+        Write-Host "  ${Lead}│${Reset} ${White}Enlace:${Reset}      ${Cyan}$extractedUrl${Reset}"
         Write-Host "  ${Lead}│${Reset} ${LeadLight}Pilar 04 listo para procesar la conversión multimedia.${Reset}"
         Write-Host "  ${Lead}╰────────────────────────────────────────────────────────────${Reset}"
         Write-Host ""
@@ -592,6 +594,11 @@ function Invoke-VorkAIChat {
             return
         }
         $askedUrl = $askedUrl.Trim()
+        $platformName = Get-VorkMediaPlatformName -Url $askedUrl
+        Write-Host "  ${Lead}│${Reset} ${White}Plataforma:${Reset}  ${Yellow}${Bold}$platformName${Reset}"
+        Write-Host "  ${Lead}│${Reset} ${White}Enlace:${Reset}      ${Cyan}$askedUrl${Reset}"
+        Write-Host "  ${Lead}╰────────────────────────────────────────────────────────────${Reset}"
+        Write-Host ""
 
         $chosenFormat = $null
         $chosenQuality = $null
