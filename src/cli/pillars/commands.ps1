@@ -634,6 +634,44 @@ function Invoke-VorkAIChat {
         return
     }
 
+    # -------------------------------------------------------------
+    # 1. ACCIONES CONVERSACIONALES DIRECTAS HACIA LOS PILARES
+    # -------------------------------------------------------------
+    if ($fullPrompt -match '(?i)^\s*traduc(ir|e)\s+(.+)$') {
+        $transTarget = $matches[2].Trim()
+        Write-Host ""
+        Write-Host "  ${Cyan}╭─ [01] Vork Traductor en la Nube ───────────────────────────${Reset}"
+        Write-Host "  ${Lead}│${Reset} ${White}Detectado requerimiento de traducción directa.${Reset}"
+        Write-Host "  ${Lead}╰────────────────────────────────────────────────────────────${Reset}"
+        Invoke-PillarTranslate -ArgsList @("es", $transTarget)
+        return
+    }
+
+    if ($fullPrompt -match '(?i)\b(separar stems|separar pistas?|quitar la? voz|aislar la? voz|karaoke de)\b') {
+        Invoke-PillarSeparate
+        return
+    }
+
+    if ($fullPrompt -match '(?i)\b(quitar el? fondo|eliminar el? fondo|fondo transparente)\b') {
+        Invoke-PillarRemoveBg
+        return
+    }
+
+    if ($fullPrompt -match '(?i)\b(convertir imagen|pasar imagen a)\b') {
+        Invoke-PillarImage
+        return
+    }
+
+    if ($fullPrompt -match '(?i)\b(texto a voz|sintetizar voz|leer con voz)\b') {
+        Invoke-PillarTTS
+        return
+    }
+
+    if ($fullPrompt -match '(?i)\b(clonar voz|clonacion de voz|clonación de voz)\b') {
+        Invoke-PillarClone
+        return
+    }
+
     $activeModel = if ($global:VorkModel) { $global:VorkModel } else { "Vork 3.1" }
     $activeTier = if ($activeModel -eq "Vork 3.2") { "expert" } elseif ($global:VorkTier) { $global:VorkTier.ToLower() } else { "medium" }
     $tierLabel = if ($activeTier.Length -gt 1) { $activeTier.Substring(0,1).ToUpper() + $activeTier.Substring(1).ToLower() } else { $activeTier.ToUpper() }

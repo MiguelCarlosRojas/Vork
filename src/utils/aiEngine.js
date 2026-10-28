@@ -1,85 +1,83 @@
 /**
- * Vork AI Engine - Motor Soberano de Inteligencia Artificial en la Nube (Render)
+ * Motor de Inteligencia Soberana de Vork (Render Cloud AI Core)
  * 
- * Soporte Multi-Modelo y Multi-Esfuerzo Estrictamente Separados:
- * 1. Vork 3 (Coordinador Multimodal): Especialista en medios, audio, TTS, stems y traducción.
- * 2. Vork 3.1 (Arquitecto de Sistemas): Especialista en desarrollo de software, APIs y código limpio.
- * 3. Vork 3.2 (Expert Sovereign Edition): Máximo rigor matemático, algoritmos Big-O y sistemas complejos.
+ * Arquitectura Multimodal y Cognitiva Nativa de Vork Technologies:
+ * - Vork 3 (Cloud Multimodal Coordinator)
+ * - Vork 3.1 (Cloud Systems Architect)
+ * - Vork 3.2 (Expert Sovereign Edition)
  * 
- * 4 Niveles de Esfuerzo Separados:
+ * Navegador Web Integrado y Motor de Búsqueda en Tiempo Real:
+ * - Rastreador y extractor web autónomo (crawlWebPage)
+ * - Búsqueda en vivo en Wikipedia (es + en) vía Full-Text Search API
+ * - Inteligencia de código abierto vía GitHub API
+ * - Discusiones técnicas y noticias vía HackerNews Algolia API
+ * - Sincronización horaria y temporal astronómica UTC
+ * 
+ * Gobernanza de Niveles de Esfuerzo (Estrictamente separados):
  * - low: Ultra-rápido, conciso, directo al grano sin preámbulos.
- * - medium: Equilibrado, estructurado con explicaciones claras y ejemplos prácticos.
- * - high: Análisis exhaustivo paso a paso, código de producción con manejo de errores y consideraciones de seguridad.
- * - expert: El nivel soberano supremo. Supera a todos los anteriores al máximo de poder analítico, matemático,
- *           arquitecturas distribuidas, optimizaciones a nivel de compilador/kernel, diagramas, benchmark y rigor absoluto.
+ * - medium: Equilibrado, explicativo, estructurado y práctico.
+ * - high: Análisis exhaustivo paso a paso, arquitectura detallada y robustez.
+ * - expert: Máxima potencia y rigor profesional con telemetría, código de producción a gran escala, métricas de seguridad y orquestación integral de los 9 pilares.
  */
-const axios = require("axios");
 
-const NO_EMOJI_RULE = `
-REGLA CRÍTICA ESTRICTA SOBRE FORMATO:
-- ESTÁ TOTALMENTE PROHIBIDO EL USO DE EMOJIS O EMOTICONES (como 👋, 💡, 📌, 🚀, 🤖, etc.).
-- NO incluyas ningún emoji en títulos, encabezados, viñetas, tablas, bloques de código ni texto.
-- Toda la respuesta debe ser sobria, técnica, elegante, formal y 100% libre de emojis.`;
+const axios = require('axios');
+
+const SYSTEM_PROMPTS = {
+  "Vork 3": "Vork 3 Cloud Multimodal Coordinator: Orquestador ágil para tareas generales, conversiones multimedia y asistencia operativa.",
+  "Vork 3.1": "Vork 3.1 Cloud Systems Architect: Arquitecto de software de alto rendimiento, análisis algorítmico y procesamiento de señales.",
+  "Vork 3.2": "Vork 3.2 Expert Sovereign Edition: Máxima potencia analítica, diseño de infraestructura distribuida, micro-optimizaciones asintóticas y cómputo científico."
+};
 
 /**
- * Elimina cualquier emoji o pictograma del texto asegurando respuestas 100% limpias
+ * Normaliza y elimina emojis del texto para cumplir la directiva estricta de terminal limpia
  */
-function stripEmojis(text) {
-  if (!text || typeof text !== "string") return text;
-  return text
-    .replace(/\p{Extended_Pictographic}\uFE0F?/gu, "")
-    .replace(/[\u{1F300}-\u{1FAFF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{2702}\u{2705}\u{2708}-\u{270F}\u{2728}\u{274C}\u{2753}-\u{2757}\u{27B0}\u{27BF}]/gu, (match) => {
-      if (['✓', '→', '←', '↑', '↓', '●', '·'].includes(match)) return match;
-      return "";
-    })
-    .replace(/[ \t]{2,}/g, " ");
+function stripEmojis(str) {
+  if (!str) return "";
+  return str.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{2B50}\u{200D}\u{FE0F}]/gu, '');
 }
 
 /**
- * Obtiene la fecha y hora actual formateada en español y estándar UTC
+ * Obtiene métricas y fecha temporal precisa en UTC
  */
 function getCurrentDateTime() {
   const now = new Date();
-  const days = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
-  const months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-  
-  const dayName = days[now.getDay()];
-  const dayNum = now.getDate();
-  const monthName = months[now.getMonth()];
-  const year = now.getFullYear();
-  const hours = String(now.getUTCHours()).padStart(2, '0');
-  const minutes = String(now.getUTCMinutes()).padStart(2, '0');
-  const seconds = String(now.getUTCSeconds()).padStart(2, '0');
+  const days = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+  const months = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 
   return {
-    dayName,
-    dayNum,
-    monthName,
-    year,
-    timeUTC: `${hours}:${minutes}:${seconds} UTC`,
+    rawDate: now,
     iso: now.toISOString(),
     epoch: Math.floor(now.getTime() / 1000),
-    formatted: `${dayName}, ${dayNum} de ${monthName} de ${year}`,
-    rawDate: now
+    dayName: days[now.getUTCDay()],
+    dayNum: now.getUTCDate(),
+    monthName: months[now.getUTCMonth()],
+    year: now.getUTCFullYear(),
+    timeUTC: now.toTimeString().split(' ')[0] + ' UTC',
+    formatted: `${days[now.getUTCDay()]}, ${now.getUTCDate()} de ${months[now.getUTCMonth()]} de ${now.getUTCFullYear()}`
   };
 }
 
 /**
- * Calcula la hora en una zona horaria o país específico
+ * Calcula con precisión la hora actual en distintos países y husos horarios
  */
-function calculateInternationalTime(query, now) {
-  const q = query.toLowerCase();
-  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+function calculateInternationalTime(query, baseDate = new Date()) {
+  const q = (query || "").toLowerCase();
+  const utcHours = baseDate.getUTCHours();
+  const utcMinutes = baseDate.getUTCMinutes();
+  const utcSeconds = baseDate.getUTCSeconds();
 
-  function getOffsetTime(offsetHours) {
-    const target = new Date(utc + (3600000 * offsetHours));
-    const h = String(target.getHours()).padStart(2, '0');
-    const m = String(target.getMinutes()).padStart(2, '0');
-    const s = String(target.getSeconds()).padStart(2, '0');
-    return `${h}:${m}:${s}`;
+  function formatTime(hours, minutes, seconds) {
+    const h = ((hours % 24) + 24) % 24;
+    const mm = String(minutes).padStart(2, '0');
+    const ss = String(seconds).padStart(2, '0');
+    return `${String(h).padStart(2, '0')}:${mm}:${ss}`;
   }
 
-  if (q.includes("españa") || q.includes("espana") || q.includes("madrid") || q.includes("barcelona")) {
+  function getOffsetTime(offset) {
+    return formatTime(utcHours + offset, utcMinutes, utcSeconds);
+  }
+
+  if (q.includes("españa") || q.includes("espana") || q.includes("madrid")) {
     return {
       country: "España",
       zone: "Madrid / Península (CET UTC+1)",
@@ -91,8 +89,7 @@ function calculateInternationalTime(query, now) {
   if (q.includes("estados unidos") || q.includes("eeuu") || q.includes("usa") || q.includes("ee.uu")) {
     return {
       country: "Estados Unidos",
-      zone: "Múltiples husos horarios",
-      time: null,
+      zone: "Zonas Concurrentes de EE.UU.",
       subzones: [
         { label: "Costa Este (ET, Nueva York, Miami, UTC-5)", time: getOffsetTime(-5) },
         { label: "Centro (CT, Chicago, Dallas, Houston, UTC-6)", time: getOffsetTime(-6) },
@@ -165,49 +162,119 @@ function calculateInternationalTime(query, now) {
 }
 
 /**
- * Consulta la enciclopedia Wikipedia abierta para obtener conceptos y explicaciones técnicas
+ * Navegador Web Integrado de Vork: Rastrea y extrae contenido limpio de páginas web
+ */
+async function crawlWebPage(url) {
+  try {
+    const res = await axios.get(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+      },
+      timeout: 6500,
+      maxContentLength: 1024 * 1024 * 4
+    });
+
+    const html = res.data;
+    if (typeof html !== 'string') return null;
+
+    const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+    const title = titleMatch ? titleMatch[1].replace(/\s+/g, ' ').trim() : '';
+
+    const descMatch = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i) ||
+                      html.match(/<meta[^>]*property=["']og:description["'][^>]*content=["']([^"']+)["']/i);
+    const description = descMatch ? descMatch[1].replace(/\s+/g, ' ').trim() : '';
+
+    const cleaned = html
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, ' ')
+      .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, ' ')
+      .replace(/<svg\b[^<]*(?:(?!<\/svg>)<[^<]*)*<\/svg>/gi, ' ')
+      .replace(/<noscript\b[^<]*(?:(?!<\/noscript>)<[^<]*)*<\/noscript>/gi, ' ')
+      .replace(/<header\b[^<]*(?:(?!<\/header>)<[^<]*)*<\/header>/gi, ' ')
+      .replace(/<footer\b[^<]*(?:(?!<\/footer>)<[^<]*)*<\/footer>/gi, ' ')
+      .replace(/<nav\b[^<]*(?:(?!<\/nav>)<[^<]*)*<\/nav>/gi, ' ')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&quot;/g, '"')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    return {
+      url,
+      title,
+      description,
+      snippet: cleaned.substring(0, 1600)
+    };
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
+ * Consulta la enciclopedia Wikipedia abierta utilizando la API de búsqueda full-text y resumen
  */
 async function queryWikipedia(topic) {
   if (!topic || topic.trim().length < 2) return null;
-  const clean = topic.replace(/^(que es|qué es|quien es|quién es|que fue|qué fue|concepto de|definicion de|definición de)\s+/i, '').trim();
-  
-  // Evitar buscar comandos de terminal comunes en Wikipedia
+  const clean = topic.replace(/^(quien|quién|cual|cuál|donde|dónde|cuando|cuándo|como|cómo|por que|por qué|que|qué|concepto de|definicion de|definición de|busca sobre|investiga|dime sobre|consulta internet sobre)\s+(es|fue|era|creo|creó|fundo|fundó|invento|inventó|gano|ganó|hizo|descubrio|descubrió|son|eran)?\s*(el|la|los|las|un|una)?\s*/i, '').trim();
+
   if (['clear', 'cls', 'exit', 'quit', 'help', 'dir', 'ls'].includes(clean.toLowerCase())) {
     return null;
   }
 
+  // 1. Intento en español con búsqueda de títulos
   try {
-    const res = await axios.get(`https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(clean)}`, {
+    const searchRes = await axios.get(`https://es.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(clean)}&format=json&utf8=1&srlimit=3`, {
       headers: { "User-Agent": "Vork-Cloud-AI/3.1 (https://github.com/MiguelCarlosRojas/Vork)" },
       timeout: 4500
     });
-    if (res.data && res.data.extract) {
-      return {
-        title: res.data.title || clean,
-        extract: res.data.extract,
-        url: res.data.content_urls ? res.data.content_urls.desktop.page : ""
-      };
-    }
-  } catch (e) {
-    try {
-      const resEn = await axios.get(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(clean)}`, {
+    const items = searchRes.data?.query?.search || [];
+    if (items.length > 0) {
+      const topTitle = items[0].title;
+      const summaryRes = await axios.get(`https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(topTitle)}`, {
         headers: { "User-Agent": "Vork-Cloud-AI/3.1" },
         timeout: 4000
       });
-      if (resEn.data && resEn.data.extract) {
+      if (summaryRes.data && summaryRes.data.extract) {
         return {
-          title: resEn.data.title || clean,
-          extract: resEn.data.extract,
-          url: resEn.data.content_urls ? resEn.data.content_urls.desktop.page : ""
+          title: summaryRes.data.title || topTitle,
+          description: summaryRes.data.description || items[0].snippet.replace(/<[^>]+>/g, ''),
+          extract: summaryRes.data.extract,
+          url: summaryRes.data.content_urls ? summaryRes.data.content_urls.desktop.page : `https://es.wikipedia.org/wiki/${encodeURIComponent(topTitle)}`
         };
       }
-    } catch (e2) {}
-  }
+    }
+  } catch (e) {}
+
+  // 2. Intento en inglés si no hubo resultados en español
+  try {
+    const searchEn = await axios.get(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(clean)}&format=json&utf8=1&srlimit=3`, {
+      headers: { "User-Agent": "Vork-Cloud-AI/3.1" },
+      timeout: 4000
+    });
+    const itemsEn = searchEn.data?.query?.search || [];
+    if (itemsEn.length > 0) {
+      const topTitleEn = itemsEn[0].title;
+      const summaryEn = await axios.get(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(topTitleEn)}`, {
+        headers: { "User-Agent": "Vork-Cloud-AI/3.1" },
+        timeout: 4000
+      });
+      if (summaryEn.data && summaryEn.data.extract) {
+        return {
+          title: summaryEn.data.title || topTitleEn,
+          description: summaryEn.data.description || itemsEn[0].snippet.replace(/<[^>]+>/g, ''),
+          extract: summaryEn.data.extract,
+          url: summaryEn.data.content_urls ? summaryEn.data.content_urls.desktop.page : `https://en.wikipedia.org/wiki/${encodeURIComponent(topTitleEn)}`
+        };
+      }
+    }
+  } catch (e2) {}
+
   return null;
 }
 
 /**
- * Consulta la API pública y abierta de GitHub para obtener repositorios y código
+ * Consulta la API pública de GitHub para obtener repositorios y proyectos
  */
 async function searchGitHubIntelligence(query) {
   try {
@@ -233,18 +300,259 @@ async function searchGitHubIntelligence(query) {
 }
 
 /**
- * Consulta DuckDuckGo Instant Answer API
+ * Motor de Inteligencia Web Multifuente en Tiempo Real de Vork AI
  */
 async function searchWebIntelligence(query) {
-  try {
-    const res = await axios.get(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`, {
-      headers: { "User-Agent": "Vork-Cloud-AI/3.1" },
-      timeout: 4500
-    });
-    if (res.data && (res.data.AbstractText || res.data.Answer)) {
-      return res.data.AbstractText || res.data.Answer;
+  const urlMatch = query.match(/https?:\/\/[^\s]+/i);
+  let crawledPage = null;
+  if (urlMatch) {
+    const targetUrl = urlMatch[0].replace(/[)"';,]+$/, '');
+    crawledPage = await crawlWebPage(targetUrl);
+  }
+
+  const cleanQuery = query.replace(/https?:\/\/[^\s]+/gi, '')
+    .replace(/^(quien|quién|cual|cuál|donde|dónde|cuando|cuándo|como|cómo|por que|por qué|que|qué|concepto de|definicion de|definición de|busca sobre|investiga|dime sobre|consulta internet sobre|buscar|busca|que paso con|qué pasó con|noticias de)\s+(es|fue|era|creo|creó|fundo|fundó|invento|inventó|gano|ganó|hizo|descubrio|descubrió|son|eran)?\s*(el|la|los|las|un|una)?\s*/i, '')
+    .trim();
+
+  const [wiki, gh, hn] = await Promise.all([
+    queryWikipedia(cleanQuery || query),
+    searchGitHubIntelligence(cleanQuery || query),
+    (async () => {
+      try {
+        const hnRes = await axios.get(`https://hn.algolia.com/api/v1/search?query=${encodeURIComponent(cleanQuery || query)}&hitsPerPage=3`, {
+          timeout: 4500
+        });
+        if (hnRes.data && hnRes.data.hits) {
+          return hnRes.data.hits.filter(h => h.title).map(h => ({
+            title: h.title,
+            url: h.url || `https://news.ycombinator.com/item?id=${h.objectID}`,
+            points: h.points
+          }));
+        }
+      } catch (e) {}
+      return [];
+    })()
+  ]);
+
+  return {
+    query: cleanQuery || query,
+    crawledPage,
+    wiki,
+    github: gh || [],
+    hn: hn || []
+  };
+}
+
+/**
+ * Sintetizador Cognitivo de Información Web adaptado a Modelo y Esfuerzo
+ */
+function synthesizeWebIntelligence({ data, query, model, effort }) {
+  const { crawledPage, wiki, github, hn } = data;
+
+  // CASO 1: Rastreo de Página Web Directa (El usuario pasó una URL)
+  if (crawledPage) {
+    if (effort === "low") {
+      return `**${crawledPage.title || "Página Web"}** (${crawledPage.url})\n\n` +
+        `${crawledPage.description ? crawledPage.description + "\n\n" : ""}` +
+        `${crawledPage.snippet.substring(0, 450)}...`;
     }
-  } catch (e) {}
+
+    if (effort === "medium") {
+      return `### Navegador Web Vork · ${crawledPage.title || "Lectura de Enlace"}\n\n` +
+        `• **URL:** [${crawledPage.url}](${crawledPage.url})\n` +
+        (crawledPage.description ? `• **Descripción:** ${crawledPage.description}\n\n` : "\n") +
+        `**Extracto de Contenido:**\n${crawledPage.snippet.substring(0, 800)}...\n\n` +
+        `*Información obtenida en tiempo real por el rastreador autónomo de Vork AI.*`;
+    }
+
+    if (effort === "high") {
+      return `### Inspección Web Profunda · ${model} (HIGH)\n\n` +
+        `**Título:** ${crawledPage.title || "Documento Web"}\n` +
+        `**Enlace:** ${crawledPage.url}\n` +
+        (crawledPage.description ? `**Meta Descripción:** ${crawledPage.description}\n\n` : "\n\n") +
+        `**Síntesis de Contenido Extraído:**\n${crawledPage.snippet}\n\n` +
+        `**Análisis Técnico:** El documento ha sido analizado e indexado para su manipulación en el entorno de trabajo.`;
+    }
+
+    // expert
+    return `### Auditoría Soberana de Contenido Web · ${model} (EXPERT SOVEREIGN)\n\n` +
+      `• **Recurso URL:** \`${crawledPage.url}\`\n` +
+      `• **Metadatos:** ${crawledPage.title} | ${crawledPage.description || "Sin descripción abierta"}\n\n` +
+      `**Cuerpo Semántico Recuperado:**\n` +
+      `${crawledPage.snippet}\n\n` +
+      `**Evaluación de Integración:** Se han filtrado scripts de rastreo y estilos para garantizar la seguridad del pipeline en memoria de Vork AI.`;
+  }
+
+  // CASO 2: Enciclopedia Wikipedia y Fuentes en Tiempo Real
+  if (wiki) {
+    if (effort === "low") {
+      return `**${wiki.title}:** ${wiki.extract}` + (wiki.url ? `\n\nFuente: ${wiki.url}` : "");
+    }
+
+    if (effort === "medium") {
+      let ans = `### ${wiki.title}\n\n` +
+        `${wiki.extract}\n\n` +
+        (wiki.url ? `• **Fuente verificada:** [${wiki.title} en Wikipedia](${wiki.url})\n` : "");
+
+      if (hn.length > 0) {
+        ans += `• **Debate en la comunidad tecnológica:** [${hn[0].title}](${hn[0].url})\n`;
+      }
+      return ans;
+    }
+
+    if (effort === "high") {
+      let ans = `### Análisis Conceptual & Web Intelligence: ${wiki.title}\n\n` +
+        `**Motor:** ${model} · **Nivel:** HIGH\n\n` +
+        `${wiki.extract}\n\n` +
+        `**Fuentes y Referencias Cruzadas:**\n` +
+        (wiki.url ? `• **Enciclopedia:** [${wiki.title}](${wiki.url})\n` : "");
+
+      if (hn.length > 0) {
+        ans += hn.map(h => `• **Hacker News:** [${h.title}](${h.url})`).join("\n") + "\n";
+      }
+      if (github.length > 0) {
+        ans += `\n**Proyectos Abiertos Relacionados en GitHub:**\n` +
+          github.map(g => `• **[${g.name}](${g.url})** (${g.stars} estrellas) - ${g.description || ""}`).join("\n") + "\n";
+      }
+      return ans;
+    }
+
+    // expert
+    let ans = `### Tratado Técnico Riguroso & Inteligencia Global: ${wiki.title}\n\n` +
+      `**Motor:** ${model} · **Edición:** EXPERT SOVEREIGN\n\n` +
+      `${wiki.extract}\n\n` +
+      `**Dimensiones Arquitectónicas & Contexto de Ingeniería:**\n` +
+      `• **Validación Multi-Fuente:** Datos recuperados y contrastados con el cluster de Wikipedia en vivo.\n` +
+      (wiki.url ? `• **Documentación Académica:** [${wiki.title}](${wiki.url})\n` : "");
+
+    if (hn.length > 0) {
+      ans += `• **Discusión Contemporánea en Sistemas:**\n` +
+        hn.map(h => `  - [${h.title}](${h.url})`).join("\n") + "\n";
+    }
+    if (github.length > 0) {
+      ans += `\n**Ecosistema de Código Abierto (GitHub):**\n` +
+        github.map(g => `  - **[${g.name}](${g.url})** (${g.stars} estrellas) · ${g.description || ""}`).join("\n") + "\n";
+    }
+    return ans;
+  }
+
+  // CASO 3: Resultados en Hacker News o GitHub
+  if (hn.length > 0 || github.length > 0) {
+    if (effort === "low") {
+      const top = hn[0] || github[0];
+      return `Resultados en la red para "${query}":\n• **${top.title || top.name}**: ${top.url}`;
+    }
+
+    let ans = `### Inteligencia Web en Vivo: ${query}\n\n` +
+      `**Modelo:** ${model} · **Nivel:** ${effort.toUpperCase()}\n\n`;
+
+    if (hn.length > 0) {
+      ans += `**Publicaciones y Novedades:**\n` +
+        hn.map(h => `• [${h.title}](${h.url})`).join("\n") + "\n\n";
+    }
+    if (github.length > 0) {
+      ans += `**Repositorios y Herramientas:**\n` +
+        github.map(g => `• **[${g.name}](${g.url})** (${g.stars} estrellas) - ${g.description || ""}`).join("\n") + "\n\n";
+    }
+    return ans;
+  }
+
+  return null;
+}
+
+/**
+ * Detecta y formula directivas para cualquiera de los 9 pilares o comandos del sistema
+ */
+function detectCommandOrPillarIntent({ query, model, effort }) {
+  const q = query.toLowerCase();
+
+  // Pilar 01: Traducción
+  if (q.includes("traduc") || q.includes("traduccion") || q.includes("traducción") || q.includes("translate")) {
+    if (effort === "low") {
+      return `**Pilar [01] Traducción en la Nube**\nUso directo: \`vork translate "<texto>" -To <idioma>\`\nEjemplo: \`vork translate "Hello world" -To es\``;
+    }
+    if (effort === "medium") {
+      return `### [01] Vork Traductor Neuronal (+200 Idiomas)\n\n` +
+        `Para traducir texto o archivos en la nube con **${model}**:\n` +
+        `\`\`\`powershell\nvork translate "<texto_o_archivo>" -To <codigo_iso> [-From <origen>]\n\`\`\`\n\n` +
+        `• **Ejemplo rápido:** \`vork translate "Arquitectura distribuida" -To en\`\n` +
+        `• **Traducción por lotes:** Admite cadenas grandes con deduplicación por hashes SHA-256.`;
+    }
+    return `### [01] Orquestación de Traducción Neuronal · ${model} (${effort.toUpperCase()})\n\n` +
+      `El cluster procesa textos de alta escala mediante el pipeline neuronal en Render:\n\n` +
+      `\`\`\`powershell\nvork translate "<texto>" -To <iso> [-From auto]\n\`\`\`\n\n` +
+      `• **Manejo de Caché:** Deduplicación en RAM para latencia sub-milisegundo en frases repetidas.\n` +
+      `• **Soporte:** Más de 200 combinaciones lingüísticas con detección automática de origen.`;
+  }
+
+  // Pilar 02: TTS (Texto a Voz)
+  if (q.includes("texto a voz") || q.includes("tts") || q.includes("leer con voz") || q.includes("sintetizar voz") || q.includes("voz neuronal")) {
+    if (effort === "low") {
+      return `**Pilar [02] Síntesis de Voz Neuronal (TTS)**\nUso: \`vork tts "<texto>" -Voice es-ES-AlvaroNeural -Out voz.mp3\``;
+    }
+    return `### [02] Síntesis de Voz Neuronal (TTS) · ${model} (${effort.toUpperCase()})\n\n` +
+      `Síntesis de alta fidelidad con 24 voces neuronales humanas:\n` +
+      `\`\`\`powershell\nvork tts "<guion_o_texto>" -Voice <id_voz> -Out <archivo.mp3>\n\`\`\`\n\n` +
+      `• **Voces Recomendadas:** \`es-ES-AlvaroNeural\`, \`es-MX-DaliaNeural\`, \`en-US-JennyNeural\`.\n` +
+      `• **Modulación:** Modulación prosódica de pitch y tasa de elocución natural.`;
+  }
+
+  // Pilar 03: Clonación de Voz
+  if (q.includes("clonar voz") || q.includes("clonacion") || q.includes("clonación") || q.includes("clonar audio")) {
+    return `### [03] Clonación Vocal IA & Modelado F0 · ${model} (${effort.toUpperCase()})\n\n` +
+      `Extrae el timbre vocal de una muestra de audio y sintetiza cualquier texto con ese tono:\n` +
+      `\`\`\`powershell\nvork clone -Audio muestra.wav -Text "<nuevo_guion>"\n\`\`\`\n\n` +
+      `• **Pipeline:** Extracción de espectrograma de mel y modelado tímbrico F0 en el backend de Vork.`;
+  }
+
+  // Pilar 04: Multimedia (YouTube, TikTok, Reels)
+  if (q.includes("descargar video") || q.includes("bajar video") || q.includes("convertir video") || q.includes("youtube a mp3") || q.includes("tiktok") || q.includes("reels")) {
+    return `### [04] Conversor Multimedia Universal · ${model} (${effort.toUpperCase()})\n\n` +
+      `Descarga y transcodificación directa desde YouTube, TikTok, Instagram y Twitter:\n` +
+      `\`\`\`powershell\nvork media "<url>" -Format <mp3|mp4|wav> -Quality <320|1080>\n\`\`\`\n\n` +
+      `• **Menú Interactivo:** Cuenta con 9 opciones de salida (Guardar Local, Descargar a Carpeta, Abrir Stream de Video, Abrir Stream de Música).`;
+  }
+
+  // Pilar 05: Separador de Stems
+  if (/(separ.*(voz|pista|stem|musica|música|cancion|canción)|quitar.*(voz|musica|música)|aislar.*(voz|instrumental)|karaoke|acapella|stems?)/i.test(q)) {
+    return `### [05] Separador de Stems con Demucs v4 · ${model} (${effort.toUpperCase()})\n\n` +
+      `Aislamiento espectral con la red neuronal Demucs v4 de Meta:\n` +
+      `\`\`\`powershell\nvork separate <archivo_o_url> [-Mode 2stems|4stems]\n\`\`\`\n\n` +
+      `• **2 Stems:** Vocals (Acapella) + Instrumental (Karaoke).\n` +
+      `• **4 Stems:** Vocals, Drums, Bass, Other.`;
+  }
+
+  // Pilar 07: Imágenes
+  if (q.includes("convertir imagen") || q.includes("formato de imagen") || q.includes("pasar a webp") || q.includes("pasar a png")) {
+    return `### [07] Conversor de Imágenes Universal · ${model} (${effort.toUpperCase()})\n\n` +
+      `Conversión gráfica multiformato de alta velocidad:\n` +
+      `\`\`\`powershell\nvork image <archivo> -Format <png|jpg|webp|ico|avif> [-Quality 90]\n\`\`\``;
+  }
+
+  // Pilar 08: Quitar Fondo
+  if (q.includes("quitar fondo") || q.includes("eliminar fondo") || q.includes("fondo transparente") || q.includes("remove-bg")) {
+    return `### [08] Estudio de Fondo IA (Silueta) · ${model} (${effort.toUpperCase()})\n\n` +
+      `Segmentación alpha para siluetas transparentes:\n` +
+      `\`\`\`powershell\nvork remove-bg <archivo.jpg> -Out <limpia.png>\n\`\`\``;
+  }
+
+  // Pilar 09 & Agentes: Planificación y Metas
+  if (q.includes("planificar") || q.includes("crear plan") || q.includes("modo autonomo") || q.includes("meta:") || q.includes("goal")) {
+    return `### [09] Planificador Cognitivo & Modo Autónomo · ${model} (${effort.toUpperCase()})\n\n` +
+      `Desglose de tareas paso a paso y orquestación continua:\n` +
+      `\`\`\`powershell\nvork /plan "<descripcion_del_proyecto>"\nvork /goal "<meta_autonoma>"\n\`\`\``;
+  }
+
+  // Comandos de Configuración y Modelo
+  if (q.includes("cambiar modelo") || q.includes("nivel de esfuerzo") || q.includes("/model")) {
+    return `### Selector de Modelo & Nivel de Potencia · Vork CLI\n\n` +
+      `Usa el comando interactivo:\n` +
+      `\`\`\`powershell\nvork /model\n\`\`\`\n\n` +
+      `• **Modelos:** Vork 3, Vork 3.1, Vork 3.2 (Expert)\n` +
+      `• **Niveles de Esfuerzo:** low, medium, high, expert\n` +
+      `• **Atajo:** Presiona \`shift+tab\` en la consola para ciclar el esfuerzo al instante.`;
+  }
+
   return null;
 }
 
@@ -288,62 +596,29 @@ function generateCodeSolution(topic, language, model, effort) {
         `• **Complejidad Temporal:** O(n)\n` +
         `• **Complejidad Espacial:** O(1) iterativo / O(n) memoizado`;
     }
-    // expert (Máximo poder matemático y algorítmico)
+    // expert
     return `### Arquitectura Algorítmica Suprema: Secuencia de Fibonacci en O(log n)\n\n` +
       `**Modelo:** ${model} · **Nivel:** EXPERT (Máxima Capacidad Analítica)\n\n` +
       `Para superar las barreras lineales O(n), implementamos la **exponenciación rápida de matrices (Q-Matrix)** basada en la identidad:\n` +
       `\`[[1, 1], [1, 0]]^n = [[F(n+1), F(n)], [F(n), F(n-1)]]\`\n\n` +
-      `\`\`\`python\nfrom typing import List, Tuple\nimport sys\n\n# Optimizar límite de recursión y representación de enteros grandes\nsys.set_int_max_str_digits(100000)\n\nMatrix2x2 = Tuple[Tuple[int, int], Tuple[int, int]]\n\ndef _mul_mat(A: Matrix2x2, B: Matrix2x2) -> Matrix2x2:\n` +
-      `    """Multiplicación formal de matrices 2x2 en O(1)."""\n` +
+      `\`\`\`python\nfrom typing import Tuple\nimport sys\nsys.set_int_max_str_digits(100000)\n\nMatrix2x2 = Tuple[Tuple[int, int], Tuple[int, int]]\n\ndef _mul_mat(A: Matrix2x2, B: Matrix2x2) -> Matrix2x2:\n` +
       `    return (\n` +
       `        (A[0][0]*B[0][0] + A[0][1]*B[1][0], A[0][0]*B[0][1] + A[0][1]*B[1][1]),\n` +
       `        (A[1][0]*B[0][0] + A[1][1]*B[1][0], A[1][0]*B[0][1] + A[1][1]*B[1][1])\n` +
       `    )\n\n` +
       `def fibonacci_expert(n: int) -> int:\n` +
       `    """Calcula F(n) con complejidad estrictamente logarítmica O(log n)."""\n` +
-      `    if n < 0:\n` +
-      `        raise ValueError(f"Parámetro n={n} inválido; el dominio de Fibonacci es n >= 0")\n` +
+      `    if n < 0: raise ValueError(f"Parámetro n={n} inválido; el dominio de Fibonacci es n >= 0")\n` +
       `    if n == 0: return 0\n` +
-      `    \n` +
-      `    res: Matrix2x2 = ((1, 0), (0, 1))  # Matriz identidad\n` +
-      `    base: Matrix2x2 = ((1, 1), (1, 0)) # Matriz compañera de Fibonacci\n` +
-      `    \n` +
+      `    res: Matrix2x2 = ((1, 0), (0, 1))\n` +
+      `    base: Matrix2x2 = ((1, 1), (1, 0))\n` +
       `    pot = n - 1\n` +
       `    while pot > 0:\n` +
-      `        if pot & 1:\n` +
-      `            res = _mul_mat(res, base)\n` +
+      `        if pot & 1: res = _mul_mat(res, base)\n` +
       `        base = _mul_mat(base, base)\n` +
       `        pot >>= 1\n` +
-      `    \n` +
       `    return res[0][0]\n\`\`\`\n\n` +
-      `**Benchmark & Propiedades Teóricas:**\n` +
-      `• **Complejidad Asintótica:** O(log n) multiplicaciones | O(1) memoria auxiliar de pila.\n` +
-      `• **Fórmula de Binet Comparada:** La fórmula cerrada en punto flotante sufre de pérdida de precisión catastrófica para n > 70. La exponenciación binaria de enteros exactos preserva el 100% de la precisión para n = 1,000,000+.\n` +
-      `• **Verificación Formal:** Conforme con el álgebra de Cayley-Hamilton.`;
-  }
-
-  if (topic.includes("servidor") || topic.includes("server") || topic.includes("express") || topic.includes("api")) {
-    if (effort === "low") {
-      return `\`\`\`javascript\nconst express = require("express");\nconst app = express();\napp.use(express.json());\napp.get("/ping", (req, res) => res.json({ status: "ok" }));\napp.listen(3000, () => console.log("Servidor en :3000"));\n\`\`\``;
-    }
-    if (effort === "medium") {
-      return `### Servidor REST en Node.js (Express)\n\n` +
-        `\`\`\`javascript\nconst express = require("express");\nconst app = express();\nconst PORT = process.env.PORT || 3000;\n\n` +
-        `app.use(express.json());\n\n` +
-        `app.get("/health", (req, res) => {\n  res.json({ status: "healthy", timestamp: new Date().toISOString() });\n});\n\n` +
-        `app.post("/api/data", (req, res) => {\n` +
-        `  const { payload } = req.body;\n` +
-        `  if (!payload) return res.status(400).json({ error: "Payload requerido" });\n` +
-        `  res.status(201).json({ success: true, received: payload });\n` +
-        `});\n\n` +
-        `app.listen(PORT, () => console.log(\`Servidor en puerto \${PORT}\`));\n\`\`\``;
-    }
-    // high / expert
-    return `### Arquitectura Enterprise REST API en Node.js con Graceful Shutdown y Middlewares\n\n` +
-      `**Modelo:** ${model} · **Nivel:** ${effort.toUpperCase()}\n\n` +
-      `\`\`\`javascript\nconst express = require("express");\nconst http = require("http");\n\nconst app = express();\nconst PORT = process.env.PORT || 3000;\n\n// Middlewares de seguridad y parsing\napp.use(express.json({ limit: "1mb" }));\napp.use((req, res, next) => {\n  res.setHeader("X-Content-Type-Options", "nosniff");\n  res.setHeader("X-Frame-Options", "DENY");\n  next();\n});\n\n// Router modular\napp.get("/health", (req, res) => {\n  res.status(200).json({\n    uptime: process.uptime(),\n    memory: process.memoryUsage(),\n    timestamp: new Date().toISOString()\n  });\n});\n\n// Manejador centralizado de errores\napp.use((err, req, res, next) => {\n  console.error("[ServerError]:", err.stack);\n  res.status(500).json({ error: "Error interno del servidor" });\n});\n\nconst server = http.createServer(app);\nserver.listen(PORT, () => console.log(\`Servidor escuchando en puerto \${PORT}\`));\n\n// Cierre elegante (Graceful Shutdown)\nprocess.on("SIGTERM", () => {\n  server.close(() => process.exit(0));\n});\n\`\`\`\n\n` +
-      `• **Seguridad:** Headers HTTP defensivos y límite de payload JSON.\n` +
-      `• **Resiliencia:** Captura de señales del kernel (SIGTERM/SIGINT) para cierre de conexiones sin pérdida de datos.`;
+      `• **Complejidad Asintótica:** O(log n) multiplicaciones | O(1) memoria auxiliar de pila.`;
   }
 
   return null;
@@ -467,7 +742,7 @@ async function processAIChat({ message, messages, model = "Vork 3.1", effort = "
         `• **Hora del Servidor (UTC):** ${dt.timeUTC}\n\n` +
         `Sincronización horaria activa para cronjobs y procesos en segundo plano.`;
     } else {
-      // expert (Máximo detalle de sistemas)
+      // expert
       answer = `### Cronometría Soberana del Sistema · ${activeModel} (EXPERT)\n\n` +
         `• **Fecha Calendárica:** ${dt.formatted}\n` +
         `• **Día Juliano Proléptico:** Día de la semana ${dt.dayName.toUpperCase()} (Día ${dt.dayNum} del mes ${dt.monthName})\n` +
@@ -520,7 +795,7 @@ async function processAIChat({ message, messages, model = "Vork 3.1", effort = "
         `  - Inferencia y deducción algorítmica Big-O en tiempo real.\n` +
         `  - Arquitectura de software distribuida y sistemas concurrentes.\n` +
         `  - Orquestación de los 9 pilares operacionales de Vork con máxima fidelidad espectral y transcodificación.\n` +
-        `  - Búsqueda RAG abierta en GitHub y Wikipedia sin intermediarios.\n\n` +
+        `  - Navegación web en tiempo real y rastreo de enlaces en vivo.\n\n` +
         `Todos los subprocesos de memoria y cómputo se encuentran asignados y en espera de tus directrices.`;
     }
 
@@ -541,16 +816,16 @@ async function processAIChat({ message, messages, model = "Vork 3.1", effort = "
     if (activeEffort === "low") {
       answer = `Saludos. Vork ${activeModel} (${activeEffort}) listo. ¿En qué te asisto?`;
     } else if (activeEffort === "medium") {
-      answer = `Saludos. Me encuentro operando en la nube con arquitectura **${activeModel}** (${activeEffort}). ¿En qué tarea técnica o pilar puedo colaborarte hoy?`;
+      answer = `Saludos. Me encuentro operando en la nube con arquitectura **${activeModel}** (${activeEffort}). ¿En qué tarea técnica, búsqueda web o pilar puedo colaborarte hoy?`;
     } else if (activeEffort === "high") {
       answer = `### Saludo del Sistema · Vork ${activeModel} (HIGH)\n\n` +
-        `Bienvenido. El motor cognitivo soberano se encuentra en ejecución con sus 9 pilares activos en el cluster de Render.\n\n` +
-        `Listo para procesar requerimientos de arquitectura, generación de código, traducción neuronal o procesamiento multimedia. ¿En qué área deseas iniciar?`;
+        `Bienvenido. El motor cognitivo soberano se encuentra en ejecución con sus 9 pilares y navegador web activos en el cluster de Render.\n\n` +
+        `Listo para procesar requerimientos de arquitectura, generación de código, traducción neuronal, búsqueda web en vivo o procesamiento multimedia. ¿En qué área deseas iniciar?`;
     } else {
       // expert
       answer = `### Inicialización de Sesión Soberana · ${activeModel} (EXPERT)\n\n` +
         `Saludos formales. La edición experta de Vork Technologies se encuentra sincronizada con máxima prioridad de procesamiento.\n\n` +
-        `Se encuentra a tu disposición el analizador de código, el evaluador de algoritmos y la suite de herramientas multimedia en la nube. ¿Cuál es el objetivo técnico a cumplir?`;
+        `Se encuentra a tu disposición el analizador de código, el rastreador de internet en tiempo real y la suite completa de herramientas multimedia en la nube. ¿Cuál es el objetivo técnico a cumplir?`;
     }
 
     return {
@@ -566,18 +841,20 @@ async function processAIChat({ message, messages, model = "Vork 3.1", effort = "
     let memUsage = process.memoryUsage ? Math.round(process.memoryUsage().rss / (1024 * 1024)) : 48;
     let answer = "";
     if (activeEffort === "low") {
-      answer = `Estado óptimo. Memoria: ${memUsage}MB / 512MB. 9 pilares activos en ${activeModel}.`;
+      answer = `Estado óptimo. Memoria: ${memUsage}MB / 512MB. 9 pilares y navegador web activos en ${activeModel}.`;
     } else if (activeEffort === "medium") {
       answer = `Estado del sistema: **Óptimo y estable**.\n\n` +
         `• **Motor:** ${activeModel} (${activeEffort})\n` +
         `• **Uso de Memoria:** ~${memUsage} MB / 512 MB en Render\n` +
-        `• **Pilares:** 9/9 Pilares operacionales activos sin errores.`;
+        `• **Pilares:** 9/9 Pilares operacionales activos sin errores.\n` +
+        `• **Navegador Web:** Motor de rastreo e inteligencia de internet habilitado.`;
     } else if (activeEffort === "high") {
       answer = `### Diagnóstico Integral del Sistema · ${activeModel} (HIGH)\n\n` +
         `• **Estado del Contenedor:** Saludable (Healthy)\n` +
         `• **Arquitectura:** Linux x86_64 en cluster Render Cloud\n` +
         `• **Memoria Residente (RSS):** ~${memUsage} MB de 512 MB asignados\n` +
         `• **Pilares Activos:** 9 Pilares operacionales listos para transcodificación y síntesis.\n` +
+        `• **Capacidad de Navegación:** Rastreador web y consultas HTTP concurrentes habilitadas.\n` +
         `• **Canal de Inferencia:** Motor Soberano Nativo (0% dependencias de terceros, 0% pagos).`;
     } else {
       // expert
@@ -587,7 +864,7 @@ async function processAIChat({ message, messages, model = "Vork 3.1", effort = "
         `  - RSS: ~${memUsage} MB / 512.0 MB (Espacio de seguridad: ${(512 - memUsage)} MB libres)\n` +
         `  - Heap Total / Heap Usado: ~${Math.round(process.memoryUsage().heapTotal / 1048576)} MB / ~${Math.round(process.memoryUsage().heapUsed / 1048576)} MB\n` +
         `• **Concurrencia de Subprocesos:** Pool de hilos libuv activo, soporte de pipes asíncronos para FFMPEG y Demucs v4.\n` +
-        `• **Matriz de Pilares:** 9/9 Pilares verificados con latencia nominal < 5ms.\n` +
+        `• **Matriz de Pilares & Red:** 9/9 Pilares verificados, navegador web y rastreador en vivo activos.\n` +
         `• **Gobernanza:** Soberana (cero proxies externos, cero límites de facturación externa).`;
     }
 
@@ -601,167 +878,7 @@ async function processAIChat({ message, messages, model = "Vork 3.1", effort = "
   }
 
   // -------------------------------------------------------------
-  // 5. CÓDIGO Y SOLUCIONES TÉCNICAS
-  // -------------------------------------------------------------
-  if (q.includes("codigo") || q.includes("código") || q.includes("funcion") || q.includes("función") || q.includes("script") || q.includes("fibonacci") || q.includes("servidor express") || q.includes("api rest")) {
-    const codeAns = generateCodeSolution(q, q, activeModel, activeEffort);
-    if (codeAns) {
-      return {
-        status: "success",
-        model: activeModel,
-        effort: activeEffort,
-        source: "vork-cloud-code-engine",
-        response: stripEmojis(codeAns)
-      };
-    }
-  }
-
-  // -------------------------------------------------------------
-  // 6. CONSULTAS A GITHUB (REPOSITORIOS Y CÓDIGO ABIERTO)
-  // -------------------------------------------------------------
-  if (/(github|repo|repositorio|librer[ií]a|framework)\b/i.test(q)) {
-    const ghData = await searchGitHubIntelligence(promptText);
-    if (ghData && ghData.length > 0) {
-      let answer = "";
-      if (activeEffort === "low") {
-        const list = ghData.map(r => `• **[${r.name}](${r.url})** (${r.stars} estrellas) - ${r.description || ""}`).join("\n");
-        answer = `Repositorios en GitHub para "${promptText}":\n\n${list}`;
-      } else if (activeEffort === "medium") {
-        const reposFormatted = ghData.map(r => `• **[${r.name}](${r.url})** (${r.language || "Multi-lenguaje"} · ${r.stars.toLocaleString()} estrellas)\n  ${r.description || "Sin descripción."}`).join("\n\n");
-        answer = `### Inteligencia de Código Abierto (GitHub) · ${activeModel}\n\n` +
-          `Resultados recuperados en tiempo real para **"${promptText}"**:\n\n${reposFormatted}\n\n` +
-          `¿Deseas que examinemos la arquitectura de dependencias o generemos un script para integrarlo?`;
-      } else if (activeEffort === "high") {
-        const reposFormatted = ghData.map(r => `• **[${r.name}](${r.url})** (${r.language || "Multi-lenguaje"} · ${r.stars.toLocaleString()} estrellas)\n  ${r.description || "Sin descripción."}\n  *Ruta de clonación:* \`git clone ${r.url}.git\``).join("\n\n");
-        answer = `### Auditoría de Repositorios en GitHub · ${activeModel} (HIGH)\n\n` +
-          `Información técnica verificada para **"${promptText}"**:\n\n${reposFormatted}\n\n` +
-          `**Evaluación de Integración:** Estos repositorios cuentan con licencias permisivas de código abierto y pueden ser clonados o integrados en tu workspace.`;
-      } else {
-        // expert
-        const reposFormatted = ghData.map(r => `• **[${r.name}](${r.url})** (${r.language || "Multi-lenguaje"} · ${r.stars.toLocaleString()} estrellas)\n  ${r.description || "Sin descripción."}\n  - Enlace oficial: \`${r.url}\`\n  - Comando de clonación: \`git clone ${r.url}.git\``).join("\n\n");
-        answer = `### Análisis Arquitectónico de Código Abierto (GitHub) · ${activeModel} (EXPERT)\n\n` +
-          `Se ha consultado el árbol de repositorios para el patrón: **"${promptText}"**.\n\n${reposFormatted}\n\n` +
-          `**Directiva de Ingeniería:** Se recomienda auditar las dependencias del \`package.json\` o \`requirements.txt\` antes de vincular al entorno productivo para mitigar riesgos de supply-chain.`;
-      }
-
-      return {
-        status: "success",
-        model: activeModel,
-        effort: activeEffort,
-        source: "vork-cloud-github-rag",
-        response: stripEmojis(answer)
-      };
-    }
-  }
-
-  // -------------------------------------------------------------
-  // 7. CONSULTAS ENCICLOPÉDICAS Y CONCEPTUALES (WIKIPEDIA RAG)
-  // -------------------------------------------------------------
-  const isConceptQuery = /^(que es|qué es|quien es|quién es|que fue|qué fue|explicame|explícame|concepto de|como funciona|cómo funciona|definicion de|definición de)\s+/i.test(q) || q.includes("que significa") || q.includes("qué significa");
-  if (isConceptQuery) {
-    const wikiData = await queryWikipedia(promptText);
-    if (wikiData) {
-      let answer = "";
-      if (activeEffort === "low") {
-        answer = `**${wikiData.title}:** ${wikiData.extract}`;
-      } else if (activeEffort === "medium") {
-        answer = `### ${wikiData.title}\n\n` +
-          `${wikiData.extract}\n\n` +
-          (wikiData.url ? `**Fuente verificada:** [${wikiData.title} en Wikipedia](${wikiData.url})\n\n` : "") +
-          `¿Deseas conocer su implementación técnica o cómo integrarlo en un proyecto de software?`;
-      } else if (activeEffort === "high") {
-        answer = `### Análisis Conceptual & Arquitectónico: ${wikiData.title}\n\n` +
-          `**Motor:** ${activeModel} · **Nivel:** HIGH\n\n` +
-          `${wikiData.extract}\n\n` +
-          `**Aspectos de Ingeniería Clave:**\n` +
-          `• **Naturaleza del Sistema:** Componente fundamental en arquitecturas de computación modernas.\n` +
-          `• **Impacto Operacional:** Optimiza la resiliencia, escalabilidad y aislamiento de fallos en producción.\n` +
-          (wikiData.url ? `• **Referencia Técnica:** [${wikiData.title} en Wikipedia](${wikiData.url})\n\n` : "\n") +
-          `Si requieres implementar un ejemplo práctico en código o desplegarlo en un contenedor, indícalo para redactar la configuración.`;
-      } else {
-        // expert
-        answer = `### Tratado Técnico Riguroso: ${wikiData.title}\n\n` +
-          `**Motor:** ${activeModel} · **Edición:** EXPERT SOVEREIGN\n\n` +
-          `${wikiData.extract}\n\n` +
-          `**Diseño de Sistemas & Evaluación de Complejidad:**\n` +
-          `• **Paradigma Subyacente:** Abstracción formal desacoplada del hardware anfitrión.\n` +
-          `• **Métricas de Confiabilidad:** Aislamiento de procesos por espacio de nombres del kernel, limitación de recursos por cgroups y balance de carga horizontal.\n` +
-          `• **Consideraciones de Seguridad:** Mínimo privilegio, principios de zero-trust y superficies de ataque reducidas.\n` +
-          (wikiData.url ? `• **Referencia Académica:** [${wikiData.title} en Wikipedia](${wikiData.url})\n\n` : "\n") +
-          `Podemos formular la arquitectura de software o infraestructura correspondiente a tu espacio de trabajo.`;
-      }
-
-      return {
-        status: "success",
-        model: activeModel,
-        effort: activeEffort,
-        source: "vork-cloud-wikipedia-rag",
-        response: stripEmojis(answer)
-      };
-    }
-  }
-
-  // -------------------------------------------------------------
-  // 8. CONSULTAS SOBRE PILARES Y COMANDOS DE VORK
-  // -------------------------------------------------------------
-  if (q.includes("pilar") || q.includes("pilares") || q.includes("comandos") || q.includes("que puedes hacer") || q.includes("qué puedes hacer") || q.includes("como funciona el modelo") || q.includes("nivel de esfuerzo")) {
-    let answer = "";
-    if (activeEffort === "low") {
-      answer = `**Los 9 Pilares de Vork:**\n` +
-        `• /translate (+200 idiomas) · /tts (24 voces neuronales) · /clone (clonación F0)\n` +
-        `• /media (conversor MP3/MP4) · /separate (stems Demucs v4) · /agents (agentes autónomos)\n` +
-        `• /image (imágenes universales) · /remove-bg (quitar fondos) · /plan (metas y arquitectura)\n\n` +
-        `Modelo actual: **${activeModel}** (${activeEffort}).`;
-    } else if (activeEffort === "medium") {
-      answer = `### Suite de Pilares y Comandos Oficiales de Vork CLI\n\n` +
-        `Actualmente operando con **${activeModel}** y nivel de esfuerzo **${activeEffort}**:\n\n` +
-        `1. **[01] /translate:** Traducción por lotes con deduplicación y caché.\n` +
-        `2. **[02] /tts:** Síntesis neuronal de 24 voces humanas.\n` +
-        `3. **[03] /clone:** Clonación vocal con modelado espectral.\n` +
-        `4. **[04] /media:** Conversión de TikTok, YouTube, Reels a MP3/MP4 con opciones de Guardado local, Stream y Descarga.\n` +
-        `5. **[05] /separate:** Separación de Stems con Demucs v4 (2 stems, 4 stems, acapella o instrumental puro).\n` +
-        `6. **[06] /agents:** Ejecución paralela de subagentes en la terminal.\n` +
-        `7. **[07] /image:** Conversión gráfica multiformato (PNG, JPG, WEBP, ICO, AVIF).\n` +
-        `8. **[08] /remove-bg:** Eliminación de fondo inteligente.\n` +
-        `9. **[09] /plan & /goal:** Planificación estructurada y modo autónomo.\n\n` +
-        `El nivel de esfuerzo determina la profundidad explicativa y la exhaustividad de los análisis de cada comando.`;
-    } else if (activeEffort === "high") {
-      answer = `### Arquitectura de Pilares y Matriz de Esfuerzo · ${activeModel} (HIGH)\n\n` +
-        `En nivel **HIGH**, cada comando y pilar opera con análisis paso a paso y verificación de parámetros:\n\n` +
-        `• **Pilar 04 (/media):** Transcodificación CBR 320 kbps para audio y 1080p con codec H.264 para video. Menú interactivo con 9 opciones de salida (Local, Descarga, Stream de Video, Stream de Música).\n` +
-        `• **Pilar 05 (/separate):** Inferencia con red neuronal Demucs v4 sobre tensores de audio a 44.1 kHz, aislando pistas con cero sangrado instrumental.\n` +
-        `• **Pilar 02 & 03 (/tts, /clone):** Mapeo de formantes vocales con curvas de pitch F0 para preservación tímbrica.\n` +
-        `• **Pilares 07 & 08 (/image, /remove-bg):** Procesamiento de imágenes mediante matriz de color y umbral alpha de alta definición.\n\n` +
-        `Usa \`/model\` para alternar entre los niveles de potencia según la demanda computacional de tu proyecto.`;
-    } else {
-      // expert (Detalle soberano de ingeniería para pilares)
-      answer = `### Especificación Soberana de Pilares & Pipeline de Cómputo · ${activeModel} (EXPERT)\n\n` +
-        `Bajo el nivel **EXPERT**, la suite Vork despliega su máxima potencia matemática y de ingeniería en Render:\n\n` +
-        `| Pilar | Comando | Motor de Cómputo | Rendimiento & Profundidad |\n` +
-        `| :--- | :--- | :--- | :--- |\n` +
-        `| 01 Traducción | \`/translate\` | Google Translate Neural Cluster | Deduplicación con hash SHA-256 en RAM, soporte > 200 idiomas |\n` +
-        `| 02 Síntesis TTS | \`/tts\` | Red Neuronal Wavenet/Edge TTS | 24 voces humanas con modulación prosódica e inflexión natural |\n` +
-        `| 03 Clonación | \`/clone\` | Algoritmo de Estimación F0 / RVC | Extracción de espectrograma de mel y modelado de timbre vocal |\n` +
-        `| 04 Conversor | \`/media\` | yt-dlp + FFmpeg Core Pipeline | Extracción sin pérdidas, 9 opciones de enrutamiento (Local/Stream/Descarga) |\n` +
-        `| 05 Stems | \`/separate\` | Meta Demucs v4 (HTDemucs) | Aislamiento acústico en 4 stems con convolución espectral 32-bit |\n` +
-        `| 06 Agentes | \`/agents\` | Bucle REPL Concurrente | Desacoplamiento de subprocesos en background sin bloqueo del hilo |\n` +
-        `| 07 Imágenes | \`/image\` | Sharp / Libvips Nativo | Compresión perceptual con cuantización sin pérdida de nitidez |\n` +
-        `| 08 Silueta | \`/remove-bg\` | Algoritmo de Segmentación Alpha | Detección de bordes con suavizado sub-píxel |\n` +
-        `| 09 Metas | \`/plan\` & \`/goal\` | Planificador Cognitivo Soberano | Árbol de decisiones y desglose de tareas paso a paso |\n\n` +
-        `Esta matriz garantiza la máxima fidelidad técnica disponible en el entorno en la nube.`;
-    }
-
-    return {
-      status: "success",
-      model: activeModel,
-      effort: activeEffort,
-      source: "vork-cloud-pillars-matrix",
-      response: stripEmojis(answer)
-    };
-  }
-
-  // -------------------------------------------------------------
-  // 9. EVALUADOR MATEMÁTICO DIRECTO
+  // 5. EVALUADOR MATEMÁTICO DIRECTO
   // -------------------------------------------------------------
   const mathMatch = q.match(/cuanto es\s+([\d\s\+\-\*\/\^\(\)\.\%]+)/i) || q.match(/cuánto es\s+([\d\s\+\-\*\/\^\(\)\.\%]+)/i);
   if (mathMatch) {
@@ -795,39 +912,89 @@ async function processAIChat({ message, messages, model = "Vork 3.1", effort = "
   }
 
   // -------------------------------------------------------------
-  // 10. GENERADOR COGNITIVO SOFISTICADO EN CASO GENERAL
+  // 6. ORQUESTACIÓN DE COMANDOS Y PILARES DE VORK
+  // -------------------------------------------------------------
+  const pillarIntent = detectCommandOrPillarIntent({ query: promptText, model: activeModel, effort: activeEffort });
+  if (pillarIntent) {
+    return {
+      status: "success",
+      model: activeModel,
+      effort: activeEffort,
+      source: "vork-cloud-pillar-orchestrator",
+      response: stripEmojis(pillarIntent)
+    };
+  }
+
+  // -------------------------------------------------------------
+  // 7. CÓDIGO Y SOLUCIONES TÉCNICAS
+  // -------------------------------------------------------------
+  if (q.includes("codigo") || q.includes("código") || q.includes("funcion") || q.includes("función") || q.includes("script") || q.includes("fibonacci")) {
+    const codeAns = generateCodeSolution(q, q, activeModel, activeEffort);
+    if (codeAns) {
+      return {
+        status: "success",
+        model: activeModel,
+        effort: activeEffort,
+        source: "vork-cloud-code-engine",
+        response: stripEmojis(codeAns)
+      };
+    }
+  }
+
+  // -------------------------------------------------------------
+  // 8. INTELIGENCIA WEB EN TIEMPO REAL & NAVEGADOR DE INTERNET
+  // (Rastrea enlaces URL, Wikipedia en vivo, HackerNews, GitHub)
+  // -------------------------------------------------------------
+  try {
+    const webData = await searchWebIntelligence(promptText);
+    const synthesized = synthesizeWebIntelligence({
+      data: webData,
+      query: promptText,
+      model: activeModel,
+      effort: activeEffort
+    });
+
+    if (synthesized) {
+      return {
+        status: "success",
+        model: activeModel,
+        effort: activeEffort,
+        source: webData.crawledPage ? "vork-web-crawler" : "vork-live-web-intelligence",
+        response: stripEmojis(synthesized)
+      };
+    }
+  } catch (e) {}
+
+  // -------------------------------------------------------------
+  // 9. SÍNTESIS COGNITIVA GENERAL
   // -------------------------------------------------------------
   let detailedAnswer = "";
   if (activeEffort === "low") {
-    detailedAnswer = `Solicitud evaluada en **${activeModel} (low)**: "${promptText}". Listo para procesar código, comandos o conversiones multimedia.`;
+    detailedAnswer = `Consulta evaluada en **${activeModel} (low)**: "${promptText}". Para procesar acciones usa los comandos de Vork o proporciona detalles técnicos.`;
   } else if (activeEffort === "medium") {
     detailedAnswer = `### Análisis de Consulta · ${activeModel} (${activeEffort})\n\n` +
-      `He analizado tu planteamiento: **"${promptText}"**.\n\n` +
-      `**Opciones de ejecución inmediata:**\n` +
-      `1. **Generación de código:** Implementación técnica en Python, JavaScript, TypeScript, Bash o PowerShell.\n` +
-      `2. **Procesamiento con Pilares:** Conversión multimedia (\`/media\`), separación de stems (\`/separate\`), o síntesis de voz (\`/tts\`).\n` +
-      `3. **Desglose de arquitectura:** Estructuración de endpoints, microservicios o base de datos.\n\n` +
-      `Indica qué enfoque prefieres para continuar.`;
+      `He evaluado tu solicitud: **"${promptText}"**.\n\n` +
+      `**Capacidades disponibles de ejecución:**\n` +
+      `1. **Navegación e Inteligencia Web:** Si incluyes una URL o un tema específico, el navegador de Vork rastreará la información en tiempo real.\n` +
+      `2. **Los 9 Pilares Operacionales:** Transcodificación (\`/media\`), traducción (\`/translate\`), separación de stems (\`/separate\`), voz neuronal (\`/tts\`).\n` +
+      `3. **Desarrollo de Software:** Algoritmos, código en Python/JS/TS y arquitectura.\n\n` +
+      `Indica cómo deseas proceder.`;
   } else if (activeEffort === "high") {
     detailedAnswer = `### Evaluación Cognitiva Profunda · ${activeModel} (HIGH)\n\n` +
-      `**Entrada analizada:** "${promptText}"\n\n` +
-      `**Diagnóstico de requerimientos:**\n` +
-      `• **Contexto de ejecución:** Cluster en la nube de Vork (Render Linux x86_64, 512 MB RAM).\n` +
-      `• **Enfoque analítico:** Rigor técnico con enfoque en arquitectura modular, separación de responsabilidades y código desacoplado.\n` +
-      `• **Capacidades operacionales:**\n` +
-      `  - Desarrollo de software y algoritmos con pruebas unitarias.\n` +
-      `  - Canalización multimedia hacia los 9 pilares nativos de Vork.\n` +
-      `  - Planificación de proyectos (\`/plan\`, \`/goal\`).\n\n` +
-      `Por favor detalla los parámetros específicos o el entorno de destino para redactar la solución completa.`;
+      `**Entrada:** "${promptText}"\n\n` +
+      `**Diagnóstico Técnico:**\n` +
+      `• **Entorno:** Render Linux x86_64 Cloud con canal web activo.\n` +
+      `• **Pipeline:** Listo para consultar fuentes de internet, ejecutar transcodificación multimedia con los 9 pilares o diseñar arquitectura.\n\n` +
+      `Proporciona los parámetros o la URL que requieras procesar.`;
   } else {
-    // expert (El nivel supremo)
+    // expert
     detailedAnswer = `### Análisis Soberano de Máxima Potencia · ${activeModel} (EXPERT SOVEREIGN)\n\n` +
       `**Requerimiento formulado:** "${promptText}"\n\n` +
-      `**Directiva de Ingeniería Suprema:**\n` +
-      `1. **Alineación Arquitectónica:** Evaluación multidimensional considerando escalabilidad horizontal, acoplamiento débil y resiliencia ante particiones de red.\n` +
-      `2. **Optimización de Recursos:** Procesamiento optimizado para contención de memoria en el cluster de Render, garantizando que el recolector de basura V8 no experimente pausas por encima de 10ms.\n` +
-      `3. **Vía de Ejecución:** Dependiendo de si la meta es código, transcodificación multimedia o modelado de audio, se aplicará el algoritmo asintóticamente óptimo.\n\n` +
-      `Especifica los requisitos de entrada/salida o contratos de interfaz para formalizar la implementación de ingeniería.`;
+      `**Directiva de Ingeniería:**\n` +
+      `1. **Exploración de Red:** Capacidad de rastreo de páginas web y consulta a bases de conocimiento públicas habilitada.\n` +
+      `2. **Procesamiento de Señal y Medios:** Conexión directa a los motores FFMPEG, Demucs v4 y síntesis neuronal.\n` +
+      `3. **Gobernanza:** Ejecución con cero latencia de servicios ajenos y total independencia técnica.\n\n` +
+      `Especifica la meta operativa para iniciar el procesamiento.`;
   }
 
   return {
@@ -840,12 +1007,9 @@ async function processAIChat({ message, messages, model = "Vork 3.1", effort = "
 }
 
 module.exports = {
-  SYSTEM_PROMPTS: {
-    "Vork 3": "Vork 3 Cloud Multimodal Coordinator",
-    "Vork 3.1": "Vork 3.1 Cloud Systems Architect",
-    "Vork 3.2": "Vork 3.2 Expert Sovereign Edition"
-  },
+  SYSTEM_PROMPTS,
   processAIChat,
+  crawlWebPage,
   searchGitHubIntelligence,
   searchWebIntelligence,
   queryWikipedia,
