@@ -194,18 +194,14 @@ function Invoke-PillarMedia {
                 }
             }
 
-            $videoFull = if ($isLocalConversion) {
-                if ($res.directVideoUrl) { $res.directVideoUrl } else { "" }
+            $videoFull = if ($res.videoStreamUrl -and $res.videoStreamUrl.StartsWith("http")) {
+                $res.videoStreamUrl
+            } elseif ($res.videoStreamUrl) {
+                "$ApiBase$($res.videoStreamUrl)"
+            } elseif ($res.directVideoUrl) {
+                $res.directVideoUrl
             } else {
-                if ($res.videoStreamUrl -and $res.videoStreamUrl.StartsWith("http")) {
-                    $res.videoStreamUrl
-                } elseif ($res.videoStreamUrl) {
-                    "$ApiBase$($res.videoStreamUrl)"
-                } elseif ($res.directVideoUrl) {
-                    $res.directVideoUrl
-                } else {
-                    "$ApiBase/api/media/stream?id=$($res.id)&type=video"
-                }
+                "$ApiBase/api/media/stream?id=$($res.id)&type=video"
             }
 
             $audioFull = if ($isLocalConversion) {
@@ -235,7 +231,7 @@ function Invoke-PillarMedia {
             $hasVideoStream = ($fmt -eq "mp4") -and ($outputMode -in @("video_stream", "local_video", "all"))
             $hasAudioStream = ($fmt -in @("mp3", "wav")) -and ($outputMode -in @("audio_stream", "local_audio", "all"))
 
-            if ($hasLocal -or $isLocalConversion) {
+            if ($hasLocal) {
                 try {
                     if ($foundCache) {
                         Copy-Item -Path $foundCache -Destination $localFile -Force

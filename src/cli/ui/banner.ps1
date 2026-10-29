@@ -34,63 +34,43 @@ function Show-Banner {
         (" " + $sU + ($sF * 2) + " " + ($sF * 2) + $sU + " "),
         ("  " + $sU + ($sF * 3) + $sU + "  ")
     )
-
-    $cH = [string][char]0x2500 # ─
-    $cV = [string][char]0x2502 # │
-    $cTL = [string][char]0x256D # ╭
-    $cTR = [string][char]0x256E # ╮
-    $cBL = [string][char]0x2570 # ╰
-    $cBR = [string][char]0x256F # ╯
     $cChev = [string][char]0x276F # ❯
 
     Write-Host ""
 
-    if ($width -ge 48 -and $metrics.Height -ge 8) {
-        $cardW = [Math]::Min(72, [Math]::Max(46, $width - 2))
-        $inner = $cardW - 2
-        $rightPad = if ($cardW -ge 60) { 4 } else { 2 }
-        $logoW = 9
-        $logoCol = $inner - $rightPad - $logoW
+    if ($width -ge 46) {
+        $targetLogoCol = [Math]::Min(50, [Math]::Max(36, $width - 14))
 
-        $badgeStr = "${cH}${cH}[ ${White}${Bold}VORK CLI ${White}$versionBadge${Lead} ]"
-        $badgeVis = ("$cH$cH[ VORK CLI $versionBadge ]").Length
-        $remH = [Math]::Max(2, $inner - $badgeVis)
-        Write-Host "  ${Lead}${cTL}${badgeStr}$([string]::new($cH, $remH))${cTR}${Reset}"
+        # Fila 0: Logo arriba a la derecha
+        Write-Host "  $([string]::new(' ', $targetLogoCol))${Coral}$($vRows[0])${Reset}"
 
-        # Presupuesto horizontal seguro para no desbordar en terminales medianas
-        $maxPathBudget = [Math]::Max(10, ($logoCol - 6))
+        # Fila 1: VORK CLI vX.X.X
+        $left1 = "${White}${Bold}VORK CLI${Reset} ${White}$versionBadge${Reset}"
+        $vis1 = ("VORK CLI $versionBadge").Length
+        $pad1 = [Math]::Max(2, $targetLogoCol - $vis1)
+        Write-Host "  $left1$([string]::new(' ', $pad1))${Coral}$($vRows[1])${Reset}"
 
-        for ($i = 0; $i -lt 4; $i++) {
-            $leftText = if ($i -eq 1) {
-                "${White}${Bold}$modelName${Reset} ${tierColor}($tierLabel)${Reset}"
-            } elseif ($i -eq 2) {
-                $pathShown = $currPath
-                if ($pathShown.Length -gt $maxPathBudget) {
-                    $pathShown = "..." + $pathShown.Substring($pathShown.Length - ($maxPathBudget - 3))
-                }
-                "${Coral}${cChev}${Reset} ${White}$pathShown${Reset}"
-            } else {
-                ""
-            }
+        # Fila 2: Vork 3.2 (Tier)
+        $left2 = "${White}${Bold}$modelName${Reset} ${tierColor}($tierLabel)${Reset}"
+        $vis2 = ("$modelName ($tierLabel)").Length
+        $pad2 = [Math]::Max(2, $targetLogoCol - $vis2)
+        Write-Host "  $left2$([string]::new(' ', $pad2))${Coral}$($vRows[2])${Reset}"
 
-            $logoText = "${Coral}$($vRows[$i])${Reset}"
-            $lVis = ($leftText -replace "\x1B\[[0-9;]*[a-zA-Z]", "").Length
-            $midSpaces = [Math]::Max(1, ($logoCol - 3) - $lVis)
-
-            Write-Host "  ${Lead}${cV}${Reset}   $leftText$([string]::new(' ', $midSpaces))$logoText$([string]::new(' ', $rightPad))${Lead}${cV}${Reset}"
+        # Fila 3: ❯ ~/Path
+        $maxPathBudget = [Math]::Max(10, $targetLogoCol - 5)
+        $pathShown = $currPath
+        if ($pathShown.Length -gt $maxPathBudget) {
+            $pathShown = "..." + $pathShown.Substring($pathShown.Length - ($maxPathBudget - 3))
         }
-
-        Write-Host "  ${Lead}${cBL}$([string]::new($cH, $inner))${cBR}${Reset}"
+        $left3 = "${Coral}${cChev}${Reset} ${White}$pathShown${Reset}"
+        $vis3 = 2 + $pathShown.Length
+        $pad3 = [Math]::Max(2, $targetLogoCol - $vis3)
+        Write-Host "  $left3$([string]::new(' ', $pad3))${Coral}$($vRows[3])${Reset}"
     } else {
-        # Cabecera compacta responsive para terminales ultra estrechas (< 48 cols)
-        $badgeStr = "${cH}${cH}[ ${White}${Bold}VORK CLI ${White}$versionBadge${Lead} ]"
-        $badgeVis = ("$cH$cH[ VORK CLI $versionBadge ]").Length
-        $cW = [Math]::Max(20, $width - 2)
-        $remH = [Math]::Max(2, $cW - 2 - $badgeVis)
-        Write-Host "  ${Lead}${cTL}${badgeStr}$([string]::new($cH, $remH))${cTR}${Reset}"
-        Write-Host "  ${Lead}${cV}${Reset} ${White}$modelName${Reset} ${tierColor}($tierLabel)${Reset}"
-        Write-Host "  ${Lead}${cV}${Reset} ${Coral}${cChev}${Reset} ${White}$currPath${Reset}"
-        Write-Host "  ${Lead}${cBL}$([string]::new($cH, [Math]::Max(2, $cW - 2)))${cBR}${Reset}"
+        # Vista compacta para terminales estrechas
+        Write-Host "  ${White}${Bold}VORK CLI${Reset} ${White}$versionBadge${Reset}"
+        Write-Host "  ${White}${Bold}$modelName${Reset} ${tierColor}($tierLabel)${Reset}"
+        Write-Host "  ${Coral}${cChev}${Reset} ${White}$currPath${Reset}"
     }
 
     Write-Host ""

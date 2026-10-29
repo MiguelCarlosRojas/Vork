@@ -617,7 +617,23 @@ async function extractMediaInfo(url, requestedFormat = "mp3") {
 
   // Estrategia 3: Instagram Reels y Posts
   else if (platform.id === "instagram") {
-    // 1. Proveedor de alta disponibilidad: SnapInsta API direct
+    // 1. Proveedor de alta disponibilidad: cakkatrok-instagram-downloader (SnapVideo API)
+    try {
+      const snapVideo = require("cakkatrok-instagram-downloader");
+      const igRes = await withTimeout(snapVideo(cleanUrl), 15000);
+      if (igRes && igRes.status === "ok" && Array.isArray(igRes.media) && igRes.media.length > 0) {
+        const videoMedia = igRes.media.find(m => m.type === "video") || igRes.media[0];
+        if (videoMedia && videoMedia.url) {
+          info.mp4Url = videoMedia.url;
+          info.mp3Url = videoMedia.url;
+          info.directMediaUrl = videoMedia.url;
+        }
+      }
+    } catch (cakkaErr) {
+      logger.warn(`cakkatrok falló para Instagram: ${cakkaErr.message}`);
+    }
+
+    // 2. Proveedor secundario: SnapInsta API direct
     try {
       const qs = require("querystring");
       const normalizedIgUrl = cleanUrl.replace(/instagram\.com\/reels\//i, "instagram.com/reel/");
@@ -988,30 +1004,50 @@ function transcodeToMp4(streamUrl, outputPath, quality = "1080p", audioStreamUrl
   return new Promise((resolve, reject) => {
     try {
       const hasSeparateAudio = Boolean(audioStreamUrl && audioStreamUrl !== streamUrl);
-      const directArgs = [
+
+      let scaleFilter = "";
+      if (quality === "1080p" || quality.includes("1080")) {
+        scaleFilter = "scale=-2:1080:flags=lanczos";
+      } else if (quality === "720p" || quality.includes("720")) {
+        scaleFilter = "scale=-2:720:flags=lanczos";
+      } else if (quality === "480p" || quality.includes("480")) {
+        scaleFilter = "scale=-2:480:flags=lanczos";
+      }
+
+      const args = [
         "-y",
-        "-user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+        "-user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
         "-i", streamUrl
       ];
 
       if (hasSeparateAudio) {
-        directArgs.push(
-          "-user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-          "-i", audioStreamUrl,
-          "-c:v", "copy",
-          "-c:a", "aac",
-          "-b:a", "192k",
-          "-map", "0:v:0?",
-          "-map", "1:a:0?",
-          "-shortest"
+        args.push(
+          "-user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+          "-i", audioStreamUrl
         );
-      } else {
-        directArgs.push("-c", "copy");
       }
 
-      directArgs.push("-movflags", "+faststart", "-f", "mp4", outputPath);
+      if (scaleFilter) {
+        args.push("-vf", scaleFilter);
+      }
 
-      const ff = spawn(ffmpegPath, directArgs);
+      args.push(
+        "-c:v", "libx264",
+        "-preset", "fast",
+        "-crf", "22",
+        "-c:a", "aac",
+        "-b:a", "192k",
+        "-ar", "44100",
+        "-pix_fmt", "yuv420p"
+      );
+
+      if (hasSeparateAudio) {
+        args.push("-map", "0:v:0?", "-map", "1:a:0?", "-shortest");
+      }
+
+      args.push("-movflags", "+faststart", "-f", "mp4", outputPath);
+
+      const ff = spawn(ffmpegPath, args);
 
       let stderr = "";
       ff.stderr.on("data", d => { stderr += d.toString(); });
@@ -1032,83 +1068,24 @@ function transcodeToMp4(streamUrl, outputPath, quality = "1080p", audioStreamUrl
           return resolve({ sizeBytes: stats.size, duration, durationSeconds });
         }
 
-        // Intento 2: Transcodificación directa si -c copy falla o requiere remuxing complejo
-        logger.warn(`FFmpeg copy directo terminó con código ${code}, probando transcodificación...`);
-        const transArgs = [
+        // Fallback rápido: si falla libx264, probar remux directo con stream copy
+        logger.warn(`FFmpeg transcode terminó con código ${code}, probando remux directo...`);
+        const copyArgs = [
           "-y",
-          "-user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-          "-i", streamUrl
+          "-user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+          "-i", streamUrl,
+          "-c", "copy",
+          "-movflags", "+faststart",
+          "-f", "mp4",
+          outputPath
         ];
-        if (hasSeparateAudio) {
-          transArgs.push(
-            "-user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-            "-i", audioStreamUrl,
-            "-c:v", "libx264",
-            "-preset", "ultrafast",
-            "-crf", "23",
-            "-c:a", "aac",
-            "-b:a", "128k",
-            "-map", "0:v:0?",
-            "-map", "1:a:0?",
-            "-shortest"
-          );
-        } else {
-          transArgs.push(
-            "-c:v", "libx264",
-            "-preset", "ultrafast",
-            "-crf", "23",
-            "-c:a", "aac",
-            "-b:a", "128k"
-          );
-        }
-        transArgs.push("-movflags", "+faststart", "-f", "mp4", outputPath);
-
-        const ffTrans = spawn(ffmpegPath, transArgs);
-        let stderrTrans = "";
-        ffTrans.stderr.on("data", d => { stderrTrans += d.toString(); });
-        ffTrans.on("close", (tCode) => {
-          if (tCode === 0 && fs.existsSync(outputPath) && fs.statSync(outputPath).size > 1000) {
-            const statsTrans = fs.statSync(outputPath);
-            return resolve({ sizeBytes: statsTrans.size, duration: null, durationSeconds: 0 });
+        const ffCopy = spawn(ffmpegPath, copyArgs);
+        ffCopy.on("close", (cCode) => {
+          if (cCode === 0 && fs.existsSync(outputPath) && fs.statSync(outputPath).size > 1000) {
+            return resolve({ sizeBytes: fs.statSync(outputPath).size, duration: null, durationSeconds: 0 });
           }
-
-          if (!hasSeparateAudio) {
-            axios({
-              method: "get",
-              url: streamUrl,
-              responseType: "stream",
-              headers: {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-                "Accept": "*/*"
-              },
-              timeout: 60000
-            }).then(response => {
-              const ffPipe = spawn(ffmpegPath, [
-                "-y",
-                "-i", "pipe:0",
-                "-c", "copy",
-                "-movflags", "+faststart",
-                "-f", "mp4",
-                outputPath
-              ]);
-              response.data.pipe(ffPipe.stdin);
-              ffPipe.on("close", (pCode) => {
-                if (pCode === 0 && fs.existsSync(outputPath) && fs.statSync(outputPath).size > 1000) {
-                  return resolve({ sizeBytes: fs.statSync(outputPath).size, duration: null, durationSeconds: 0 });
-                }
-                reject(new Error(`FFmpeg MP4 transcode failed: ${stderrTrans.slice(-250)}`));
-              });
-              response.data.on("error", reject);
-            }).catch(() => reject(new Error(`FFmpeg MP4 transcode failed: ${stderrTrans.slice(-250)}`)));
-          } else {
-            reject(new Error(`FFmpeg MP4 transcode failed: ${stderrTrans.slice(-250)}`));
-          }
+          reject(new Error(`FFmpeg falló al codificar MP4 (código ${code})`));
         });
-        ffTrans.on("error", reject);
-      });
-
-      ff.on("error", err => {
-        reject(err);
       });
     } catch (err) {
       reject(err);
