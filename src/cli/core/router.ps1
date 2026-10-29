@@ -97,16 +97,33 @@ function Dispatch-CLICommand {
             Write-Host "  $($CSI)42;30;1m OK $Reset $Green El entorno de terminal esta en su version mas reciente ($VorkVersion).$Reset"
             Write-Host ""
         }
-        "health" { Invoke-PillarHealth }
+        "health" { Invoke-CmdStatus }
         "ping" {
             $sw = [System.Diagnostics.Stopwatch]::StartNew()
+            $online = $false
             try {
-                $r = Invoke-RestMethod -Uri "$ApiBase/api/ping" -TimeoutSec 3 -ErrorAction Stop
+                $r = Invoke-RestMethod -Uri "$ApiBase/api/ping" -TimeoutSec 5 -ErrorAction Stop
                 $sw.Stop()
-                Write-Host "  ${Green}● PONG${Reset} ${White}$($sw.ElapsedMilliseconds)ms${Reset} hacia $ApiBase"
+                $online = $true
             } catch {
-                Write-Host "  ${Coral}[Error Ping]:${Reset} No se pudo conectar con $ApiBase"
+                $sw.Stop()
             }
+
+            Write-VorkSectionHeader -Title "Latencia de red" -Subtitle "prueba de conectividad con la nube Vork" -RightText "vork · ping"
+            Write-VorkInfoRow -Label "Servidor" -Value $ApiBase -ValueColor $Cyan
+            if ($online) {
+                $latMs = $sw.ElapsedMilliseconds
+                $latColor = if ($latMs -lt 150) { $Green } elseif ($latMs -lt 400) { $Yellow } else { $Coral }
+                Write-VorkInfoRow -Label "Respuesta" -Value "PONG" -ValueColor $Green
+                Write-VorkInfoRow -Label "Latencia" -Value "${latMs} ms" -ValueColor $latColor
+                Write-VorkSectionRule
+                Write-VorkStatusLine -Kind "ok" -Text "Conexión activa y estable con la infraestructura Vork Cloud."
+            } else {
+                Write-VorkInfoRow -Label "Respuesta" -Value "OFFLINE / TIMEOUT" -ValueColor $Coral
+                Write-VorkSectionRule
+                Write-VorkStatusLine -Kind "error" -Text "No se pudo establecer conexión con el backend ($ApiBase)."
+            }
+            Write-Host ""
         }
         "docs" {
             Write-Host "  ${Cyan}Abriendo documentacion oficial de Vork en el navegador...${Reset}"
@@ -169,7 +186,7 @@ function Format-VorkPromptStatus {
             return "${tierColor}$([char]0x25CF)${Reset} ${tierColor}${Bold}$tierLabel${Reset}"
         }
 
-        return "${tierColor}$([char]0x25CF)${Reset} ${LeadLight}$model${Reset} ${Lead}$([char]0x00B7)${Reset} ${tierColor}${Bold}$tierLabel${Reset}"
+        return "${tierColor}$([char]0x25CF)${Reset} ${White}${Bold}$model${Reset} ${White}$([char]0x00B7)${Reset} ${tierColor}${Bold}$tierLabel${Reset}"
     }
 
     return "${LeadLight}$Status${Reset}"
@@ -254,7 +271,7 @@ function Format-VorkHintLine {
 
     if (-not $Hints -or $Hints.Count -eq 0 -or $MaxWidth -le 0) { return "" }
 
-    $separator = " ${Lead}$([char]0x00B7)${Reset} "
+    $separator = " ${White}$([char]0x00B7)${Reset} "
     $separatorWidth = 3
     $output = ""
     $used = 0
@@ -273,7 +290,7 @@ function Format-VorkHintLine {
 
         if ($output) { $output += $separator }
         $output += "${White}${Bold}$key${Reset}"
-        if ($label) { $output += " ${LeadLight}$label${Reset}" }
+        if ($label) { $output += " ${White}$label${Reset}" }
         $used += $needed
     }
 
@@ -515,14 +532,13 @@ function Read-InteractiveVorkLine {
         @{ Cmd = "/save";        Desc = "Guardar estado de sesion, artefactos y contexto" },
         @{ Cmd = "/resume";      Desc = "Reanudar una sesion previa o restaurar estado" },
         @{ Cmd = "/undo";        Desc = "Deshacer la ultima accion o cambio de codigo" },
-        @{ Cmd = "/status";      Desc = "Inspeccionar estado del entorno y tareas activas" },
+        @{ Cmd = "/status";      Desc = "Telemetria y estado operativo de los 9 pilares" },
         @{ Cmd = "/config";      Desc = "Panel interactivo de configuraciones y permisos" },
         @{ Cmd = "/model";       Desc = "Selector de modelo (Vork 3, 3.1, 3.2 Expert) y potencia" },
         @{ Cmd = "/theme";       Desc = "Alternar temas visuales (Dark, Cyberpunk, Coral)" },
         @{ Cmd = "/env";         Desc = "Consultar y gestionar variables de entorno activas" },
         @{ Cmd = "/help";        Desc = "Manual interactivo de comandos y atajos de teclado" },
         @{ Cmd = "/update";      Desc = "Sincronizar y actualizar Vork CLI a la ultima version" },
-        @{ Cmd = "/health";      Desc = "Telemetria en tiempo real de los 9 pilares" },
         @{ Cmd = "/ping";        Desc = "Prueba de latencia ultrarrapida hacia la nube" },
         @{ Cmd = "/docs";        Desc = "Abrir la documentacion oficial de Vork en el navegador" },
         @{ Cmd = "/exit";        Desc = "Cerrar la sesion de terminal de forma segura" }

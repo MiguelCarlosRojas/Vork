@@ -205,9 +205,6 @@ function Invoke-CmdUndo {
 # ========================================================
 
 function Invoke-CmdStatus {
-    Write-Host ""
-    Write-Host "  ${Cyan}╭─ ${Bold}[STATUS · LOS 9 PILARES OPERACIONALES DE VORK 3]${Reset} ────────────────────"
-
     $sw = [System.Diagnostics.Stopwatch]::StartNew()
     $online = $false
     $res = $null
@@ -223,36 +220,64 @@ function Invoke-CmdStatus {
     $uptimeStr = if ($res -and $res.uptime) { "$($res.uptime)s" } else { "N/A" }
     $rssStr = if ($res -and $res.memory -and $res.memory.rssMb) { "$($res.memory.rssMb) MB" } else { "N/A" }
 
+    Write-VorkSectionHeader -Title "Estado de los 9 pilares" -Subtitle "telemetría y servicios en tiempo real" -RightText "vork · status"
+
+    Write-VorkInfoRow -Label "Backend Cloud" -Value $ApiBase -ValueColor $Cyan
     if ($online) {
-        Write-Host "  ${Cyan}│${Reset}  ${LeadLight}Backend Cloud:${Reset} ${Green}● ONLINE${Reset} ${White}$ApiBase${Reset} ${LeadLight}($($sw.ElapsedMilliseconds)ms · Vork AI)${Reset}"
-        Write-Host "  ${Cyan}│${Reset}  ${LeadLight}Potencia:${Reset}      ${Cyan}${Bold}Vork 3 ($tierStr)${Reset} ${LeadLight}· Uptime: $uptimeStr · Memoria RSS: $rssStr${Reset}"
+        Write-VorkInfoRow -Label "Conexión" -Value "ONLINE  ·  $($sw.ElapsedMilliseconds)ms (Vork Cloud)" -ValueColor $Green
+        Write-VorkInfoRow -Label "Potencia IA" -Value "Vork 3 ($tierStr)  ·  Uptime: $uptimeStr  ·  RAM RSS: $rssStr" -ValueColor $White
     } else {
-        Write-Host "  ${Cyan}│${Reset}  ${LeadLight}Backend Cloud:${Reset} ${Coral}● OFFLINE${Reset} ${LeadLight}(Sin respuesta en $ApiBase)${Reset}"
-        Write-Host "  ${Cyan}│${Reset}  ${LeadLight}Potencia:${Reset}      ${Cyan}${Bold}Vork 3 ($tierStr)${Reset} ${LeadLight}· Modo Autónomo Local${Reset}"
+        Write-VorkInfoRow -Label "Conexión" -Value "OFFLINE  ·  Sin respuesta en $ApiBase" -ValueColor $Coral
+        Write-VorkInfoRow -Label "Potencia IA" -Value "Vork 3 ($tierStr)  ·  Modo autónomo local" -ValueColor $Yellow
     }
 
-    Write-Host "  ${Cyan}├─────────────────────────────────────────────────────────────────────────────${Reset}"
+    Write-VorkSectionRule -RightText "pilares operacionales"
 
     $pillars = @(
-        @{ Id = "01"; Name = "Traductor en la Nube";       Tech = "+200 idiomas por lotes y streaming";     Endpoint = "/api/translate" },
-        @{ Id = "02"; Name = "Texto a Voz Neuronal (TTS)"; Tech = "24 voces humanas multilingües (24kHz)";  Endpoint = "/api/tts" },
-        @{ Id = "03"; Name = "Clonación Vocal & Timbre";  Tech = "Modelado espectral F0 & voice matching"; Endpoint = "/api/voice-clone" },
-        @{ Id = "04"; Name = "Extracción Multimedia";      Tech = "Descarga de YouTube, TikTok, Reels, IG"; Endpoint = "/api/media-extract" },
-        @{ Id = "05"; Name = "Aislamiento de Stems Demucs";Tech = "Separación Acapella/Instrumental (v4)";  Endpoint = "/api/demucs" },
-        @{ Id = "07"; Name = "Conversor de Imágenes";      Tech = "Pipeline Sharp PNG, WEBP, ICO, AVIF";    Endpoint = "/api/image-convert" },
-        @{ Id = "08"; Name = "Eliminación de Fondo IA";    Tech = "Máscaras alfa y recorte de silueta";     Endpoint = "/api/remove-bg" },
-        @{ Id = "09"; Name = "Orquestación de Agentes";    Tech = "Subagentes concurrentes y bucle autónomo";Endpoint = "/api/agents" }
+        @{ Id = "01"; Key = "translator";       Name = "Traductor en la Nube";        Tech = "+200 idiomas por lotes y streaming" },
+        @{ Id = "02"; Key = "tts";              Name = "Texto a Voz Neuronal (TTS)";  Tech = "24 voces humanas multilingües (24kHz)" },
+        @{ Id = "03"; Key = "voiceClone";       Name = "Clonación Vocal & Timbre";   Tech = "Modelado espectral F0 & voice matching" },
+        @{ Id = "04"; Key = "mediaConverter";   Name = "Extracción Multimedia";       Tech = "Descarga de YouTube, TikTok, Reels, IG" },
+        @{ Id = "05"; Key = "separator";        Name = "Aislamiento de Stems Demucs"; Tech = "Separación Acapella/Instrumental (v4)" },
+        @{ Id = "06"; Key = "cloudDj";          Name = "Cloud DJ Mezclador";          Tech = "Mezclador virtual con crossfader interactivo" },
+        @{ Id = "07"; Key = "imageConverter";   Name = "Conversor de Imágenes";       Tech = "Pipeline Sharp PNG, WEBP, ICO, AVIF" },
+        @{ Id = "08"; Key = "backgroundStudio"; Name = "Eliminación de Fondo IA";     Tech = "Máscaras alfa y recorte de silueta" },
+        @{ Id = "09"; Key = "cli";              Name = "Orquestación de Agentes";     Tech = "Subagentes concurrentes y bucle autónomo" }
     )
 
+    $metrics = Get-VorkConsoleMetrics
+    $onlineCount = 0
+
     foreach ($p in $pillars) {
-        $stBadge = if ($online) { "$ESC[42;30;1m ONLINE $Reset" } else { "$ESC[43;30;1m STANDBY $Reset" }
-        $num = "[Pilar $($p.Id)]"
-        $pName = $p.Name.PadRight(26)
-        Write-Host "  ${Cyan}│${Reset}  ${Cyan}$num${Reset} $stBadge ${White}${Bold}$pName${Reset} ${LeadLight}· $($p.Tech)${Reset}"
+        $svc = if ($res -and $res.services) { $res.services.($p.Key) } else { $null }
+        $isOk = ($online -and $svc -and ($svc.status -eq "online" -or $svc.status -eq "ok"))
+        if ($isOk) { $onlineCount++ }
+
+        $stBadge = if ($isOk) {
+            "${Green}● Activo${Reset}"
+        } elseif ($online) {
+            "${Coral}× Error${Reset}"
+        } else {
+            "${LeadLight}○ Inactivo${Reset}"
+        }
+
+        $pName = $p.Name.PadRight(28)
+        $line = "    ${Cyan}[$($p.Id)]${Reset}  $stBadge  ${White}${Bold}$pName${Reset} ${LeadLight}· $($p.Tech)${Reset}"
+        Write-Host (Limit-VorkAnsiText -Text $line -MaxWidth ([Math]::Max(16, $metrics.Width - 1)))
     }
 
-    Write-Host "  ${Cyan}╰─────────────────────────────────────────────────────────────────────────────${Reset}"
-    Write-Host "  ${LeadLight}Estado global:${Reset} ${Green}9/9 pilares listos y verificados.${Reset}"
+    Write-VorkSectionRule
+
+    $statusKind = if ($onlineCount -eq 9) { "ok" } elseif ($onlineCount -gt 0) { "warn" } else { "error" }
+    $statusText = if ($onlineCount -eq 9) {
+        "Estado global: 9/9 pilares operativos y sincronizados en la nube."
+    } elseif ($onlineCount -gt 0) {
+        "Estado global: $onlineCount/9 pilares operativos. Algunos servicios presentan degradación."
+    } else {
+        "Estado global: Servidor en la nube desconectado. Operando en modo local."
+    }
+
+    Write-VorkStatusLine -Kind $statusKind -Text $statusText
     Write-Host ""
 }
 

@@ -52,7 +52,7 @@ function Show-Banner {
         $logoW = 9
         $logoCol = $inner - $rightPad - $logoW
 
-        $badgeStr = "${cH}${cH}[ ${White}${Bold}VORK CLI ${Cyan}$versionBadge${Lead} ]"
+        $badgeStr = "${cH}${cH}[ ${White}${Bold}VORK CLI ${White}$versionBadge${Lead} ]"
         $badgeVis = ("$cH$cH[ VORK CLI $versionBadge ]").Length
         $remH = [Math]::Max(2, $inner - $badgeVis)
         Write-Host "  ${Lead}${cTL}${badgeStr}$([string]::new($cH, $remH))${cTR}${Reset}"
@@ -62,13 +62,13 @@ function Show-Banner {
 
         for ($i = 0; $i -lt 4; $i++) {
             $leftText = if ($i -eq 1) {
-                "${White}$modelName${Reset} ${tierColor}($tierLabel)${Reset}"
+                "${White}${Bold}$modelName${Reset} ${tierColor}($tierLabel)${Reset}"
             } elseif ($i -eq 2) {
                 $pathShown = $currPath
                 if ($pathShown.Length -gt $maxPathBudget) {
                     $pathShown = "..." + $pathShown.Substring($pathShown.Length - ($maxPathBudget - 3))
                 }
-                "${Coral}${cChev}${Reset} ${LeadLight}$pathShown${Reset}"
+                "${Coral}${cChev}${Reset} ${White}$pathShown${Reset}"
             } else {
                 ""
             }
@@ -83,13 +83,13 @@ function Show-Banner {
         Write-Host "  ${Lead}${cBL}$([string]::new($cH, $inner))${cBR}${Reset}"
     } else {
         # Cabecera compacta responsive para terminales ultra estrechas (< 48 cols)
-        $badgeStr = "${cH}${cH}[ ${White}${Bold}VORK CLI ${Cyan}$versionBadge${Lead} ]"
+        $badgeStr = "${cH}${cH}[ ${White}${Bold}VORK CLI ${White}$versionBadge${Lead} ]"
         $badgeVis = ("$cH$cH[ VORK CLI $versionBadge ]").Length
         $cW = [Math]::Max(20, $width - 2)
         $remH = [Math]::Max(2, $cW - 2 - $badgeVis)
         Write-Host "  ${Lead}${cTL}${badgeStr}$([string]::new($cH, $remH))${cTR}${Reset}"
         Write-Host "  ${Lead}${cV}${Reset} ${White}$modelName${Reset} ${tierColor}($tierLabel)${Reset}"
-        Write-Host "  ${Lead}${cV}${Reset} ${Coral}${cChev}${Reset} ${LeadLight}$currPath${Reset}"
+        Write-Host "  ${Lead}${cV}${Reset} ${Coral}${cChev}${Reset} ${White}$currPath${Reset}"
         Write-Host "  ${Lead}${cBL}$([string]::new($cH, [Math]::Max(2, $cW - 2)))${cBR}${Reset}"
     }
 

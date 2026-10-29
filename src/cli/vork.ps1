@@ -2064,7 +2064,7 @@ function Show-Banner {
         $logoW = 9
         $logoCol = $inner - $rightPad - $logoW
 
-        $badgeStr = "${cH}${cH}[ ${White}${Bold}VORK CLI ${Cyan}$versionBadge${Lead} ]"
+        $badgeStr = "${cH}${cH}[ ${White}${Bold}VORK CLI ${White}$versionBadge${Lead} ]"
         $badgeVis = ("$cH$cH[ VORK CLI $versionBadge ]").Length
         $remH = [Math]::Max(2, $inner - $badgeVis)
         Write-Host "  ${Lead}${cTL}${badgeStr}$([string]::new($cH, $remH))${cTR}${Reset}"
@@ -2074,13 +2074,13 @@ function Show-Banner {
 
         for ($i = 0; $i -lt 4; $i++) {
             $leftText = if ($i -eq 1) {
-                "${White}$modelName${Reset} ${tierColor}($tierLabel)${Reset}"
+                "${White}${Bold}$modelName${Reset} ${tierColor}($tierLabel)${Reset}"
             } elseif ($i -eq 2) {
                 $pathShown = $currPath
                 if ($pathShown.Length -gt $maxPathBudget) {
                     $pathShown = "..." + $pathShown.Substring($pathShown.Length - ($maxPathBudget - 3))
                 }
-                "${Coral}${cChev}${Reset} ${LeadLight}$pathShown${Reset}"
+                "${Coral}${cChev}${Reset} ${White}$pathShown${Reset}"
             } else {
                 ""
             }
@@ -2095,13 +2095,13 @@ function Show-Banner {
         Write-Host "  ${Lead}${cBL}$([string]::new($cH, $inner))${cBR}${Reset}"
     } else {
         # Cabecera compacta responsive para terminales ultra estrechas (< 48 cols)
-        $badgeStr = "${cH}${cH}[ ${White}${Bold}VORK CLI ${Cyan}$versionBadge${Lead} ]"
+        $badgeStr = "${cH}${cH}[ ${White}${Bold}VORK CLI ${White}$versionBadge${Lead} ]"
         $badgeVis = ("$cH$cH[ VORK CLI $versionBadge ]").Length
         $cW = [Math]::Max(20, $width - 2)
         $remH = [Math]::Max(2, $cW - 2 - $badgeVis)
         Write-Host "  ${Lead}${cTL}${badgeStr}$([string]::new($cH, $remH))${cTR}${Reset}"
         Write-Host "  ${Lead}${cV}${Reset} ${White}$modelName${Reset} ${tierColor}($tierLabel)${Reset}"
-        Write-Host "  ${Lead}${cV}${Reset} ${Coral}${cChev}${Reset} ${LeadLight}$currPath${Reset}"
+        Write-Host "  ${Lead}${cV}${Reset} ${Coral}${cChev}${Reset} ${White}$currPath${Reset}"
         Write-Host "  ${Lead}${cBL}$([string]::new($cH, [Math]::Max(2, $cW - 2)))${cBR}${Reset}"
     }
 
@@ -3878,7 +3878,7 @@ function Show-Shortcuts {
         @{ Key = "/help";        Desc = "Ver catalogo detallado de los 9 pilares" },
         @{ Key = "/clear, cls";  Desc = "Limpiar pantalla y refrescar banner" },
         @{ Key = "/exit, quit, q"; Desc = "Salir de la sesion interactiva" },
-        @{ Key = "/ping, /health"; Desc = "Comprobar conexion con el backend ($ApiBase)" },
+        @{ Key = "/ping, /status"; Desc = "Comprobar conexion y telemetria del backend ($ApiBase)" },
         @{ Key = "/update";      Desc = "Actualizar Vork CLI al instante" }
     )
 
@@ -3969,7 +3969,7 @@ function Show-Help {
     Write-Host ""
     Write-VorkHelpLine -Width $width -Text "$White$Bold  MANTENIMIENTO & ESTADO:$Reset"
     Write-VorkHelpLine -Width $width -Text "    $Yellow vork update$Reset     ${Dim}Sincroniza y actualiza Vork CLI al instante${Reset}"
-    Write-VorkHelpLine -Width $width -Text "    $Yellow vork health$Reset     ${Dim}Comprueba la telemetria y estado de los 9 pilares${Reset}"
+    Write-VorkHelpLine -Width $width -Text "    $Yellow vork status$Reset     ${Dim}Telemetria y estado operativo de los 9 pilares${Reset}"
     Write-VorkHelpLine -Width $width -Text "    $Yellow vork version$Reset    ${Dim}Muestra detalles de arquitectura y version${Reset}"
     Write-VorkHelpLine -Width $width -Text "    $Yellow vork slash$Reset      ${Dim}Ver los 40 comandos con barra (/)${Reset}"
     Write-Host ""
@@ -4040,7 +4040,6 @@ function Show-SlashCommands {
             Items = @(
                 @{ Cmd = "/help";   Desc = "Manual interactivo de comandos y atajos de teclado" },
                 @{ Cmd = "/update"; Desc = "Sincronizar y actualizar Vork CLI a la ultima version" },
-                @{ Cmd = "/health"; Desc = "Telemetria en tiempo real de los 9 pilares" },
                 @{ Cmd = "/ping";   Desc = "Prueba de latencia ultrarrrapida hacia la nube" },
                 @{ Cmd = "/docs";   Desc = "Abrir la documentacion oficial de Vork en el navegador" },
                 @{ Cmd = "/exit";   Desc = "Cerrar la sesion de terminal de forma segura" }
@@ -4102,7 +4101,7 @@ function Show-InteractiveHelpModal {
         @{ Cmd = "/help";        Desc = "Manual interactivo de comandos y atajos de teclado" },
         @{ Cmd = "/slash";       Desc = "Ver todos los comandos con barra clasificados" },
         @{ Cmd = "/update";      Desc = "Sincronizar y actualizar Vork CLI a la ultima version" },
-        @{ Cmd = "/health";      Desc = "Telemetria en tiempo real de los 9 pilares" },
+        @{ Cmd = "/status"; Desc = "Telemetria en tiempo real de los 9 pilares" },
         @{ Cmd = "/ping";        Desc = "Prueba de latencia ultrarrrapida hacia la nube" },
         @{ Cmd = "/docs";        Desc = "Abrir la documentacion oficial de Vork en el navegador" },
         @{ Cmd = "/exit";        Desc = "Cerrar la sesion de terminal de forma segura" }
@@ -5952,9 +5951,6 @@ function Invoke-CmdUndo {
 # ========================================================
 
 function Invoke-CmdStatus {
-    Write-Host ""
-    Write-Host "  ${Cyan}╭─ ${Bold}[STATUS · LOS 9 PILARES OPERACIONALES DE VORK 3]${Reset} ────────────────────"
-
     $sw = [System.Diagnostics.Stopwatch]::StartNew()
     $online = $false
     $res = $null
@@ -5970,36 +5966,64 @@ function Invoke-CmdStatus {
     $uptimeStr = if ($res -and $res.uptime) { "$($res.uptime)s" } else { "N/A" }
     $rssStr = if ($res -and $res.memory -and $res.memory.rssMb) { "$($res.memory.rssMb) MB" } else { "N/A" }
 
+    Write-VorkSectionHeader -Title "Estado de los 9 pilares" -Subtitle "telemetría y servicios en tiempo real" -RightText "vork · status"
+
+    Write-VorkInfoRow -Label "Backend Cloud" -Value $ApiBase -ValueColor $Cyan
     if ($online) {
-        Write-Host "  ${Cyan}│${Reset}  ${LeadLight}Backend Cloud:${Reset} ${Green}● ONLINE${Reset} ${White}$ApiBase${Reset} ${LeadLight}($($sw.ElapsedMilliseconds)ms · Vork AI)${Reset}"
-        Write-Host "  ${Cyan}│${Reset}  ${LeadLight}Potencia:${Reset}      ${Cyan}${Bold}Vork 3 ($tierStr)${Reset} ${LeadLight}· Uptime: $uptimeStr · Memoria RSS: $rssStr${Reset}"
+        Write-VorkInfoRow -Label "Conexión" -Value "ONLINE  ·  $($sw.ElapsedMilliseconds)ms (Vork Cloud)" -ValueColor $Green
+        Write-VorkInfoRow -Label "Potencia IA" -Value "Vork 3 ($tierStr)  ·  Uptime: $uptimeStr  ·  RAM RSS: $rssStr" -ValueColor $White
     } else {
-        Write-Host "  ${Cyan}│${Reset}  ${LeadLight}Backend Cloud:${Reset} ${Coral}● OFFLINE${Reset} ${LeadLight}(Sin respuesta en $ApiBase)${Reset}"
-        Write-Host "  ${Cyan}│${Reset}  ${LeadLight}Potencia:${Reset}      ${Cyan}${Bold}Vork 3 ($tierStr)${Reset} ${LeadLight}· Modo Autónomo Local${Reset}"
+        Write-VorkInfoRow -Label "Conexión" -Value "OFFLINE  ·  Sin respuesta en $ApiBase" -ValueColor $Coral
+        Write-VorkInfoRow -Label "Potencia IA" -Value "Vork 3 ($tierStr)  ·  Modo autónomo local" -ValueColor $Yellow
     }
 
-    Write-Host "  ${Cyan}├─────────────────────────────────────────────────────────────────────────────${Reset}"
+    Write-VorkSectionRule -RightText "pilares operacionales"
 
     $pillars = @(
-        @{ Id = "01"; Name = "Traductor en la Nube";       Tech = "+200 idiomas por lotes y streaming";     Endpoint = "/api/translate" },
-        @{ Id = "02"; Name = "Texto a Voz Neuronal (TTS)"; Tech = "24 voces humanas multilingües (24kHz)";  Endpoint = "/api/tts" },
-        @{ Id = "03"; Name = "Clonación Vocal & Timbre";  Tech = "Modelado espectral F0 & voice matching"; Endpoint = "/api/voice-clone" },
-        @{ Id = "04"; Name = "Extracción Multimedia";      Tech = "Descarga de YouTube, TikTok, Reels, IG"; Endpoint = "/api/media-extract" },
-        @{ Id = "05"; Name = "Aislamiento de Stems Demucs";Tech = "Separación Acapella/Instrumental (v4)";  Endpoint = "/api/demucs" },
-        @{ Id = "07"; Name = "Conversor de Imágenes";      Tech = "Pipeline Sharp PNG, WEBP, ICO, AVIF";    Endpoint = "/api/image-convert" },
-        @{ Id = "08"; Name = "Eliminación de Fondo IA";    Tech = "Máscaras alfa y recorte de silueta";     Endpoint = "/api/remove-bg" },
-        @{ Id = "09"; Name = "Orquestación de Agentes";    Tech = "Subagentes concurrentes y bucle autónomo";Endpoint = "/api/agents" }
+        @{ Id = "01"; Key = "translator";       Name = "Traductor en la Nube";        Tech = "+200 idiomas por lotes y streaming" },
+        @{ Id = "02"; Key = "tts";              Name = "Texto a Voz Neuronal (TTS)";  Tech = "24 voces humanas multilingües (24kHz)" },
+        @{ Id = "03"; Key = "voiceClone";       Name = "Clonación Vocal & Timbre";   Tech = "Modelado espectral F0 & voice matching" },
+        @{ Id = "04"; Key = "mediaConverter";   Name = "Extracción Multimedia";       Tech = "Descarga de YouTube, TikTok, Reels, IG" },
+        @{ Id = "05"; Key = "separator";        Name = "Aislamiento de Stems Demucs"; Tech = "Separación Acapella/Instrumental (v4)" },
+        @{ Id = "06"; Key = "cloudDj";          Name = "Cloud DJ Mezclador";          Tech = "Mezclador virtual con crossfader interactivo" },
+        @{ Id = "07"; Key = "imageConverter";   Name = "Conversor de Imágenes";       Tech = "Pipeline Sharp PNG, WEBP, ICO, AVIF" },
+        @{ Id = "08"; Key = "backgroundStudio"; Name = "Eliminación de Fondo IA";     Tech = "Máscaras alfa y recorte de silueta" },
+        @{ Id = "09"; Key = "cli";              Name = "Orquestación de Agentes";     Tech = "Subagentes concurrentes y bucle autónomo" }
     )
 
+    $metrics = Get-VorkConsoleMetrics
+    $onlineCount = 0
+
     foreach ($p in $pillars) {
-        $stBadge = if ($online) { "$ESC[42;30;1m ONLINE $Reset" } else { "$ESC[43;30;1m STANDBY $Reset" }
-        $num = "[Pilar $($p.Id)]"
-        $pName = $p.Name.PadRight(26)
-        Write-Host "  ${Cyan}│${Reset}  ${Cyan}$num${Reset} $stBadge ${White}${Bold}$pName${Reset} ${LeadLight}· $($p.Tech)${Reset}"
+        $svc = if ($res -and $res.services) { $res.services.($p.Key) } else { $null }
+        $isOk = ($online -and $svc -and ($svc.status -eq "online" -or $svc.status -eq "ok"))
+        if ($isOk) { $onlineCount++ }
+
+        $stBadge = if ($isOk) {
+            "${Green}● Activo${Reset}"
+        } elseif ($online) {
+            "${Coral}× Error${Reset}"
+        } else {
+            "${LeadLight}○ Inactivo${Reset}"
+        }
+
+        $pName = $p.Name.PadRight(28)
+        $line = "    ${Cyan}[$($p.Id)]${Reset}  $stBadge  ${White}${Bold}$pName${Reset} ${LeadLight}· $($p.Tech)${Reset}"
+        Write-Host (Limit-VorkAnsiText -Text $line -MaxWidth ([Math]::Max(16, $metrics.Width - 1)))
     }
 
-    Write-Host "  ${Cyan}╰─────────────────────────────────────────────────────────────────────────────${Reset}"
-    Write-Host "  ${LeadLight}Estado global:${Reset} ${Green}9/9 pilares listos y verificados.${Reset}"
+    Write-VorkSectionRule
+
+    $statusKind = if ($onlineCount -eq 9) { "ok" } elseif ($onlineCount -gt 0) { "warn" } else { "error" }
+    $statusText = if ($onlineCount -eq 9) {
+        "Estado global: 9/9 pilares operativos y sincronizados en la nube."
+    } elseif ($onlineCount -gt 0) {
+        "Estado global: $onlineCount/9 pilares operativos. Algunos servicios presentan degradación."
+    } else {
+        "Estado global: Servidor en la nube desconectado. Operando en modo local."
+    }
+
+    Write-VorkStatusLine -Kind $statusKind -Text $statusText
     Write-Host ""
 }
 
@@ -6481,32 +6505,14 @@ function Invoke-PillarVersion {
     $archLabel = if ($env:PROCESSOR_ARCHITECTURE) { $env:PROCESSOR_ARCHITECTURE } else { "unknown" }
     Write-Host ""
     Write-Host "  $ESC[44;97;1m VORK CLI $Reset $White$Bold v$VorkVersion$Reset"
-    Write-Host "  $Gray Backend:$Reset  $Cyan$ApiBase$Reset"
-    Write-Host "  $Gray Pilares:$Reset  $Green 9 Pilares Operacionales Activos$Reset"
-    Write-Host "  $Gray Motor:$Reset    $White PowerShell $($PSVersionTable.PSVersion) [$archLabel]$Reset"
+    Write-Host "  $White Backend:$Reset  $Cyan$ApiBase$Reset"
+    Write-Host "  $White Pilares:$Reset  $Green 9 Pilares Operacionales Activos$Reset"
+    Write-Host "  $White Motor:$Reset    $White PowerShell $($PSVersionTable.PSVersion) [$archLabel]$Reset"
     Write-Host ""
 }
 
 function Invoke-PillarHealth {
-    Write-Host ""
-    Write-Host "  $Cyan╭─ [TELEMETRÍA Y ESTADO DE LOS 9 PILARES] ──────────$Reset"
-    try {
-        $res = Invoke-RestMethod -Uri "$ApiBase/api/health" -Method Get
-        Write-Host "  $Cyan│$Reset  $Gray Servidor:$Reset  $Green● ONLINE$Reset ${Dim}($ApiBase)${Reset}"
-        Write-Host "  $Cyan│$Reset  $Gray Pilares:$Reset   $White$($res.pillars) / 9 Operacionales$Reset"
-        Write-Host "  $Cyan│$Reset  $Gray Uptime:$Reset    $White$($res.uptime)s$Reset"
-        Write-Host "  $Cyan├───────────────────────────────────────────────────$Reset"
-        if ($res.services) {
-            $res.services.PSObject.Properties | ForEach-Object {
-                Write-Host "  $Cyan│$Reset  $Green●$Reset $($_.Value.name): $Dim$($_.Value.status)$Reset"
-            }
-        }
-        Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
-    } catch {
-        Write-Host "  $Cyan│$Reset  ${Coral}[Offline]:${Reset} Servidor no responde en $ApiBase"
-        Write-Host "  $Cyan╰───────────────────────────────────────────────────$Reset"
-    }
-    Write-Host ""
+    Invoke-CmdStatus
 }
 
 
@@ -6665,16 +6671,33 @@ function Dispatch-CLICommand {
             Write-Host "  $($CSI)42;30;1m OK $Reset $Green El entorno de terminal esta en su version mas reciente ($VorkVersion).$Reset"
             Write-Host ""
         }
-        "health" { Invoke-PillarHealth }
+        "health" { Invoke-CmdStatus }
         "ping" {
             $sw = [System.Diagnostics.Stopwatch]::StartNew()
+            $online = $false
             try {
-                $r = Invoke-RestMethod -Uri "$ApiBase/api/ping" -TimeoutSec 3 -ErrorAction Stop
+                $r = Invoke-RestMethod -Uri "$ApiBase/api/ping" -TimeoutSec 5 -ErrorAction Stop
                 $sw.Stop()
-                Write-Host "  ${Green}● PONG${Reset} ${White}$($sw.ElapsedMilliseconds)ms${Reset} hacia $ApiBase"
+                $online = $true
             } catch {
-                Write-Host "  ${Coral}[Error Ping]:${Reset} No se pudo conectar con $ApiBase"
+                $sw.Stop()
             }
+
+            Write-VorkSectionHeader -Title "Latencia de red" -Subtitle "prueba de conectividad con la nube Vork" -RightText "vork · ping"
+            Write-VorkInfoRow -Label "Servidor" -Value $ApiBase -ValueColor $Cyan
+            if ($online) {
+                $latMs = $sw.ElapsedMilliseconds
+                $latColor = if ($latMs -lt 150) { $Green } elseif ($latMs -lt 400) { $Yellow } else { $Coral }
+                Write-VorkInfoRow -Label "Respuesta" -Value "PONG" -ValueColor $Green
+                Write-VorkInfoRow -Label "Latencia" -Value "${latMs} ms" -ValueColor $latColor
+                Write-VorkSectionRule
+                Write-VorkStatusLine -Kind "ok" -Text "Conexión activa y estable con la infraestructura Vork Cloud."
+            } else {
+                Write-VorkInfoRow -Label "Respuesta" -Value "OFFLINE / TIMEOUT" -ValueColor $Coral
+                Write-VorkSectionRule
+                Write-VorkStatusLine -Kind "error" -Text "No se pudo establecer conexión con el backend ($ApiBase)."
+            }
+            Write-Host ""
         }
         "docs" {
             Write-Host "  ${Cyan}Abriendo documentacion oficial de Vork en el navegador...${Reset}"
@@ -6737,7 +6760,7 @@ function Format-VorkPromptStatus {
             return "${tierColor}$([char]0x25CF)${Reset} ${tierColor}${Bold}$tierLabel${Reset}"
         }
 
-        return "${tierColor}$([char]0x25CF)${Reset} ${LeadLight}$model${Reset} ${Lead}$([char]0x00B7)${Reset} ${tierColor}${Bold}$tierLabel${Reset}"
+        return "${tierColor}$([char]0x25CF)${Reset} ${White}${Bold}$model${Reset} ${White}$([char]0x00B7)${Reset} ${tierColor}${Bold}$tierLabel${Reset}"
     }
 
     return "${LeadLight}$Status${Reset}"
@@ -6822,7 +6845,7 @@ function Format-VorkHintLine {
 
     if (-not $Hints -or $Hints.Count -eq 0 -or $MaxWidth -le 0) { return "" }
 
-    $separator = " ${Lead}$([char]0x00B7)${Reset} "
+    $separator = " ${White}$([char]0x00B7)${Reset} "
     $separatorWidth = 3
     $output = ""
     $used = 0
@@ -6841,7 +6864,7 @@ function Format-VorkHintLine {
 
         if ($output) { $output += $separator }
         $output += "${White}${Bold}$key${Reset}"
-        if ($label) { $output += " ${LeadLight}$label${Reset}" }
+        if ($label) { $output += " ${White}$label${Reset}" }
         $used += $needed
     }
 
@@ -7083,14 +7106,13 @@ function Read-InteractiveVorkLine {
         @{ Cmd = "/save";        Desc = "Guardar estado de sesion, artefactos y contexto" },
         @{ Cmd = "/resume";      Desc = "Reanudar una sesion previa o restaurar estado" },
         @{ Cmd = "/undo";        Desc = "Deshacer la ultima accion o cambio de codigo" },
-        @{ Cmd = "/status";      Desc = "Inspeccionar estado del entorno y tareas activas" },
+        @{ Cmd = "/status";      Desc = "Telemetria y estado operativo de los 9 pilares" },
         @{ Cmd = "/config";      Desc = "Panel interactivo de configuraciones y permisos" },
         @{ Cmd = "/model";       Desc = "Selector de modelo (Vork 3, 3.1, 3.2 Expert) y potencia" },
         @{ Cmd = "/theme";       Desc = "Alternar temas visuales (Dark, Cyberpunk, Coral)" },
         @{ Cmd = "/env";         Desc = "Consultar y gestionar variables de entorno activas" },
         @{ Cmd = "/help";        Desc = "Manual interactivo de comandos y atajos de teclado" },
         @{ Cmd = "/update";      Desc = "Sincronizar y actualizar Vork CLI a la ultima version" },
-        @{ Cmd = "/health";      Desc = "Telemetria en tiempo real de los 9 pilares" },
         @{ Cmd = "/ping";        Desc = "Prueba de latencia ultrarrapida hacia la nube" },
         @{ Cmd = "/docs";        Desc = "Abrir la documentacion oficial de Vork en el navegador" },
         @{ Cmd = "/exit";        Desc = "Cerrar la sesion de terminal de forma segura" }

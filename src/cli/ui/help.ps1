@@ -26,7 +26,7 @@ function Show-Shortcuts {
         @{ Key = "/help";        Desc = "Ver catalogo detallado de los 9 pilares" },
         @{ Key = "/clear, cls";  Desc = "Limpiar pantalla y refrescar banner" },
         @{ Key = "/exit, quit, q"; Desc = "Salir de la sesion interactiva" },
-        @{ Key = "/ping, /health"; Desc = "Comprobar conexion con el backend ($ApiBase)" },
+        @{ Key = "/ping, /status"; Desc = "Comprobar conexion y telemetria del backend ($ApiBase)" },
         @{ Key = "/update";      Desc = "Actualizar Vork CLI al instante" }
     )
 
@@ -117,7 +117,7 @@ function Show-Help {
     Write-Host ""
     Write-VorkHelpLine -Width $width -Text "$White$Bold  MANTENIMIENTO & ESTADO:$Reset"
     Write-VorkHelpLine -Width $width -Text "    $Yellow vork update$Reset     ${Dim}Sincroniza y actualiza Vork CLI al instante${Reset}"
-    Write-VorkHelpLine -Width $width -Text "    $Yellow vork health$Reset     ${Dim}Comprueba la telemetria y estado de los 9 pilares${Reset}"
+    Write-VorkHelpLine -Width $width -Text "    $Yellow vork status$Reset     ${Dim}Telemetria y estado operativo de los 9 pilares${Reset}"
     Write-VorkHelpLine -Width $width -Text "    $Yellow vork version$Reset    ${Dim}Muestra detalles de arquitectura y version${Reset}"
     Write-VorkHelpLine -Width $width -Text "    $Yellow vork slash$Reset      ${Dim}Ver los 40 comandos con barra (/)${Reset}"
     Write-Host ""
@@ -188,7 +188,6 @@ function Show-SlashCommands {
             Items = @(
                 @{ Cmd = "/help";   Desc = "Manual interactivo de comandos y atajos de teclado" },
                 @{ Cmd = "/update"; Desc = "Sincronizar y actualizar Vork CLI a la ultima version" },
-                @{ Cmd = "/health"; Desc = "Telemetria en tiempo real de los 9 pilares" },
                 @{ Cmd = "/ping";   Desc = "Prueba de latencia ultrarrrapida hacia la nube" },
                 @{ Cmd = "/docs";   Desc = "Abrir la documentacion oficial de Vork en el navegador" },
                 @{ Cmd = "/exit";   Desc = "Cerrar la sesion de terminal de forma segura" }
@@ -250,7 +249,7 @@ function Show-InteractiveHelpModal {
         @{ Cmd = "/help";        Desc = "Manual interactivo de comandos y atajos de teclado" },
         @{ Cmd = "/slash";       Desc = "Ver todos los comandos con barra clasificados" },
         @{ Cmd = "/update";      Desc = "Sincronizar y actualizar Vork CLI a la ultima version" },
-        @{ Cmd = "/health";      Desc = "Telemetria en tiempo real de los 9 pilares" },
+        @{ Cmd = "/status"; Desc = "Telemetria en tiempo real de los 9 pilares" },
         @{ Cmd = "/ping";        Desc = "Prueba de latencia ultrarrrapida hacia la nube" },
         @{ Cmd = "/docs";        Desc = "Abrir la documentacion oficial de Vork en el navegador" },
         @{ Cmd = "/exit";        Desc = "Cerrar la sesion de terminal de forma segura" }
