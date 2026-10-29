@@ -2,19 +2,106 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Estudio de Texto a Voz (TTS Multilingüe) de Vork | Convierte texto en locución fluida y natural, selecciona voces humanas, calibra tono, velocidad y visualiza ondas sonoras.">
-  <meta property="og:title" content="Texto a Voz (TTS Studio) - Vork">
-  <meta property="og:description" content="Síntesis vocal en tiempo real con ecualizador animado y API REST de audio PCM.">
-  <title>Texto a Voz (TTS) - Vork</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+  <meta name="theme-color" content="#11141a">
+  <title>Vork TTS | Voz Neuronal y Síntesis de Texto a Voz con Vork</title>
+  <meta name="description" content="Vork TTS: genera locución hiperrealista multilingüe con modelos neuronales de IA. Convierte texto a voz con Vork, calibra tono, velocidad y descarga audio en MP3/WAV.">
+  <meta name="keywords" content="Vork TTS, vork tts, Texto a voz con Vork, Vork Voz Neuronal, voz neuronal vork, sintetizador de voz vork, vork text to speech, voces realistas vork">
+  <link rel="canonical" href="https://vork-st1k.onrender.com/tts">
+
+  <!-- Open Graph -->
+  <meta property="og:site_name" content="Vork">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://vork-st1k.onrender.com/tts">
+  <meta property="og:title" content="Vork TTS | Voz Neuronal y Texto a Voz">
+  <meta property="og:description" content="Convierte texto en locución fluida y natural con voces humanas, ecualizador visual y descarga de audio directo.">
+  <meta property="og:image" content="https://vork-st1k.onrender.com/img/logo.png">
+  <meta property="og:locale" content="es_ES">
+
+  <!-- Twitter Cards -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Vork TTS | Voz Neuronal y Texto a Voz">
+  <meta name="twitter:description" content="Síntesis de voz con entonación natural y soporte multilingüe en tiempo real.">
+  <meta name="twitter:image" content="https://vork-st1k.onrender.com/img/logo.png">
+
+  <!-- Favicons y Manifest -->
   <link rel="icon" type="image/png" sizes="192x192" href="/img/logo.png">
   <link rel="icon" type="image/png" sizes="64x64" href="/img/logo.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/img/logo.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/img/logo.png">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="manifest" href="/manifest.json">
+  <!-- Compatibilidad Universal de Navegadores (Chrome, Safari, Edge, Firefox, Opera GX, Brave) -->
+  <meta name="application-name" content="Vork">
+  <meta name="apple-mobile-web-app-title" content="Vork">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="msapplication-TileColor" content="#11141a">
+  <meta name="msapplication-TileImage" content="/img/logo.png">
+  <link rel="search" type="application/opensearchdescription+xml" title="Vork" href="/opensearch.xml">
+
+  <!-- Tipografías y Estilos -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css">
+
+  <!-- Datos Estructurados JSON-LD -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebApplication",
+        "@id": "https://vork-st1k.onrender.com/tts#app",
+        "name": "Vork TTS",
+        "alternateName": [
+          "vork tts",
+          "Vork TTS",
+          "Vork Voz Neuronal",
+          "Texto a voz con Vork",
+          "Vork Text to Speech",
+          "Sintetizador Vork"
+        ],
+        "keywords": "Vork TTS, vork tts, Texto a voz con Vork, Vork Voz Neuronal, sintetizador de voz vork",
+        "url": "https://vork-st1k.onrender.com/tts",
+        "applicationCategory": "MultimediaApplication",
+        "operatingSystem": "All",
+        "browserRequirements": "Requires JavaScript. Requires HTML5 Audio.",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
+        "description": "Estudio de síntesis vocal neuronal que genera locución de alta calidad a partir de texto con control de parámetros prosódicos.",
+        "featureList": [
+          "Múltiples voces y timbres neuronales",
+          "Ajuste de velocidad, tono y volumen",
+          "Visualizador espectral interactivo",
+          "Descarga de archivos de audio MP3 y WAV"
+        ]
+      },
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Inicio",
+            "item": "https://vork-st1k.onrender.com/"
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Voz Neuronal TTS",
+            "item": "https://vork-st1k.onrender.com/tts"
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+
   <script>
     (function(){try{var m=document.cookie.match(/(?:^|; )vork_lang=([^;]*)/);var l=m?decodeURIComponent(m[1]):null;if(l&&l!=="original"&&l!=="es"){document.documentElement.classList.add("ct-pending");setTimeout(function(){document.documentElement.classList.remove("ct-pending");},800);}}catch(e){}})();
   </script>

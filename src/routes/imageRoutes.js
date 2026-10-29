@@ -23,6 +23,10 @@ router.post("/convert", heavyImageParser, imageLimiter, imageController.convertI
 router.post("/remove-bg", heavyImageParser, imageLimiter, imageController.removeBackground);
 router.post("/remove-background", heavyImageParser, imageLimiter, imageController.removeBackground);
 
+// NUEVO PILAR: Generador de Imágenes IA con FLUX.1 (100% Gratuito, Sin Marca de Agua)
+router.post("/generate", heavyImageParser, imageLimiter, imageController.generateImage);
+router.post("/generate-image", heavyImageParser, imageLimiter, imageController.generateImage);
+
 // Endpoints comunes de entrega multimedia
 router.get("/stream", imageController.streamImage);
 router.get("/download", imageController.downloadImage);

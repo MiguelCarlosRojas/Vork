@@ -1,11 +1,12 @@
 /**
  * imageService.js
- * Capa de servicio para operaciones de imagen y background studio con IA
+ * Capa de servicio para operaciones de imagen, background studio y generación con IA
  */
 
 const {
   processImageConversion,
   processBackgroundOperation,
+  generateImageFromPrompt,
   getImageById,
   IMAGE_CACHE_DIR
 } = require("../utils/imageEngine");
@@ -17,6 +18,10 @@ class ImageService {
 
   async processBackground(params) {
     return await processBackgroundOperation(params);
+  }
+
+  async generate(params) {
+    return await generateImageFromPrompt(params);
   }
 
   findImageById(id) {

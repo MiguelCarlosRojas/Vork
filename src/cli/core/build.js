@@ -16,6 +16,7 @@ const files = [
   'pillars/p07_image.ps1',
   'pillars/p08_remove_bg.ps1',
   'pillars/p09_agents.ps1',
+  'pillars/p10_generate_image.ps1',
   'pillars/commands.ps1',
   'pillars/system.ps1',
   'core/updater.ps1',

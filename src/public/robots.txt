@@ -1,0 +1,37 @@
+# Robots.txt oficial para Vork
+# Habilita el rastreo e indexación universal en todos los motores de búsqueda y navegadores del mundo:
+# Google, Microsoft Edge/Bing, Apple Safari (Applebot), Opera/Opera GX, Brave, Mozilla Firefox, DuckDuckGo, Yahoo, Yandex
+
+User-agent: *
+Allow: /
+Disallow: /api/ping
+Disallow: /tmp/
+
+# Motores Principales y Agentes de Rastreo Específicos
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Applebot
+Allow: /
+
+User-agent: DuckDuckBot
+Allow: /
+
+User-agent: YandexBot
+Allow: /
+
+User-agent: Bravebot
+Allow: /
+
+User-agent: Twitterbot
+Allow: /
+
+User-agent: facebookexternalhit
+Allow: /
+
+# Declaración de Host, Sitemap e IndexNow
+Host: https://vork-st1k.onrender.com
+Sitemap: https://vork-st1k.onrender.com/sitemap.xml

@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Vork CLI - Modulo Core: Despachador y consola interactiva REPL responsive.
 #>
@@ -22,6 +22,7 @@ function Dispatch-CLICommand {
         "separate"  { Invoke-PillarSeparate -ArgsList $ArgsList }
         "image"     { Invoke-PillarImage -ArgsList $ArgsList }
         "remove-bg" { Invoke-PillarRemoveBg -ArgsList $ArgsList }
+        "draw"      { Invoke-PillarGenerateImage -ArgsList $ArgsList }
         "agents"    { Invoke-PillarAgents -ArgsList $ArgsList }
 
         # ========================================================
@@ -392,11 +393,42 @@ function Write-VorkPromptFrame {
         [bool]$MenuOpen,
         [string]$Status,
         [int]$MenuRows,
-        [int]$PreviousMenuRows = 0
+        [int]$PreviousTotalRows = 3
     )
 
     $maxWidth = [Math]::Max(4, $Width - 1)
-    $actualRows = if ($MenuOpen) { 3 + [Math]::Max(0, $MenuRows) } else { 3 }
+    $inner = [Math]::Max(10, $Width - 9)
+
+    # Segmentar texto en líneas multilínea dinámicas
+    $wrapped = @()
+    if (-not $Text) {
+        $wrapped += ""
+    } else {
+        $rem = $Text
+        while ($rem.Length -gt 0) {
+            if ($rem.Length -le $inner) {
+                $wrapped += $rem
+                break
+            }
+            $chunk = $rem.Substring(0, $inner)
+            $sp = $chunk.LastIndexOf(' ')
+            if ($sp -gt [int]($inner * 0.4)) {
+                $wrapped += $rem.Substring(0, $sp)
+                $rem = $rem.Substring($sp + 1)
+            } else {
+                $wrapped += $chunk
+                $rem = $rem.Substring($inner)
+            }
+            if ($wrapped.Count -ge 5) {
+                if ($rem.Length -gt 0) { $wrapped[-1] = $wrapped[-1] + "..." }
+                break
+            }
+        }
+    }
+
+    $inputLinesCount = [Math]::Max(1, $wrapped.Count)
+    $actualRows = if ($MenuOpen) { 2 + $inputLinesCount + [Math]::Max(0, $MenuRows) } else { 2 + $inputLinesCount }
+
     $panel = [pscustomobject]@{
         Top          = $PromptRow
         Rows         = $actualRows
@@ -406,33 +438,51 @@ function Write-VorkPromptFrame {
     }
     try { [Console]::CursorVisible = $false } catch { }
 
-    # Cabecera: marca en coral + estado de modelo/tier alineado a la derecha.
+    # Cabecera
     $statusText = Format-VorkPromptStatus -Status $Status -Width $Width
-    $titleText = ""
-    Write-VorkPanelLine -Panel $panel -Index 0 -Text (Format-VorkBorderTop -Title $titleText -RightText $statusText -Width $Width)
+    Write-VorkPanelLine -Panel $panel -Index 0 -Text (Format-VorkBorderTop -Title "" -RightText $statusText -Width $Width)
 
-    # Linea de entrada con placeholder atenuado cuando el buffer esta vacio.
-    $inner = [Math]::Max(1, $Width - 9)
-    $view = Get-VorkTextWindow -Text $Text -Cursor $Cursor -Width $inner
-    $shownText = $view.Text
-    $textWidth = Get-VorkDisplayWidth $view.Text
+    # Líneas de entrada de texto multilínea
+    $cursorRowOffset = 0
+    $cursorColOffset = $Cursor
+    $accumChars = 0
 
-    if (-not $Text) {
-        $placeholder = Get-VorkPromptPlaceholder -Budget $inner
-        if ($placeholder) {
-            $shownText = "${LeadLight}$placeholder${Reset}"
-            $textWidth = Get-VorkDisplayWidth $placeholder
+    for ($l = 0; $l -lt $inputLinesCount; $l++) {
+        $lineText = $wrapped[$l]
+        $lineLen = $lineText.Length
+        if ($Cursor -ge $accumChars -and ($Cursor -le ($accumChars + $lineLen) -or $l -eq ($inputLinesCount - 1))) {
+            $cursorRowOffset = $l
+            $cursorColOffset = [Math]::Max(0, $Cursor - $accumChars)
         }
+        $accumChars += $lineLen + 1
+
+        $shownText = $lineText
+        $textWidth = Get-VorkDisplayWidth $lineText
+
+        if (-not $Text -and $l -eq 0) {
+            $placeholder = Get-VorkPromptPlaceholder -Budget $inner
+            if ($placeholder) {
+                $shownText = "${LeadLight}$placeholder${Reset}"
+                $textWidth = Get-VorkDisplayWidth $placeholder
+            }
+        }
+
+        $padding = [Math]::Max(0, ($Width - 3) - (6 + $textWidth))
+        $prefix = if ($l -eq 0) {
+            "  ${Lead}$([char]0x2502)${Reset} ${Coral}${Bold}$([char]0x276F)${Reset} "
+        } else {
+            "  ${Lead}$([char]0x2502)${Reset}   "
+        }
+        $inputLine = "$prefix$shownText$([string]::new(' ', $padding)) ${Lead}$([char]0x2502)${Reset}"
+        Write-VorkPanelLine -Panel $panel -Index (1 + $l) -Text $inputLine
     }
 
-    $padding = [Math]::Max(0, ($Width - 3) - (6 + $textWidth))
-    $inputLine = "  ${Lead}$([char]0x2502)${Reset} ${Coral}${Bold}$([char]0x276F)${Reset} $shownText$([string]::new(' ', $padding)) ${Lead}$([char]0x2502)${Reset}"
-    Write-VorkPanelLine -Panel $panel -Index 1 -Text $inputLine
-
-    # Pie de pagina: atajos contextuales que se recortan segun el ancho disponible.
+    # Atajos de teclado en pie de página
     $hints = Get-VorkPromptHints -Width $Width -MenuOpen $MenuOpen
     $leftText = Format-VorkHintLine -Hints $hints -MaxWidth ([Math]::Max(0, $maxWidth - 8))
     $rightText = ""
+
+    $borderRow = 1 + $inputLinesCount
 
     if ($MenuOpen) {
         $above = $MenuTop
@@ -455,10 +505,9 @@ function Write-VorkPromptFrame {
             }
         }
 
-        Write-VorkPanelLine -Panel $panel -Index 2 -Text (Format-VorkBorderMiddle -RightText $rightText -Width $Width)
+        Write-VorkPanelLine -Panel $panel -Index $borderRow -Text (Format-VorkBorderMiddle -RightText $rightText -Width $Width)
 
-        # Lista de comandos: SOLO cuando el menu esta activo
-        $menuStart = 3
+        $menuStart = $borderRow + 1
         $menuInner = [Math]::Max(6, $Width - 7)
 
         for ($i = 0; $i -lt $MenuRows; $i++) {
@@ -476,31 +525,34 @@ function Write-VorkPromptFrame {
             }
         }
     } else {
-        Write-VorkPanelLine -Panel $panel -Index 2 -Text (Format-VorkBorderBottom -LeftText $leftText -RightText "" -Width $Width)
+        Write-VorkPanelLine -Panel $panel -Index $borderRow -Text (Format-VorkBorderBottom -LeftText $leftText -RightText "" -Width $Width)
+    }
 
-        # Limpiar filas del menu que hayan quedado de una apertura anterior
-        if ($PreviousMenuRows -gt 0) {
-            for ($k = 0; $k -lt $PreviousMenuRows; $k++) {
-                $cleanRow = $PromptRow + 3 + $k
-                try {
-                    if ($cleanRow -lt [Console]::BufferHeight) {
-                        [Console]::SetCursorPosition(0, $cleanRow)
-                        Write-Host "$ClrLine$ClrToEnd" -NoNewline
-                    }
-                } catch { }
-            }
+    # Limpiar líneas sobrantes si el cuadro se redujo
+    if ($PreviousTotalRows -gt $actualRows) {
+        for ($k = $actualRows; $k -lt $PreviousTotalRows; $k++) {
+            $cleanRow = $PromptRow + $k
+            try {
+                if ($cleanRow -lt [Console]::BufferHeight) {
+                    [Console]::SetCursorPosition(0, $cleanRow)
+                    Write-Host "$ClrLine$ClrToEnd" -NoNewline
+                }
+            } catch { }
         }
     }
 
     try {
-        $cursorColumn = 6 + $view.Cursor
+        $cursorColumn = 6 + [Math]::Min($inner, $cursorColOffset)
         if ($cursorColumn -ge ($Width - 1)) { $cursorColumn = $Width - 2 }
         if ($cursorColumn -lt 0) { $cursorColumn = 0 }
-        if (($PromptRow + 1) -ge 0 -and ($PromptRow + 1) -lt [Console]::BufferHeight) {
-            [Console]::SetCursorPosition($cursorColumn, $PromptRow + 1)
+        $cursorRow = $PromptRow + 1 + $cursorRowOffset
+        if ($cursorRow -ge 0 -and $cursorRow -lt [Console]::BufferHeight) {
+            [Console]::SetCursorPosition($cursorColumn, $cursorRow)
         }
         try { [Console]::CursorVisible = $true } catch { }
     } catch { }
+
+    return $actualRows
 }
 
 function Read-InteractiveVorkLine {
@@ -520,6 +572,7 @@ function Read-InteractiveVorkLine {
         @{ Cmd = "/separate";    Desc = "Aislamiento de Stems Acapella/Karaoke (Demucs v4)" },
         @{ Cmd = "/image";       Desc = "Conversor universal PNG, JPG, WEBP, ICO, AVIF" },
         @{ Cmd = "/remove-bg";   Desc = "Silueta inteligente y eliminacion de fondo IA" },
+        @{ Cmd = "/draw";        Desc = "Generador de imagenes IA con FLUX.1 (sin marca de agua)" },
         @{ Cmd = "/agents";      Desc = "Orquestacion de subagentes en terminal interactiva" },
         @{ Cmd = "/goal";        Desc = "Modo autonomo continuo para tareas exhaustivas" },
         @{ Cmd = "/plan";        Desc = "Planificacion guiada y desglose paso a paso" },
@@ -564,10 +617,9 @@ function Read-InteractiveVorkLine {
     try {
         $metrics = Get-VorkConsoleMetrics
         $menuRows = [Math]::Max(2, [Math]::Min(8, $metrics.Height - 7))
-        Ensure-VorkRowsBelow -Rows (3 + $menuRows) | Out-Null
+        Ensure-VorkRowsBelow -Rows (12 + $menuRows) | Out-Null
         $promptRow = try { [Console]::CursorTop } catch { 0 }
-        $previousMenuRows = 0
-
+        $previousTotalRows = 3
         while ($true) {
             $text = $buffer.ToString()
             $isSlash = (-not $navigatingHistory) -and (-not $menuDismissed) -and $text.StartsWith("/") -and (-not $text.Contains(" "))
@@ -609,8 +661,7 @@ function Read-InteractiveVorkLine {
 
 
             $promptWidth = [Math]::Max(20, $metrics.Width - 1)
-            Write-VorkPromptFrame -PromptRow $promptRow -Width $promptWidth -Height $metrics.Height -Text $text -Cursor $position -MenuItems $filtered -MenuSelected $selected -MenuTop $top -MenuVisible $menuVisible -MenuOpen $menuOpen -Status $statusText -MenuRows $menuRows -PreviousMenuRows $previousMenuRows
-            $previousMenuRows = if ($menuOpen) { $menuRows } else { 0 }
+            $previousTotalRows = Write-VorkPromptFrame -PromptRow $promptRow -Width $promptWidth -Height $metrics.Height -Text $text -Cursor $position -MenuItems $filtered -MenuSelected $selected -MenuTop $top -MenuVisible $menuVisible -MenuOpen $menuOpen -Status $statusText -MenuRows $menuRows -PreviousTotalRows $previousTotalRows
 
             $wait = Wait-VorkConsoleKey
             if ($wait.Resized) {
@@ -622,7 +673,7 @@ function Read-InteractiveVorkLine {
                 }
                 $metrics = Get-VorkConsoleMetrics
                 $menuRows = [Math]::Max(2, [Math]::Min(8, $metrics.Height - 7))
-                Ensure-VorkRowsBelow -Rows (3 + $menuRows) | Out-Null
+                Ensure-VorkRowsBelow -Rows (12 + $menuRows) | Out-Null
                 $promptRow = try { [Console]::CursorTop } catch { 0 }
                 continue
             }
@@ -669,7 +720,7 @@ function Read-InteractiveVorkLine {
             if (Test-VorkCtrlKey -Key $key -Letter ([ConsoleKey]::L)) {
                 Clear-Host
                 Show-Banner
-                Ensure-VorkRowsBelow -Rows (3 + $menuRows) | Out-Null
+                Ensure-VorkRowsBelow -Rows (12 + $menuRows) | Out-Null
                 $promptRow = try { [Console]::CursorTop } catch { 0 }
                 continue
             }

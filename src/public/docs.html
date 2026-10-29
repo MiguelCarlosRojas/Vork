@@ -2,19 +2,88 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Documentación Técnica de Ingeniería de Vork v2.5.0 | Arquitectura de los 9 Pilares: Traducción Neural por Lotes, Texto a Voz (TTS), Clonación de Voz IA, Conversor Multimedia, Separador de Voz Demucs v4 y Vork DJ Mezclador.">
-  <meta property="og:title" content="Documentación Técnica - Vork">
-  <meta property="og:description" content="Especificación de arquitectura, algoritmos acústicos, flujo DOM y manual de integración de Vork v2.5.0.">
-  <title>Documentación Técnica - Vork</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+  <meta name="theme-color" content="#11141a">
+  <title>Documentación Técnica | Vork — SDK, Micro-lotes y Arquitectura de 9 Pilares</title>
+  <meta name="description" content="Documentación Oficial de Ingeniería de Vork: arquitectura de micro-lotes sin saturación, especificación técnica de los 9 pilares multimodales, SDK JavaScript y guías de implementación.">
+  <link rel="canonical" href="https://vork-st1k.onrender.com/docs">
+
+  <!-- Open Graph -->
+  <meta property="og:site_name" content="Vork">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://vork-st1k.onrender.com/docs">
+  <meta property="og:title" content="Documentación Técnica | Vork — Manual de Ingeniería y SDK">
+  <meta property="og:description" content="Especificación de arquitectura, algoritmos acústicos, flujo DOM y manual de integración de Vork.">
+  <meta property="og:image" content="https://vork-st1k.onrender.com/img/logo.png">
+  <meta property="og:locale" content="es_ES">
+
+  <!-- Twitter Cards -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Documentación Técnica | Vork">
+  <meta name="twitter:description" content="Manual de desarrollo e ingeniería para los 9 pilares de inteligencia multimodal de Vork.">
+  <meta name="twitter:image" content="https://vork-st1k.onrender.com/img/logo.png">
+
+  <!-- Favicons y Manifest -->
   <link rel="icon" type="image/png" sizes="192x192" href="/img/logo.png">
   <link rel="icon" type="image/png" sizes="64x64" href="/img/logo.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/img/logo.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/img/logo.png">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="manifest" href="/manifest.json">
+  <!-- Compatibilidad Universal de Navegadores (Chrome, Safari, Edge, Firefox, Opera GX, Brave) -->
+  <meta name="application-name" content="Vork">
+  <meta name="apple-mobile-web-app-title" content="Vork">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="msapplication-TileColor" content="#11141a">
+  <meta name="msapplication-TileImage" content="/img/logo.png">
+  <link rel="search" type="application/opensearchdescription+xml" title="Vork" href="/opensearch.xml">
+
+  <!-- Fuentes y Estilos -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=3.0.1">
+  <link rel="stylesheet" href="/css/style.css">
+
+  <!-- Datos Estructurados JSON-LD -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "TechArticle",
+        "@id": "https://vork-st1k.onrender.com/docs#article",
+        "headline": "Documentación Técnica y Arquitectura de Vork",
+        "url": "https://vork-st1k.onrender.com/docs",
+        "description": "Especificación arquitectónica completa, manual de micro-lotes para páginas web, transcodificación de audio/video y SDK de integración.",
+        "inLanguage": "es",
+        "publisher": {
+          "@type": "Organization",
+          "name": "Vork",
+          "url": "https://vork-st1k.onrender.com"
+        }
+      },
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Inicio",
+            "item": "https://vork-st1k.onrender.com/"
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Documentación Técnica",
+            "item": "https://vork-st1k.onrender.com/docs"
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+
   <script>
     (function(){try{var m=document.cookie.match(/(?:^|; )vork_lang=([^;]*)/);var l=m?decodeURIComponent(m[1]):null;if(l&&l!=="original"&&l!=="es"){document.documentElement.classList.add("ct-pending");setTimeout(function(){document.documentElement.classList.remove("ct-pending");},800);}}catch(e){}})();
   </script>

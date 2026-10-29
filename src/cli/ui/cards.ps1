@@ -28,7 +28,7 @@ function Wait-VorkGoBack {
             $wait = Wait-VorkConsoleKey
             if ($wait.Resized) {
                 try {
-                    Write-Host "$ESC[1A$ESC[0J" -NoNewline
+                    Write-Host "${ESC}[1A${ESC}[0J" -NoNewline
                 } catch { }
                 continue
             }
@@ -37,7 +37,7 @@ function Wait-VorkGoBack {
             if (-not $key) { continue }
             if ($key.Key -in [ConsoleKey]::Escape, [ConsoleKey]::Enter, [ConsoleKey]::Spacebar) { break }
             if (Test-VorkCtrlC -Key $key) { break }
-            try { Write-Host "$ESC[1A$ESC[0J" -NoNewline } catch { }
+            try { Write-Host "${ESC}[1A${ESC}[0J" -NoNewline } catch { }
         }
     } finally {
         try { [Console]::TreatControlCAsInput = $false } catch { }
@@ -233,7 +233,8 @@ function Write-VorkPickerFrame {
         [int]$Visible,
         [string]$Search,
         [string]$Footer,
-        [switch]$ShowSearch
+        [switch]$ShowSearch,
+        [switch]$NumericSelect
     )
 
     $row = 0
@@ -275,7 +276,7 @@ function Write-VorkPickerFrame {
 
             $badge = if ($Items[$itemIndex] -is [hashtable] -and $Items[$itemIndex].ContainsKey('Badge') -and $Items[$itemIndex].Badge) { "$($Items[$itemIndex].Badge) " } else { "" }
             $marker = if ($isSelected) { "${Coral}${Bold}$([char]0x25B8)${Reset}" } else { " " }
-            $number = if (($itemIndex + 1) -lt 10) { [string]($itemIndex + 1) } else { [string][char]0x00B7 }
+            $number = if ($ShowSearch -or -not $NumericSelect) { [string][char]0x00B7 } elseif (($itemIndex + 1) -lt 10) { [string]($itemIndex + 1) } else { [string][char]0x00B7 }
             $numberColor = if ($isSelected) { "${Cyan}${Bold}" } else { $LeadDark }
             $labelColor = if ($isSelected) { "${White}${Bold}" } else { $LeadLight }
             $labelPad = [string]::new(' ', [Math]::Max(0, $labelWidth - (Get-VorkDisplayWidth $parts.Label)))
@@ -372,7 +373,7 @@ function Invoke-VorkPicker {
                 $filtered
             }
 
-            Write-VorkPickerFrame -Panel $panel -Title $Title -Subtitle $Subtitle -Items $displayItems -Selected $selected -Top $top -Visible $visible -Search $query -Footer $Footer -ShowSearch:$Searchable
+            Write-VorkPickerFrame -Panel $panel -Title $Title -Subtitle $Subtitle -Items $displayItems -Selected $selected -Top $top -Visible $visible -Search $query -Footer $Footer -ShowSearch:$Searchable -NumericSelect:$NumericSelect
 
             $wait = Wait-VorkConsoleKey
             if ($wait.Resized) { continue }
@@ -486,7 +487,8 @@ function Select-InteractiveOption {
         [array]$Options,
         [int]$DefaultIndex = 0,
         [string]$Subtitle = "",
-        [string]$Footer = ""
+        [string]$Footer = "",
+        [switch]$Searchable
     )
 
     if (-not $Options -or $Options.Count -eq 0) { return $null }
@@ -511,14 +513,16 @@ function Select-InteractiveOption {
     }
 
     if (-not $Footer) {
-        $Footer = if ($items.Count -le 9) {
+        $Footer = if ($Searchable) {
+            "flechas mover  ·  escribe para filtrar  ·  enter confirmar  ·  esc cancelar"
+        } elseif ($items.Count -le 9) {
             "flechas mover  ·  1-$($items.Count) elegir  ·  enter confirmar  ·  esc cancelar"
         } else {
             "flechas mover  ·  1-9 elegir  ·  enter confirmar  ·  esc cancelar"
         }
     }
 
-    return (Invoke-VorkPicker -Title $PromptTitle -Subtitle $Subtitle -Items $items -DefaultIndex $DefaultIndex -NumericSelect -Footer $Footer)
+    return (Invoke-VorkPicker -Title $PromptTitle -Subtitle $Subtitle -Items $items -DefaultIndex $DefaultIndex -NumericSelect:(-not $Searchable) -Footer $Footer -Searchable:$Searchable)
 }
 
 function Write-VorkMediaFormatFrame {
@@ -1571,6 +1575,7 @@ function Show-InteractiveSettings {
     }
 
     $settingsData = [ordered]@{
+        "auto_update"     = @{ Label = "Auto Update";       Options = @("silent", "prompt", "off"); Value = if ($savedSettings["auto_update"]) { $savedSettings["auto_update"] } else { "silent" }; Desc = "Actualización automática: silent (segundo plano), prompt (preguntar), off (desactivar)." }
         "notifications"   = @{ Label = "Notifications";     Options = @("on", "off"); Value = if ($savedSettings["notifications"]) { $savedSettings["notifications"] } else { "on" }; Desc = "Alertas toast de Windows al concluir tareas y pilares." }
         "cloud_ai"        = @{ Label = "Cloud AI Engine";   Options = @("on", "off"); Value = if ($savedSettings["cloud_ai"]) { $savedSettings["cloud_ai"] } else { "on" }; Desc = "Inferencia remota con Vork 3, 3.1 y 3.2 Expert Edition." }
         "media_download"  = @{ Label = "Media Download";    Options = @("on", "off"); Value = if ($savedSettings["media_download"]) { $savedSettings["media_download"] } else { "on" }; Desc = "Descargas y streams desde TikTok, YouTube, Reels y audio." }
@@ -1601,6 +1606,7 @@ function Show-InteractiveSettings {
 
             $permFile = Join-Path $vorkDir "permissions.json"
             $perms = @{
+                "auto_update"     = $toExport["auto_update"]
                 "notifications"   = ($toExport["notifications"] -ne "off")
                 "cloud_ai"        = ($toExport["cloud_ai"] -ne "off")
                 "media_download"  = ($toExport["media_download"] -ne "off")

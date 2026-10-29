@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Pilar 04: Vork Conversor Multimedia Universal (YouTube, TikTok, IG a MP3/MP4)
 #>
@@ -20,7 +20,7 @@ function Invoke-PillarMedia {
     }
 
     if (-not $url) {
-        Write-VorkSectionHeader -Title "Conversor multimedia" -Subtitle "YouTube · TikTok · Instagram · Reels"
+        Write-VorkSectionHeader -Title "Conversor multimedia" -Subtitle "YouTube · TikTok · Instagram · Reels" -RightText "vork · multimedia"
         $url = Read-VorkInput -Prompt "  ${Coral}${Bold}$([char]0x203A)${Reset} "
         if (-not $url -or -not $url.Trim()) {
             Write-VorkStatusLine -Kind warn -Text "Conversión cancelada."
@@ -56,7 +56,7 @@ function Invoke-PillarMedia {
     }
 
     $platformName = Get-VorkMediaPlatformName -Url $url
-    Write-VorkSectionHeader -Title "Procesando conversión"
+    Write-VorkSectionHeader -Title "Procesando conversión" -RightText "vork · multimedia"
     Write-VorkInfoRow -Label "Plataforma" -Value $platformName -ValueColor $Yellow
     Write-VorkInfoRow -Label "URL" -Value $url
     Write-VorkInfoRow -Label "Formato" -Value "$($fmt.ToUpper())  ·  $quality" -ValueColor $Cyan

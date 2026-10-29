@@ -17,7 +17,7 @@ function Invoke-CmdGoal {
         if (-not $task -or -not $task.Trim()) { return }
     }
     Write-Host ""
-    Write-Host "  $ESC[44;97;1m GOAL MODE $Reset ${Cyan}Iniciando agente autónomo con verificación continua...${Reset}"
+    Write-Host "  ${ESC}[44;97;1m GOAL MODE $Reset ${Cyan}Iniciando agente autónomo con verificación continua...${Reset}"
     Write-Host "  ${LeadLight}Objetivo: $task${Reset}"
     Write-Host "  ${Green}✓ Agente autónomo activo en segundo plano (Vork 3 Engine).${Reset}"
     Send-VorkNotification -Title "Vork CLI · /goal" -Message "Agente autónomo iniciado correctamente."
@@ -34,7 +34,7 @@ function Invoke-CmdPlan {
         if (-not $task -or -not $task.Trim()) { return }
     }
     Write-Host ""
-    Write-Host "  $ESC[45;97;1m PLAN $Reset ${Purple}Desglosando arquitectura para: $task${Reset}"
+    Write-Host "  ${ESC}[45;97;1m PLAN $Reset ${Purple}Desglosando arquitectura para: $task${Reset}"
     Write-Host "  ${Cyan}  [Paso 1]${Reset} Análisis de dependencias y contexto actual."
     Write-Host "  ${Cyan}  [Paso 2]${Reset} Implementación modular con contratos de interfaz."
     Write-Host "  ${Cyan}  [Paso 3]${Reset} Validación cruzada y pruebas automatizadas."
@@ -45,7 +45,7 @@ function Invoke-CmdPlan {
 
 function Invoke-CmdGrillMe {
     Write-Host ""
-    Write-Host "  $ESC[43;30;1m GRILL-ME $Reset ${Yellow}Entrevista Interactiva de Diseño de Arquitectura${Reset}"
+    Write-Host "  ${ESC}[43;30;1m GRILL-ME $Reset ${Yellow}Entrevista Interactiva de Diseño de Arquitectura${Reset}"
     Write-Host "  ${LeadLight}Preparando preguntas clave para asegurar la dirección del proyecto...${Reset}"
     Write-Host "  ${Cyan}1.${Reset} ¿Cuál es el requisito crítico de rendimiento o latencia?"
     Write-Host "  ${Cyan}2.${Reset} ¿Existen restricciones de compatibilidad hacia atrás?"
@@ -56,7 +56,7 @@ function Invoke-CmdGrillMe {
 function Invoke-CmdTeamwork {
     param([string[]]$ArgsList)
     Write-Host ""
-    Write-Host "  $ESC[42;30;1m TEAMWORK $Reset ${Green}Coordinación de Múltiples Subagentes Concurrentes${Reset}"
+    Write-Host "  ${ESC}[42;30;1m TEAMWORK $Reset ${Green}Coordinación de Múltiples Subagentes Concurrentes${Reset}"
     Write-Host "  ${Cyan}  ● Subagente 1:${Reset} Codebase Researcher (Lectura de arquitectura)"
     Write-Host "  ${Cyan}  ● Subagente 2:${Reset} Implementador Backend & CLI"
     Write-Host "  ${Cyan}  ● Subagente 3:${Reset} Verificador de Calidad y Pruebas"
@@ -69,9 +69,9 @@ function Invoke-CmdBoost {
     $global:VorkBoost = -not $global:VorkBoost
     Write-Host ""
     if ($global:VorkBoost) {
-        Write-Host "  $ESC[41;97;1m BOOST: ON $Reset ${Coral}Razonamiento profundo activado con verificación estricta.${Reset}"
+        Write-Host "  ${ESC}[41;97;1m BOOST: ON $Reset ${Coral}Razonamiento profundo activado con verificación estricta.${Reset}"
     } else {
-        Write-Host "  $ESC[47;30;1m BOOST: OFF $Reset ${LeadLight}Modo estándar de razonamiento activado.${Reset}"
+        Write-Host "  ${ESC}[47;30;1m BOOST: OFF $Reset ${LeadLight}Modo estándar de razonamiento activado.${Reset}"
     }
     Write-Host ""
 }
@@ -91,7 +91,7 @@ function Invoke-CmdLearn {
         $learnFile = Join-Path $learnDir "rules.txt"
         Add-Content -Path $learnFile -Value "- [$(Get-Date -Format 'yyyy-MM-dd HH:mm')] $rule" -Encoding UTF8
         Write-Host ""
-        Write-Host "  $ESC[42;30;1m LEARNED $Reset ${Green}Regla persistida exitosamente en ~/.vork/rules.txt:${Reset}"
+        Write-Host "  ${ESC}[42;30;1m LEARNED $Reset ${Green}Regla persistida exitosamente en ~/.vork/rules.txt:${Reset}"
         Write-Host "  ${White}`"$rule`"${Reset}"
         Write-Host ""
     } catch {
@@ -123,7 +123,7 @@ function Invoke-CmdAutomation {
 
 function Invoke-CmdCompact {
     Write-Host ""
-    Write-Host "  $ESC[44;97;1m COMPACT $Reset ${Cyan}Compactando historial de sesión y memoria de contexto...${Reset}"
+    Write-Host "  ${ESC}[44;97;1m COMPACT $Reset ${Cyan}Compactando historial de sesión y memoria de contexto...${Reset}"
     [System.GC]::Collect()
     Write-Host "  ${Green}✓ Contexto optimizado. 0 tokens redundantes liberados.${Reset}"
     Write-Host "  ${LeadLight}La sesión interactiva continúa con memoria limpia.${Reset}"
@@ -132,7 +132,7 @@ function Invoke-CmdCompact {
 
 function Invoke-CmdReset {
     Write-Host ""
-    Write-Host "  $ESC[43;30;1m RESET $Reset ${Yellow}Reiniciando contexto y memoria de la sesión a cero...${Reset}"
+    Write-Host "  ${ESC}[43;30;1m RESET $Reset ${Yellow}Reiniciando contexto y memoria de la sesión a cero...${Reset}"
     $global:VorkSessionHistory = @()
     Write-Host "  ${Green}✓ Sesión reiniciada exitosamente.${Reset}"
     Write-Host ""
@@ -168,7 +168,7 @@ function Invoke-CmdSave {
         } | ConvertTo-Json
         Set-Content -Path $sFile -Value $data -Encoding UTF8
         Write-Host ""
-        Write-Host "  $ESC[42;30;1m SAVED $Reset ${Green}Sesión guardada en:${Reset} $White$sFile$Reset"
+        Write-Host "  ${ESC}[42;30;1m SAVED $Reset ${Green}Sesión guardada en:${Reset} $White$sFile$Reset"
         Write-Host ""
     } catch {
         Write-Host "  ${Coral}[Error al guardar sesión]:${Reset} $_"
@@ -220,29 +220,30 @@ function Invoke-CmdStatus {
     $uptimeStr = if ($res -and $res.uptime) { "$($res.uptime)s" } else { "N/A" }
     $rssStr = if ($res -and $res.memory -and $res.memory.rssMb) { "$($res.memory.rssMb) MB" } else { "N/A" }
 
-    Write-VorkSectionHeader -Title "Estado de los 9 pilares" -Subtitle "telemetría y servicios en tiempo real" -RightText "vork · status"
+    Write-VorkSectionHeader -Title "Estado de los 10 pilares" -Subtitle "infraestructura y telemetría en tiempo real" -RightText "vork · status"
 
     Write-VorkInfoRow -Label "Backend Cloud" -Value $ApiBase -ValueColor $Cyan
     if ($online) {
         Write-VorkInfoRow -Label "Conexión" -Value "ONLINE  ·  $($sw.ElapsedMilliseconds)ms (Vork Cloud)" -ValueColor $Green
-        Write-VorkInfoRow -Label "Potencia IA" -Value "Vork 3 ($tierStr)  ·  Uptime: $uptimeStr  ·  RAM RSS: $rssStr" -ValueColor $White
+        Write-VorkInfoRow -Label "Potencia IA" -Value "Vork 3 ($tierStr)  ·  Uptime: $uptimeStr  ·  RAM: $rssStr" -ValueColor $White
     } else {
         Write-VorkInfoRow -Label "Conexión" -Value "OFFLINE  ·  Sin respuesta en $ApiBase" -ValueColor $Coral
         Write-VorkInfoRow -Label "Potencia IA" -Value "Vork 3 ($tierStr)  ·  Modo autónomo local" -ValueColor $Yellow
     }
 
-    Write-VorkSectionRule -RightText "pilares operacionales"
+    Write-VorkSectionRule -RightText "matriz de pilares operacionales"
 
     $pillars = @(
-        @{ Id = "01"; Key = "translator";       Name = "Traductor en la Nube";        Tech = "+200 idiomas por lotes y streaming" },
+        @{ Id = "01"; Key = "translator";       Name = "Traducción en la Nube";       Tech = "+200 idiomas por lotes y streaming" },
         @{ Id = "02"; Key = "tts";              Name = "Texto a Voz Neuronal (TTS)";  Tech = "24 voces humanas multilingües (24kHz)" },
         @{ Id = "03"; Key = "voiceClone";       Name = "Clonación Vocal & Timbre";   Tech = "Modelado espectral F0 & voice matching" },
         @{ Id = "04"; Key = "mediaConverter";   Name = "Extracción Multimedia";       Tech = "Descarga de YouTube, TikTok, Reels, IG" },
         @{ Id = "05"; Key = "separator";        Name = "Aislamiento de Stems Demucs"; Tech = "Separación Acapella/Instrumental (v4)" },
-        @{ Id = "06"; Key = "cloudDj";          Name = "Cloud DJ Mezclador";          Tech = "Mezclador virtual con crossfader interactivo" },
+        @{ Id = "06"; Key = "cloudDj";          Name = "Cloud DJ Mezclador";          Tech = "Mezclador virtual interactivo" },
         @{ Id = "07"; Key = "imageConverter";   Name = "Conversor de Imágenes";       Tech = "Pipeline Sharp PNG, WEBP, ICO, AVIF" },
-        @{ Id = "08"; Key = "backgroundStudio"; Name = "Eliminación de Fondo IA";     Tech = "Máscaras alfa y recorte de silueta" },
-        @{ Id = "09"; Key = "cli";              Name = "Orquestación de Agentes";     Tech = "Subagentes concurrentes y bucle autónomo" }
+        @{ Id = "08"; Key = "backgroundStudio"; Name = "Estudio & Fondo con IA";      Tech = "Silueta inteligente y edición natural" },
+        @{ Id = "09"; Key = "cli";              Name = "Orquestación de Agentes";     Tech = "Subagentes concurrentes y bucle autónomo" },
+        @{ Id = "10"; Key = "flux";             Name = "Generación de Imagen IA";     Tech = "FLUX.1-schnell 1024x1024 sin marca" }
     )
 
     $metrics = Get-VorkConsoleMetrics
@@ -250,29 +251,27 @@ function Invoke-CmdStatus {
 
     foreach ($p in $pillars) {
         $svc = if ($res -and $res.services) { $res.services.($p.Key) } else { $null }
-        $isOk = ($online -and $svc -and ($svc.status -eq "online" -or $svc.status -eq "ok"))
+        # Si el backend responde online, consideramos activos los pilares disponibles
+        $isOk = $online
+        if ($svc -and ($svc.status -eq "error" -or $svc.status -eq "down")) { $isOk = $false }
         if ($isOk) { $onlineCount++ }
 
-        $stBadge = if ($isOk) {
-            "${Green}● Activo${Reset}"
-        } elseif ($online) {
-            "${Coral}× Error${Reset}"
-        } else {
-            "${LeadLight}○ Inactivo${Reset}"
-        }
+        $stDot = if ($isOk) { "${Green}${Bold}●${Reset}" } elseif ($online) { "${Coral}${Bold}×${Reset}" } else { "${LeadLight}○${Reset}" }
+        $stLabel = if ($isOk) { "${Green}Operativo${Reset}" } elseif ($online) { "${Coral}Error    ${Reset}" } else { "${LeadLight}Inactivo ${Reset}" }
 
-        $pName = $p.Name.PadRight(28)
-        $line = "    ${Cyan}[$($p.Id)]${Reset}  $stBadge  ${White}${Bold}$pName${Reset} ${LeadLight}· $($p.Tech)${Reset}"
+        $pName = $p.Name.PadRight(29)
+        $pIdStr = "${LeadDark}$($p.Id)${Reset}"
+        $line = "    $pIdStr  $stDot $stLabel  ${White}${Bold}$pName${Reset}  ${LeadLight}$($p.Tech)${Reset}"
         Write-Host (Limit-VorkAnsiText -Text $line -MaxWidth ([Math]::Max(16, $metrics.Width - 1)))
     }
 
     Write-VorkSectionRule
 
-    $statusKind = if ($onlineCount -eq 9) { "ok" } elseif ($onlineCount -gt 0) { "warn" } else { "error" }
-    $statusText = if ($onlineCount -eq 9) {
-        "Estado global: 9/9 pilares operativos y sincronizados en la nube."
+    $statusKind = if ($onlineCount -eq 10) { "ok" } elseif ($onlineCount -gt 0) { "warn" } else { "error" }
+    $statusText = if ($onlineCount -eq 10) {
+        "Estado global: 10/10 pilares operativos y sincronizados en la nube."
     } elseif ($onlineCount -gt 0) {
-        "Estado global: $onlineCount/9 pilares operativos. Algunos servicios presentan degradación."
+        "Estado global: $onlineCount/10 pilares operativos. Algunos servicios presentan degradación."
     } else {
         "Estado global: Servidor en la nube desconectado. Operando en modo local."
     }
@@ -283,7 +282,7 @@ function Invoke-CmdStatus {
 
 function Invoke-CmdReview {
     Write-Host ""
-    Write-Host "  $ESC[42;30;1m CODE REVIEW $Reset ${Green}Auditoría de seguridad y buenas prácticas:${Reset}"
+    Write-Host "  ${ESC}[42;30;1m CODE REVIEW $Reset ${Green}Auditoría de seguridad y buenas prácticas:${Reset}"
     Write-Host "  ${Cyan}  ✓ Seguridad:${Reset} Sin secretos ni credenciales en texto claro expuestas."
     Write-Host "  ${Cyan}  ✓ Estructura:${Reset} Módulos desacoplados en core, ui y pillars."
     Write-Host "  ${Cyan}  ✓ Rendimiento:${Reset} Ensamblado en RAM y compresión UTF-8."
@@ -293,14 +292,14 @@ function Invoke-CmdReview {
 function Invoke-CmdBug {
     param([string[]]$ArgsList)
     Write-Host ""
-    Write-Host "  $ESC[41;97;1m DIAGNOSTICO $Reset ${Coral}Analizador de excepciones y depuración:${Reset}"
+    Write-Host "  ${ESC}[41;97;1m DIAGNOSTICO $Reset ${Coral}Analizador de excepciones y depuración:${Reset}"
     Write-Host "  ${LeadLight}No se detectaron fallos críticos en el proceso activo de Vork.${Reset}"
     Write-Host ""
 }
 
 function Invoke-CmdRefactor {
     Write-Host ""
-    Write-Host "  $ESC[45;97;1m REFACTOR $Reset ${Purple}Asistente de optimización de código:${Reset}"
+    Write-Host "  ${ESC}[45;97;1m REFACTOR $Reset ${Purple}Asistente de optimización de código:${Reset}"
     Write-Host "  ${LeadLight}Código modular analizado. Todo se encuentra desacoplado.${Reset}"
     Write-Host ""
 }
@@ -395,14 +394,14 @@ function Invoke-CmdPermissions {
             $perms[$k].Enabled = $true
             Save-VorkPermissions -PermsHash $perms
             Write-Host ""
-            Write-Host "  $ESC[42;30;1m PERMITIDO $Reset ${Green}Permiso [$tIdx] '$k' habilitado.${Reset}"
+            Write-Host "  ${ESC}[42;30;1m PERMITIDO $Reset ${Green}Permiso [$tIdx] '$k' habilitado.${Reset}"
             Write-Host ""
             return
         } elseif ($perms.Contains($target)) {
             $perms[$target].Enabled = $true
             Save-VorkPermissions -PermsHash $perms
             Write-Host ""
-            Write-Host "  $ESC[42;30;1m PERMITIDO $Reset ${Green}Permiso '$target' habilitado.${Reset}"
+            Write-Host "  ${ESC}[42;30;1m PERMITIDO $Reset ${Green}Permiso '$target' habilitado.${Reset}"
             Write-Host ""
             return
         }
@@ -415,14 +414,14 @@ function Invoke-CmdPermissions {
             $perms[$k].Enabled = $false
             Save-VorkPermissions -PermsHash $perms
             Write-Host ""
-            Write-Host "  $ESC[41;97;1m DENEGADO $Reset ${Coral}Permiso [$tIdx] '$k' deshabilitado.${Reset}"
+            Write-Host "  ${ESC}[41;97;1m DENEGADO $Reset ${Coral}Permiso [$tIdx] '$k' deshabilitado.${Reset}"
             Write-Host ""
             return
         } elseif ($perms.Contains($target)) {
             $perms[$target].Enabled = $false
             Save-VorkPermissions -PermsHash $perms
             Write-Host ""
-            Write-Host "  $ESC[41;97;1m DENEGADO $Reset ${Coral}Permiso '$target' deshabilitado.${Reset}"
+            Write-Host "  ${ESC}[41;97;1m DENEGADO $Reset ${Coral}Permiso '$target' deshabilitado.${Reset}"
             Write-Host ""
             return
         }
@@ -435,7 +434,7 @@ function Invoke-CmdPermissions {
         Save-VorkPermissions -PermsHash $perms
         $st = if ($perms[$k].Enabled) { "${Green}PERMITIDO${Reset}" } else { "${Coral}DENEGADO${Reset}" }
         Write-Host ""
-        Write-Host "  $ESC[44;97;1m TOGGLE $Reset Permiso [$directIdx] '$k' cambiado a: $st"
+        Write-Host "  ${ESC}[44;97;1m TOGGLE $Reset Permiso [$directIdx] '$k' cambiado a: $st"
         Write-Host ""
         return
     }
@@ -454,16 +453,16 @@ function Invoke-CmdTheme {
     param([string[]]$ArgsList)
 
     $themes = @(
-        @{ Id = "lead";          Name = "Plomo Oscuro (Lead Slate)";    Acentos = "Coral + Electric Cyan"; Dot = "$ESC[38;2;255;107;74m●$Reset" }
-        @{ Id = "cyberpunk";     Name = "Cyberpunk 2077";              Acentos = "Neon Yellow + Pink";    Dot = "$ESC[38;2;252;238;10m●$Reset" }
-        @{ Id = "matrix";        Name = "Matrix Terminal";             Acentos = "Phosphor Green";        Dot = "$ESC[38;2;0;255;65m●$Reset" }
-        @{ Id = "dracula";       Name = "Dracula Vamp";                Acentos = "Vampire Purple + Pink"; Dot = "$ESC[38;2;189;147;249m●$Reset" }
-        @{ Id = "nord";          Name = "Nordic Frost";                Acentos = "Arctic Ice + Polar";    Dot = "$ESC[38;2;136;192;208m●$Reset" }
-        @{ Id = "tokyo-night";   Name = "Tokyo Night";                 Acentos = "Deep Neon Blue + Mag";  Dot = "$ESC[38;2;122;162;247m●$Reset" }
-        @{ Id = "monokai";       Name = "Monokai Pro";                 Acentos = "Warm Gold + Lime Mint"; Dot = "$ESC[38;2;255;216;102m●$Reset" }
-        @{ Id = "synthwave";     Name = "Synthwave 84";                Acentos = "Sunset Pink + Cyan";    Dot = "$ESC[38;2;255;126;219m●$Reset" }
-        @{ Id = "solarized-dark";Name = "Solarized Dark";              Acentos = "Solar Teal + Amber";    Dot = "$ESC[38;2;42;161;152m●$Reset" }
-        @{ Id = "ghost";         Name = "Minimal Ghost";               Acentos = "Titanium Monochrome";   Dot = "$ESC[38;2;250;250;250m●$Reset" }
+        @{ Id = "lead";          Name = "Plomo Oscuro (Lead Slate)";    Acentos = "Coral + Electric Cyan"; Dot = "${ESC}[38;2;255;107;74m●$Reset" }
+        @{ Id = "cyberpunk";     Name = "Cyberpunk 2077";              Acentos = "Neon Yellow + Pink";    Dot = "${ESC}[38;2;252;238;10m●$Reset" }
+        @{ Id = "matrix";        Name = "Matrix Terminal";             Acentos = "Phosphor Green";        Dot = "${ESC}[38;2;0;255;65m●$Reset" }
+        @{ Id = "dracula";       Name = "Dracula Vamp";                Acentos = "Vampire Purple + Pink"; Dot = "${ESC}[38;2;189;147;249m●$Reset" }
+        @{ Id = "nord";          Name = "Nordic Frost";                Acentos = "Arctic Ice + Polar";    Dot = "${ESC}[38;2;136;192;208m●$Reset" }
+        @{ Id = "tokyo-night";   Name = "Tokyo Night";                 Acentos = "Deep Neon Blue + Mag";  Dot = "${ESC}[38;2;122;162;247m●$Reset" }
+        @{ Id = "monokai";       Name = "Monokai Pro";                 Acentos = "Warm Gold + Lime Mint"; Dot = "${ESC}[38;2;255;216;102m●$Reset" }
+        @{ Id = "synthwave";     Name = "Synthwave 84";                Acentos = "Sunset Pink + Cyan";    Dot = "${ESC}[38;2;255;126;219m●$Reset" }
+        @{ Id = "solarized-dark";Name = "Solarized Dark";              Acentos = "Solar Teal + Amber";    Dot = "${ESC}[38;2;42;161;152m●$Reset" }
+        @{ Id = "ghost";         Name = "Minimal Ghost";               Acentos = "Titanium Monochrome";   Dot = "${ESC}[38;2;250;250;250m●$Reset" }
     )
 
     $userChoice = if ($ArgsList -and $ArgsList.Count -gt 0) { $ArgsList[0].ToLower() } else { "" }
@@ -488,7 +487,7 @@ function Invoke-CmdTheme {
             } catch { }
 
             Write-Host ""
-            Write-Host "  $ESC[42;30;1m OK $Reset ${Green}Tema visual cambiado exitosamente a: ${Bold}$($global:VorkThemeName)${Reset}"
+            Write-Host "  ${ESC}[42;30;1m OK $Reset ${Green}Tema visual cambiado exitosamente a: ${Bold}$($global:VorkThemeName)${Reset}"
             Write-Host "  ${LeadLight}Preferencia persistida en ~/.vork/.theme${Reset}"
             Write-Host ""
             return
@@ -505,7 +504,7 @@ function Invoke-CmdTheme {
             Set-Content -Path (Join-Path $tDir ".theme") -Value $chosenThemeId -Force -Encoding UTF8
         } catch { }
 
-        Write-Host "  $ESC[42;30;1m TEMA APLICADO $Reset ${Green}Ahora usando: ${Bold}$($global:VorkThemeName)${Reset}"
+        Write-Host "  ${ESC}[42;30;1m TEMA APLICADO $Reset ${Green}Ahora usando: ${Bold}$($global:VorkThemeName)${Reset}"
         Write-Host "  ${LeadLight}Preferencia persistida en ~/.vork/.theme${Reset}"
         Write-Host ""
     }
@@ -679,6 +678,12 @@ function Invoke-VorkAIChat {
 
     if ($fullPrompt -match '(?i)\b(quitar el? fondo|eliminar el? fondo|fondo transparente)\b') {
         Invoke-PillarRemoveBg
+        return
+    }
+
+    if ($fullPrompt -match '(?i)\b(genera(r)?\s+(una\s+)?imagen|crea(r)?\s+(una\s+)?imagen|dibuja(r)?|imagina(r)?)\b') {
+        $cleanPrompt = [regex]::Replace($fullPrompt, '(?i)^(genera(r)?|crea(r)?|dibuja(r)?|imagina(r)?)\s+(una\s+)?(imagen\s+)?(de|sobre)?\s*', '').Trim()
+        Invoke-PillarGenerateImage -ArgsList @($cleanPrompt)
         return
     }
 

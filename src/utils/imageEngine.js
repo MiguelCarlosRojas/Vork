@@ -1,6 +1,7 @@
 /**
  * imageEngine.js
- * Motor Central de Procesamiento de Imágenes y Estudio de Fondo IA (Pilares 07 y 08)
+ * Motor Central de Procesamiento de Imágenes, Generación IA y Estudio de Fondo
+ * (Pilares 07, 08 y Generador de Imágenes IA)
  * Confinado, seguro contra Path Traversal, SSRF y DoS.
  */
 
@@ -30,6 +31,7 @@ setInterval(() => {
       try {
         if (item.filePath && fs.existsSync(item.filePath)) fs.unlinkSync(item.filePath);
         if (item.inputPath && fs.existsSync(item.inputPath)) fs.unlinkSync(item.inputPath);
+        if (item.bgPath && fs.existsSync(item.bgPath)) fs.unlinkSync(item.bgPath);
       } catch (err) {
         logger.warn(`[ImageEngine] Error al eliminar imagen expirada ${id}: ${err.message}`);
       }
@@ -49,7 +51,6 @@ function saveTempFile(data, extension = "png") {
   if (Buffer.isBuffer(data)) {
     buffer = data;
   } else if (typeof data === "string") {
-    // Si viene en formato Data URL: data:image/png;base64,....
     const cleanBase64 = data.replace(/^data:image\/[a-zA-Z0-9+.-]+;base64,/, "");
     buffer = Buffer.from(cleanBase64, "base64");
   } else {
@@ -61,6 +62,32 @@ function saveTempFile(data, extension = "png") {
 }
 
 /**
+ * Optimiza la resolución de imágenes gigantes antes de pasarlas a redes neuronales
+ * para evitar errores 400 Bad Request o Out-Of-Memory.
+ */
+async function optimizeResolutionForAI(inputPath, maxDim = 1920) {
+  let ffmpegExe = "ffmpeg";
+  try {
+    const installer = require("@ffmpeg-installer/ffmpeg");
+    if (installer && installer.path) ffmpegExe = installer.path;
+  } catch {}
+
+  const tempOptimized = path.join(IMAGE_CACHE_DIR, `opt_${crypto.randomBytes(8).toString("hex")}.png`);
+  return new Promise((resolve) => {
+    const vf = `scale='min(${maxDim},iw)':'min(${maxDim},ih)':force_original_aspect_ratio=decrease`;
+    const proc = spawn(ffmpegExe, ["-y", "-i", inputPath, "-vf", vf, tempOptimized]);
+    proc.on("close", (code) => {
+      if (code === 0 && fs.existsSync(tempOptimized) && fs.statSync(tempOptimized).size > 0) {
+        resolve(tempOptimized);
+      } else {
+        resolve(inputPath);
+      }
+    });
+    proc.on("error", () => resolve(inputPath));
+  });
+}
+
+/**
  * Descarga una imagen de forma segura verificando SSRF
  */
 async function downloadSafeImage(url) {
@@ -68,7 +95,7 @@ async function downloadSafeImage(url) {
   const response = await axios.get(url, {
     responseType: "arraybuffer",
     timeout: 20000,
-    maxContentLength: 40 * 1024 * 1024, // 40MB máx
+    maxContentLength: 40 * 1024 * 1024,
     headers: {
       "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
     }
@@ -76,7 +103,6 @@ async function downloadSafeImage(url) {
 
   const contentType = (response.headers["content-type"] || "").toLowerCase();
 
-  // Si la respuesta es una página web HTML, extraer imagen principal (og:image / twitter:image)
   if (contentType.includes("text/html")) {
     const htmlText = Buffer.from(response.data).toString("utf8");
     const ogMatch = htmlText.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i) ||
@@ -100,7 +126,6 @@ async function downloadSafeImage(url) {
   const buf = Buffer.from(response.data);
   let ext = "png";
 
-  // Detección por Magic Bytes (Firma binaria)
   if (buf.length >= 4) {
     if (buf[0] === 0xFF && buf[1] === 0xD8 && buf[2] === 0xFF) {
       ext = "jpg";
@@ -269,7 +294,6 @@ async function processImageConversion({ imageBase64, url, targetFormat = "png", 
       result = await convertWithFFmpeg(inputPath, outputPath, safeFormat, quality, width, height);
     }
 
-    // Guardar en almacén
     const itemData = {
       id: targetId,
       filename: `imagen_convertida_${targetId.slice(4, 10)}.${extension}`,
@@ -306,7 +330,7 @@ async function processImageConversion({ imageBase64, url, targetFormat = "png", 
 }
 
 /**
- * Pilar 08: Remueve el fondo o lo reemplaza (Transparente, Color, Imagen o Prompt IA)
+ * Pilar 08: Remueve el fondo o lo reemplaza (Transparente, Color, Imagen)
  */
 async function processBackgroundOperation({
   imageBase64,
@@ -314,9 +338,11 @@ async function processBackgroundOperation({
   mode = "transparent",
   color = "#FFFFFF",
   bgImageBase64,
+  instruction,
   prompt
 }) {
   let inputPath = null;
+  let optimizedPath = null;
   let bgPath = null;
   const targetId = "bg_" + crypto.randomBytes(12).toString("hex");
 
@@ -329,69 +355,21 @@ async function processBackgroundOperation({
       throw new Error("Debe proporcionar una imagen para procesar.");
     }
 
-    const safeMode = ["transparent", "color", "custom_bg", "prompt"].includes(mode) ? mode : "transparent";
+    // Auto-optimizar resolución a un máximo seguro de 1920px para evitar OOM / 400
+    optimizedPath = await optimizeResolutionForAI(inputPath, 1920);
 
-    // Si el modo es prompt (Generador de fondos de alta fidelidad con FLUX.1)
-    if (safeMode === "prompt") {
-      if (!prompt || typeof prompt !== "string" || prompt.trim().length === 0) {
-        throw new Error("Debe especificar una descripción de lo que desea generar en el fondo.");
-      }
+    const safeMode = ["transparent", "color", "custom_bg"].includes(mode) ? mode : "transparent";
 
-      logger.info(`[ImageEngine] Generando nuevo fondo con IA FLUX.1: ${prompt}`);
-      let enPrompt = prompt.trim();
-      try {
-        const translate = require("google-translate-api-x");
-        const tRes = await translate(enPrompt, { to: "en" });
-        if (tRes && tRes.text) {
-          enPrompt = tRes.text;
-          logger.info(`[ImageEngine] Prompt traducido para FLUX: ${enPrompt}`);
-        }
-      } catch (tErr) {}
-
-      let bgBuffer = null;
-      try {
-        const { Client } = require("@gradio/client");
-        const fluxClient = await Client.connect("black-forest-labs/FLUX.1-schnell");
-        const fluxRes = await fluxClient.predict("/infer", {
-          prompt: enPrompt,
-          seed: 0,
-          randomize_seed: true,
-          width: 1024,
-          height: 1024,
-          num_inference_steps: 4
-        });
-        if (fluxRes && fluxRes.data && fluxRes.data[0] && fluxRes.data[0].url) {
-          const bgResponse = await axios.get(fluxRes.data[0].url, {
-            responseType: "arraybuffer",
-            timeout: 30000
-          });
-          bgBuffer = Buffer.from(bgResponse.data);
-        } else {
-          throw new Error("Respuesta incompleta de FLUX.1");
-        }
-      } catch (fluxErr) {
-        logger.warn(`[ImageEngine] Generador FLUX falló (${fluxErr.message}), intentando fallback...`);
-        try {
-          const cleanPrompt = encodeURIComponent(prompt.trim().slice(0, 300));
-          const pollinationsUrl = `https://image.pollinations.ai/prompt/${cleanPrompt}?width=1024&height=1024&nologo=true`;
-          const bgResponse = await axios.get(pollinationsUrl, { responseType: "arraybuffer", timeout: 20000 });
-          bgBuffer = Buffer.from(bgResponse.data);
-        } catch (pErr) {
-          logger.error(`[ImageEngine] No se pudo generar fondo con IA: ${pErr.message}`);
-          throw new Error(`Error generando fondo con IA: ${fluxErr.message}`);
-        }
-      }
-      bgPath = saveTempFile(bgBuffer, "jpg");
-    } else if (safeMode === "custom_bg" && bgImageBase64) {
+    if (safeMode === "custom_bg" && bgImageBase64) {
       bgPath = saveTempFile(bgImageBase64, "bg");
     }
 
-    const extension = (safeMode === "color" || safeMode === "prompt" || safeMode === "custom_bg") ? "jpg" : "png";
+    const extension = (safeMode === "color" || safeMode === "custom_bg") ? "jpg" : "png";
     const outputPath = path.join(IMAGE_CACHE_DIR, `${targetId}.${extension}`);
 
     const args = [
       "remove-bg",
-      "--input", inputPath,
+      "--input", optimizedPath,
       "--output", outputPath,
       "--mode", safeMode
     ];
@@ -399,18 +377,69 @@ async function processBackgroundOperation({
     if (safeMode === "color") {
       const safeColor = /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(color) ? color : "#FFFFFF";
       args.push("--color", safeColor);
-    } else if ((safeMode === "custom_bg" || safeMode === "prompt") && bgPath) {
+    } else if (safeMode === "custom_bg" && bgPath) {
       args.push("--bg-image", bgPath);
     }
 
     let result = null;
-    try {
-      result = await runPythonStudio(args);
-    } catch (pyErr) {
+    const rawInstruction = (instruction || prompt || "").trim();
+    const isInstructEdit = Boolean(rawInstruction && !/^(transparent|quitar fondo|eliminar fondo|sin fondo)$/i.test(rawInstruction));
+
+    if (isInstructEdit) {
+      try {
+        logger.info(`[ImageEngine] Procesando edición contextual con IA (InstructPix2Pix): "${rawInstruction}"`);
+        let promptEn = rawInstruction;
+        try {
+          const { translateText } = require("./translatorEngine");
+          const tr = await translateText(rawInstruction, "en", "auto");
+          if (tr && tr.translatedText) promptEn = tr.translatedText;
+        } catch (e) {}
+
+        const { Client } = require("@gradio/client");
+        const client = await Client.connect("timbrooks/instruct-pix2pix");
+        const imgBuffer = fs.readFileSync(optimizedPath);
+        const blob = new Blob([imgBuffer], { type: "image/png" });
+        const hfRes = await client.predict("/generate", {
+          input_image: blob,
+          instruction: promptEn,
+          steps: 25,
+          randomize_seed: "Randomize Seed",
+          seed: 1371,
+          randomize_cfg: "Fix CFG",
+          text_cfg_scale: 7.5,
+          image_cfg_scale: 1.5
+        });
+
+        let editedUrl = null;
+        if (hfRes && hfRes.data) {
+          for (const item of hfRes.data) {
+            if (item && item.url) { editedUrl = item.url; break; }
+            if (typeof item === "string" && item.startsWith("http")) { editedUrl = item; break; }
+          }
+        }
+
+        if (editedUrl) {
+          const resp = await axios.get(editedUrl, { responseType: "arraybuffer", timeout: 45000 });
+          fs.writeFileSync(outputPath, Buffer.from(resp.data));
+          result = {
+            size_bytes: fs.statSync(outputPath).size,
+            width: 1024,
+            height: 1024
+          };
+        }
+      } catch (editErr) {
+        logger.warn(`[ImageEngine] Edición con InstructPix2Pix falló o timeout (${editErr.message}). Utilizando silueta inteligente...`);
+      }
+    }
+
+    if (!result) {
+      try {
+        result = await runPythonStudio(args);
+      } catch (pyErr) {
       logger.warn(`[ImageEngine] Procesador local Python no disponible (${pyErr.message}). Utilizando motor IA de silueta BRIA-RMBG-1.4...`);
       const { Client } = require("@gradio/client");
       const client = await Client.connect("briaai/BRIA-RMBG-1.4");
-      const imgBuffer = fs.readFileSync(inputPath);
+      const imgBuffer = fs.readFileSync(optimizedPath);
       const blob = new Blob([imgBuffer], { type: "image/png" });
       const hfRes = await client.predict("/run", { image: blob });
 
@@ -423,7 +452,11 @@ async function processBackgroundOperation({
       const tempCutoutPath = path.join(IMAGE_CACHE_DIR, `${targetId}_cutout.png`);
       fs.writeFileSync(tempCutoutPath, Buffer.from(cutoutResp.data));
 
-      const ffmpeg = require("@ffmpeg-installer/ffmpeg").path;
+      let ffmpeg = "ffmpeg";
+      try {
+        const installer = require("@ffmpeg-installer/ffmpeg");
+        if (installer && installer.path) ffmpeg = installer.path;
+      } catch {}
       const { execFileSync } = require("child_process");
 
       if (safeMode === "transparent") {
@@ -439,7 +472,7 @@ async function processBackgroundOperation({
           outputPath
         ]);
         try { fs.unlinkSync(tempCutoutPath); } catch (e) {}
-      } else if ((safeMode === "custom_bg" || safeMode === "prompt") && bgPath) {
+      } else if (safeMode === "custom_bg" && bgPath) {
         execFileSync(ffmpeg, [
           "-y",
           "-i", tempCutoutPath,
@@ -461,6 +494,7 @@ async function processBackgroundOperation({
         height: 1024
       };
     }
+    }
 
     const itemData = {
       id: targetId,
@@ -473,7 +507,6 @@ async function processBackgroundOperation({
       width: result.width,
       height: result.height,
       mode: safeMode,
-      prompt: safeMode === "prompt" ? prompt : null,
       createdAt: Date.now()
     };
     imageStore.set(targetId, itemData);
@@ -488,7 +521,6 @@ async function processBackgroundOperation({
       height: result.height,
       sizeBytes: result.size_bytes,
       sizeFormatted: (result.size_bytes / 1024).toFixed(2) + " KB",
-      prompt: itemData.prompt,
       streamUrl: `/api/image/stream?id=${targetId}`,
       downloadUrl: `/api/image/download?id=${targetId}`
     };
@@ -496,11 +528,132 @@ async function processBackgroundOperation({
     if (inputPath && fs.existsSync(inputPath)) {
       try { fs.unlinkSync(inputPath); } catch (e) {}
     }
+    if (optimizedPath && optimizedPath !== inputPath && fs.existsSync(optimizedPath)) {
+      try { fs.unlinkSync(optimizedPath); } catch (e) {}
+    }
     if (bgPath && fs.existsSync(bgPath)) {
       try { fs.unlinkSync(bgPath); } catch (e) {}
     }
     throw error;
   }
+}
+
+/**
+ * NUEVO PILAR: Generador de Imágenes IA a partir de Prompt
+ * 100% gratuito, sin marca de agua, sin planes de pago, impulsado por FLUX.1 Neural
+ */
+async function generateImageFromPrompt({
+  prompt,
+  width = 1024,
+  height = 1024,
+  seed = 0
+}) {
+  if (!prompt || typeof prompt !== "string" || prompt.trim().length === 0) {
+    throw new Error("Debe proporcionar un prompt o descripción para generar la imagen.");
+  }
+
+  const rawPrompt = prompt.trim();
+  const targetId = "flux_" + crypto.randomBytes(12).toString("hex");
+  const outputPath = path.join(IMAGE_CACHE_DIR, `${targetId}.jpg`);
+
+  // Traducción inteligente al inglés para máxima adherencia y fidelidad en FLUX
+  let enPrompt = rawPrompt;
+  try {
+    const translate = require("google-translate-api-x");
+    const tRes = await translate(rawPrompt, { to: "en" });
+    if (tRes && tRes.text) {
+      enPrompt = tRes.text;
+      logger.info(`[ImageEngine] Prompt traducido para FLUX: "${rawPrompt}" -> "${enPrompt}"`);
+    }
+  } catch (tErr) {
+    logger.warn(`[ImageEngine] Fallback traducción de prompt: ${tErr.message}`);
+  }
+
+  const safeWidth = Math.max(256, Math.min(1024, parseInt(width, 10) || 1024));
+  const safeHeight = Math.max(256, Math.min(1024, parseInt(height, 10) || 1024));
+  const safeSeed = seed && parseInt(seed, 10) > 0 ? parseInt(seed, 10) : Math.floor(Math.random() * 1000000);
+
+  let imageBuffer = null;
+
+  // 1. Primario: Modelo FLUX.1-schnell oficial de Black Forest Labs (Alta Fidelidad, 1024x1024, sin marcas)
+  try {
+    const { Client } = require("@gradio/client");
+    logger.info(`[ImageEngine] Conectando con FLUX.1-schnell Neural...`);
+    const fluxClient = await Client.connect("black-forest-labs/FLUX.1-schnell");
+    const fluxRes = await fluxClient.predict("/infer", {
+      prompt: enPrompt,
+      seed: safeSeed,
+      randomize_seed: true,
+      width: safeWidth,
+      height: safeHeight,
+      num_inference_steps: 4
+    });
+
+    if (fluxRes && fluxRes.data && fluxRes.data[0] && fluxRes.data[0].url) {
+      const resp = await axios.get(fluxRes.data[0].url, {
+        responseType: "arraybuffer",
+        timeout: 30000
+      });
+      imageBuffer = Buffer.from(resp.data);
+    } else {
+      throw new Error("Respuesta incompleta de FLUX.1");
+    }
+  } catch (primaryErr) {
+    logger.warn(`[ImageEngine] Primario FLUX falló (${primaryErr.message}). Intentando espacio secundario FLUX/SDXL...`);
+    // 2. Respaldo secundario: Espacio público FLUX o Hugging Face
+    try {
+      const { Client } = require("@gradio/client");
+      const client2 = await Client.connect("stabilityai/stable-diffusion-3.5-large-turbo");
+      const res2 = await client2.predict("/infer", {
+        prompt: enPrompt,
+        seed: safeSeed,
+        width: safeWidth,
+        height: safeHeight
+      });
+      if (res2 && res2.data && res2.data[0] && res2.data[0].url) {
+        const resp2 = await axios.get(res2.data[0].url, { responseType: "arraybuffer", timeout: 30000 });
+        imageBuffer = Buffer.from(resp2.data);
+      } else {
+        throw new Error("Fallo en espacio secundario");
+      }
+    } catch (secErr) {
+      logger.error(`[ImageEngine] Espacios neuronales saturados: ${secErr.message}`);
+      throw new Error(`No se pudo generar la imagen con IA en este momento: ${primaryErr.message}`);
+    }
+  }
+
+  fs.writeFileSync(outputPath, imageBuffer);
+  const sizeBytes = fs.statSync(outputPath).size;
+
+  const itemData = {
+    id: targetId,
+    filename: `imagen_ia_${targetId.slice(5, 11)}.jpg`,
+    format: "jpg",
+    filePath: outputPath,
+    sizeBytes,
+    width: safeWidth,
+    height: safeHeight,
+    prompt: rawPrompt,
+    translatedPrompt: enPrompt,
+    createdAt: Date.now()
+  };
+  imageStore.set(targetId, itemData);
+
+  return {
+    status: "success",
+    id: targetId,
+    filename: itemData.filename,
+    format: "jpg",
+    prompt: rawPrompt,
+    translatedPrompt: enPrompt,
+    width: safeWidth,
+    height: safeHeight,
+    sizeBytes,
+    sizeFormatted: (sizeBytes / 1024).toFixed(2) + " KB",
+    streamUrl: `/api/image/stream?id=${targetId}`,
+    downloadUrl: `/api/image/download?id=${targetId}`,
+    imageBase64: `data:image/jpeg;base64,${imageBuffer.toString("base64")}`
+  };
 }
 
 /**
@@ -515,5 +668,6 @@ module.exports = {
   IMAGE_CACHE_DIR,
   processImageConversion,
   processBackgroundOperation,
+  generateImageFromPrompt,
   getImageById
 };

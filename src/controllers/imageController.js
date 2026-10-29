@@ -99,7 +99,7 @@ exports.convertImage = async (req, res) => {
  */
 exports.removeBackground = async (req, res) => {
   try {
-    const { imageBase64: rawB64, image: legacyB64, url, mode = "transparent", color = "#FFFFFF", bgImageBase64, prompt } = req.body || {};
+    const { imageBase64: rawB64, image: legacyB64, url, mode = "transparent", color = "#FFFFFF", bgImageBase64, prompt, instruction } = req.body || {};
     const imageBase64 = rawB64 || legacyB64;
 
     if (!imageBase64 && !url) {
@@ -126,7 +126,8 @@ exports.removeBackground = async (req, res) => {
       mode,
       color,
       bgImageBase64,
-      prompt
+      instruction: instruction || prompt,
+      prompt: prompt || instruction
     });
 
     res.json(result);
@@ -135,6 +136,37 @@ exports.removeBackground = async (req, res) => {
     res.status(400).json({
       status: "error",
       error: error.message || "Error al procesar el fondo con IA."
+    });
+  }
+};
+
+/**
+ * Generador de Imágenes IA a partir de Prompt (FLUX.1 Neural - Sin Marca de Agua)
+ */
+exports.generateImage = async (req, res) => {
+  try {
+    const { prompt, width = 1024, height = 1024, seed } = req.body || {};
+
+    if (!prompt || typeof prompt !== "string" || !prompt.trim()) {
+      return res.status(400).json({
+        status: "error",
+        error: "Debe proporcionar una descripción o prompt para generar la imagen."
+      });
+    }
+
+    const result = await imageService.generate({
+      prompt,
+      width,
+      height,
+      seed
+    });
+
+    res.json(result);
+  } catch (error) {
+    logger.error(`Error en imageController.generateImage: ${error.message}`);
+    res.status(500).json({
+      status: "error",
+      error: error.message || "Error al generar la imagen con IA."
     });
   }
 };

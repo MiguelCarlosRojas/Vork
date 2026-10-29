@@ -1248,26 +1248,43 @@ function Send-VorkNotification {
         [Console]::Write("$esc]777;notify;$Title;$Message$bel")
     } catch { }
 
-    # 3. Toast Moderno de Windows
+    # 3. macOS nativo con AppleScript
+    if ($IsMacOS -or ($env:OSTYPE -like "*darwin*")) {
+        try {
+            & osascript -e "display notification `"$Message`" with title `"$Title`"" 2>$null
+        } catch { }
+        return
+    }
+
+    # 4. Linux nativo con notify-send
+    if ($IsLinux -or ($global:IsWinPlatform -eq $false -and -not $IsMacOS)) {
+        try {
+            & notify-send "$Title" "$Message" 2>$null
+        } catch { }
+        return
+    }
+
+    # 5. Windows nativo con WinRT Toast Notification (Directo y sin retardo)
     try {
-        $scriptBlock = {
-            param($t, $m)
-            try {
-                [Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] | Out-Null
-                $template = [Windows.UI.Notifications.ToastNotificationManager]::GetTemplateContent([Windows.UI.Notifications.ToastTemplateType]::ToastText02)
-                $toastXml = [xml]$template.GetXml()
-                $textNodes = $toastXml.GetElementsByTagName("text")
-                if ($textNodes.Count -gt 0) { $textNodes.Item(0).AppendChild($toastXml.CreateTextNode($t)) | Out-Null }
-                if ($textNodes.Count -gt 1) { $textNodes.Item(1).AppendChild($toastXml.CreateTextNode($m)) | Out-Null }
+        [Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] | Out-Null
+        $template = [Windows.UI.Notifications.ToastNotificationManager]::GetTemplateContent([Windows.UI.Notifications.ToastTemplateType]::ToastText02)
+        $toastXml = [xml]$template.GetXml()
+        $textNodes = $toastXml.GetElementsByTagName("text")
+        if ($textNodes.Count -gt 0) { $textNodes.Item(0).AppendChild($toastXml.CreateTextNode($Title)) | Out-Null }
+        if ($textNodes.Count -gt 1) { $textNodes.Item(1).AppendChild($toastXml.CreateTextNode($Message)) | Out-Null }
 
-                $toastDoc = New-Object Windows.Data.Xml.Dom.XmlDocument
-                $toastDoc.LoadXml($toastXml.OuterXml)
+        $toastDoc = New-Object Windows.Data.Xml.Dom.XmlDocument
+        $toastDoc.LoadXml($toastXml.OuterXml)
 
-                $toast = [Windows.UI.Notifications.ToastNotification]::new($toastDoc)
-                $appId = "{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}\WindowsPowerShell\v1.0\powershell.exe"
-                $notifier = [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier($appId)
-                $notifier.Show($toast)
-            } catch {
+        $toast = [Windows.UI.Notifications.ToastNotification]::new($toastDoc)
+        $appId = "{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}\WindowsPowerShell\v1.0\powershell.exe"
+        $notifier = [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier($appId)
+        $notifier.Show($toast)
+    } catch {
+        # Fallback resiliente con NotifyIcon en Windows Forms (con tiempo de vida para el globo)
+        try {
+            $balloonScript = {
+                param($t, $m)
                 try {
                     Add-Type -AssemblyName System.Windows.Forms -ErrorAction SilentlyContinue
                     Add-Type -AssemblyName System.Drawing -ErrorAction SilentlyContinue
@@ -1276,12 +1293,12 @@ function Send-VorkNotification {
                     $notify.BalloonTipTitle = $t
                     $notify.BalloonTipText = $m
                     $notify.Visible = $true
-                    $notify.ShowBalloonTip(2500)
-                    Start-Sleep -Milliseconds 500
+                    $notify.ShowBalloonTip(4000)
+                    Start-Sleep -Seconds 4
                     $notify.Dispose()
                 } catch { }
             }
-        }
-        Start-Job -ScriptBlock $scriptBlock -ArgumentList $Title, $Message | Out-Null
-    } catch { }
+            Start-Job -ScriptBlock $balloonScript -ArgumentList $Title, $Message | Out-Null
+        } catch { }
+    }
 }

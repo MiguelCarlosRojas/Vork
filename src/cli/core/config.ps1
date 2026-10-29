@@ -1,4 +1,4 @@
-param(
+﻿param(
     [Parameter(Position=0, ValueFromPipeline=$true)]
     [string]$Command = "",
 
@@ -56,10 +56,69 @@ if ($Arguments) {
 }
 
 # ========================================================
+# IDENTIDAD DE DISPOSITIVO Y AISLAMIENTO DE USUARIO
+# ========================================================
+function Get-VorkDeviceIdentity {
+    $dev = ""
+    try {
+        if ([System.Environment]::OSVersion.Platform -eq [System.PlatformID]::Win32NT) {
+            $dev = if ($env:COMPUTERNAME) { $env:COMPUTERNAME.Trim() } else { "PC" }
+        } elseif ($IsMacOS -or ($env:OSTYPE -like "*darwin*")) {
+            $dev = (scutil --get ComputerName 2>$null)
+            if (-not $dev) { $dev = (hostname -s 2>$null) }
+        } else {
+            $dev = if ($env:HOSTNAME) { $env:HOSTNAME.Trim() } else { (hostname 2>$null) }
+        }
+    } catch { }
+    if (-not $dev) {
+        $dev = if ($env:COMPUTERNAME) { $env:COMPUTERNAME } elseif ($env:HOSTNAME) { $env:HOSTNAME } else { "PC" }
+    }
+    $global:VorkDeviceName = $dev
+    return $dev
+}
+
+$vorkBaseDir = Join-Path $HOME ".vork"
+if (-not (Test-Path $vorkBaseDir)) { New-Item -ItemType Directory -Path $vorkBaseDir -Force | Out-Null }
+$identityFile = Join-Path $vorkBaseDir "identity.json"
+$global:VorkIdentity = $null
+
+if (Test-Path $identityFile) {
+    try {
+        $global:VorkIdentity = Get-Content -Path $identityFile -Raw -Encoding UTF8 | ConvertFrom-Json
+    } catch { }
+}
+
+$detectedDev = Get-VorkDeviceIdentity
+
+if (-not $global:VorkIdentity -or -not $global:VorkIdentity.clientId) {
+    $global:VorkIdentity = [pscustomobject]@{
+        clientId       = [System.Guid]::NewGuid().ToString()
+        installationId = [System.Guid]::NewGuid().ToString("N")
+        deviceName     = $detectedDev
+        username       = if ($env:USERNAME) { $env:USERNAME } elseif ($env:USER) { $env:USER } else { "User" }
+        platform       = if ([System.Environment]::OSVersion.Platform -eq [System.PlatformID]::Win32NT) { "windows" } else { "unix" }
+        createdAt      = [DateTime]::UtcNow.ToString("o")
+    }
+    try {
+        $global:VorkIdentity | ConvertTo-Json | Set-Content -Path $identityFile -Force -Encoding UTF8
+    } catch { }
+} else {
+    # Actualizar dinámicamente si el usuario renombra su equipo
+    if ($global:VorkIdentity.deviceName -ne $detectedDev) {
+        $global:VorkIdentity.deviceName = $detectedDev
+        try {
+            $global:VorkIdentity | ConvertTo-Json | Set-Content -Path $identityFile -Force -Encoding UTF8
+        } catch { }
+    }
+}
+
+$global:VorkClientId = $global:VorkIdentity.clientId
+$global:VorkDeviceName = $detectedDev
+
+# ========================================================
 # GESTIÓN DE ID DE CONVERSACIÓN & SESIÓN PERSISTENTE
 # ========================================================
-$convDir = Join-Path $HOME ".vork"
-if (-not (Test-Path $convDir)) { New-Item -ItemType Directory -Path $convDir -Force | Out-Null }
+$convDir = $vorkBaseDir
 $lastConvFile = Join-Path $convDir "last_conversation.txt"
 
 if ($Conversation) {
@@ -222,7 +281,7 @@ function Exit-VorkSession {
     exit $ExitCode
 }
 
-$VorkVersion = "3.0.2"
+$VorkVersion = "1.0.2"
 $ApiBase = if ($env:VORK_API) { $env:VORK_API } elseif ($env:CLOUDTRANSLATOR_API) { $env:CLOUDTRANSLATOR_API } else { "https://vork-st1k.onrender.com" }
 
 # ========================================================

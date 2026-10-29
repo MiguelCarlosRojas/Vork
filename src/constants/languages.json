@@ -1,0 +1,1252 @@
+[
+  {
+    "code": "en",
+    "label": "en     Inglés",
+    "search": "en Inglés English"
+  },
+  {
+    "code": "es",
+    "label": "es     Español",
+    "search": "es Español Spanish"
+  },
+  {
+    "code": "fr",
+    "label": "fr     Francés",
+    "search": "fr Francés French"
+  },
+  {
+    "code": "de",
+    "label": "de     Alemán",
+    "search": "de Alemán German"
+  },
+  {
+    "code": "it",
+    "label": "it     Italiano",
+    "search": "it Italiano Italian"
+  },
+  {
+    "code": "pt",
+    "label": "pt     Portugués",
+    "search": "pt Portugués Portuguese (Brazil)"
+  },
+  {
+    "code": "ja",
+    "label": "ja     Japonés",
+    "search": "ja Japonés Japanese"
+  },
+  {
+    "code": "zh-CN",
+    "label": "zh-CN  Chino (Simplificado)",
+    "search": "zh-CN Chino (Simplificado) Chinese (Simplified)"
+  },
+  {
+    "code": "ru",
+    "label": "ru     Ruso",
+    "search": "ru Ruso Russian"
+  },
+  {
+    "code": "ko",
+    "label": "ko     Coreano",
+    "search": "ko Coreano Korean"
+  },
+  {
+    "code": "aa",
+    "label": "aa     Afar",
+    "search": "aa Afar Afar"
+  },
+  {
+    "code": "ab",
+    "label": "ab     Abkhaz",
+    "search": "ab Abkhaz Abkhaz"
+  },
+  {
+    "code": "ace",
+    "label": "ace    Acehnese",
+    "search": "ace Acehnese Acehnese"
+  },
+  {
+    "code": "ach",
+    "label": "ach    Acholi",
+    "search": "ach Acholi Acholi"
+  },
+  {
+    "code": "af",
+    "label": "af     Afrikáans",
+    "search": "af Afrikáans Afrikaans"
+  },
+  {
+    "code": "ak",
+    "label": "ak     Twi",
+    "search": "ak Twi Twi"
+  },
+  {
+    "code": "alz",
+    "label": "alz    Alur",
+    "search": "alz Alur Alur"
+  },
+  {
+    "code": "am",
+    "label": "am     Amhárico",
+    "search": "am Amhárico Amharic"
+  },
+  {
+    "code": "ar",
+    "label": "ar     Árabe",
+    "search": "ar Árabe Arabic"
+  },
+  {
+    "code": "as",
+    "label": "as     Assamese",
+    "search": "as Assamese Assamese"
+  },
+  {
+    "code": "av",
+    "label": "av     Avar",
+    "search": "av Avar Avar"
+  },
+  {
+    "code": "awa",
+    "label": "awa    Awadhi",
+    "search": "awa Awadhi Awadhi"
+  },
+  {
+    "code": "ay",
+    "label": "ay     Aimara",
+    "search": "ay Aimara Aymara"
+  },
+  {
+    "code": "az",
+    "label": "az     Azerbaiyano",
+    "search": "az Azerbaiyano Azerbaijani"
+  },
+  {
+    "code": "ba",
+    "label": "ba     Bashkir",
+    "search": "ba Bashkir Bashkir"
+  },
+  {
+    "code": "bal",
+    "label": "bal    Baluchi",
+    "search": "bal Baluchi Baluchi"
+  },
+  {
+    "code": "ban",
+    "label": "ban    Balinese",
+    "search": "ban Balinese Balinese"
+  },
+  {
+    "code": "bbc",
+    "label": "bbc    Batak Toba",
+    "search": "bbc Batak Toba Batak Toba"
+  },
+  {
+    "code": "bci",
+    "label": "bci    Baoulé",
+    "search": "bci Baoulé Baoulé"
+  },
+  {
+    "code": "be",
+    "label": "be     Bielorruso",
+    "search": "be Bielorruso Belarusian"
+  },
+  {
+    "code": "bem",
+    "label": "bem    Bemba",
+    "search": "bem Bemba Bemba"
+  },
+  {
+    "code": "ber",
+    "label": "ber    Tamazight (Tifinagh)",
+    "search": "ber Tamazight (Tifinagh) Tamazight (Tifinagh)"
+  },
+  {
+    "code": "ber-Latn",
+    "label": "ber-Latn Tamazight",
+    "search": "ber-Latn Tamazight Tamazight"
+  },
+  {
+    "code": "bew",
+    "label": "bew    Betawi",
+    "search": "bew Betawi Betawi"
+  },
+  {
+    "code": "bg",
+    "label": "bg     Búlgaro",
+    "search": "bg Búlgaro Bulgarian"
+  },
+  {
+    "code": "bho",
+    "label": "bho    Bhojpuri",
+    "search": "bho Bhojpuri Bhojpuri"
+  },
+  {
+    "code": "bik",
+    "label": "bik    Bikol",
+    "search": "bik Bikol Bikol"
+  },
+  {
+    "code": "bm",
+    "label": "bm     Bambara",
+    "search": "bm Bambara Bambara"
+  },
+  {
+    "code": "bm-Nkoo",
+    "label": "bm-Nkoo NKo",
+    "search": "bm-Nkoo NKo NKo"
+  },
+  {
+    "code": "bn",
+    "label": "bn     Bengalí",
+    "search": "bn Bengalí Bengali"
+  },
+  {
+    "code": "bo",
+    "label": "bo     Tibetan",
+    "search": "bo Tibetan Tibetan"
+  },
+  {
+    "code": "br",
+    "label": "br     Breton",
+    "search": "br Breton Breton"
+  },
+  {
+    "code": "bs",
+    "label": "bs     Bosnio",
+    "search": "bs Bosnio Bosnian"
+  },
+  {
+    "code": "bts",
+    "label": "bts    Batak Simalungun",
+    "search": "bts Batak Simalungun Batak Simalungun"
+  },
+  {
+    "code": "btx",
+    "label": "btx    Batak Karo",
+    "search": "btx Batak Karo Batak Karo"
+  },
+  {
+    "code": "bua",
+    "label": "bua    Buryat",
+    "search": "bua Buryat Buryat"
+  },
+  {
+    "code": "ca",
+    "label": "ca     Catalán",
+    "search": "ca Catalán Catalan"
+  },
+  {
+    "code": "ce",
+    "label": "ce     Chechen",
+    "search": "ce Chechen Chechen"
+  },
+  {
+    "code": "ceb",
+    "label": "ceb    Cebuano",
+    "search": "ceb Cebuano Cebuano"
+  },
+  {
+    "code": "cgg",
+    "label": "cgg    Kiga",
+    "search": "cgg Kiga Kiga"
+  },
+  {
+    "code": "ch",
+    "label": "ch     Chamorro",
+    "search": "ch Chamorro Chamorro"
+  },
+  {
+    "code": "chk",
+    "label": "chk    Chuukese",
+    "search": "chk Chuukese Chuukese"
+  },
+  {
+    "code": "chm",
+    "label": "chm    Meadow Mari",
+    "search": "chm Meadow Mari Meadow Mari"
+  },
+  {
+    "code": "ckb",
+    "label": "ckb    Kurdish (Sorani)",
+    "search": "ckb Kurdish (Sorani) Kurdish (Sorani)"
+  },
+  {
+    "code": "cnh",
+    "label": "cnh    Hakha Chin",
+    "search": "cnh Hakha Chin Hakha Chin"
+  },
+  {
+    "code": "co",
+    "label": "co     Corso",
+    "search": "co Corso Corsican"
+  },
+  {
+    "code": "crh",
+    "label": "crh    Crimean Tatar (Cyrillic)",
+    "search": "crh Crimean Tatar (Cyrillic) Crimean Tatar (Cyrillic)"
+  },
+  {
+    "code": "crh-Latn",
+    "label": "crh-Latn Crimean Tatar (Latin)",
+    "search": "crh-Latn Crimean Tatar (Latin) Crimean Tatar (Latin)"
+  },
+  {
+    "code": "crs",
+    "label": "crs    Seychellois Creole",
+    "search": "crs Seychellois Creole Seychellois Creole"
+  },
+  {
+    "code": "cs",
+    "label": "cs     Checo",
+    "search": "cs Checo Czech"
+  },
+  {
+    "code": "cv",
+    "label": "cv     Chuvash",
+    "search": "cv Chuvash Chuvash"
+  },
+  {
+    "code": "cy",
+    "label": "cy     Galés",
+    "search": "cy Galés Welsh"
+  },
+  {
+    "code": "da",
+    "label": "da     Danés",
+    "search": "da Danés Danish"
+  },
+  {
+    "code": "din",
+    "label": "din    Dinka",
+    "search": "din Dinka Dinka"
+  },
+  {
+    "code": "doi",
+    "label": "doi    Dogri",
+    "search": "doi Dogri Dogri"
+  },
+  {
+    "code": "dov",
+    "label": "dov    Dombe",
+    "search": "dov Dombe Dombe"
+  },
+  {
+    "code": "dv",
+    "label": "dv     Dhivehi",
+    "search": "dv Dhivehi Dhivehi"
+  },
+  {
+    "code": "dyu",
+    "label": "dyu    Dyula",
+    "search": "dyu Dyula Dyula"
+  },
+  {
+    "code": "dz",
+    "label": "dz     Dzongkha",
+    "search": "dz Dzongkha Dzongkha"
+  },
+  {
+    "code": "ee",
+    "label": "ee     Ewe",
+    "search": "ee Ewe Ewe"
+  },
+  {
+    "code": "el",
+    "label": "el     Griego",
+    "search": "el Griego Greek"
+  },
+  {
+    "code": "eo",
+    "label": "eo     Esperanto",
+    "search": "eo Esperanto Esperanto"
+  },
+  {
+    "code": "et",
+    "label": "et     Estonio",
+    "search": "et Estonio Estonian"
+  },
+  {
+    "code": "eu",
+    "label": "eu     Vasco / Euskera",
+    "search": "eu Vasco / Euskera Basque"
+  },
+  {
+    "code": "fa",
+    "label": "fa     Persa",
+    "search": "fa Persa Persian"
+  },
+  {
+    "code": "fa-AF",
+    "label": "fa-AF  Dari",
+    "search": "fa-AF Dari Dari"
+  },
+  {
+    "code": "ff",
+    "label": "ff     Fulani",
+    "search": "ff Fulani Fulani"
+  },
+  {
+    "code": "fi",
+    "label": "fi     Finlandés",
+    "search": "fi Finlandés Finnish"
+  },
+  {
+    "code": "fj",
+    "label": "fj     Fijian",
+    "search": "fj Fijian Fijian"
+  },
+  {
+    "code": "fo",
+    "label": "fo     Faroese",
+    "search": "fo Faroese Faroese"
+  },
+  {
+    "code": "fon",
+    "label": "fon    Fon",
+    "search": "fon Fon Fon"
+  },
+  {
+    "code": "fr-CA",
+    "label": "fr-CA  French (Canada)",
+    "search": "fr-CA French (Canada) French (Canada)"
+  },
+  {
+    "code": "fur",
+    "label": "fur    Friulian",
+    "search": "fur Friulian Friulian"
+  },
+  {
+    "code": "fy",
+    "label": "fy     Frisón",
+    "search": "fy Frisón Frisian"
+  },
+  {
+    "code": "ga",
+    "label": "ga     Irlandés",
+    "search": "ga Irlandés Irish"
+  },
+  {
+    "code": "gaa",
+    "label": "gaa    Ga",
+    "search": "gaa Ga Ga"
+  },
+  {
+    "code": "gd",
+    "label": "gd     Gaélico escocés",
+    "search": "gd Gaélico escocés Scots Gaelic"
+  },
+  {
+    "code": "gl",
+    "label": "gl     Gallego",
+    "search": "gl Gallego Galician"
+  },
+  {
+    "code": "gn",
+    "label": "gn     Guaraní",
+    "search": "gn Guaraní Guarani"
+  },
+  {
+    "code": "gom",
+    "label": "gom    Konkani",
+    "search": "gom Konkani Konkani"
+  },
+  {
+    "code": "gu",
+    "label": "gu     Guyaratí",
+    "search": "gu Guyaratí Gujarati"
+  },
+  {
+    "code": "gv",
+    "label": "gv     Manx",
+    "search": "gv Manx Manx"
+  },
+  {
+    "code": "ha",
+    "label": "ha     Hausa",
+    "search": "ha Hausa Hausa"
+  },
+  {
+    "code": "haw",
+    "label": "haw    Hawaiano",
+    "search": "haw Hawaiano Hawaiian"
+  },
+  {
+    "code": "he",
+    "label": "he     Hebreo",
+    "search": "he Hebreo Hebrew"
+  },
+  {
+    "code": "hi",
+    "label": "hi     Hindi",
+    "search": "hi Hindi Hindi"
+  },
+  {
+    "code": "hil",
+    "label": "hil    Hiligaynon",
+    "search": "hil Hiligaynon Hiligaynon"
+  },
+  {
+    "code": "hmn",
+    "label": "hmn    Hmong",
+    "search": "hmn Hmong Hmong"
+  },
+  {
+    "code": "hr",
+    "label": "hr     Croata",
+    "search": "hr Croata Croatian"
+  },
+  {
+    "code": "hrx",
+    "label": "hrx    Hunsrik",
+    "search": "hrx Hunsrik Hunsrik"
+  },
+  {
+    "code": "ht",
+    "label": "ht     Criollo haitiano",
+    "search": "ht Criollo haitiano Haitian Creole"
+  },
+  {
+    "code": "hu",
+    "label": "hu     Húngaro",
+    "search": "hu Húngaro Hungarian"
+  },
+  {
+    "code": "hy",
+    "label": "hy     Armenio",
+    "search": "hy Armenio Armenian"
+  },
+  {
+    "code": "iba",
+    "label": "iba    Iban",
+    "search": "iba Iban Iban"
+  },
+  {
+    "code": "id",
+    "label": "id     Indonesio",
+    "search": "id Indonesio Indonesian"
+  },
+  {
+    "code": "ig",
+    "label": "ig     Igbo",
+    "search": "ig Igbo Igbo"
+  },
+  {
+    "code": "ilo",
+    "label": "ilo    Ilocano",
+    "search": "ilo Ilocano Ilocano"
+  },
+  {
+    "code": "is",
+    "label": "is     Islandés",
+    "search": "is Islandés Icelandic"
+  },
+  {
+    "code": "iu",
+    "label": "iu     Inuktut (Syllabics)",
+    "search": "iu Inuktut (Syllabics) Inuktut (Syllabics)"
+  },
+  {
+    "code": "iu-Latn",
+    "label": "iu-Latn Inuktut (Latin)",
+    "search": "iu-Latn Inuktut (Latin) Inuktut (Latin)"
+  },
+  {
+    "code": "iw",
+    "label": "iw     Hebrew",
+    "search": "iw Hebrew Hebrew"
+  },
+  {
+    "code": "jam",
+    "label": "jam    Jamaican Patois",
+    "search": "jam Jamaican Patois Jamaican Patois"
+  },
+  {
+    "code": "jw",
+    "label": "jw     Javanese",
+    "search": "jw Javanese Javanese"
+  },
+  {
+    "code": "ka",
+    "label": "ka     Georgiano",
+    "search": "ka Georgiano Georgian"
+  },
+  {
+    "code": "kac",
+    "label": "kac    Jingpo",
+    "search": "kac Jingpo Jingpo"
+  },
+  {
+    "code": "kek",
+    "label": "kek    Qʼeqchiʼ",
+    "search": "kek Qʼeqchiʼ Qʼeqchiʼ"
+  },
+  {
+    "code": "kg",
+    "label": "kg     Kikongo",
+    "search": "kg Kikongo Kikongo"
+  },
+  {
+    "code": "kha",
+    "label": "kha    Khasi",
+    "search": "kha Khasi Khasi"
+  },
+  {
+    "code": "kk",
+    "label": "kk     Kazajo",
+    "search": "kk Kazajo Kazakh"
+  },
+  {
+    "code": "kl",
+    "label": "kl     Kalaallisut",
+    "search": "kl Kalaallisut Kalaallisut"
+  },
+  {
+    "code": "km",
+    "label": "km     Jemer",
+    "search": "km Jemer Khmer"
+  },
+  {
+    "code": "kn",
+    "label": "kn     Canarés / Kannada",
+    "search": "kn Canarés / Kannada Kannada"
+  },
+  {
+    "code": "kr",
+    "label": "kr     Kanuri",
+    "search": "kr Kanuri Kanuri"
+  },
+  {
+    "code": "kri",
+    "label": "kri    Krio",
+    "search": "kri Krio Krio"
+  },
+  {
+    "code": "ktu",
+    "label": "ktu    Kituba",
+    "search": "ktu Kituba Kituba"
+  },
+  {
+    "code": "ku",
+    "label": "ku     Kurdo",
+    "search": "ku Kurdo Kurdish (Kurmanji)"
+  },
+  {
+    "code": "kv",
+    "label": "kv     Komi",
+    "search": "kv Komi Komi"
+  },
+  {
+    "code": "ky",
+    "label": "ky     Kirguís",
+    "search": "ky Kirguís Kyrgyz"
+  },
+  {
+    "code": "la",
+    "label": "la     Latín",
+    "search": "la Latín Latin"
+  },
+  {
+    "code": "lb",
+    "label": "lb     Luxemburgués",
+    "search": "lb Luxemburgués Luxembourgish"
+  },
+  {
+    "code": "lg",
+    "label": "lg     Luganda",
+    "search": "lg Luganda Luganda"
+  },
+  {
+    "code": "li",
+    "label": "li     Limburgish",
+    "search": "li Limburgish Limburgish"
+  },
+  {
+    "code": "lij",
+    "label": "lij    Ligurian",
+    "search": "lij Ligurian Ligurian"
+  },
+  {
+    "code": "lmo",
+    "label": "lmo    Lombard",
+    "search": "lmo Lombard Lombard"
+  },
+  {
+    "code": "ln",
+    "label": "ln     Lingala",
+    "search": "ln Lingala Lingala"
+  },
+  {
+    "code": "lo",
+    "label": "lo     Laosiano",
+    "search": "lo Laosiano Lao"
+  },
+  {
+    "code": "lt",
+    "label": "lt     Lituano",
+    "search": "lt Lituano Lithuanian"
+  },
+  {
+    "code": "ltg",
+    "label": "ltg    Latgalian",
+    "search": "ltg Latgalian Latgalian"
+  },
+  {
+    "code": "lua",
+    "label": "lua    Tshiluba",
+    "search": "lua Tshiluba Tshiluba"
+  },
+  {
+    "code": "luo",
+    "label": "luo    Luo",
+    "search": "luo Luo Luo"
+  },
+  {
+    "code": "lus",
+    "label": "lus    Mizo",
+    "search": "lus Mizo Mizo"
+  },
+  {
+    "code": "lv",
+    "label": "lv     Letón",
+    "search": "lv Letón Latvian"
+  },
+  {
+    "code": "mad",
+    "label": "mad    Madurese",
+    "search": "mad Madurese Madurese"
+  },
+  {
+    "code": "mai",
+    "label": "mai    Maithili",
+    "search": "mai Maithili Maithili"
+  },
+  {
+    "code": "mak",
+    "label": "mak    Makassar",
+    "search": "mak Makassar Makassar"
+  },
+  {
+    "code": "mam",
+    "label": "mam    Mam",
+    "search": "mam Mam Mam"
+  },
+  {
+    "code": "mfe",
+    "label": "mfe    Mauritian Creole",
+    "search": "mfe Mauritian Creole Mauritian Creole"
+  },
+  {
+    "code": "mg",
+    "label": "mg     Malgache",
+    "search": "mg Malgache Malagasy"
+  },
+  {
+    "code": "mh",
+    "label": "mh     Marshallese",
+    "search": "mh Marshallese Marshallese"
+  },
+  {
+    "code": "mi",
+    "label": "mi     Maorí",
+    "search": "mi Maorí Maori"
+  },
+  {
+    "code": "min",
+    "label": "min    Minang",
+    "search": "min Minang Minang"
+  },
+  {
+    "code": "mk",
+    "label": "mk     Macedonio",
+    "search": "mk Macedonio Macedonian"
+  },
+  {
+    "code": "ml",
+    "label": "ml     Malayalam",
+    "search": "ml Malayalam Malayalam"
+  },
+  {
+    "code": "mn",
+    "label": "mn     Mongol",
+    "search": "mn Mongol Mongolian"
+  },
+  {
+    "code": "mni-Mtei",
+    "label": "mni-Mtei Meiteilon (Manipuri)",
+    "search": "mni-Mtei Meiteilon (Manipuri) Meiteilon (Manipuri)"
+  },
+  {
+    "code": "mr",
+    "label": "mr     Maratí",
+    "search": "mr Maratí Marathi"
+  },
+  {
+    "code": "ms",
+    "label": "ms     Malayo",
+    "search": "ms Malayo Malay"
+  },
+  {
+    "code": "ms-Arab",
+    "label": "ms-Arab Malay (Jawi)",
+    "search": "ms-Arab Malay (Jawi) Malay (Jawi)"
+  },
+  {
+    "code": "mt",
+    "label": "mt     Maltés",
+    "search": "mt Maltés Maltese"
+  },
+  {
+    "code": "mwr",
+    "label": "mwr    Marwadi",
+    "search": "mwr Marwadi Marwadi"
+  },
+  {
+    "code": "my",
+    "label": "my     Birmano",
+    "search": "my Birmano Myanmar (Burmese)"
+  },
+  {
+    "code": "ndc-ZW",
+    "label": "ndc-ZW Ndau",
+    "search": "ndc-ZW Ndau Ndau"
+  },
+  {
+    "code": "ne",
+    "label": "ne     Nepalí",
+    "search": "ne Nepalí Nepali"
+  },
+  {
+    "code": "new",
+    "label": "new    Nepalbhasa (Newari)",
+    "search": "new Nepalbhasa (Newari) Nepalbhasa (Newari)"
+  },
+  {
+    "code": "nhe",
+    "label": "nhe    Nahuatl (Eastern Huasteca)",
+    "search": "nhe Nahuatl (Eastern Huasteca) Nahuatl (Eastern Huasteca)"
+  },
+  {
+    "code": "nl",
+    "label": "nl     Holandés / Neerlandés",
+    "search": "nl Holandés / Neerlandés Dutch"
+  },
+  {
+    "code": "no",
+    "label": "no     Noruego",
+    "search": "no Noruego Norwegian"
+  },
+  {
+    "code": "nr",
+    "label": "nr     Ndebele (South)",
+    "search": "nr Ndebele (South) Ndebele (South)"
+  },
+  {
+    "code": "nso",
+    "label": "nso    Sepedi",
+    "search": "nso Sepedi Sepedi"
+  },
+  {
+    "code": "nus",
+    "label": "nus    Nuer",
+    "search": "nus Nuer Nuer"
+  },
+  {
+    "code": "ny",
+    "label": "ny     Chichewa",
+    "search": "ny Chichewa Chichewa"
+  },
+  {
+    "code": "oc",
+    "label": "oc     Occitan",
+    "search": "oc Occitan Occitan"
+  },
+  {
+    "code": "om",
+    "label": "om     Oromo",
+    "search": "om Oromo Oromo"
+  },
+  {
+    "code": "or",
+    "label": "or     Odia",
+    "search": "or Odia Odia (Oriya)"
+  },
+  {
+    "code": "os",
+    "label": "os     Ossetian",
+    "search": "os Ossetian Ossetian"
+  },
+  {
+    "code": "pa",
+    "label": "pa     Panyabí",
+    "search": "pa Panyabí Punjabi (Gurmukhi)"
+  },
+  {
+    "code": "pa-Arab",
+    "label": "pa-Arab Punjabi (Shahmukhi)",
+    "search": "pa-Arab Punjabi (Shahmukhi) Punjabi (Shahmukhi)"
+  },
+  {
+    "code": "pag",
+    "label": "pag    Pangasinan",
+    "search": "pag Pangasinan Pangasinan"
+  },
+  {
+    "code": "pam",
+    "label": "pam    Kapampangan",
+    "search": "pam Kapampangan Kapampangan"
+  },
+  {
+    "code": "pap",
+    "label": "pap    Papiamento",
+    "search": "pap Papiamento Papiamento"
+  },
+  {
+    "code": "pl",
+    "label": "pl     Polaco",
+    "search": "pl Polaco Polish"
+  },
+  {
+    "code": "ps",
+    "label": "ps     Pastún",
+    "search": "ps Pastún Pashto"
+  },
+  {
+    "code": "pt-PT",
+    "label": "pt-PT  Portuguese (Portugal)",
+    "search": "pt-PT Portuguese (Portugal) Portuguese (Portugal)"
+  },
+  {
+    "code": "qu",
+    "label": "qu     Quechua",
+    "search": "qu Quechua Quechua"
+  },
+  {
+    "code": "rn",
+    "label": "rn     Rundi",
+    "search": "rn Rundi Rundi"
+  },
+  {
+    "code": "ro",
+    "label": "ro     Rumano",
+    "search": "ro Rumano Romanian"
+  },
+  {
+    "code": "rom",
+    "label": "rom    Romani",
+    "search": "rom Romani Romani"
+  },
+  {
+    "code": "rw",
+    "label": "rw     Kinyarwanda",
+    "search": "rw Kinyarwanda Kinyarwanda"
+  },
+  {
+    "code": "sa",
+    "label": "sa     Sanskrit",
+    "search": "sa Sanskrit Sanskrit"
+  },
+  {
+    "code": "sah",
+    "label": "sah    Yakut",
+    "search": "sah Yakut Yakut"
+  },
+  {
+    "code": "sat",
+    "label": "sat    Santali (Ol Chiki)",
+    "search": "sat Santali (Ol Chiki) Santali (Ol Chiki)"
+  },
+  {
+    "code": "sat-Latn",
+    "label": "sat-Latn Santali (Latin)",
+    "search": "sat-Latn Santali (Latin) Santali (Latin)"
+  },
+  {
+    "code": "scn",
+    "label": "scn    Sicilian",
+    "search": "scn Sicilian Sicilian"
+  },
+  {
+    "code": "sd",
+    "label": "sd     Sindhi",
+    "search": "sd Sindhi Sindhi"
+  },
+  {
+    "code": "se",
+    "label": "se     Sami (North)",
+    "search": "se Sami (North) Sami (North)"
+  },
+  {
+    "code": "sg",
+    "label": "sg     Sango",
+    "search": "sg Sango Sango"
+  },
+  {
+    "code": "shn",
+    "label": "shn    Shan",
+    "search": "shn Shan Shan"
+  },
+  {
+    "code": "si",
+    "label": "si     Cingalés",
+    "search": "si Cingalés Sinhala"
+  },
+  {
+    "code": "sk",
+    "label": "sk     Eslovaco",
+    "search": "sk Eslovaco Slovak"
+  },
+  {
+    "code": "sl",
+    "label": "sl     Esloveno",
+    "search": "sl Esloveno Slovenian"
+  },
+  {
+    "code": "sm",
+    "label": "sm     Samoano",
+    "search": "sm Samoano Samoan"
+  },
+  {
+    "code": "sn",
+    "label": "sn     Shona",
+    "search": "sn Shona Shona"
+  },
+  {
+    "code": "so",
+    "label": "so     Somalí",
+    "search": "so Somalí Somali"
+  },
+  {
+    "code": "sq",
+    "label": "sq     Albanés",
+    "search": "sq Albanés Albanian"
+  },
+  {
+    "code": "sr",
+    "label": "sr     Serbio",
+    "search": "sr Serbio Serbian"
+  },
+  {
+    "code": "ss",
+    "label": "ss     Swati",
+    "search": "ss Swati Swati"
+  },
+  {
+    "code": "st",
+    "label": "st     Sesoto",
+    "search": "st Sesoto Sesotho"
+  },
+  {
+    "code": "su",
+    "label": "su     Sundanés",
+    "search": "su Sundanés Sundanese"
+  },
+  {
+    "code": "sus",
+    "label": "sus    Susu",
+    "search": "sus Susu Susu"
+  },
+  {
+    "code": "sv",
+    "label": "sv     Sueco",
+    "search": "sv Sueco Swedish"
+  },
+  {
+    "code": "sw",
+    "label": "sw     Suajili",
+    "search": "sw Suajili Swahili"
+  },
+  {
+    "code": "szl",
+    "label": "szl    Silesian",
+    "search": "szl Silesian Silesian"
+  },
+  {
+    "code": "ta",
+    "label": "ta     Tamil",
+    "search": "ta Tamil Tamil"
+  },
+  {
+    "code": "tcy",
+    "label": "tcy    Tulu",
+    "search": "tcy Tulu Tulu"
+  },
+  {
+    "code": "te",
+    "label": "te     Telugu",
+    "search": "te Telugu Telugu"
+  },
+  {
+    "code": "tet",
+    "label": "tet    Tetum",
+    "search": "tet Tetum Tetum"
+  },
+  {
+    "code": "tg",
+    "label": "tg     Tayiko",
+    "search": "tg Tayiko Tajik"
+  },
+  {
+    "code": "th",
+    "label": "th     Tailandés",
+    "search": "th Tailandés Thai"
+  },
+  {
+    "code": "ti",
+    "label": "ti     Tigrinya",
+    "search": "ti Tigrinya Tigrinya"
+  },
+  {
+    "code": "tiv",
+    "label": "tiv    Tiv",
+    "search": "tiv Tiv Tiv"
+  },
+  {
+    "code": "tk",
+    "label": "tk     Turcomano",
+    "search": "tk Turcomano Turkmen"
+  },
+  {
+    "code": "tl",
+    "label": "tl     Tagalo / Filipino",
+    "search": "tl Tagalo / Filipino Filipino"
+  },
+  {
+    "code": "tn",
+    "label": "tn     Tswana",
+    "search": "tn Tswana Tswana"
+  },
+  {
+    "code": "to",
+    "label": "to     Tongan",
+    "search": "to Tongan Tongan"
+  },
+  {
+    "code": "tpi",
+    "label": "tpi    Tok Pisin",
+    "search": "tpi Tok Pisin Tok Pisin"
+  },
+  {
+    "code": "tr",
+    "label": "tr     Turco",
+    "search": "tr Turco Turkish"
+  },
+  {
+    "code": "trp",
+    "label": "trp    Kokborok",
+    "search": "trp Kokborok Kokborok"
+  },
+  {
+    "code": "ts",
+    "label": "ts     Tsonga",
+    "search": "ts Tsonga Tsonga"
+  },
+  {
+    "code": "tt",
+    "label": "tt     Tártaro",
+    "search": "tt Tártaro Tatar"
+  },
+  {
+    "code": "tum",
+    "label": "tum    Tumbuka",
+    "search": "tum Tumbuka Tumbuka"
+  },
+  {
+    "code": "ty",
+    "label": "ty     Tahitian",
+    "search": "ty Tahitian Tahitian"
+  },
+  {
+    "code": "tyv",
+    "label": "tyv    Tuvan",
+    "search": "tyv Tuvan Tuvan"
+  },
+  {
+    "code": "udm",
+    "label": "udm    Udmurt",
+    "search": "udm Udmurt Udmurt"
+  },
+  {
+    "code": "ug",
+    "label": "ug     Uigur",
+    "search": "ug Uigur Uyghur"
+  },
+  {
+    "code": "uk",
+    "label": "uk     Ucraniano",
+    "search": "uk Ucraniano Ukrainian"
+  },
+  {
+    "code": "ur",
+    "label": "ur     Urdu",
+    "search": "ur Urdu Urdu"
+  },
+  {
+    "code": "uz",
+    "label": "uz     Uzbeko",
+    "search": "uz Uzbeko Uzbek"
+  },
+  {
+    "code": "ve",
+    "label": "ve     Venda",
+    "search": "ve Venda Venda"
+  },
+  {
+    "code": "vec",
+    "label": "vec    Venetian",
+    "search": "vec Venetian Venetian"
+  },
+  {
+    "code": "vi",
+    "label": "vi     Vietnamita",
+    "search": "vi Vietnamita Vietnamese"
+  },
+  {
+    "code": "war",
+    "label": "war    Waray",
+    "search": "war Waray Waray"
+  },
+  {
+    "code": "wo",
+    "label": "wo     Wolof",
+    "search": "wo Wolof Wolof"
+  },
+  {
+    "code": "xh",
+    "label": "xh     Xhosa",
+    "search": "xh Xhosa Xhosa"
+  },
+  {
+    "code": "yi",
+    "label": "yi     Yidis",
+    "search": "yi Yidis Yiddish"
+  },
+  {
+    "code": "yo",
+    "label": "yo     Yoruba",
+    "search": "yo Yoruba Yoruba"
+  },
+  {
+    "code": "yua",
+    "label": "yua    Yucatec Maya",
+    "search": "yua Yucatec Maya Yucatec Maya"
+  },
+  {
+    "code": "yue",
+    "label": "yue    Cantonese",
+    "search": "yue Cantonese Cantonese"
+  },
+  {
+    "code": "zap",
+    "label": "zap    Zapotec",
+    "search": "zap Zapotec Zapotec"
+  },
+  {
+    "code": "zh-TW",
+    "label": "zh-TW  Chino (Tradicional)",
+    "search": "zh-TW Chino (Tradicional) Chinese (Traditional)"
+  },
+  {
+    "code": "zu",
+    "label": "zu     Zulú",
+    "search": "zu Zulú Zulu"
+  }
+]

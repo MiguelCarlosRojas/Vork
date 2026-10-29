@@ -17,7 +17,7 @@ DIM='\033[2m'
 
 printf "${CORAL}${BOLD}"
 cat << "EOF"
-  ██       ██      Vork CLI  v3.0.2
+  ██       ██      Vork CLI  v1.0.2
   ███     ███      9 Pilares Operacionales
    ███   ███       https://vork-st1k.onrender.com (Vork AI)
     ███ ███        Instalador Universal macOS & Linux
@@ -90,7 +90,7 @@ if command -v node >/dev/null 2>&1; then
 
     function showBanner() {
       console.log('');
-      console.log('  ' + coral + '██       ██' + reset + '      ' + coral + bold + 'Vork CLI' + reset + '  ' + cyan + 'v3.0.2' + reset);
+      console.log('  ' + coral + '██       ██' + reset + '      ' + coral + bold + 'Vork CLI' + reset + '  ' + cyan + 'v1.0.2' + reset);
       console.log('  ' + coral + '███     ███' + reset + '      ' + dim + 'Vork 3 (Medium)' + reset);
       console.log('  ' + coral + ' ███   ███ ' + reset + '      ' + dim + apiBase + ' (Vork AI)' + reset);
       console.log('  ' + coral + '  ███ ███  ' + reset + '      ' + cyan + pwd.replace(process.env.HOME || '', '~') + reset);
@@ -164,7 +164,7 @@ if command -v node >/dev/null 2>&1; then
 
     if (cmd === 'version' || cmd === '-v' || cmd === '--version') {
       console.log('');
-      console.log('  ' + cyan + bold + 'Vork CLI' + reset + ' v3.0.2 (' + process.platform + ' ' + process.arch + ')');
+      console.log('  ' + cyan + bold + 'Vork CLI' + reset + ' v1.0.2 (' + process.platform + ' ' + process.arch + ')');
       console.log('  Backend:  ' + apiBase);
       console.log('  Pilares:  9 Pilares Operacionales Activos');
       console.log('  Directorio: ' + pwd);
@@ -177,7 +177,7 @@ if command -v node >/dev/null 2>&1; then
     exit $?
 fi
 
-echo "Vork CLI v3.0.2 en $PLATFORM (Detectado directorio: $CURRENT_DIR)"
+echo "Vork CLI v1.0.2 en $PLATFORM (Detectado directorio: $CURRENT_DIR)"
 VORK_SCRIPT
 
 chmod +x "$BIN_DIR/vork"

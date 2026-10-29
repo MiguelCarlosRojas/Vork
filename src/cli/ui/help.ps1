@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Vork CLI - Modulo UI: Catalogo visual, atajos y navegador de ayuda responsive.
 #>
@@ -104,6 +104,12 @@ function Show-Help {
             Tag = "Modo orquestador de terminal"
             Usage = "vork agents / vork tui"
             Example = "vk  (alias ultracorto para ejecutar Vork CLI)"
+        },
+        @{
+            Title = "[10] Vork Generador de Imágenes IA"
+            Tag = "FLUX.1 Neural sin marca de agua"
+            Usage = "vork /draw <prompt>"
+            Example = "vork /draw 'ciudad cyberpunk al atardecer 8k'"
         }
     )
 
@@ -117,7 +123,7 @@ function Show-Help {
     Write-Host ""
     Write-VorkHelpLine -Width $width -Text "$White$Bold  MANTENIMIENTO & ESTADO:$Reset"
     Write-VorkHelpLine -Width $width -Text "    $Yellow vork update$Reset     ${Dim}Sincroniza y actualiza Vork CLI al instante${Reset}"
-    Write-VorkHelpLine -Width $width -Text "    $Yellow vork status$Reset     ${Dim}Telemetria y estado operativo de los 9 pilares${Reset}"
+    Write-VorkHelpLine -Width $width -Text "    $Yellow vork status$Reset     ${Dim}Telemetria y estado operativo de los 10 pilares${Reset}"
     Write-VorkHelpLine -Width $width -Text "    $Yellow vork version$Reset    ${Dim}Muestra detalles de arquitectura y version${Reset}"
     Write-VorkHelpLine -Width $width -Text "    $Yellow vork slash$Reset      ${Dim}Ver los 40 comandos con barra (/)${Reset}"
     Write-Host ""
@@ -135,7 +141,7 @@ function Show-SlashCommands {
 
     $categories = @(
         @{
-            Title = "[CATEGORIA 1] Los 9 Pilares Operacionales (9)"
+            Title = "[CATEGORIA 1] Los 10 Pilares Operacionales (10)"
             Items = @(
                 @{ Cmd = "/translate"; Desc = "Traduccion neuronal por lotes en +200 idiomas" },
                 @{ Cmd = "/tts";       Desc = "Sintesis de voz con 24 voces neuronales humanas" },
@@ -144,6 +150,7 @@ function Show-SlashCommands {
                 @{ Cmd = "/separate";  Desc = "Aislamiento de Stems Acapella/Karaoke (Demucs v4)" },
                 @{ Cmd = "/image";     Desc = "Conversor universal PNG, JPG, WEBP, ICO, AVIF" },
                 @{ Cmd = "/remove-bg"; Desc = "Silueta inteligente y eliminacion de fondo IA" },
+                @{ Cmd = "/draw";      Desc = "Generador de imágenes IA con FLUX.1 (sin marca de agua)" },
                 @{ Cmd = "/agents";    Desc = "Orquestacion de subagentes en terminal interactiva" }
             )
         },

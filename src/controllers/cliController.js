@@ -138,8 +138,8 @@ exports.getCliInfo = (req, res) => {
   res.json({
     status: "online",
     name: "Vork CLI",
-    version: "3.0.2",
-    description: "Entorno centrado en la terminal para interactuar con los 9 pilares operacionales de Vork y agentes autónomos.",
+    version: "1.0.2",
+    description: "Entorno centrado en la terminal para interactuar con los 10 pilares operacionales de Vork y agentes autónomos.",
     installers: {
       windows_powershell: {
         command: "irm https://vork-st1k.onrender.com/cli/install.ps1 | iex",

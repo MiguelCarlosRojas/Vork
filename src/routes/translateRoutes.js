@@ -11,6 +11,8 @@ router.route("/translate")
   .get(rateLimiter.translateLimiter, validateRequest, translateController.translateText)
   .post(rateLimiter.translateLimiter, validateRequest, translateController.translateText);
 
+router.get("/translate/languages", translateController.getLanguages);
+
 router.route("/translate/download")
   .get(translateController.downloadTranslation)
   .post(translateController.downloadTranslation);

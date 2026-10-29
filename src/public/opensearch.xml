@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OpenSearchDescription xmlns="http://a9.com/-/spec/opensearch/1.1/"
+                       xmlns:moz="http://www.mozilla.org/2006/browser/search/">
+  <ShortName>Vork</ShortName>
+  <Description>Buscar en Vork — Ecosistema de 9 Pilares de Inteligencia Artificial</Description>
+  <InputEncoding>UTF-8</InputEncoding>
+  <Image width="16" height="16" type="image/png">https://vork-st1k.onrender.com/img/logo.png</Image>
+  <Image width="32" height="32" type="image/png">https://vork-st1k.onrender.com/img/logo.png</Image>
+  <Image width="64" height="64" type="image/png">https://vork-st1k.onrender.com/img/logo.png</Image>
+  <Url type="text/html" method="get" template="https://vork-st1k.onrender.com/docs?q={searchTerms}"/>
+  <moz:SearchForm>https://vork-st1k.onrender.com/</moz:SearchForm>
+</OpenSearchDescription>

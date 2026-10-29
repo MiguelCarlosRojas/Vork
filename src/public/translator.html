@@ -2,19 +2,106 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Traductor en la Nube de Vork | Traducción por lotes de alta velocidad (+200 idiomas) con una sola petición HTTP consolidada, persistencia en cookies y 0ms desde memoria RAM.">
-  <meta property="og:title" content="Traductor en la Nube - Vork">
-  <meta property="og:description" content="Plataforma de traducción neuronal por lotes en la nube sin saturación de red ni bloqueos de interfaz.">
-  <title>Traductor en la Nube - Vork</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+  <meta name="theme-color" content="#11141a">
+  <title>Traducir con Vork | Vork Traductor en la Nube (+200 Idiomas)</title>
+  <meta name="description" content="Traducir con Vork: traduce páginas web completas y textos por micro-lotes en más de 200 idiomas. Vork Traductor con 0ms de latencia en memoria RAM y persistencia.">
+  <meta name="keywords" content="Traducir con Vork, Vork Traductor, traductor vork, traducir vork, vork traduccion, traducir paginas con vork, traductor en la nube vork, cloudtranslator vork">
+  <link rel="canonical" href="https://vork-st1k.onrender.com/translator">
+
+  <!-- Open Graph -->
+  <meta property="og:site_name" content="Vork">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://vork-st1k.onrender.com/translator">
+  <meta property="og:title" content="Traducir con Vork | Vork Traductor">
+  <meta property="og:description" content="Traducción neuronal masiva consolidada en una única petición HTTP, soporte para más de 200 lenguajes y persistencia técnica.">
+  <meta property="og:image" content="https://vork-st1k.onrender.com/img/logo.png">
+  <meta property="og:locale" content="es_ES">
+
+  <!-- Twitter Cards -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Traducir con Vork | Vork Traductor">
+  <meta name="twitter:description" content="Traducción por micro-lotes para páginas web completas y aplicaciones en +200 idiomas sin latencia.">
+  <meta name="twitter:image" content="https://vork-st1k.onrender.com/img/logo.png">
+
+  <!-- Favicons y Manifest -->
   <link rel="icon" type="image/png" sizes="192x192" href="/img/logo.png">
   <link rel="icon" type="image/png" sizes="64x64" href="/img/logo.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/img/logo.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/img/logo.png">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="manifest" href="/manifest.json">
+  <!-- Compatibilidad Universal de Navegadores (Chrome, Safari, Edge, Firefox, Opera GX, Brave) -->
+  <meta name="application-name" content="Vork">
+  <meta name="apple-mobile-web-app-title" content="Vork">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="msapplication-TileColor" content="#11141a">
+  <meta name="msapplication-TileImage" content="/img/logo.png">
+  <link rel="search" type="application/opensearchdescription+xml" title="Vork" href="/opensearch.xml">
+
+  <!-- Fuentes y Estilos -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css">
+
+  <!-- Datos Estructurados JSON-LD -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebApplication",
+        "@id": "https://vork-st1k.onrender.com/translator#app",
+        "name": "Vork Traductor",
+        "alternateName": [
+          "Traducir con Vork",
+          "Vork Traductor",
+          "Traductor Vork",
+          "vork traductor",
+          "Vork Traductor en la Nube",
+          "CloudTranslator"
+        ],
+        "keywords": "Traducir con Vork, Vork Traductor, traductor vork, traducir vork, traductor en la nube vork",
+        "url": "https://vork-st1k.onrender.com/translator",
+        "applicationCategory": "UtilitiesApplication",
+        "operatingSystem": "All",
+        "browserRequirements": "Requires JavaScript. Requires HTML5.",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
+        "description": "Herramienta de traducción por lotes y páginas web en más de 200 idiomas con caché en memoria y persistencia de sesión.",
+        "featureList": [
+          "Traducción consolidada en una sola petición HTTP",
+          "Más de 200 lenguajes compatibles",
+          "Persistencia en cookies de navegador",
+          "Micro-lotes sin bloqueo del hilo principal"
+        ]
+      },
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Inicio",
+            "item": "https://vork-st1k.onrender.com/"
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Traductor en la Nube",
+            "item": "https://vork-st1k.onrender.com/translator"
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+
   <script>
     (function(){try{var m=document.cookie.match(/(?:^|; )vork_lang=([^;]*)/);var l=m?decodeURIComponent(m[1]):null;if(l&&l!=="original"&&l!=="es"){document.documentElement.classList.add("ct-pending");setTimeout(function(){document.documentElement.classList.remove("ct-pending");},800);}}catch(e){}})();
   </script>

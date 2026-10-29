@@ -7,6 +7,7 @@ function Invoke-PillarClone {
     param([string[]]$ArgsList)
 
     $sample = if ($ArgsList -and $ArgsList.Length -gt 0) { $ArgsList[0] } else { $null }
+    if ($sample) { $sample = $sample.Trim('"', "'", " ") }
     $text = $null
     $out = "cloned_voice.wav"
     $f0Method = "rmvpe"
@@ -27,7 +28,7 @@ function Invoke-PillarClone {
             Write-Host ""
             return
         }
-        $sample = $sample.Trim()
+        $sample = $sample.Trim('"', "'", " ")
 
         $f0Options = @(
             @{ Value = "rmvpe";   Label = "rmvpe";   Description = "Máxima fidelidad y pureza vocal" },
@@ -43,19 +44,16 @@ function Invoke-PillarClone {
         }
         $f0Method = $chosenF0
 
-        Write-VorkSectionHeader -Title "Guión y salida" -RightText "vork · voice clone"
+        Write-VorkSectionHeader -Title "Guión de síntesis" -RightText "vork · voice clone"
         Write-VorkInfoRow -Label "Guión" -Value "Texto para la voz clonada · enter para usar una frase de prueba" -ValueColor $LeadLight
         $text = Read-VorkInput -Prompt "  ${Coral}${Bold}$([char]0x203A)${Reset} "
-        Write-VorkInfoRow -Label "Salida" -Value "Archivo de audio destino [clonado.wav]" -ValueColor $LeadLight
-        $outInput = Read-VorkInput -Prompt "  ${Coral}${Bold}$([char]0x203A)${Reset} "
-        if ($outInput -and $outInput.Trim()) { $out = $outInput.Trim() }
+        $out = "voz_clonada.wav"
     }
 
     Write-VorkSectionHeader -Title "Procesando clonación" -RightText "vork · voice clone"
     Write-VorkInfoRow -Label "Muestra" -Value $sample
     Write-VorkInfoRow -Label "Algoritmo" -Value $f0Method -ValueColor $Yellow
-    Write-VorkInfoRow -Label "Salida" -Value $out -ValueColor $Yellow
-    Write-VorkSectionRule
+        Write-VorkSectionRule
     Write-VorkStatusLine -Kind step -Text "Modelando la voz y sintetizando el audio"
 
     $b64 = $null
@@ -72,12 +70,6 @@ function Invoke-PillarClone {
     try {
         $res = Invoke-RestMethod -Uri "$ApiBase/api/voice-clone" -Method Post -Body $body -ContentType "application/json"
         $targetFile = if ([System.IO.Path]::IsPathRooted($out)) { $out } else { Join-Path (Get-Location) $out }
-        if ($res.audioBase64) {
-            try {
-                $rawB64 = $res.audioBase64 -replace '^data:audio\/[^;]+;base64,', ''
-                [System.IO.File]::WriteAllBytes($targetFile, [System.Convert]::FromBase64String($rawB64))
-            } catch {}
-        }
         $dlUrl = if ($res.downloadUrl) { if ($res.downloadUrl.StartsWith("http")) { $res.downloadUrl } else { "$ApiBase$($res.downloadUrl)" } } else { "$ApiBase/api/voice-clone/download" }
         $stUrl = if ($res.streamUrl) { if ($res.streamUrl.StartsWith("http")) { $res.streamUrl } else { "$ApiBase$($res.streamUrl)" } } else { "$ApiBase/api/voice-clone/stream" }
         $videoFull = if ($res.videoStreamUrl) { if ($res.videoStreamUrl.StartsWith("http")) { $res.videoStreamUrl } else { "$ApiBase$($res.videoStreamUrl)" } } else { $stUrl }

@@ -11,7 +11,8 @@ const PILLARS = [
   "6. Vork DJ (Mezclador virtual interactivo en vivo con crossfader)",
   "7. Vork Imagen (Conversor y optimizador entre PNG, JPG, WEBP, ICO, AVIF)",
   "8. Vork Fondo IA (Aislamiento inteligente de siluetas y composición)",
-  "9. Vork CLI (Entorno de terminal, automatización y agentes autónomos)"
+  "9. Vork CLI (Entorno de terminal, automatización y agentes autónomos)",
+  "10. Vork Generador de Imágenes IA (FLUX.1 Neural sin marca de agua 100% gratis)"
 ];
 
 const API_ENDPOINTS = {
@@ -33,6 +34,7 @@ const API_ENDPOINTS = {
   imageFormats: "GET /api/image/formats",
   imageConvert: "POST /api/image/convert",
   imageRemoveBg: "POST /api/image/remove-background",
+  imageGenerate: "POST /api/image/generate",
   imageStream: "GET /api/image/stream",
   imageDownload: "GET /api/image/download",
   languages: "GET /api/languages",

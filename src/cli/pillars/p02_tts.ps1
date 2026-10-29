@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Pilar 02: Vork Texto a Voz Neuronal (TTS Studio con 24 voces humanas)
 #>
@@ -9,10 +9,12 @@ function Invoke-PillarTTS {
     $text = if ($ArgsList -and $ArgsList.Length -gt 0) { $ArgsList[0] } else { $null }
     $voice = "es-ES-AlvaroNeural"
     $out = "tts_output.mp3"
+    $explicitOut = $false
+
     if ($ArgsList) {
         for ($i=0; $i -lt $ArgsList.Length; $i++) {
             if ($ArgsList[$i] -in "-Voice", "--voice", "-v") { $voice = $ArgsList[$i+1] }
-            if ($ArgsList[$i] -in "-Out", "--out", "-o") { $out = $ArgsList[$i+1] }
+            if ($ArgsList[$i] -in "-Out", "--out", "-o") { $out = $ArgsList[$i+1]; $explicitOut = $true }
         }
     }
 
@@ -35,14 +37,18 @@ function Invoke-PillarTTS {
 
         $voice = $chosen.EdgeVoice
         $voiceDisplay = "$($chosen.Name) ($($chosen.Country) · $($chosen.Gender))"
-        $out = if ($out) { $out } else { "voz.mp3" }
+        $out = if ($explicitOut) { $out } else { "voz.mp3" }
     } else {
         $voiceDisplay = $voice
     }
 
     Write-VorkSectionHeader -Title "Procesando síntesis" -RightText "vork · tts"
     Write-VorkInfoRow -Label "Voz" -Value $voiceDisplay -ValueColor $Yellow
-    Write-VorkInfoRow -Label "Salida" -Value $out
+    if ($explicitOut) {
+        Write-VorkInfoRow -Label "Salida" -Value $out -ValueColor $Cyan
+    } else {
+        Write-VorkInfoRow -Label "Formato" -Value "MP3  ·  24kHz Neuronal" -ValueColor $Cyan
+    }
     Write-VorkSectionRule
     Write-VorkStatusLine -Kind step -Text "Generando audio neuronal"
 
@@ -52,12 +58,7 @@ function Invoke-PillarTTS {
     try {
         $res = Invoke-RestMethod -Uri "$ApiBase/api/tts" -Method Post -Body $body -ContentType "application/json"
         $targetFile = if ([System.IO.Path]::IsPathRooted($out)) { $out } else { Join-Path (Get-Location) $out }
-        if ($res.audioBase64) {
-            try {
-                $rawB64 = $res.audioBase64 -replace '^data:audio\/[^;]+;base64,', ''
-                [System.IO.File]::WriteAllBytes($targetFile, [System.Convert]::FromBase64String($rawB64))
-            } catch {}
-        }
+
         $dlUrl = if ($res.downloadUrl) { if ($res.downloadUrl.StartsWith("http")) { $res.downloadUrl } else { "$ApiBase$($res.downloadUrl)" } } else { "$ApiBase/api/tts/download?file=$out" }
         $stUrl = if ($res.streamUrl) { if ($res.streamUrl.StartsWith("http")) { $res.streamUrl } else { "$ApiBase$($res.streamUrl)" } } else { "$ApiBase/api/tts/stream?file=$out" }
         $videoFull = if ($res.videoStreamUrl) { if ($res.videoStreamUrl.StartsWith("http")) { $res.videoStreamUrl } else { "$ApiBase$($res.videoStreamUrl)" } } else { $stUrl }
@@ -79,7 +80,7 @@ function Invoke-PillarTTS {
         if ($hasLocal) {
             if ($res.audioBase64) {
                 try {
-                    $rawB64 = $res.audioBase64 -replace '^data:audio/[^;]+;base64,', ''
+                    $rawB64 = $res.audioBase64 -replace '^data:audio\/[^;]+;base64,', ''
                     [System.IO.File]::WriteAllBytes($targetFile, [System.Convert]::FromBase64String($rawB64))
                 } catch {}
             }
