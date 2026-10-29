@@ -1229,9 +1229,7 @@ async function processConversion(options = {}) {
   if (!finalThumbnail || finalThumbnail === "/img/logo.png") {
     finalThumbnail = `/api/media/thumbnail-proxy?title=${encodeURIComponent(mediaInfo.title)}&platform=${encodeURIComponent(mediaInfo.platform)}&author=${encodeURIComponent(mediaInfo.author)}`;
   }
-
-  // Guardar en almacén en RAM con enlace al archivo físico en disco
-  mediaBufferStore.set(jobId, {
+  const itemRecord = {
     id: jobId,
     url: mediaInfo.url,
     title: mediaInfo.title,
@@ -1251,7 +1249,16 @@ async function processConversion(options = {}) {
     mp4Url: mediaInfo.mp4Url || null,
     mp3Url: mediaInfo.mp3Url || null,
     createdAt: Date.now()
-  });
+  };
+
+  // Guardar metadata en disco para persistencia ante reinicios
+  const metaDiskPath = path.join(MEDIA_CACHE_DIR, `${jobId}.json`);
+  try {
+    fs.writeFileSync(metaDiskPath, JSON.stringify(itemRecord), 'utf8');
+  } catch {}
+
+  // Guardar en almacén en RAM con enlace al archivo físico en disco
+  mediaBufferStore.set(jobId, itemRecord);
 
   const baseUrl = ""; // Rutas relativas para compatibilidad universal
   const streamUrl = `${baseUrl}/api/media/stream?id=${jobId}`;
@@ -1290,11 +1297,43 @@ async function processConversion(options = {}) {
  */
 function getMediaById(id) {
   if (!id) return null;
-  const item = mediaBufferStore.get(id);
+  let item = mediaBufferStore.get(id);
+  if (!item) {
+    // Intentar recuperar desde almacenamiento físico si el proceso se reinició
+    const possibleExts = ["mp4", "mp3", "wav", "webm"];
+    for (const ext of possibleExts) {
+      const diskPath = path.join(MEDIA_CACHE_DIR, `${id}.${ext}`);
+      if (fs.existsSync(diskPath)) {
+        const stats = fs.statSync(diskPath);
+        const metaPath = path.join(MEDIA_CACHE_DIR, `${id}.json`);
+        let meta = {};
+        if (fs.existsSync(metaPath)) {
+          try { meta = JSON.parse(fs.readFileSync(metaPath, 'utf8')); } catch {}
+        }
+        item = {
+          id,
+          format: ext,
+          mimeType: ext === "mp4" ? "video/mp4" : ext === "wav" ? "audio/wav" : "audio/mpeg",
+          filePath: diskPath,
+          filename: meta.filename || `Vork_Media_${id}.${ext}`,
+          sizeBytes: stats.size,
+          mp4Url: meta.mp4Url || null,
+          mp3Url: meta.mp3Url || null,
+          createdAt: meta.createdAt || stats.mtimeMs || Date.now()
+        };
+        mediaBufferStore.set(id, item);
+        break;
+      }
+    }
+  }
   if (!item) return null;
   if (Date.now() - item.createdAt > MEDIA_STORE_TTL_MS) {
     if (item.filePath && fs.existsSync(item.filePath)) {
       try { fs.unlinkSync(item.filePath); } catch {}
+    }
+    const metaPath = path.join(MEDIA_CACHE_DIR, `${id}.json`);
+    if (fs.existsSync(metaPath)) {
+      try { fs.unlinkSync(metaPath); } catch {}
     }
     mediaBufferStore.delete(id);
     return null;

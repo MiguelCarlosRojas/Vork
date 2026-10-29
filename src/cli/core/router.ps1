@@ -608,7 +608,8 @@ function Read-InteractiveVorkLine {
             if ($ctrlCWarning) { $statusText = "ctrl+c otra vez para salir" }
 
 
-            Write-VorkPromptFrame -PromptRow $promptRow -Width $metrics.Width -Height $metrics.Height -Text $text -Cursor $position -MenuItems $filtered -MenuSelected $selected -MenuTop $top -MenuVisible $menuVisible -MenuOpen $menuOpen -Status $statusText -MenuRows $menuRows -PreviousMenuRows $previousMenuRows
+            $cardWidth = if ($metrics.Width -ge 50) { [Math]::Min(75, [Math]::Max(46, $metrics.Width - 1)) } else { [Math]::Max(20, $metrics.Width - 1) }
+            Write-VorkPromptFrame -PromptRow $promptRow -Width $cardWidth -Height $metrics.Height -Text $text -Cursor $position -MenuItems $filtered -MenuSelected $selected -MenuTop $top -MenuVisible $menuVisible -MenuOpen $menuOpen -Status $statusText -MenuRows $menuRows -PreviousMenuRows $previousMenuRows
             $previousMenuRows = if ($menuOpen) { $menuRows } else { 0 }
 
             $wait = Wait-VorkConsoleKey

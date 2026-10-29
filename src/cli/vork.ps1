@@ -1454,7 +1454,7 @@ function Write-VorkSectionHeader {
     )
 
     $metrics = Get-VorkConsoleMetrics
-    $maxWidth = [Math]::Max(20, $metrics.Width - 1)
+    $maxWidth = [Math]::Min(74, [Math]::Max(20, $metrics.Width - 1))
 
     Write-Host ""
     Write-Host "  ${Coral}${Bold}$([char]0x25C6)${Reset} ${White}${Bold}$Title${Reset}"
@@ -1468,7 +1468,7 @@ function Write-VorkSectionRule {
     param([string]$RightText = "")
 
     $metrics = Get-VorkConsoleMetrics
-    $maxWidth = [Math]::Max(20, $metrics.Width - 1)
+    $maxWidth = [Math]::Min(74, [Math]::Max(20, $metrics.Width - 1))
     Write-Host (Format-VorkRuleLine -Width $maxWidth -RightText $RightText)
 }
 
@@ -4763,7 +4763,7 @@ function Invoke-PillarMedia {
     }
 
     if (-not $url) {
-        Write-VorkSectionHeader -Title "Conversor multimedia" -Subtitle "YouTube · TikTok · Instagram · Reels" -RightText "vork · media"
+        Write-VorkSectionHeader -Title "Conversor multimedia" -Subtitle "YouTube · TikTok · Instagram · Reels"
         $url = Read-VorkInput -Prompt "  ${Coral}${Bold}$([char]0x203A)${Reset} "
         if (-not $url -or -not $url.Trim()) {
             Write-VorkStatusLine -Kind warn -Text "Conversión cancelada."
@@ -4799,7 +4799,7 @@ function Invoke-PillarMedia {
     }
 
     $platformName = Get-VorkMediaPlatformName -Url $url
-    Write-VorkSectionHeader -Title "Procesando conversión" -RightText "vork · media"
+    Write-VorkSectionHeader -Title "Procesando conversión"
     Write-VorkInfoRow -Label "Plataforma" -Value $platformName -ValueColor $Yellow
     Write-VorkInfoRow -Label "URL" -Value $url
     Write-VorkInfoRow -Label "Formato" -Value "$($fmt.ToUpper())  ·  $quality" -ValueColor $Cyan
@@ -4883,6 +4883,7 @@ function Invoke-PillarMedia {
             } catch { }
         }
 
+        $isLocalConversion = $false
         # Fallback local resiliente si la nube falla o devuelve error (por ejemplo por restricción de IP en Instagram)
         if (-not $res -or $res.status -eq "error" -or (-not $res.downloadUrl -and -not $res.directVideoUrl -and -not $res.directAudioUrl)) {
             $nodeCmd = Get-Command "node" -ErrorAction SilentlyContinue
@@ -4901,6 +4902,7 @@ function Invoke-PillarMedia {
                     $parsed = ($localOut | Out-String).Trim() | ConvertFrom-Json
                     if ($parsed -and $parsed.status -eq "success") {
                         $res = $parsed
+                        $isLocalConversion = $true
                     }
                 } catch { }
             }
@@ -4912,49 +4914,56 @@ function Invoke-PillarMedia {
             Write-VorkSectionRule
         } else {
             Write-VorkStatusLine -Kind ok -Text "Conversión multimedia completada"
-            $dlFull = if ($res.downloadUrl -and $res.downloadUrl.StartsWith("http")) {
-                $res.downloadUrl
-            } elseif ($res.downloadUrl) {
-                "$ApiBase$($res.downloadUrl)"
-            } elseif ($res.directVideoUrl) {
-                $res.directVideoUrl
-            } else {
-                $res.directAudioUrl
-            }
-
-            $stFull = if ($res.streamUrl -and $res.streamUrl.StartsWith("http")) {
-                $res.streamUrl
-            } elseif ($res.streamUrl) {
-                "$ApiBase$($res.streamUrl)"
-            } else {
-                "$ApiBase/api/media/stream?id=$($res.id)"
-            }
-
-            $videoFull = if ($res.videoStreamUrl -and $res.videoStreamUrl.StartsWith("http")) {
-                $res.videoStreamUrl
-            } elseif ($res.videoStreamUrl) {
-                "$ApiBase$($res.videoStreamUrl)"
-            } elseif ($res.directVideoUrl) {
-                $res.directVideoUrl
-            } elseif ($fmt -eq "mp4") {
-                $stFull
-            } else {
-                "$ApiBase/api/media/stream?id=$($res.id)&type=video"
-            }
-
-            $audioFull = if ($res.audioStreamUrl -and $res.audioStreamUrl.StartsWith("http")) {
-                $res.audioStreamUrl
-            } elseif ($res.audioStreamUrl) {
-                "$ApiBase$($res.audioStreamUrl)"
-            } elseif ($res.directAudioUrl) {
-                $res.directAudioUrl
-            } elseif ($fmt -eq "mp3" -or $fmt -eq "wav") {
-                $stFull
-            } else {
-                "$ApiBase/api/media/stream?id=$($res.id)&type=audio"
-            }
-
             $localFile = if ($res.filename) { $res.filename } else { "media_output.$fmt" }
+
+            # En caso de conversión local, resolver el archivo físico existente
+            $cachePaths = @(
+                "C:\Users\isaki\Videos\Visual Studio Code\CloudTranslator\data\media_cache\$($res.id).$fmt",
+                "$PSScriptRoot\..\..\..\data\media_cache\$($res.id).$fmt"
+            )
+            $foundCache = $cachePaths | Where-Object { Test-Path $_ } | Select-Object -First 1
+
+            $dlFull = if ($isLocalConversion) {
+                if ($res.directVideoUrl) { $res.directVideoUrl } elseif ($res.directAudioUrl) { $res.directAudioUrl } else { "" }
+            } else {
+                if ($res.downloadUrl -and $res.downloadUrl.StartsWith("http")) {
+                    $res.downloadUrl
+                } elseif ($res.downloadUrl) {
+                    "$ApiBase$($res.downloadUrl)"
+                } elseif ($res.directVideoUrl) {
+                    $res.directVideoUrl
+                } else {
+                    $res.directAudioUrl
+                }
+            }
+
+            $videoFull = if ($isLocalConversion) {
+                if ($res.directVideoUrl) { $res.directVideoUrl } else { "" }
+            } else {
+                if ($res.videoStreamUrl -and $res.videoStreamUrl.StartsWith("http")) {
+                    $res.videoStreamUrl
+                } elseif ($res.videoStreamUrl) {
+                    "$ApiBase$($res.videoStreamUrl)"
+                } elseif ($res.directVideoUrl) {
+                    $res.directVideoUrl
+                } else {
+                    "$ApiBase/api/media/stream?id=$($res.id)&type=video"
+                }
+            }
+
+            $audioFull = if ($isLocalConversion) {
+                if ($res.directAudioUrl) { $res.directAudioUrl } elseif ($res.directVideoUrl) { $res.directVideoUrl } else { "" }
+            } else {
+                if ($res.audioStreamUrl -and $res.audioStreamUrl.StartsWith("http")) {
+                    $res.audioStreamUrl
+                } elseif ($res.audioStreamUrl) {
+                    "$ApiBase$($res.audioStreamUrl)"
+                } elseif ($res.directAudioUrl) {
+                    $res.directAudioUrl
+                } else {
+                    "$ApiBase/api/media/stream?id=$($res.id)&type=audio"
+                }
+            }
 
             $outputMode = Select-VorkMediaOutputAction -PromptTitle "Entrega del archivo" -Format $fmt
             if (-not $outputMode) {
@@ -4969,36 +4978,40 @@ function Invoke-PillarMedia {
             $hasVideoStream = ($fmt -eq "mp4") -and ($outputMode -in @("video_stream", "local_video", "all"))
             $hasAudioStream = ($fmt -in @("mp3", "wav")) -and ($outputMode -in @("audio_stream", "local_audio", "all"))
 
-            if ($hasLocal) {
+            if ($hasLocal -or $isLocalConversion) {
                 try {
-                    $cachePaths = @(
-                        "C:\Users\isaki\Videos\Visual Studio Code\CloudTranslator\data\media_cache\$($res.id).$fmt",
-                        "$PSScriptRoot\..\..\..\data\media_cache\$($res.id).$fmt"
-                    )
-                    $foundCache = $cachePaths | Where-Object { Test-Path $_ } | Select-Object -First 1
-
                     if ($foundCache) {
                         Copy-Item -Path $foundCache -Destination $localFile -Force
-                    } else {
+                    } elseif ($dlFull -and $dlFull.StartsWith("http")) {
                         Invoke-WebRequest -Uri $dlFull -OutFile $localFile -UseBasicParsing -TimeoutSec 120
                     }
-                    $resolvedOut = (Resolve-Path $localFile).Path
-                    Write-VorkInfoRow -Label "Guardado" -Value $resolvedOut -ValueColor $Green
+                    if (Test-Path $localFile) {
+                        $resolvedOut = (Resolve-Path $localFile).Path
+                        Write-VorkInfoRow -Label "Guardado" -Value $resolvedOut -ValueColor $Green
+                    }
                 } catch {
-                    Write-VorkInfoRow -Label "Descarga" -Value $dlFull -ValueColor $Yellow
+                    if ($dlFull) { Write-VorkInfoRow -Label "Descarga" -Value $dlFull -ValueColor $Yellow }
                 }
             }
 
-            if ($hasDownload) {
-                Write-VorkInfoRow -Label "Descarga" -Value $dlFull -ValueColor $Yellow
+            if ($hasDownload -and -not $isLocalConversion) {
+                if ($dlFull) { Write-VorkInfoRow -Label "Descarga" -Value $dlFull -ValueColor $Yellow }
             }
 
-            if ($hasVideoStream -and $videoFull) {
-                Write-VorkInfoRow -Label "Video" -Value $videoFull -ValueColor $Purple
+            if ($hasVideoStream) {
+                if ($videoFull) {
+                    Write-VorkInfoRow -Label "Video" -Value $videoFull -ValueColor $Purple
+                } elseif (Test-Path $localFile) {
+                    Write-VorkInfoRow -Label "Video" -Value (Resolve-Path $localFile).Path -ValueColor $Purple
+                }
             }
 
-            if ($hasAudioStream -and $audioFull) {
-                Write-VorkInfoRow -Label "Audio" -Value $audioFull -ValueColor $Cyan
+            if ($hasAudioStream) {
+                if ($audioFull) {
+                    Write-VorkInfoRow -Label "Audio" -Value $audioFull -ValueColor $Cyan
+                } elseif (Test-Path $localFile) {
+                    Write-VorkInfoRow -Label "Audio" -Value (Resolve-Path $localFile).Path -ValueColor $Cyan
+                }
             }
 
             Write-VorkSectionRule
@@ -7182,7 +7195,8 @@ function Read-InteractiveVorkLine {
             if ($ctrlCWarning) { $statusText = "ctrl+c otra vez para salir" }
 
 
-            Write-VorkPromptFrame -PromptRow $promptRow -Width $metrics.Width -Height $metrics.Height -Text $text -Cursor $position -MenuItems $filtered -MenuSelected $selected -MenuTop $top -MenuVisible $menuVisible -MenuOpen $menuOpen -Status $statusText -MenuRows $menuRows -PreviousMenuRows $previousMenuRows
+            $cardWidth = if ($metrics.Width -ge 50) { [Math]::Min(75, [Math]::Max(46, $metrics.Width - 1)) } else { [Math]::Max(20, $metrics.Width - 1) }
+            Write-VorkPromptFrame -PromptRow $promptRow -Width $cardWidth -Height $metrics.Height -Text $text -Cursor $position -MenuItems $filtered -MenuSelected $selected -MenuTop $top -MenuVisible $menuVisible -MenuOpen $menuOpen -Status $statusText -MenuRows $menuRows -PreviousMenuRows $previousMenuRows
             $previousMenuRows = if ($menuOpen) { $menuRows } else { 0 }
 
             $wait = Wait-VorkConsoleKey

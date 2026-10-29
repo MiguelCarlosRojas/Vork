@@ -734,7 +734,7 @@ function Write-VorkSectionHeader {
     )
 
     $metrics = Get-VorkConsoleMetrics
-    $maxWidth = [Math]::Max(20, $metrics.Width - 1)
+    $maxWidth = [Math]::Min(74, [Math]::Max(20, $metrics.Width - 1))
 
     Write-Host ""
     Write-Host "  ${Coral}${Bold}$([char]0x25C6)${Reset} ${White}${Bold}$Title${Reset}"
@@ -748,7 +748,7 @@ function Write-VorkSectionRule {
     param([string]$RightText = "")
 
     $metrics = Get-VorkConsoleMetrics
-    $maxWidth = [Math]::Max(20, $metrics.Width - 1)
+    $maxWidth = [Math]::Min(74, [Math]::Max(20, $metrics.Width - 1))
     Write-Host (Format-VorkRuleLine -Width $maxWidth -RightText $RightText)
 }
 
