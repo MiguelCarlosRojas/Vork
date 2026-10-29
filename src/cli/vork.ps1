@@ -3647,7 +3647,7 @@ function Write-VorkSettingsFrame {
             $prefix = if ($isSelected) { "${Cyan}${Bold}$([char]0x25B8)${Reset} " } else { "  " }
             $label = if ($isSelected) { "${White}${Bold}$($item.Label)${Reset}" } else { "${White}$($item.Label)${Reset}" }
             $value = if ($isSelected) { "${Cyan}${Bold}$($item.Value)${Reset}" } else { "${LeadLight}$($item.Value)${Reset}" }
-            $rawLine = (if ($isSelected) { "$([char]0x25B8) " } else { "  " }) + "$($item.Label)  $($item.Value)"
+            $rawLine = $(if ($isSelected) { "$([char]0x25B8) " } else { "  " }) + "$($item.Label)  $($item.Value)"
             $itemPad = [Math]::Max(0, $inner - (Get-VorkDisplayWidth $rawLine))
             Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${Lead}$([char]0x2502)${Reset} $prefix$label  $value$([string]::new(' ', $itemPad)) ${Lead}$([char]0x2502)${Reset}"
         } else {

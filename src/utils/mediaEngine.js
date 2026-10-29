@@ -617,23 +617,67 @@ async function extractMediaInfo(url, requestedFormat = "mp3") {
 
   // Estrategia 3: Instagram Reels y Posts
   else if (platform.id === "instagram") {
+    // 1. Proveedor de alta disponibilidad: SnapInsta API direct
     try {
-      const { alldl } = require("rahad-all-downloader-v2");
-      const dl = await withTimeout(alldl(cleanUrl), 15000);
-      if (dl && dl.data) {
-        if (dl.data.title) info.title = dl.data.title;
-        if (dl.data.thumbnail) info.thumbnail = dl.data.thumbnail;
-        else if (dl.data.download?.thumbnail) info.thumbnail = dl.data.download.thumbnail;
-        if (dl.data.author) info.author = dl.data.author;
-        const vUrl = dl.data.videoUrl || dl.data.download?.url || dl.data.download?.no_watermark || dl.data.url;
-        if (vUrl) {
-          info.mp4Url = vUrl;
-          info.mp3Url = vUrl;
-          info.directMediaUrl = vUrl;
+      const qs = require("querystring");
+      const normalizedIgUrl = cleanUrl.replace(/instagram\.com\/reels\//i, "instagram.com/reel/");
+      const snapRes = await withTimeout(axios.post("https://snapinsta.lc/process", qs.stringify({
+        q: normalizedIgUrl,
+        scope: "home",
+        lang: "en"
+      }), {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "Origin": "https://snapinsta.lc",
+          "Referer": "https://snapinsta.lc/",
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
+        },
+        timeout: 10000
+      }), 12000);
+
+      const html = snapRes.data;
+      if (html && typeof html === "string") {
+        const regex = /data-media-type="(video|image)"\s+data-media-src="([^"]+)"/gi;
+        let match;
+        const mediaItems = [];
+        while ((match = regex.exec(html)) !== null) {
+          mediaItems.push({ type: match[1], src: match[2].replace(/&amp;/g, "&") });
+        }
+        const videoItem = mediaItems.find(m => m.type === "video") || mediaItems[0];
+        if (videoItem && videoItem.src) {
+          info.mp4Url = videoItem.src;
+          info.mp3Url = videoItem.src;
+          info.directMediaUrl = videoItem.src;
+        }
+
+        const posterMatch = html.match(/data-media-poster="([^"]+)"/i);
+        if (posterMatch && posterMatch[1]) {
+          info.thumbnail = posterMatch[1].replace(/&amp;/g, "&");
         }
       }
-    } catch (alldlErr) {
-      logger.warn(`rahad.alldl fallo para Instagram: ${alldlErr.message}`);
+    } catch (snapErr) {
+      logger.warn(`snapinsta falló para Instagram: ${snapErr.message}`);
+    }
+
+    if (!info.directMediaUrl) {
+      try {
+        const { alldl } = require("rahad-all-downloader-v2");
+        const dl = await withTimeout(alldl(cleanUrl), 15000);
+        if (dl && dl.data) {
+          if (dl.data.title) info.title = dl.data.title;
+          if (dl.data.thumbnail) info.thumbnail = dl.data.thumbnail;
+          else if (dl.data.download?.thumbnail) info.thumbnail = dl.data.download.thumbnail;
+          if (dl.data.author) info.author = dl.data.author;
+          const vUrl = dl.data.videoUrl || dl.data.download?.url || dl.data.download?.no_watermark || dl.data.url;
+          if (vUrl) {
+            info.mp4Url = vUrl;
+            info.mp3Url = vUrl;
+            info.directMediaUrl = vUrl;
+          }
+        }
+      } catch (alldlErr) {
+        logger.warn(`rahad.alldl fallo para Instagram: ${alldlErr.message}`);
+      }
     }
 
     if (!info.directMediaUrl) {
