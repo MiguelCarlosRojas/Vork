@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Pilar 10: Vork Generador de Imágenes IA (FLUX.1 Neural · 100% Gratuito y Sin Marca de Agua)
 #>
@@ -133,7 +133,7 @@ function Invoke-PillarGenerateImage {
             $res = Invoke-RestMethod -Uri $endpoint -Method Post -Body $body -ContentType "application/json" -TimeoutSec 240
         }
 
-        # Fallback local con Gradio Client directo si el backend en Render tarda
+        # Fallback local con motor de imagen directo si el backend en Render tarda o excede cuotas
         if (-not $res -or $res.status -eq "error") {
             $nodeCmd = Get-Command "node" -ErrorAction SilentlyContinue
             if ($nodeCmd) {
@@ -147,6 +147,30 @@ function Invoke-PillarGenerateImage {
                     }
                 } catch { }
             }
+        }
+
+        # Fallback ultra-resistente directo vía cluster neural FLUX si la nube está en cold-start
+        if (-not $res -or $res.status -eq "error") {
+            try {
+                $encP = [System.Uri]::EscapeDataString($prompt)
+                $safeW = [Math]::Max(256, [Math]::Min(1024, [int]$width))
+                $safeH = [Math]::Max(256, [Math]::Min(1024, [int]$height))
+                $directUrl = "https://image.pollinations.ai/prompt/$encP?width=$safeW&height=$safeH&model=flux&nologo=true"
+                $randId = (Get-Random -Minimum 100000 -Maximum 999999).ToString()
+                $outLocal = Join-Path (Get-Location) "imagen_ia_$randId.jpg"
+                Invoke-WebRequest -Uri $directUrl -OutFile $outLocal -TimeoutSec 45 -UseBasicParsing
+                if ((Test-Path $outLocal) -and ((Get-Item $outLocal).Length -gt 1000)) {
+                    $res = @{
+                        status = "success"
+                        id = "flux_$randId"
+                        filename = "imagen_ia_$randId.jpg"
+                        downloadUrl = $directUrl
+                        filePath = $outLocal
+                        width = $safeW
+                        height = $safeH
+                    }
+                }
+            } catch { }
         }
 
         if (-not $res -or $res.status -eq "error") {

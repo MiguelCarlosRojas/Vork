@@ -1253,14 +1253,28 @@ body.is-dark #demo-target-lang:disabled {
 }
 
 #btn-copy-install.btn-copied, .btn-terminal-copy.btn-copied, .btn-copy.btn-copied {
-  background: #22b0a0 !important;
-  border-color: #22b0a0 !important;
-  color: #ffffff !important;
+  background: #ffffff !important;
+  border-color: #ffffff !important;
+  color: #14110e !important;
+  box-shadow: 0 4px 14px rgba(255, 255, 255, 0.2) !important;
 }
 
 #btn-copy-install.btn-copied .icon, .btn-terminal-copy.btn-copied .icon, .btn-copy.btn-copied .icon,
 #btn-copy-install.btn-copied svg, .btn-terminal-copy.btn-copied svg, .btn-copy.btn-copied svg,
 #btn-copy-install.btn-copied svg *, .btn-terminal-copy.btn-copied svg *, .btn-copy.btn-copied svg * {
+  stroke: #14110e !important;
+  color: #14110e !important;
+}
+
+#btn-copy-install.btn-copied:hover, .btn-terminal-copy.btn-copied:hover, .btn-copy.btn-copied:hover {
+  background: #14110e !important;
+  border-color: rgba(255, 255, 255, 0.4) !important;
+  color: #ffffff !important;
+}
+
+#btn-copy-install.btn-copied:hover .icon, .btn-terminal-copy.btn-copied:hover .icon, .btn-copy.btn-copied:hover .icon,
+#btn-copy-install.btn-copied:hover svg, .btn-terminal-copy.btn-copied:hover svg, .btn-copy.btn-copied:hover svg,
+#btn-copy-install.btn-copied:hover svg *, .btn-terminal-copy.btn-copied:hover svg *, .btn-copy.btn-copied:hover svg * {
   stroke: #ffffff !important;
   color: #ffffff !important;
 }
@@ -2463,18 +2477,62 @@ body.is-dark .studio-textarea {
 }
 
 /* Tech Cards (Architecture Highlights) */
+/* Subtítulo a ancho completo para Secciones de Ingeniería y Ecosistema */
+.section-full-title-wide {
+  width: 100% !important;
+  max-width: 100% !important;
+  text-align: left;
+  margin-bottom: 32px;
+}
+.section-full-title-wide p {
+  width: 100% !important;
+  max-width: 100% !important;
+  font-size: 1.05rem;
+  color: var(--muted);
+  margin-top: 8px;
+  line-height: 1.6;
+}
+
+#pilares {
+  max-width: 1220px !important;
+  width: 100% !important;
+  margin: 28px auto 0 auto !important;
+}
+#pilares .services-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)) !important;
+  gap: 20px !important;
+  max-width: 1180px !important;
+  margin: 0 auto !important;
+  width: 100% !important;
+}
+#pilares .card {
+  width: 100% !important;
+  max-width: 360px !important;
+  margin: 0 auto !important;
+  padding: 24px 22px !important;
+  min-height: auto !important;
+  box-sizing: border-box !important;
+}
+
 .cards-full-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 24px;
-  margin: 30px 0;
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)) !important;
+  gap: 20px !important;
+  max-width: 1180px !important;
+  margin: 22px auto !important;
+  width: 100% !important;
 }
 .tech-card {
   background: var(--card);
   backdrop-filter: blur(16px);
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  padding: 30px 26px;
+  max-width: 360px !important;
+  margin: 0 auto !important;
+  width: 100% !important;
+  padding: 22px 20px !important;
+  box-sizing: border-box !important;
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -2511,6 +2569,42 @@ body.is-dark .studio-textarea {
   font-size: 0.92rem;
   color: var(--muted);
   line-height: 1.55;
+}
+
+/* Badge de verificación de Pilar Activo */
+.card-check-badge {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1.5px solid #e2e8f0;
+  background: #ffffff !important;
+  color: #0f172a;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.25s ease;
+  cursor: default;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+.card-check-badge svg {
+  stroke: #0f172a !important;
+  color: #0f172a !important;
+  width: 17px;
+  height: 17px;
+  transition: stroke 0.25s ease, transform 0.25s ease;
+}
+.card:hover .card-check-badge,
+.card-check-badge:hover {
+  background: var(--tone, #22b0a0) !important;
+  border-color: var(--tone, #22b0a0) !important;
+  transform: scale(1.08);
+  box-shadow: 0 0 14px rgba(34, 176, 160, 0.45);
+}
+.card:hover .card-check-badge svg,
+.card-check-badge:hover svg {
+  stroke: #ffffff !important;
+  color: #ffffff !important;
 }
 
 /* Pillar Header inside Cards */
@@ -4603,5 +4697,193 @@ kbd.cli-key {
   color: var(--accent);
   font-family: var(--f-mono);
   font-weight: 700;
+}
+
+/* ==========================================================================
+   Consola de Código IDE Profesional & Pestañas Multipropósito (Vork Universal)
+   ========================================================================== */
+.pro-code-window {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  overflow: hidden;
+  background: #080b11;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  margin-top: 10px;
+}
+.pro-code-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #0d121c;
+  padding: 10px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.pro-code-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.pro-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.pro-dot-red { background: #ef4444; box-shadow: 0 0 6px rgba(239, 68, 68, 0.4); }
+.pro-dot-yellow { background: #f59e0b; box-shadow: 0 0 6px rgba(245, 158, 11, 0.4); }
+.pro-dot-green { background: #10b981; box-shadow: 0 0 6px rgba(16, 185, 129, 0.4); }
+
+.code-tabs-nav {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.code-tab-btn {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #94a3b8;
+  font-size: 0.77rem;
+  font-weight: 600;
+  font-family: var(--f-mono, monospace);
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+  white-space: nowrap;
+  user-select: none;
+  line-height: 1 !important;
+  vertical-align: middle !important;
+}
+.code-tab-btn svg {
+  display: inline-block !important;
+  vertical-align: middle !important;
+  flex-shrink: 0 !important;
+}
+.code-tab-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+.code-tab-btn.is-active {
+  color: #ffffff;
+  background: rgba(255, 122, 61, 0.18);
+  border-color: rgba(255, 122, 61, 0.45);
+  box-shadow: 0 0 12px rgba(255, 122, 61, 0.22);
+}
+.code-tab-panel {
+  display: none;
+}
+.code-tab-panel.is-active {
+  display: block;
+}
+.btn-code-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #cbd5e1;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  font-family: var(--f-mono, monospace);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.btn-code-copy:hover {
+  background: rgba(255, 122, 61, 0.2);
+  border-color: var(--primary);
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(255, 122, 61, 0.25);
+}
+.btn-code-copy.is-copied {
+  background: #ffffff !important;
+  border-color: #ffffff !important;
+  color: #14110e !important;
+  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2) !important;
+}
+.btn-code-copy.is-copied svg {
+  stroke: #14110e !important;
+}
+
+.pro-code-body {
+  margin: 0;
+  padding: 20px 22px;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', Consolas, Menlo, Monaco, monospace;
+  font-size: 0.85rem;
+  line-height: 1.7;
+  background: #06080d;
+  color: #e2e8f0;
+  overflow-x: auto;
+  white-space: pre;
+}
+.pro-code-body::-webkit-scrollbar {
+  height: 6px;
+  width: 6px;
+}
+.pro-code-body::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 4px;
+}
+
+/* Resaltado de Sintaxis */
+.c-comment { color: #64748b; font-style: italic; }
+.c-tag { color: #f43f5e; font-weight: 600; }
+.c-attr { color: #fbbf24; }
+.c-str { color: #34d399; }
+.c-kw { color: #c084fc; font-weight: 600; }
+.c-fn { color: #38bdf8; }
+.c-var { color: #93c5fd; }
+.c-num { color: #f97316; }
+.c-punct { color: #94a3b8; }
+
+/* Animaciones Universales de UI */
+@keyframes swapRotate {
+  0% { transform: rotate(0deg) scale(0.9); }
+  50% { transform: rotate(180deg) scale(1.18); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+@keyframes wiggleClean {
+  0% { transform: rotate(0deg) scale(1); }
+  25% { transform: rotate(-18deg) scale(1.2); }
+  50% { transform: rotate(18deg) scale(1.2); }
+  75% { transform: rotate(-10deg) scale(1.08); }
+  100% { transform: rotate(0deg) scale(1); }
+}
+@keyframes downloadBounce {
+  0% { transform: translateY(0); }
+  35% { transform: translateY(4px) scale(0.95); }
+  70% { transform: translateY(-4px) scale(1.12); }
+  100% { transform: translateY(0) scale(1); }
+}
+.btn-swap-spin svg {
+  animation: swapRotate 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards !important;
+}
+.btn-wiggle-active svg {
+  animation: wiggleClean 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards !important;
+}
+.btn-download-active svg {
+  animation: downloadBounce 0.45s ease forwards !important;
+}
+
+/* Espacio Equilibrado al Final de la Página */
+#cli-install-section {
+  margin-top: 20px !important;
+  margin-bottom: 20px !important;
+  padding-bottom: 12px !important;
+}
+#cli-install-section .workbench-card {
+  margin-bottom: 0 !important;
+}
+footer, footer.footer-full, #footer-placeholder {
+  margin-top: 48px !important;
+  padding-top: 36px !important;
 }
 

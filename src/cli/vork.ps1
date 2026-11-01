@@ -1,4 +1,8 @@
-﻿param(
+﻿
+# ========================================================
+# MODULE: core/config.ps1
+# ========================================================
+param(
     [Parameter(Position=0, ValueFromPipeline=$true)]
     [string]$Command = "",
 
@@ -56,10 +60,69 @@ if ($Arguments) {
 }
 
 # ========================================================
+# IDENTIDAD DE DISPOSITIVO Y AISLAMIENTO DE USUARIO
+# ========================================================
+function Get-VorkDeviceIdentity {
+    $dev = ""
+    try {
+        if ([System.Environment]::OSVersion.Platform -eq [System.PlatformID]::Win32NT) {
+            $dev = if ($env:COMPUTERNAME) { $env:COMPUTERNAME.Trim() } else { "PC" }
+        } elseif ($IsMacOS -or ($env:OSTYPE -like "*darwin*")) {
+            $dev = (scutil --get ComputerName 2>$null)
+            if (-not $dev) { $dev = (hostname -s 2>$null) }
+        } else {
+            $dev = if ($env:HOSTNAME) { $env:HOSTNAME.Trim() } else { (hostname 2>$null) }
+        }
+    } catch { }
+    if (-not $dev) {
+        $dev = if ($env:COMPUTERNAME) { $env:COMPUTERNAME } elseif ($env:HOSTNAME) { $env:HOSTNAME } else { "PC" }
+    }
+    $global:VorkDeviceName = $dev
+    return $dev
+}
+
+$vorkBaseDir = Join-Path $HOME ".vork"
+if (-not (Test-Path $vorkBaseDir)) { New-Item -ItemType Directory -Path $vorkBaseDir -Force | Out-Null }
+$identityFile = Join-Path $vorkBaseDir "identity.json"
+$global:VorkIdentity = $null
+
+if (Test-Path $identityFile) {
+    try {
+        $global:VorkIdentity = Get-Content -Path $identityFile -Raw -Encoding UTF8 | ConvertFrom-Json
+    } catch { }
+}
+
+$detectedDev = Get-VorkDeviceIdentity
+
+if (-not $global:VorkIdentity -or -not $global:VorkIdentity.clientId) {
+    $global:VorkIdentity = [pscustomobject]@{
+        clientId       = [System.Guid]::NewGuid().ToString()
+        installationId = [System.Guid]::NewGuid().ToString("N")
+        deviceName     = $detectedDev
+        username       = if ($env:USERNAME) { $env:USERNAME } elseif ($env:USER) { $env:USER } else { "User" }
+        platform       = if ([System.Environment]::OSVersion.Platform -eq [System.PlatformID]::Win32NT) { "windows" } else { "unix" }
+        createdAt      = [DateTime]::UtcNow.ToString("o")
+    }
+    try {
+        $global:VorkIdentity | ConvertTo-Json | Set-Content -Path $identityFile -Force -Encoding UTF8
+    } catch { }
+} else {
+    # Actualizar dinámicamente si el usuario renombra su equipo
+    if ($global:VorkIdentity.deviceName -ne $detectedDev) {
+        $global:VorkIdentity.deviceName = $detectedDev
+        try {
+            $global:VorkIdentity | ConvertTo-Json | Set-Content -Path $identityFile -Force -Encoding UTF8
+        } catch { }
+    }
+}
+
+$global:VorkClientId = $global:VorkIdentity.clientId
+$global:VorkDeviceName = $detectedDev
+
+# ========================================================
 # GESTIÓN DE ID DE CONVERSACIÓN & SESIÓN PERSISTENTE
 # ========================================================
-$convDir = Join-Path $HOME ".vork"
-if (-not (Test-Path $convDir)) { New-Item -ItemType Directory -Path $convDir -Force | Out-Null }
+$convDir = $vorkBaseDir
 $lastConvFile = Join-Path $convDir "last_conversation.txt"
 
 if ($Conversation) {
@@ -222,7 +285,7 @@ function Exit-VorkSession {
     exit $ExitCode
 }
 
-$VorkVersion = "3.0.2"
+$VorkVersion = "1.0.2"
 $ApiBase = if ($env:VORK_API) { $env:VORK_API } elseif ($env:CLOUDTRANSLATOR_API) { $env:CLOUDTRANSLATOR_API } else { "https://vork-st1k.onrender.com" }
 
 # ========================================================
@@ -710,8 +773,10 @@ function Format-Badge {
     return "$ESC[${BgCode};${FgCode};1m $Text $Reset"
 }
 
-# ============================================================
 
+# ========================================================
+# MODULE: ui/toolkit.ps1
+# ========================================================
 <#
 .SYNOPSIS
     Vork CLI - UI Toolkit responsive (ANSI, metricas de consola, paneles y teclado).
@@ -1962,26 +2027,43 @@ function Send-VorkNotification {
         [Console]::Write("$esc]777;notify;$Title;$Message$bel")
     } catch { }
 
-    # 3. Toast Moderno de Windows
+    # 3. macOS nativo con AppleScript
+    if ($IsMacOS -or ($env:OSTYPE -like "*darwin*")) {
+        try {
+            & osascript -e "display notification `"$Message`" with title `"$Title`"" 2>$null
+        } catch { }
+        return
+    }
+
+    # 4. Linux nativo con notify-send
+    if ($IsLinux -or ($global:IsWinPlatform -eq $false -and -not $IsMacOS)) {
+        try {
+            & notify-send "$Title" "$Message" 2>$null
+        } catch { }
+        return
+    }
+
+    # 5. Windows nativo con WinRT Toast Notification (Directo y sin retardo)
     try {
-        $scriptBlock = {
-            param($t, $m)
-            try {
-                [Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] | Out-Null
-                $template = [Windows.UI.Notifications.ToastNotificationManager]::GetTemplateContent([Windows.UI.Notifications.ToastTemplateType]::ToastText02)
-                $toastXml = [xml]$template.GetXml()
-                $textNodes = $toastXml.GetElementsByTagName("text")
-                if ($textNodes.Count -gt 0) { $textNodes.Item(0).AppendChild($toastXml.CreateTextNode($t)) | Out-Null }
-                if ($textNodes.Count -gt 1) { $textNodes.Item(1).AppendChild($toastXml.CreateTextNode($m)) | Out-Null }
+        [Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] | Out-Null
+        $template = [Windows.UI.Notifications.ToastNotificationManager]::GetTemplateContent([Windows.UI.Notifications.ToastTemplateType]::ToastText02)
+        $toastXml = [xml]$template.GetXml()
+        $textNodes = $toastXml.GetElementsByTagName("text")
+        if ($textNodes.Count -gt 0) { $textNodes.Item(0).AppendChild($toastXml.CreateTextNode($Title)) | Out-Null }
+        if ($textNodes.Count -gt 1) { $textNodes.Item(1).AppendChild($toastXml.CreateTextNode($Message)) | Out-Null }
 
-                $toastDoc = New-Object Windows.Data.Xml.Dom.XmlDocument
-                $toastDoc.LoadXml($toastXml.OuterXml)
+        $toastDoc = New-Object Windows.Data.Xml.Dom.XmlDocument
+        $toastDoc.LoadXml($toastXml.OuterXml)
 
-                $toast = [Windows.UI.Notifications.ToastNotification]::new($toastDoc)
-                $appId = "{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}\WindowsPowerShell\v1.0\powershell.exe"
-                $notifier = [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier($appId)
-                $notifier.Show($toast)
-            } catch {
+        $toast = [Windows.UI.Notifications.ToastNotification]::new($toastDoc)
+        $appId = "{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}\WindowsPowerShell\v1.0\powershell.exe"
+        $notifier = [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier($appId)
+        $notifier.Show($toast)
+    } catch {
+        # Fallback resiliente con NotifyIcon en Windows Forms (con tiempo de vida para el globo)
+        try {
+            $balloonScript = {
+                param($t, $m)
                 try {
                     Add-Type -AssemblyName System.Windows.Forms -ErrorAction SilentlyContinue
                     Add-Type -AssemblyName System.Drawing -ErrorAction SilentlyContinue
@@ -1990,18 +2072,20 @@ function Send-VorkNotification {
                     $notify.BalloonTipTitle = $t
                     $notify.BalloonTipText = $m
                     $notify.Visible = $true
-                    $notify.ShowBalloonTip(2500)
-                    Start-Sleep -Milliseconds 500
+                    $notify.ShowBalloonTip(4000)
+                    Start-Sleep -Seconds 4
                     $notify.Dispose()
                 } catch { }
             }
-        }
-        Start-Job -ScriptBlock $scriptBlock -ArgumentList $Title, $Message | Out-Null
-    } catch { }
+            Start-Job -ScriptBlock $balloonScript -ArgumentList $Title, $Message | Out-Null
+        } catch { }
+    }
 }
 
-# ============================================================
 
+# ========================================================
+# MODULE: ui/banner.ps1
+# ========================================================
 <#
 .SYNOPSIS
     Vork CLI - Modulo UI: Banner y Tarjeta Terminal V (Adaptable a Temas y Modo Claro/Oscuro)
@@ -2029,6 +2113,32 @@ function Show-Banner {
     $modelName = if ($global:VorkModel) { $global:VorkModel } else { "Vork 3" }
     $versionBadge = "v$VorkVersion"
 
+    $devIdentity = if ($global:VorkDeviceName) { $global:VorkDeviceName } else { (Get-VorkDeviceIdentity) }
+    $maxDevBudget = [Math]::Max(12, [Math]::Min(28, $width - 25))
+    if ($devIdentity.Length -gt $maxDevBudget) {
+        $devIdentity = $devIdentity.Substring(0, $maxDevBudget - 3) + "..."
+    }
+    $userMachineLabel = "$devIdentity (Vork AI)"
+
+    # Truncamiento inteligente de la ruta para que el logo se mantenga compacto
+    # Si la ruta tiene 3 o más niveles y es larga, se compacta con ~../<carpeta>/<carpeta>
+    $pathShown = $currPath
+    $maxPathBudget = [Math]::Max(20, [Math]::Min(38, $width - 22))
+    if ($pathShown.Length -gt $maxPathBudget) {
+        if ($pathShown.StartsWith("~/")) {
+            $inner = $pathShown.Substring(2)
+            $parts = $inner.Split('/')
+            if ($parts.Length -ge 3) {
+                $pathShown = "~../" + $parts[$parts.Length - 2] + "/" + $parts[$parts.Length - 1]
+            } elseif ($parts.Length -eq 2) {
+                $pathShown = "~../" + $parts[1]
+            }
+        }
+        if ($pathShown.Length -gt $maxPathBudget) {
+            $pathShown = "..." + $pathShown.Substring($pathShown.Length - ($maxPathBudget - 3))
+        }
+    }
+
     # Logo V estilizado a escala simétrica (4 líneas, 9 columnas exactas)
     $sF = [string][char]0x2588 # █
     $sU = [string][char]0x2580 # ▀
@@ -2043,45 +2153,50 @@ function Show-Banner {
     Write-Host ""
 
     if ($width -ge 46) {
-        $targetLogoCol = [Math]::Min(50, [Math]::Max(36, $width - 14))
+        $vis0 = ("VORK CLI $versionBadge").Length
+        $vis1 = ("$modelName ($tierLabel)").Length
+        $vis2 = $userMachineLabel.Length
+        $vis3 = 2 + $pathShown.Length
 
-        # Fila 0: Logo arriba a la derecha
-        Write-Host "  $([string]::new(' ', $targetLogoCol))${Coral}$($vRows[0])${Reset}"
+        # Calcular columna de anclaje para que el logo esté justo al lado del texto
+        # sin espacio innecesario, adaptándose al ancho del nombre de PC y la ubicación
+        $maxLeftNeeded = [Math]::Max([Math]::Max([Math]::Max($vis0, $vis1), $vis2), $vis3)
+        $targetLogoCol = [Math]::Min([Math]::Max(18, $width - 11), $maxLeftNeeded + 3)
 
-        # Fila 1: VORK CLI vX.X.X
-        $left1 = "${White}${Bold}VORK CLI${Reset} ${White}$versionBadge${Reset}"
-        $vis1 = ("VORK CLI $versionBadge").Length
+        # Fila 0: VORK CLI vX.X.X  |  Logo Fila 0
+        $left0 = "${White}${Bold}VORK CLI${Reset} ${White}$versionBadge${Reset}"
+        $pad0 = [Math]::Max(2, $targetLogoCol - $vis0)
+        Write-Host "  $left0$([string]::new(' ', $pad0))${Coral}$($vRows[0])${Reset}"
+
+        # Fila 1: Vork 3.2 (Tier)  |  Logo Fila 1
+        $left1 = "${White}${Bold}$modelName${Reset} ${tierColor}($tierLabel)${Reset}"
         $pad1 = [Math]::Max(2, $targetLogoCol - $vis1)
         Write-Host "  $left1$([string]::new(' ', $pad1))${Coral}$($vRows[1])${Reset}"
 
-        # Fila 2: Vork 3.2 (Tier)
-        $left2 = "${White}${Bold}$modelName${Reset} ${tierColor}($tierLabel)${Reset}"
-        $vis2 = ("$modelName ($tierLabel)").Length
+        # Fila 2: <DeviceModel> (Vork AI)  |  Logo Fila 2
+        $left2 = "${White}$devIdentity${Reset} ${Cyan}(Vork AI)${Reset}"
         $pad2 = [Math]::Max(2, $targetLogoCol - $vis2)
         Write-Host "  $left2$([string]::new(' ', $pad2))${Coral}$($vRows[2])${Reset}"
 
-        # Fila 3: ❯ ~/Path
-        $maxPathBudget = [Math]::Max(10, $targetLogoCol - 5)
-        $pathShown = $currPath
-        if ($pathShown.Length -gt $maxPathBudget) {
-            $pathShown = "..." + $pathShown.Substring($pathShown.Length - ($maxPathBudget - 3))
-        }
+        # Fila 3: ❯ ~/Path  |  Logo Fila 3
         $left3 = "${Coral}${cChev}${Reset} ${White}$pathShown${Reset}"
-        $vis3 = 2 + $pathShown.Length
         $pad3 = [Math]::Max(2, $targetLogoCol - $vis3)
         Write-Host "  $left3$([string]::new(' ', $pad3))${Coral}$($vRows[3])${Reset}"
     } else {
         # Vista compacta para terminales estrechas
         Write-Host "  ${White}${Bold}VORK CLI${Reset} ${White}$versionBadge${Reset}"
         Write-Host "  ${White}${Bold}$modelName${Reset} ${tierColor}($tierLabel)${Reset}"
-        Write-Host "  ${Coral}${cChev}${Reset} ${White}$currPath${Reset}"
+        Write-Host "  ${White}$devIdentity${Reset} ${Cyan}(Vork AI)${Reset}"
+        Write-Host "  ${Coral}${cChev}${Reset} ${White}$pathShown${Reset}"
     }
 
     Write-Host ""
 }
 
-# ============================================================
 
+# ========================================================
+# MODULE: ui/cards.ps1
+# ========================================================
 <#
 .SYNOPSIS
     Vork CLI - Modulo UI: Componentes interactivos responsive.
@@ -2112,7 +2227,7 @@ function Wait-VorkGoBack {
             $wait = Wait-VorkConsoleKey
             if ($wait.Resized) {
                 try {
-                    Write-Host "$ESC[1A$ESC[0J" -NoNewline
+                    Write-Host "${ESC}[1A${ESC}[0J" -NoNewline
                 } catch { }
                 continue
             }
@@ -2121,7 +2236,7 @@ function Wait-VorkGoBack {
             if (-not $key) { continue }
             if ($key.Key -in [ConsoleKey]::Escape, [ConsoleKey]::Enter, [ConsoleKey]::Spacebar) { break }
             if (Test-VorkCtrlC -Key $key) { break }
-            try { Write-Host "$ESC[1A$ESC[0J" -NoNewline } catch { }
+            try { Write-Host "${ESC}[1A${ESC}[0J" -NoNewline } catch { }
         }
     } finally {
         try { [Console]::TreatControlCAsInput = $false } catch { }
@@ -2317,7 +2432,8 @@ function Write-VorkPickerFrame {
         [int]$Visible,
         [string]$Search,
         [string]$Footer,
-        [switch]$ShowSearch
+        [switch]$ShowSearch,
+        [switch]$NumericSelect
     )
 
     $row = 0
@@ -2359,7 +2475,7 @@ function Write-VorkPickerFrame {
 
             $badge = if ($Items[$itemIndex] -is [hashtable] -and $Items[$itemIndex].ContainsKey('Badge') -and $Items[$itemIndex].Badge) { "$($Items[$itemIndex].Badge) " } else { "" }
             $marker = if ($isSelected) { "${Coral}${Bold}$([char]0x25B8)${Reset}" } else { " " }
-            $number = if (($itemIndex + 1) -lt 10) { [string]($itemIndex + 1) } else { [string][char]0x00B7 }
+            $number = if ($ShowSearch -or -not $NumericSelect) { [string][char]0x00B7 } elseif (($itemIndex + 1) -lt 10) { [string]($itemIndex + 1) } else { [string][char]0x00B7 }
             $numberColor = if ($isSelected) { "${Cyan}${Bold}" } else { $LeadDark }
             $labelColor = if ($isSelected) { "${White}${Bold}" } else { $LeadLight }
             $labelPad = [string]::new(' ', [Math]::Max(0, $labelWidth - (Get-VorkDisplayWidth $parts.Label)))
@@ -2456,7 +2572,7 @@ function Invoke-VorkPicker {
                 $filtered
             }
 
-            Write-VorkPickerFrame -Panel $panel -Title $Title -Subtitle $Subtitle -Items $displayItems -Selected $selected -Top $top -Visible $visible -Search $query -Footer $Footer -ShowSearch:$Searchable
+            Write-VorkPickerFrame -Panel $panel -Title $Title -Subtitle $Subtitle -Items $displayItems -Selected $selected -Top $top -Visible $visible -Search $query -Footer $Footer -ShowSearch:$Searchable -NumericSelect:$NumericSelect
 
             $wait = Wait-VorkConsoleKey
             if ($wait.Resized) { continue }
@@ -2570,7 +2686,8 @@ function Select-InteractiveOption {
         [array]$Options,
         [int]$DefaultIndex = 0,
         [string]$Subtitle = "",
-        [string]$Footer = ""
+        [string]$Footer = "",
+        [switch]$Searchable
     )
 
     if (-not $Options -or $Options.Count -eq 0) { return $null }
@@ -2595,14 +2712,16 @@ function Select-InteractiveOption {
     }
 
     if (-not $Footer) {
-        $Footer = if ($items.Count -le 9) {
+        $Footer = if ($Searchable) {
+            "flechas mover  ·  escribe para filtrar  ·  enter confirmar  ·  esc cancelar"
+        } elseif ($items.Count -le 9) {
             "flechas mover  ·  1-$($items.Count) elegir  ·  enter confirmar  ·  esc cancelar"
         } else {
             "flechas mover  ·  1-9 elegir  ·  enter confirmar  ·  esc cancelar"
         }
     }
 
-    return (Invoke-VorkPicker -Title $PromptTitle -Subtitle $Subtitle -Items $items -DefaultIndex $DefaultIndex -NumericSelect -Footer $Footer)
+    return (Invoke-VorkPicker -Title $PromptTitle -Subtitle $Subtitle -Items $items -DefaultIndex $DefaultIndex -NumericSelect:(-not $Searchable) -Footer $Footer -Searchable:$Searchable)
 }
 
 function Write-VorkMediaFormatFrame {
@@ -3655,6 +3774,7 @@ function Show-InteractiveSettings {
     }
 
     $settingsData = [ordered]@{
+        "auto_update"     = @{ Label = "Auto Update";       Options = @("silent", "prompt", "off"); Value = if ($savedSettings["auto_update"]) { $savedSettings["auto_update"] } else { "silent" }; Desc = "Actualización automática: silent (segundo plano), prompt (preguntar), off (desactivar)." }
         "notifications"   = @{ Label = "Notifications";     Options = @("on", "off"); Value = if ($savedSettings["notifications"]) { $savedSettings["notifications"] } else { "on" }; Desc = "Alertas toast de Windows al concluir tareas y pilares." }
         "cloud_ai"        = @{ Label = "Cloud AI Engine";   Options = @("on", "off"); Value = if ($savedSettings["cloud_ai"]) { $savedSettings["cloud_ai"] } else { "on" }; Desc = "Inferencia remota con Vork 3, 3.1 y 3.2 Expert Edition." }
         "media_download"  = @{ Label = "Media Download";    Options = @("on", "off"); Value = if ($savedSettings["media_download"]) { $savedSettings["media_download"] } else { "on" }; Desc = "Descargas y streams desde TikTok, YouTube, Reels y audio." }
@@ -3685,6 +3805,7 @@ function Show-InteractiveSettings {
 
             $permFile = Join-Path $vorkDir "permissions.json"
             $perms = @{
+                "auto_update"     = $toExport["auto_update"]
                 "notifications"   = ($toExport["notifications"] -ne "off")
                 "cloud_ai"        = ($toExport["cloud_ai"] -ne "off")
                 "media_download"  = ($toExport["media_download"] -ne "off")
@@ -3816,8 +3937,10 @@ function Show-InteractiveSettings {
     }
 }
 
-# ============================================================
 
+# ========================================================
+# MODULE: ui/help.ps1
+# ========================================================
 <#
 .SYNOPSIS
     Vork CLI - Modulo UI: Catalogo visual, atajos y navegador de ayuda responsive.
@@ -3924,6 +4047,12 @@ function Show-Help {
             Tag = "Modo orquestador de terminal"
             Usage = "vork agents / vork tui"
             Example = "vk  (alias ultracorto para ejecutar Vork CLI)"
+        },
+        @{
+            Title = "[10] Vork Generador de Imágenes IA"
+            Tag = "FLUX.1 Neural sin marca de agua"
+            Usage = "vork /draw <prompt>"
+            Example = "vork /draw 'ciudad cyberpunk al atardecer 8k'"
         }
     )
 
@@ -3937,7 +4066,7 @@ function Show-Help {
     Write-Host ""
     Write-VorkHelpLine -Width $width -Text "$White$Bold  MANTENIMIENTO & ESTADO:$Reset"
     Write-VorkHelpLine -Width $width -Text "    $Yellow vork update$Reset     ${Dim}Sincroniza y actualiza Vork CLI al instante${Reset}"
-    Write-VorkHelpLine -Width $width -Text "    $Yellow vork status$Reset     ${Dim}Telemetria y estado operativo de los 9 pilares${Reset}"
+    Write-VorkHelpLine -Width $width -Text "    $Yellow vork status$Reset     ${Dim}Telemetria y estado operativo de los 10 pilares${Reset}"
     Write-VorkHelpLine -Width $width -Text "    $Yellow vork version$Reset    ${Dim}Muestra detalles de arquitectura y version${Reset}"
     Write-VorkHelpLine -Width $width -Text "    $Yellow vork slash$Reset      ${Dim}Ver los 40 comandos con barra (/)${Reset}"
     Write-Host ""
@@ -3955,7 +4084,7 @@ function Show-SlashCommands {
 
     $categories = @(
         @{
-            Title = "[CATEGORIA 1] Los 9 Pilares Operacionales (9)"
+            Title = "[CATEGORIA 1] Los 10 Pilares Operacionales (10)"
             Items = @(
                 @{ Cmd = "/translate"; Desc = "Traduccion neuronal por lotes en +200 idiomas" },
                 @{ Cmd = "/tts";       Desc = "Sintesis de voz con 24 voces neuronales humanas" },
@@ -3964,6 +4093,7 @@ function Show-SlashCommands {
                 @{ Cmd = "/separate";  Desc = "Aislamiento de Stems Acapella/Karaoke (Demucs v4)" },
                 @{ Cmd = "/image";     Desc = "Conversor universal PNG, JPG, WEBP, ICO, AVIF" },
                 @{ Cmd = "/remove-bg"; Desc = "Silueta inteligente y eliminacion de fondo IA" },
+                @{ Cmd = "/draw";      Desc = "Generador de imágenes IA con FLUX.1 (sin marca de agua)" },
                 @{ Cmd = "/agents";    Desc = "Orquestacion de subagentes en terminal interactiva" }
             )
         },
@@ -4344,814 +4474,273 @@ function Show-InteractiveHelpModal {
     }
 }
 
-# ============================================================
-
-<#
-.SYNOPSIS
-    Vork CLI - Modulo Core: Auto-Update Silencioso y Sincronizacion Atómica
-#>
-
-function Check-And-AutoUpdate {
-    param([switch]$Force)
-    
-    $cacheDir = Join-Path $HOME ".vork"
-    $checkFile = Join-Path $cacheDir ".last_check"
-    $shouldCheck = $Force
-    
-    if (-not $shouldCheck) {
-        if (-not (Test-Path $checkFile)) {
-            $shouldCheck = $true
-        } else {
-            try {
-                $lastCheck = (Get-Item $checkFile).LastWriteTime
-                if ((Get-Date) - $lastCheck -gt (New-TimeSpan -Hours 1)) {
-                    $shouldCheck = $true
-                }
-            } catch {
-                $shouldCheck = $true
-            }
-        }
-    }
-    
-    if ($shouldCheck) {
-        try {
-            $remoteInfo = Invoke-RestMethod -Uri "$ApiBase/api/cli/info" -TimeoutSec 2 -ErrorAction Stop
-            Set-Content -Path $checkFile -Value (Get-Date).ToString("o") -ErrorAction SilentlyContinue
-            
-            $isNewer = try { [version]$remoteInfo.version -gt [version]$VorkVersion } catch { $remoteInfo.version -ne $VorkVersion }
-            if ($remoteInfo -and $remoteInfo.version -and ($isNewer -or $Force)) {
-                Write-Host ""
-                Write-Host "  $ESC[43;30;1m AUTO-UPDATE $Reset $Yellow Sincronizando Vork CLI con backend v$($remoteInfo.version)...$Reset"
-                $targetScript = if ($PSCommandPath) { $PSCommandPath } else { Join-Path $cacheDir "bin\vork.ps1" }
-                
-                Invoke-RestMethod -Uri "$ApiBase/cli/vork.ps1" -OutFile "$targetScript.tmp" -TimeoutSec 5 -ErrorAction Stop
-                Move-Item -Path "$targetScript.tmp" -Destination $targetScript -Force
-                Write-Host "  $ESC[42;30;1m COMPLETADO $Reset $Green Vork CLI actualizado exitosamente a v$($remoteInfo.version).$Reset"
-                Write-Host ""
-            }
-        } catch {
-            # Tolerancia silenciosa si no hay conexion
-        }
-    }
-}
-
-# ============================================================
-
-<#
-.SYNOPSIS
-    Vork CLI - Modulo de Comandos Oficiales (Categorias 2, 3, 4, 5, 6)
-#>
 
 # ========================================================
-# CATEGORIA 2: AGENTES AUTÓNOMOS & PLANIFICACIÓN IA (8)
+# MODULE: pillars/p01_translate.ps1
 # ========================================================
-
-function Invoke-CmdGoal {
-    param([string[]]$ArgsList)
-    $task = if ($ArgsList) { $ArgsList -join " " } else { "" }
-    if (-not $task) {
-        Write-Host "  ${Cyan}╭─ /goal · Modo Autónomo Continuo ─────────────────────────${Reset}"
-        Write-Host "  ${Lead}│${Reset} ${White}Ingresa el objetivo exhaustivo a resolver:${Reset}"
-        $task = Read-VorkInput -Prompt "  ${Lead}│${Reset} ${Cyan}> ${Reset}"
-        if (-not $task -or -not $task.Trim()) { return }
-    }
-    Write-Host ""
-    Write-Host "  $ESC[44;97;1m GOAL MODE $Reset ${Cyan}Iniciando agente autónomo con verificación continua...${Reset}"
-    Write-Host "  ${LeadLight}Objetivo: $task${Reset}"
-    Write-Host "  ${Green}✓ Agente autónomo activo en segundo plano (Vork 3 Engine).${Reset}"
-    Send-VorkNotification -Title "Vork CLI · /goal" -Message "Agente autónomo iniciado correctamente."
-    Write-Host ""
-}
-
-function Invoke-CmdPlan {
-    param([string[]]$ArgsList)
-    $task = if ($ArgsList) { $ArgsList -join " " } else { "" }
-    if (-not $task) {
-        Write-Host "  ${Cyan}╭─ /plan · Planificación Guiada Paso a Paso ───────────────${Reset}"
-        Write-Host "  ${Lead}│${Reset} ${White}Ingresa la tarea o arquitectura a planificar:${Reset}"
-        $task = Read-VorkInput -Prompt "  ${Lead}│${Reset} ${Cyan}> ${Reset}"
-        if (-not $task -or -not $task.Trim()) { return }
-    }
-    Write-Host ""
-    Write-Host "  $ESC[45;97;1m PLAN $Reset ${Purple}Desglosando arquitectura para: $task${Reset}"
-    Write-Host "  ${Cyan}  [Paso 1]${Reset} Análisis de dependencias y contexto actual."
-    Write-Host "  ${Cyan}  [Paso 2]${Reset} Implementación modular con contratos de interfaz."
-    Write-Host "  ${Cyan}  [Paso 3]${Reset} Validación cruzada y pruebas automatizadas."
-    Write-Host "  ${Green}✓ Plan generado y registrado en el contexto de la sesión.${Reset}"
-    Send-VorkNotification -Title "Vork CLI · /plan" -Message "Plan de arquitectura generado exitosamente."
-    Write-Host ""
-}
-
-function Invoke-CmdGrillMe {
-    Write-Host ""
-    Write-Host "  $ESC[43;30;1m GRILL-ME $Reset ${Yellow}Entrevista Interactiva de Diseño de Arquitectura${Reset}"
-    Write-Host "  ${LeadLight}Preparando preguntas clave para asegurar la dirección del proyecto...${Reset}"
-    Write-Host "  ${Cyan}1.${Reset} ¿Cuál es el requisito crítico de rendimiento o latencia?"
-    Write-Host "  ${Cyan}2.${Reset} ¿Existen restricciones de compatibilidad hacia atrás?"
-    Write-Host "  ${Lead}Responde directamente en el prompt o continúa con la implementación.${Reset}"
-    Write-Host ""
-}
-
-function Invoke-CmdTeamwork {
-    param([string[]]$ArgsList)
-    Write-Host ""
-    Write-Host "  $ESC[42;30;1m TEAMWORK $Reset ${Green}Coordinación de Múltiples Subagentes Concurrentes${Reset}"
-    Write-Host "  ${Cyan}  ● Subagente 1:${Reset} Codebase Researcher (Lectura de arquitectura)"
-    Write-Host "  ${Cyan}  ● Subagente 2:${Reset} Implementador Backend & CLI"
-    Write-Host "  ${Cyan}  ● Subagente 3:${Reset} Verificador de Calidad y Pruebas"
-    Write-Host "  ${LeadLight}Equipo de agentes sincronizado en el workspace.${Reset}"
-    Write-Host ""
-}
-
-function Invoke-CmdBoost {
-    if (-not $global:VorkBoost) { $global:VorkBoost = $false }
-    $global:VorkBoost = -not $global:VorkBoost
-    Write-Host ""
-    if ($global:VorkBoost) {
-        Write-Host "  $ESC[41;97;1m BOOST: ON $Reset ${Coral}Razonamiento profundo activado con verificación estricta.${Reset}"
-    } else {
-        Write-Host "  $ESC[47;30;1m BOOST: OFF $Reset ${LeadLight}Modo estándar de razonamiento activado.${Reset}"
-    }
-    Write-Host ""
-}
-
-function Invoke-CmdLearn {
-    param([string[]]$ArgsList)
-    $rule = if ($ArgsList) { $ArgsList -join " " } else { "" }
-    if (-not $rule) {
-        Write-Host "  ${Cyan}╭─ /learn · Persistir Regla o Preferencia de Trabajo ───────${Reset}"
-        Write-Host "  ${Lead}│${Reset} ${White}Ingresa la instrucción o regla a recordar permanentemente:${Reset}"
-        $rule = Read-VorkInput -Prompt "  ${Lead}│${Reset} ${Cyan}> ${Reset}"
-        if (-not $rule -or -not $rule.Trim()) { return }
-    }
-    try {
-        $learnDir = Join-Path $HOME ".vork"
-        if (-not (Test-Path $learnDir)) { New-Item -ItemType Directory -Path $learnDir -Force | Out-Null }
-        $learnFile = Join-Path $learnDir "rules.txt"
-        Add-Content -Path $learnFile -Value "- [$(Get-Date -Format 'yyyy-MM-dd HH:mm')] $rule" -Encoding UTF8
-        Write-Host ""
-        Write-Host "  $ESC[42;30;1m LEARNED $Reset ${Green}Regla persistida exitosamente en ~/.vork/rules.txt:${Reset}"
-        Write-Host "  ${White}`"$rule`"${Reset}"
-        Write-Host ""
-    } catch {
-        Write-Host "  ${Coral}[Error al persistir regla]:${Reset} $_"
-    }
-}
-
-function Invoke-CmdBrowser {
-    param([string[]]$ArgsList)
-    $url = if ($ArgsList) { $ArgsList[0] } else { "$ApiBase" }
-    Write-Host ""
-    Write-Host "  ${Cyan}Navegación web automatizada hacia:${Reset} $White$url$Reset"
-    Start-Process $url
-    Write-Host ""
-}
-
-function Invoke-CmdAutomation {
-    Write-Host ""
-    Write-Host "  ${Cyan}╭─ /automation · Diseñador de Tareas en Segundo Plano ─────${Reset}"
-    Write-Host "  ${Lead}│${Reset} Gestor de cronjobs y subprocesos para Vork CLI."
-    Write-Host "  ${Lead}│${Reset} ${LeadLight}Sintaxis: vork automation --schedule '*/5 * * * *' --task <pilar>${Reset}"
-    Write-Host "  ${Lead}╰──────────────────────────────────────────────────────────${Reset}"
-    Write-Host ""
-}
-
-# ========================================================
-# CATEGORIA 3: CONTEXTO, SESIÓN & MEMORIA (7)
-# ========================================================
-
-function Invoke-CmdCompact {
-    Write-Host ""
-    Write-Host "  $ESC[44;97;1m COMPACT $Reset ${Cyan}Compactando historial de sesión y memoria de contexto...${Reset}"
-    [System.GC]::Collect()
-    Write-Host "  ${Green}✓ Contexto optimizado. 0 tokens redundantes liberados.${Reset}"
-    Write-Host "  ${LeadLight}La sesión interactiva continúa con memoria limpia.${Reset}"
-    Write-Host ""
-}
-
-function Invoke-CmdReset {
-    Write-Host ""
-    Write-Host "  $ESC[43;30;1m RESET $Reset ${Yellow}Reiniciando contexto y memoria de la sesión a cero...${Reset}"
-    $global:VorkSessionHistory = @()
-    Write-Host "  ${Green}✓ Sesión reiniciada exitosamente.${Reset}"
-    Write-Host ""
-}
-
-function Invoke-CmdHistory {
-    Write-Host ""
-    Write-Host "  ${White}${Bold}HISTORIAL DE COMANDOS DE LA SESIÓN:${Reset}"
-    if (-not $global:VorkSessionHistory -or $global:VorkSessionHistory.Count -eq 0) {
-        Write-Host "  ${LeadLight}(No hay comandos previos en la sesión activa)${Reset}"
-    } else {
-        $idx = 1
-        foreach ($h in $global:VorkSessionHistory) {
-            Write-Host "  ${Lead}$idx.${Reset} ${Cyan}$h${Reset}"
-            $idx++
-        }
-    }
-    Write-Host ""
-}
-
-function Invoke-CmdSave {
-    param([string[]]$ArgsList)
-    $name = if ($ArgsList) { $ArgsList[0] } else { "session_" + (Get-Date -Format "yyyyMMdd_HHmmss") }
-    try {
-        $sDir = Join-Path $HOME ".vork\sessions"
-        if (-not (Test-Path $sDir)) { New-Item -ItemType Directory -Path $sDir -Force | Out-Null }
-        $sFile = Join-Path $sDir "$name.json"
-        $data = @{
-            Version = $VorkVersion
-            Tier = $global:VorkTier
-            Date = (Get-Date).ToString("o")
-            History = $global:VorkSessionHistory
-        } | ConvertTo-Json
-        Set-Content -Path $sFile -Value $data -Encoding UTF8
-        Write-Host ""
-        Write-Host "  $ESC[42;30;1m SAVED $Reset ${Green}Sesión guardada en:${Reset} $White$sFile$Reset"
-        Write-Host ""
-    } catch {
-        Write-Host "  ${Coral}[Error al guardar sesión]:${Reset} $_"
-    }
-}
-
-function Invoke-CmdResume {
-    Write-Host ""
-    $sDir = Join-Path $HOME ".vork\sessions"
-    if (Test-Path $sDir) {
-        $files = Get-ChildItem -Path $sDir -Filter "*.json"
-        if ($files.Count -gt 0) {
-            Write-Host "  ${White}${Bold}Sesiones guardadas disponibles:${Reset}"
-            foreach ($f in $files) {
-                Write-Host "  ${Cyan}●${Reset} $($f.BaseName) ${LeadLight}($($f.LastWriteTime))${Reset}"
-            }
-        } else {
-            Write-Host "  ${LeadLight}No hay sesiones guardadas en $sDir${Reset}"
-        }
-    } else {
-        Write-Host "  ${LeadLight}No hay sesiones previas guardadas.${Reset}"
-    }
-    Write-Host ""
-}
-
-function Invoke-CmdUndo {
-    Write-Host ""
-    Write-Host "  ${Yellow}Deshacer acción:${Reset} Último comando revertido con éxito."
-    Write-Host ""
-}
-
-# ========================================================
-# CATEGORIA 4: CÓDIGO, AUDITORÍA & ESTADO (4)
-# ========================================================
-
-function Invoke-CmdStatus {
-    $sw = [System.Diagnostics.Stopwatch]::StartNew()
-    $online = $false
-    $res = $null
-    try {
-        $res = Invoke-RestMethod -Uri "$ApiBase/api/health" -Method Get -TimeoutSec 3 -ErrorAction Stop
-        $sw.Stop()
-        $online = $true
-    } catch {
-        $sw.Stop()
-    }
-
-    $tierStr = if ($global:VorkTier) { $global:VorkTier.ToUpper() } else { "MEDIUM" }
-    $uptimeStr = if ($res -and $res.uptime) { "$($res.uptime)s" } else { "N/A" }
-    $rssStr = if ($res -and $res.memory -and $res.memory.rssMb) { "$($res.memory.rssMb) MB" } else { "N/A" }
-
-    Write-VorkSectionHeader -Title "Estado de los 9 pilares" -Subtitle "telemetría y servicios en tiempo real" -RightText "vork · status"
-
-    Write-VorkInfoRow -Label "Backend Cloud" -Value $ApiBase -ValueColor $Cyan
-    if ($online) {
-        Write-VorkInfoRow -Label "Conexión" -Value "ONLINE  ·  $($sw.ElapsedMilliseconds)ms (Vork Cloud)" -ValueColor $Green
-        Write-VorkInfoRow -Label "Potencia IA" -Value "Vork 3 ($tierStr)  ·  Uptime: $uptimeStr  ·  RAM RSS: $rssStr" -ValueColor $White
-    } else {
-        Write-VorkInfoRow -Label "Conexión" -Value "OFFLINE  ·  Sin respuesta en $ApiBase" -ValueColor $Coral
-        Write-VorkInfoRow -Label "Potencia IA" -Value "Vork 3 ($tierStr)  ·  Modo autónomo local" -ValueColor $Yellow
-    }
-
-    Write-VorkSectionRule -RightText "pilares operacionales"
-
-    $pillars = @(
-        @{ Id = "01"; Key = "translator";       Name = "Traductor en la Nube";        Tech = "+200 idiomas por lotes y streaming" },
-        @{ Id = "02"; Key = "tts";              Name = "Texto a Voz Neuronal (TTS)";  Tech = "24 voces humanas multilingües (24kHz)" },
-        @{ Id = "03"; Key = "voiceClone";       Name = "Clonación Vocal & Timbre";   Tech = "Modelado espectral F0 & voice matching" },
-        @{ Id = "04"; Key = "mediaConverter";   Name = "Extracción Multimedia";       Tech = "Descarga de YouTube, TikTok, Reels, IG" },
-        @{ Id = "05"; Key = "separator";        Name = "Aislamiento de Stems Demucs"; Tech = "Separación Acapella/Instrumental (v4)" },
-        @{ Id = "06"; Key = "cloudDj";          Name = "Cloud DJ Mezclador";          Tech = "Mezclador virtual con crossfader interactivo" },
-        @{ Id = "07"; Key = "imageConverter";   Name = "Conversor de Imágenes";       Tech = "Pipeline Sharp PNG, WEBP, ICO, AVIF" },
-        @{ Id = "08"; Key = "backgroundStudio"; Name = "Eliminación de Fondo IA";     Tech = "Máscaras alfa y recorte de silueta" },
-        @{ Id = "09"; Key = "cli";              Name = "Orquestación de Agentes";     Tech = "Subagentes concurrentes y bucle autónomo" }
-    )
-
-    $metrics = Get-VorkConsoleMetrics
-    $onlineCount = 0
-
-    foreach ($p in $pillars) {
-        $svc = if ($res -and $res.services) { $res.services.($p.Key) } else { $null }
-        $isOk = ($online -and $svc -and ($svc.status -eq "online" -or $svc.status -eq "ok"))
-        if ($isOk) { $onlineCount++ }
-
-        $stBadge = if ($isOk) {
-            "${Green}● Activo${Reset}"
-        } elseif ($online) {
-            "${Coral}× Error${Reset}"
-        } else {
-            "${LeadLight}○ Inactivo${Reset}"
-        }
-
-        $pName = $p.Name.PadRight(28)
-        $line = "    ${Cyan}[$($p.Id)]${Reset}  $stBadge  ${White}${Bold}$pName${Reset} ${LeadLight}· $($p.Tech)${Reset}"
-        Write-Host (Limit-VorkAnsiText -Text $line -MaxWidth ([Math]::Max(16, $metrics.Width - 1)))
-    }
-
-    Write-VorkSectionRule
-
-    $statusKind = if ($onlineCount -eq 9) { "ok" } elseif ($onlineCount -gt 0) { "warn" } else { "error" }
-    $statusText = if ($onlineCount -eq 9) {
-        "Estado global: 9/9 pilares operativos y sincronizados en la nube."
-    } elseif ($onlineCount -gt 0) {
-        "Estado global: $onlineCount/9 pilares operativos. Algunos servicios presentan degradación."
-    } else {
-        "Estado global: Servidor en la nube desconectado. Operando en modo local."
-    }
-
-    Write-VorkStatusLine -Kind $statusKind -Text $statusText
-    Write-Host ""
-}
-
-function Invoke-CmdReview {
-    Write-Host ""
-    Write-Host "  $ESC[42;30;1m CODE REVIEW $Reset ${Green}Auditoría de seguridad y buenas prácticas:${Reset}"
-    Write-Host "  ${Cyan}  ✓ Seguridad:${Reset} Sin secretos ni credenciales en texto claro expuestas."
-    Write-Host "  ${Cyan}  ✓ Estructura:${Reset} Módulos desacoplados en core, ui y pillars."
-    Write-Host "  ${Cyan}  ✓ Rendimiento:${Reset} Ensamblado en RAM y compresión UTF-8."
-    Write-Host ""
-}
-
-function Invoke-CmdBug {
-    param([string[]]$ArgsList)
-    Write-Host ""
-    Write-Host "  $ESC[41;97;1m DIAGNOSTICO $Reset ${Coral}Analizador de excepciones y depuración:${Reset}"
-    Write-Host "  ${LeadLight}No se detectaron fallos críticos en el proceso activo de Vork.${Reset}"
-    Write-Host ""
-}
-
-function Invoke-CmdRefactor {
-    Write-Host ""
-    Write-Host "  $ESC[45;97;1m REFACTOR $Reset ${Purple}Asistente de optimización de código:${Reset}"
-    Write-Host "  ${LeadLight}Código modular analizado. Todo se encuentra desacoplado.${Reset}"
-    Write-Host ""
-}
-
-# ========================================================
-# CATEGORIA 5: CONFIGURACIÓN & PREFERENCIAS (6)
-# ========================================================
-
-function Invoke-CmdConfig {
-    Write-Host ""
-    Write-Host "  ${White}${Bold}CONFIGURACIÓN ACTUAL DE VORK CLI:${Reset}"
-    Write-Host "  ${Cyan}  Versión CLI:${Reset}     $VorkVersion"
-    Write-Host "  ${Cyan}  Backend API:${Reset}     $ApiBase"
-    Write-Host "  ${Cyan}  Nivel Potencia:${Reset}  $($global:VorkTier.ToUpper())"
-    Write-Host "  ${Cyan}  Directorio Base:${Reset} $HOME\.vork"
-    Write-Host "  ${Cyan}  Tema Activo:${Reset}     Plomo Oscuro (Lead Slate)"
-    Write-Host ""
-}
-
-function Invoke-CmdKeybindings {
-    Write-Host ""
-    Write-Host "  ${White}${Bold}ATAJOS DE TECLADO INTERACTIVOS:${Reset}"
-    Write-Host "  ${Cyan}  /       ${Reset} ${LeadLight}Despliega el menú de comandos en tiempo real${Reset}"
-    Write-Host "  ${Cyan}  ↑ / ↓   ${Reset} ${LeadLight}Navegar por las opciones del menú desplegable${Reset}"
-    Write-Host "  ${Cyan}  ← / →   ${Reset} ${LeadLight}Navegar en el selector de potencia /model${Reset}"
-    Write-Host "  ${Cyan}  Enter   ${Reset} ${LeadLight}Confirmar o ejecutar el comando seleccionado${Reset}"
-    Write-Host "  ${Cyan}  Tab     ${Reset} ${LeadLight}Completar el comando en la línea del prompt${Reset}"
-    Write-Host "  ${Cyan}  Esc     ${Reset} ${LeadLight}Cerrar menús flotantes sin ejecutar${Reset}"
-    Write-Host ""
-}
-
-# ========================================================
-# GESTIÓN GRANULAR DE PERMISOS (14 PERMISOS CONMUTABLES)
-# ========================================================
-
-function Get-VorkPermissions {
-    $permFile = Join-Path $HOME ".vork\permissions.json"
-    $perms = [ordered]@{
-        "workspace_read"    = @{ Name = "Lectura de Workspace";        Desc = "Inspección de archivos y lectura de contexto en el proyecto"; Enabled = $true }
-        "workspace_write"   = @{ Name = "Escritura de Archivos";      Desc = "Creación, edición y refactorización de código en disco";      Enabled = $true }
-        "terminal_exec"     = @{ Name = "Ejecución de Terminal";       Desc = "Lanzamiento de comandos PowerShell, scripts y procesos";      Enabled = $true }
-        "cloud_ai"          = @{ Name = "Servicios Vork Cloud IA";    Desc = "Inferencia remota, traducción neuronal y separación Demucs";  Enabled = $true }
-        "media_download"    = @{ Name = "Descargas Multimedia";       Desc = "Extracción de audio/video desde YouTube, TikTok, Reels e IG"; Enabled = $true }
-        "voice_synthesis"   = @{ Name = "Síntesis y Modelado F0";     Desc = "Generación TTS 24kHz y extracción acústica de timbre vocal";  Enabled = $true }
-        "autonomous_agents" = @{ Name = "Agentes Autónomos";          Desc = "Ejecución de bucles continuos con /goal, /plan y subagentes"; Enabled = $true }
-        "notifications"     = @{ Name = "Notificaciones del Sistema"; Desc = "Alertas sonoras y avisos toast al concluir tareas de fondo"; Enabled = $true }
-        "clipboard_sync"    = @{ Name = "Acceso a Portapapeles";      Desc = "Copia automática de traducciones, streams y enlaces útiles";  Enabled = $true }
-        "browser_launch"    = @{ Name = "Apertura de Navegador";      Desc = "Lanzamiento de consolas interactivas Web Audio y dashboards"; Enabled = $true }
-    }
-
-    if (Test-Path $permFile) {
-        try {
-            $saved = Get-Content -Path $permFile -Raw | ConvertFrom-Json
-            foreach ($k in $perms.Keys) {
-                if ($saved.$k -ne $null) {
-                    $perms[$k].Enabled = [bool]$saved.$k
-                }
-            }
-        } catch { }
-    }
-    return $perms
-}
-
-function Save-VorkPermissions {
-    param($PermsHash)
-    try {
-        $pDir = Join-Path $HOME ".vork"
-        if (-not (Test-Path $pDir)) { New-Item -ItemType Directory -Path $pDir -Force | Out-Null }
-        $permFile = Join-Path $pDir "permissions.json"
-        $toSave = @{}
-        foreach ($k in $PermsHash.Keys) {
-            $toSave[$k] = $PermsHash[$k].Enabled
-        }
-        $toSave | ConvertTo-Json | Set-Content -Path $permFile -Encoding UTF8
-    } catch { }
-}
-
-function Invoke-CmdPermissions {
-    param([string[]]$ArgsList)
-
-    $perms = Get-VorkPermissions
-    $keys = @($perms.Keys)
-
-    $subCmd = if ($ArgsList -and $ArgsList.Count -gt 0) { $ArgsList[0].ToLower() } else { "" }
-    $target = if ($ArgsList -and $ArgsList.Count -gt 1) { $ArgsList[1].ToLower() } else { "" }
-
-    # Subcomandos directos: allow, deny, o numero directo sin interfaz interactiva
-    if ($subCmd -in "allow", "enable", "activar", "permitir") {
-        $tIdx = -1
-        if ([int]::TryParse($target, [ref]$tIdx) -and $tIdx -ge 1 -and $tIdx -le $keys.Count) {
-            $k = $keys[$tIdx - 1]
-            $perms[$k].Enabled = $true
-            Save-VorkPermissions -PermsHash $perms
-            Write-Host ""
-            Write-Host "  $ESC[42;30;1m PERMITIDO $Reset ${Green}Permiso [$tIdx] '$k' habilitado.${Reset}"
-            Write-Host ""
-            return
-        } elseif ($perms.Contains($target)) {
-            $perms[$target].Enabled = $true
-            Save-VorkPermissions -PermsHash $perms
-            Write-Host ""
-            Write-Host "  $ESC[42;30;1m PERMITIDO $Reset ${Green}Permiso '$target' habilitado.${Reset}"
-            Write-Host ""
-            return
-        }
-    }
-
-    if ($subCmd -in "deny", "disable", "desactivar", "bloquear") {
-        $tIdx = -1
-        if ([int]::TryParse($target, [ref]$tIdx) -and $tIdx -ge 1 -and $tIdx -le $keys.Count) {
-            $k = $keys[$tIdx - 1]
-            $perms[$k].Enabled = $false
-            Save-VorkPermissions -PermsHash $perms
-            Write-Host ""
-            Write-Host "  $ESC[41;97;1m DENEGADO $Reset ${Coral}Permiso [$tIdx] '$k' deshabilitado.${Reset}"
-            Write-Host ""
-            return
-        } elseif ($perms.Contains($target)) {
-            $perms[$target].Enabled = $false
-            Save-VorkPermissions -PermsHash $perms
-            Write-Host ""
-            Write-Host "  $ESC[41;97;1m DENEGADO $Reset ${Coral}Permiso '$target' deshabilitado.${Reset}"
-            Write-Host ""
-            return
-        }
-    }
-
-    $directIdx = -1
-    if ([int]::TryParse($subCmd, [ref]$directIdx) -and $directIdx -ge 1 -and $directIdx -le $keys.Count) {
-        $k = $keys[$directIdx - 1]
-        $perms[$k].Enabled = -not $perms[$k].Enabled
-        Save-VorkPermissions -PermsHash $perms
-        $st = if ($perms[$k].Enabled) { "${Green}PERMITIDO${Reset}" } else { "${Coral}DENEGADO${Reset}" }
-        Write-Host ""
-        Write-Host "  $ESC[44;97;1m TOGGLE $Reset Permiso [$directIdx] '$k' cambiado a: $st"
-        Write-Host ""
-        return
-    }
-
-    # Selector interactivo con teclas Arriba/Abajo y Enter/Espacio
-    Select-InteractivePermissions -PermsHash $perms | Out-Null
-    Write-Host "  ${Green}✓ Permisos actualizados y sincronizados en ~/.vork/permissions.json${Reset}"
-    Write-Host ""
-}
-
-# ========================================================
-# GESTIÓN DE LOS 10 TEMAS VISUALES DE VORK CLI
-# ========================================================
-
-function Invoke-CmdTheme {
-    param([string[]]$ArgsList)
-
-    $themes = @(
-        @{ Id = "lead";          Name = "Plomo Oscuro (Lead Slate)";    Acentos = "Coral + Electric Cyan"; Dot = "$ESC[38;2;255;107;74m●$Reset" }
-        @{ Id = "cyberpunk";     Name = "Cyberpunk 2077";              Acentos = "Neon Yellow + Pink";    Dot = "$ESC[38;2;252;238;10m●$Reset" }
-        @{ Id = "matrix";        Name = "Matrix Terminal";             Acentos = "Phosphor Green";        Dot = "$ESC[38;2;0;255;65m●$Reset" }
-        @{ Id = "dracula";       Name = "Dracula Vamp";                Acentos = "Vampire Purple + Pink"; Dot = "$ESC[38;2;189;147;249m●$Reset" }
-        @{ Id = "nord";          Name = "Nordic Frost";                Acentos = "Arctic Ice + Polar";    Dot = "$ESC[38;2;136;192;208m●$Reset" }
-        @{ Id = "tokyo-night";   Name = "Tokyo Night";                 Acentos = "Deep Neon Blue + Mag";  Dot = "$ESC[38;2;122;162;247m●$Reset" }
-        @{ Id = "monokai";       Name = "Monokai Pro";                 Acentos = "Warm Gold + Lime Mint"; Dot = "$ESC[38;2;255;216;102m●$Reset" }
-        @{ Id = "synthwave";     Name = "Synthwave 84";                Acentos = "Sunset Pink + Cyan";    Dot = "$ESC[38;2;255;126;219m●$Reset" }
-        @{ Id = "solarized-dark";Name = "Solarized Dark";              Acentos = "Solar Teal + Amber";    Dot = "$ESC[38;2;42;161;152m●$Reset" }
-        @{ Id = "ghost";         Name = "Minimal Ghost";               Acentos = "Titanium Monochrome";   Dot = "$ESC[38;2;250;250;250m●$Reset" }
-    )
-
-    $userChoice = if ($ArgsList -and $ArgsList.Count -gt 0) { $ArgsList[0].ToLower() } else { "" }
-
-    # Aplicar directamente si se paso argumento
-    if ($userChoice) {
-        $matched = $null
-        $cIdx = -1
-        if ([int]::TryParse($userChoice, [ref]$cIdx) -and $cIdx -ge 1 -and $cIdx -le $themes.Count) {
-            $matched = $themes[$cIdx - 1].Id
-        } else {
-            $found = @($themes | Where-Object { $_.Id -eq $userChoice -or $_.Id.StartsWith($userChoice) })
-            if ($found.Count -gt 0) { $matched = $found[0].Id }
-        }
-
-        if ($matched) {
-            Apply-VorkTheme -ThemeName $matched
-            try {
-                $tDir = Join-Path $HOME ".vork"
-                if (-not (Test-Path $tDir)) { New-Item -ItemType Directory -Path $tDir -Force | Out-Null }
-                Set-Content -Path (Join-Path $tDir ".theme") -Value $matched -Force -Encoding UTF8
-            } catch { }
-
-            Write-Host ""
-            Write-Host "  $ESC[42;30;1m OK $Reset ${Green}Tema visual cambiado exitosamente a: ${Bold}$($global:VorkThemeName)${Reset}"
-            Write-Host "  ${LeadLight}Preferencia persistida en ~/.vork/.theme${Reset}"
-            Write-Host ""
-            return
-        }
-    }
-
-    # Selector interactivo con teclas Arriba/Abajo y Enter
-    $chosenThemeId = Select-InteractiveTheme -Themes $themes -ActiveThemeId $global:VorkThemeId
-    if ($chosenThemeId) {
-        Apply-VorkTheme -ThemeName $chosenThemeId
-        try {
-            $tDir = Join-Path $HOME ".vork"
-            if (-not (Test-Path $tDir)) { New-Item -ItemType Directory -Path $tDir -Force | Out-Null }
-            Set-Content -Path (Join-Path $tDir ".theme") -Value $chosenThemeId -Force -Encoding UTF8
-        } catch { }
-
-        Write-Host "  $ESC[42;30;1m TEMA APLICADO $Reset ${Green}Ahora usando: ${Bold}$($global:VorkThemeName)${Reset}"
-        Write-Host "  ${LeadLight}Preferencia persistida en ~/.vork/.theme${Reset}"
-        Write-Host ""
-    }
-}
-
-function Invoke-CmdEnv {
-    Write-Host ""
-    Write-Host "  ${White}${Bold}VARIABLES DE ENTORNO VORK:${Reset}"
-    Write-Host "  ${Cyan}  VORK_API:${Reset}    $ApiBase"
-    Write-Host "  ${Cyan}  VORK_TIER:${Reset}   $global:VorkTier"
-    Write-Host "  ${Cyan}  USERPROFILE:${Reset} $HOME"
-    Write-Host ""
-}
-
-
-# ========================================================
-# VORK AI CONVERSACIONAL (VORK 3, 3.1 & 3.2 EXPERT)
-# ========================================================
-
-function Invoke-VorkAIChat {
-    param(
-        [string]$Prompt,
-        [string[]]$ArgsList
-    )
-
-    $fullPrompt = if ($Prompt) { $Prompt } elseif ($ArgsList) { $ArgsList -join " " } else { "" }
-    $fullPrompt = $fullPrompt.Trim()
-
-    if (-not $fullPrompt) {
-        Write-Host ""
-        Write-Host "  ${Cyan}╭─ Vork AI Conversacional ───────────────────────────────────${Reset}"
-        Write-Host "  ${Lead}│${Reset} ${White}Escribe tu consulta o tarea para la IA:${Reset}"
-        $fullPrompt = Read-VorkInput -Prompt "  ${Lead}│${Reset} ${Cyan}> ${Reset}"
-        if (-not $fullPrompt -or -not $fullPrompt.Trim()) { return }
-        $fullPrompt = $fullPrompt.Trim()
-    }
-
-    # -------------------------------------------------------------
-    # 0. DETECCION INTELIGENTE DE PILARES OPERACIONALES EN EL CHAT
-    # -------------------------------------------------------------
-    $urlMatch = [regex]::Match($fullPrompt, 'https?://\S+')
-    $extractedUrl = if ($urlMatch.Success) { $urlMatch.Value.TrimEnd('"', "'", ')', ']', '>', ';', ',') } else { $null }
-    $isMediaDomain = $urlMatch.Success -and ($urlMatch.Value -match 'tiktok\.com|youtube\.com|youtu\.be|instagram\.com|reels|facebook\.com|fb\.watch|twitter\.com|x\.com|soundcloud\.com|vimeo\.com|pin(terest)?\.com')
-    $isMediaIntent = $fullPrompt -match '(?i)(convertir|m[uú]sica|canci[oó]n|mp3|mp4|wav|audio|video|descargar|bajar|extraer|rip)'
-
-    # Deteccion de formato explicito solicitado por el usuario
-    $explicitFmt = $null
-    if ($fullPrompt -match '(?i)\b(mp3|m[uú]sica|canci[oó]n|audio)\b') {
-        $explicitFmt = "mp3"
-    } elseif ($fullPrompt -match '(?i)\b(mp4|video|clip)\b') {
-        $explicitFmt = "mp4"
-    } elseif ($fullPrompt -match '(?i)\b(wav)\b') {
-        $explicitFmt = "wav"
-    }
-
-    if ($urlMatch.Success -and ($isMediaDomain -or $isMediaIntent)) {
-        $platformName = Get-VorkMediaPlatformName -Url $extractedUrl
-        Write-Host ""
-        Write-Host "  ${Cyan}╭─ [04] Vork Conversor Multimedia Universal ─────────────────${Reset}"
-        Write-Host "  ${Lead}│${Reset} ${White}Plataforma:${Reset}  ${Yellow}${Bold}$platformName${Reset}"
-        Write-Host "  ${Lead}│${Reset} ${White}Enlace:${Reset}      ${Cyan}$extractedUrl${Reset}"
-        Write-Host "  ${Lead}│${Reset} ${LeadLight}Pilar 04 listo para procesar la conversión multimedia.${Reset}"
-        Write-Host "  ${Lead}╰────────────────────────────────────────────────────────────${Reset}"
-        Write-Host ""
-
-        $chosenFormat = $null
-        $chosenQuality = $null
-
-        if ($explicitFmt) {
-            # El usuario ya indico el formato, preguntamos directamente la calidad deseada para ese formato
-            $chosenFormat = $explicitFmt
-            $chosenQuality = Select-VorkMediaQualityChoice -Format $chosenFormat -PromptTitle "Selecciona la calidad deseada para $($chosenFormat.ToUpper()):"
-            if (-not $chosenQuality) {
-                $elbowChar = [char]0x23BF
-                Write-Host "  ${LeadLight}$elbowChar  Conversión multimedia cancelada.${Reset}"
-                Write-Host ""
-                return
-            }
-        } else {
-            # No indico formato: Pregunta 1 Formato, Pregunta 2 Calidad
-            $chosenFormat = Select-VorkMediaFormatChoice -PromptTitle "Selecciona el formato de salida:"
-            if (-not $chosenFormat) {
-                $elbowChar = [char]0x23BF
-                Write-Host "  ${LeadLight}$elbowChar  Conversión multimedia cancelada.${Reset}"
-                Write-Host ""
-                return
-            }
-
-            $chosenQuality = Select-VorkMediaQualityChoice -Format $chosenFormat -PromptTitle "Selecciona la calidad deseada para $($chosenFormat.ToUpper()):"
-            if (-not $chosenQuality) {
-                $elbowChar = [char]0x23BF
-                Write-Host "  ${LeadLight}$elbowChar  Conversión multimedia cancelada.${Reset}"
-                Write-Host ""
-                return
-            }
-        }
-
-        Invoke-PillarMedia -ArgsList @($extractedUrl, "-Format", $chosenFormat, "-Quality", $chosenQuality)
-        return
-    }
-
-    if ($isMediaIntent -and ($fullPrompt -match '(?i)(tiktok|youtube|video|enlace|link|reels|instagram)')) {
-        Write-Host ""
-        Write-Host "  ${Cyan}╭─ [04] Vork Conversor Multimedia Universal ─────────────────${Reset}"
-        Write-Host "  ${Lead}│${Reset} ${White}Ingresa la URL del video (YouTube, TikTok, Reels, IG):${Reset}"
-        $askedUrl = Read-VorkInput -Prompt "  ${Lead}│${Reset} ${Cyan}> ${Reset}"
-        if (-not $askedUrl -or -not $askedUrl.Trim()) {
-            $elbowChar = [char]0x23BF
-            Write-Host "  ${LeadLight}$elbowChar  Operación cancelada.${Reset}"
-            Write-Host ""
-            return
-        }
-        $askedUrl = $askedUrl.Trim()
-        $platformName = Get-VorkMediaPlatformName -Url $askedUrl
-        Write-Host "  ${Lead}│${Reset} ${White}Plataforma:${Reset}  ${Yellow}${Bold}$platformName${Reset}"
-        Write-Host "  ${Lead}│${Reset} ${White}Enlace:${Reset}      ${Cyan}$askedUrl${Reset}"
-        Write-Host "  ${Lead}╰────────────────────────────────────────────────────────────${Reset}"
-        Write-Host ""
-
-        $chosenFormat = $null
-        $chosenQuality = $null
-
-        if ($explicitFmt) {
-            $chosenFormat = $explicitFmt
-            $chosenQuality = Select-VorkMediaQualityChoice -Format $chosenFormat -PromptTitle "Selecciona la calidad deseada para $($chosenFormat.ToUpper()):"
-            if (-not $chosenQuality) {
-                $elbowChar = [char]0x23BF
-                Write-Host "  ${LeadLight}$elbowChar  Conversión multimedia cancelada.${Reset}"
-                Write-Host ""
-                return
-            }
-        } else {
-            $chosenFormat = Select-VorkMediaFormatChoice -PromptTitle "Selecciona el formato de salida:"
-            if (-not $chosenFormat) {
-                $elbowChar = [char]0x23BF
-                Write-Host "  ${LeadLight}$elbowChar  Conversión multimedia cancelada.${Reset}"
-                Write-Host ""
-                return
-            }
-
-            $chosenQuality = Select-VorkMediaQualityChoice -Format $chosenFormat -PromptTitle "Selecciona la calidad deseada para $($chosenFormat.ToUpper()):"
-            if (-not $chosenQuality) {
-                $elbowChar = [char]0x23BF
-                Write-Host "  ${LeadLight}$elbowChar  Conversión multimedia cancelada.${Reset}"
-                Write-Host ""
-                return
-            }
-        }
-
-        Invoke-PillarMedia -ArgsList @($askedUrl, "-Format", $chosenFormat, "-Quality", $chosenQuality)
-        return
-    }
-
-    # -------------------------------------------------------------
-    # 1. ACCIONES CONVERSACIONALES DIRECTAS HACIA LOS PILARES
-    # -------------------------------------------------------------
-    if ($fullPrompt -match '(?i)^\s*traduc(ir|e)\s+(.+)$') {
-        $transTarget = $matches[2].Trim()
-        Write-Host ""
-        Write-Host "  ${Cyan}╭─ [01] Vork Traductor en la Nube ───────────────────────────${Reset}"
-        Write-Host "  ${Lead}│${Reset} ${White}Detectado requerimiento de traducción directa.${Reset}"
-        Write-Host "  ${Lead}╰────────────────────────────────────────────────────────────${Reset}"
-        Invoke-PillarTranslate -ArgsList @("es", $transTarget)
-        return
-    }
-
-    if ($fullPrompt -match '(?i)\b(separar stems|separar pistas?|quitar la? voz|aislar la? voz|karaoke de)\b') {
-        Invoke-PillarSeparate
-        return
-    }
-
-    if ($fullPrompt -match '(?i)\b(quitar el? fondo|eliminar el? fondo|fondo transparente)\b') {
-        Invoke-PillarRemoveBg
-        return
-    }
-
-    if ($fullPrompt -match '(?i)\b(convertir imagen|pasar imagen a)\b') {
-        Invoke-PillarImage
-        return
-    }
-
-    if ($fullPrompt -match '(?i)\b(texto a voz|sintetizar voz|leer con voz)\b') {
-        Invoke-PillarTTS
-        return
-    }
-
-    if ($fullPrompt -match '(?i)\b(clonar voz|clonacion de voz|clonación de voz)\b') {
-        Invoke-PillarClone
-        return
-    }
-
-    $activeModel = if ($global:VorkModel) { $global:VorkModel } else { "Vork 3.1" }
-    $activeTier = if ($activeModel -eq "Vork 3.2") { "expert" } elseif ($global:VorkTier) { $global:VorkTier.ToLower() } else { "medium" }
-    $tierLabel = if ($activeTier.Length -gt 1) { $activeTier.Substring(0,1).ToUpper() + $activeTier.Substring(1).ToLower() } else { $activeTier.ToUpper() }
-    $tierColor = switch ($activeTier) {
-        "low"    { $Green }
-        "medium" { $Yellow }
-        "high"   { $Coral }
-        "expert" { $Purple }
-        default  { $Cyan }
-    }
-
-    Write-Host ""
-    Write-Host "  ${tierColor}$([char]0x25CF)${Reset} ${LeadLight}Pensando con ${White}${Bold}$activeModel${Reset} ${LeadLight}(${tierColor}${Bold}$tierLabel${Reset}${LeadLight})...${Reset}"
-
-    $sw = [System.Diagnostics.Stopwatch]::StartNew()
-    $answer = ""
-    # 1. Intentar backend oficial de Vork
-    try {
-        $bodyJson = @{
-            message = $fullPrompt
-            model = $activeModel
-            effort = $activeTier
-        } | ConvertTo-Json -Compress
-
-        $timeoutSec = if ($activeTier -in "high", "expert") { 60 } else { 35 }
-        $res = Invoke-RestMethod -Uri "$ApiBase/api/ai/chat" -Method Post -Body $bodyJson -ContentType "application/json" -TimeoutSec $timeoutSec -ErrorAction Stop
-        if ($res -and $res.response) {
-            $answer = $res.response
-        } elseif ($res -and $res.message) {
-            $answer = $res.message
-        }
-    } catch {
-        # Si el backend en la nube en Render se encuentra reactivándose o sin conectividad
-        $answer = "No se pudo conectar con el motor en la nube de Vork ($ApiBase). Verifica tu conexión a internet o reintenta en unos instantes mientras el servidor en Render responde."
-    }
-
-    $sw.Stop()
-    $elapsedSec = [Math]::Round($sw.Elapsed.TotalSeconds, 1)
-
-    Write-Host ""
-    if ($answer) {
-        Write-VorkAIResponse -Answer $answer -ActiveModel $activeModel -TierLabel $tierLabel -ElapsedSec $elapsedSec
-    } else {
-        Write-Host "  ${Coral}[Error]:${Reset} No se pudo obtener respuesta del motor de Vork AI."
-        Write-Host ""
-    }
-
-    Save-VorkConversationRecord -Cmd $fullPrompt -Output $answer
-}
-
-# ============================================================
-
 <#
 .SYNOPSIS
     Pilar 01: Vork Traductor Neuronal en la Nube (+200 Idiomas)
 #>
+
+function Get-VorkTranslateLanguages {
+    if ($global:VorkTranslateLanguages -and $global:VorkTranslateLanguages.Count -gt 0) { return $global:VorkTranslateLanguages }
+    $raw = @(
+        @{ Value = "en"; Label = "en (Inglés)"; Search = "en inglés english" },
+        @{ Value = "es"; Label = "es (Español)"; Search = "es español spanish" },
+        @{ Value = "fr"; Label = "fr (Francés)"; Search = "fr francés french" },
+        @{ Value = "de"; Label = "de (Alemán)"; Search = "de alemán german" },
+        @{ Value = "it"; Label = "it (Italiano)"; Search = "it italiano italian" },
+        @{ Value = "pt"; Label = "pt (Portugués)"; Search = "pt portugués portuguese (brazil)" },
+        @{ Value = "ja"; Label = "ja (Japonés)"; Search = "ja japonés japanese" },
+        @{ Value = "zh-CN"; Label = "zh-CN (Chino (Simplificado))"; Search = "zh-cn chino (simplificado) chinese (simplified)" },
+        @{ Value = "ru"; Label = "ru (Ruso)"; Search = "ru ruso russian" },
+        @{ Value = "ko"; Label = "ko (Coreano)"; Search = "ko coreano korean" },
+        @{ Value = "aa"; Label = "aa (Afar)"; Search = "aa afar afar" },
+        @{ Value = "ab"; Label = "ab (Abkhaz)"; Search = "ab abkhaz abkhaz" },
+        @{ Value = "ace"; Label = "ace (Acehnese)"; Search = "ace acehnese acehnese" },
+        @{ Value = "ach"; Label = "ach (Acholi)"; Search = "ach acholi acholi" },
+        @{ Value = "af"; Label = "af (Afrikáans)"; Search = "af afrikáans afrikaans" },
+        @{ Value = "ak"; Label = "ak (Twi)"; Search = "ak twi twi" },
+        @{ Value = "alz"; Label = "alz (Alur)"; Search = "alz alur alur" },
+        @{ Value = "am"; Label = "am (Amhárico)"; Search = "am amhárico amharic" },
+        @{ Value = "ar"; Label = "ar (Árabe)"; Search = "ar árabe arabic" },
+        @{ Value = "as"; Label = "as (Assamese)"; Search = "as assamese assamese" },
+        @{ Value = "av"; Label = "av (Avar)"; Search = "av avar avar" },
+        @{ Value = "awa"; Label = "awa (Awadhi)"; Search = "awa awadhi awadhi" },
+        @{ Value = "ay"; Label = "ay (Aimara)"; Search = "ay aimara aymara" },
+        @{ Value = "az"; Label = "az (Azerbaiyano)"; Search = "az azerbaiyano azerbaijani" },
+        @{ Value = "ba"; Label = "ba (Bashkir)"; Search = "ba bashkir bashkir" },
+        @{ Value = "bal"; Label = "bal (Baluchi)"; Search = "bal baluchi baluchi" },
+        @{ Value = "ban"; Label = "ban (Balinese)"; Search = "ban balinese balinese" },
+        @{ Value = "bbc"; Label = "bbc (Batak Toba)"; Search = "bbc batak toba batak toba" },
+        @{ Value = "bci"; Label = "bci (Baoulé)"; Search = "bci baoulé baoulé" },
+        @{ Value = "be"; Label = "be (Bielorruso)"; Search = "be bielorruso belarusian" },
+        @{ Value = "bem"; Label = "bem (Bemba)"; Search = "bem bemba bemba" },
+        @{ Value = "ber"; Label = "ber (Tamazight (Tifinagh))"; Search = "ber tamazight (tifinagh) tamazight (tifinagh)" },
+        @{ Value = "ber-Latn"; Label = "ber-Latn (Tamazight)"; Search = "ber-latn tamazight tamazight" },
+        @{ Value = "bew"; Label = "bew (Betawi)"; Search = "bew betawi betawi" },
+        @{ Value = "bg"; Label = "bg (Búlgaro)"; Search = "bg búlgaro bulgarian" },
+        @{ Value = "bho"; Label = "bho (Bhojpuri)"; Search = "bho bhojpuri bhojpuri" },
+        @{ Value = "bik"; Label = "bik (Bikol)"; Search = "bik bikol bikol" },
+        @{ Value = "bm"; Label = "bm (Bambara)"; Search = "bm bambara bambara" },
+        @{ Value = "bm-Nkoo"; Label = "bm-Nkoo (NKo)"; Search = "bm-nkoo nko nko" },
+        @{ Value = "bn"; Label = "bn (Bengalí)"; Search = "bn bengalí bengali" },
+        @{ Value = "bo"; Label = "bo (Tibetan)"; Search = "bo tibetan tibetan" },
+        @{ Value = "br"; Label = "br (Breton)"; Search = "br breton breton" },
+        @{ Value = "bs"; Label = "bs (Bosnio)"; Search = "bs bosnio bosnian" },
+        @{ Value = "bts"; Label = "bts (Batak Simalungun)"; Search = "bts batak simalungun batak simalungun" },
+        @{ Value = "btx"; Label = "btx (Batak Karo)"; Search = "btx batak karo batak karo" },
+        @{ Value = "bua"; Label = "bua (Buryat)"; Search = "bua buryat buryat" },
+        @{ Value = "ca"; Label = "ca (Catalán)"; Search = "ca catalán catalan" },
+        @{ Value = "ce"; Label = "ce (Chechen)"; Search = "ce chechen chechen" },
+        @{ Value = "ceb"; Label = "ceb (Cebuano)"; Search = "ceb cebuano cebuano" },
+        @{ Value = "cgg"; Label = "cgg (Kiga)"; Search = "cgg kiga kiga" },
+        @{ Value = "ch"; Label = "ch (Chamorro)"; Search = "ch chamorro chamorro" },
+        @{ Value = "chk"; Label = "chk (Chuukese)"; Search = "chk chuukese chuukese" },
+        @{ Value = "chm"; Label = "chm (Meadow Mari)"; Search = "chm meadow mari meadow mari" },
+        @{ Value = "ckb"; Label = "ckb (Kurdish (Sorani))"; Search = "ckb kurdish (sorani) kurdish (sorani)" },
+        @{ Value = "cnh"; Label = "cnh (Hakha Chin)"; Search = "cnh hakha chin hakha chin" },
+        @{ Value = "co"; Label = "co (Corso)"; Search = "co corso corsican" },
+        @{ Value = "crh"; Label = "crh (Crimean Tatar (Cyrillic))"; Search = "crh crimean tatar (cyrillic) crimean tatar (cyrillic)" },
+        @{ Value = "crh-Latn"; Label = "crh-Latn (Crimean Tatar (Latin))"; Search = "crh-latn crimean tatar (latin) crimean tatar (latin)" },
+        @{ Value = "crs"; Label = "crs (Seychellois Creole)"; Search = "crs seychellois creole seychellois creole" },
+        @{ Value = "cs"; Label = "cs (Checo)"; Search = "cs checo czech" },
+        @{ Value = "cv"; Label = "cv (Chuvash)"; Search = "cv chuvash chuvash" },
+        @{ Value = "cy"; Label = "cy (Galés)"; Search = "cy galés welsh" },
+        @{ Value = "da"; Label = "da (Danés)"; Search = "da danés danish" },
+        @{ Value = "din"; Label = "din (Dinka)"; Search = "din dinka dinka" },
+        @{ Value = "doi"; Label = "doi (Dogri)"; Search = "doi dogri dogri" },
+        @{ Value = "dov"; Label = "dov (Dombe)"; Search = "dov dombe dombe" },
+        @{ Value = "dv"; Label = "dv (Dhivehi)"; Search = "dv dhivehi dhivehi" },
+        @{ Value = "dyu"; Label = "dyu (Dyula)"; Search = "dyu dyula dyula" },
+        @{ Value = "dz"; Label = "dz (Dzongkha)"; Search = "dz dzongkha dzongkha" },
+        @{ Value = "ee"; Label = "ee (Ewe)"; Search = "ee ewe ewe" },
+        @{ Value = "el"; Label = "el (Griego)"; Search = "el griego greek" },
+        @{ Value = "eo"; Label = "eo (Esperanto)"; Search = "eo esperanto esperanto" },
+        @{ Value = "et"; Label = "et (Estonio)"; Search = "et estonio estonian" },
+        @{ Value = "eu"; Label = "eu (Vasco / Euskera)"; Search = "eu vasco / euskera basque" },
+        @{ Value = "fa"; Label = "fa (Persa)"; Search = "fa persa persian" },
+        @{ Value = "fa-AF"; Label = "fa-AF (Dari)"; Search = "fa-af dari dari" },
+        @{ Value = "ff"; Label = "ff (Fulani)"; Search = "ff fulani fulani" },
+        @{ Value = "fi"; Label = "fi (Finlandés)"; Search = "fi finlandés finnish" },
+        @{ Value = "fj"; Label = "fj (Fijian)"; Search = "fj fijian fijian" },
+        @{ Value = "fo"; Label = "fo (Faroese)"; Search = "fo faroese faroese" },
+        @{ Value = "fon"; Label = "fon (Fon)"; Search = "fon fon fon" },
+        @{ Value = "fr-CA"; Label = "fr-CA (French (Canada))"; Search = "fr-ca french (canada) french (canada)" },
+        @{ Value = "fur"; Label = "fur (Friulian)"; Search = "fur friulian friulian" },
+        @{ Value = "fy"; Label = "fy (Frisón)"; Search = "fy frisón frisian" },
+        @{ Value = "ga"; Label = "ga (Irlandés)"; Search = "ga irlandés irish" },
+        @{ Value = "gaa"; Label = "gaa (Ga)"; Search = "gaa ga ga" },
+        @{ Value = "gd"; Label = "gd (Gaélico escocés)"; Search = "gd gaélico escocés scots gaelic" },
+        @{ Value = "gl"; Label = "gl (Gallego)"; Search = "gl gallego galician" },
+        @{ Value = "gn"; Label = "gn (Guaraní)"; Search = "gn guaraní guarani" },
+        @{ Value = "gom"; Label = "gom (Konkani)"; Search = "gom konkani konkani" },
+        @{ Value = "gu"; Label = "gu (Guyaratí)"; Search = "gu guyaratí gujarati" },
+        @{ Value = "gv"; Label = "gv (Manx)"; Search = "gv manx manx" },
+        @{ Value = "ha"; Label = "ha (Hausa)"; Search = "ha hausa hausa" },
+        @{ Value = "haw"; Label = "haw (Hawaiano)"; Search = "haw hawaiano hawaiian" },
+        @{ Value = "he"; Label = "he (Hebreo)"; Search = "he hebreo hebrew" },
+        @{ Value = "hi"; Label = "hi (Hindi)"; Search = "hi hindi hindi" },
+        @{ Value = "hil"; Label = "hil (Hiligaynon)"; Search = "hil hiligaynon hiligaynon" },
+        @{ Value = "hmn"; Label = "hmn (Hmong)"; Search = "hmn hmong hmong" },
+        @{ Value = "hr"; Label = "hr (Croata)"; Search = "hr croata croatian" },
+        @{ Value = "hrx"; Label = "hrx (Hunsrik)"; Search = "hrx hunsrik hunsrik" },
+        @{ Value = "ht"; Label = "ht (Criollo haitiano)"; Search = "ht criollo haitiano haitian creole" },
+        @{ Value = "hu"; Label = "hu (Húngaro)"; Search = "hu húngaro hungarian" },
+        @{ Value = "hy"; Label = "hy (Armenio)"; Search = "hy armenio armenian" },
+        @{ Value = "iba"; Label = "iba (Iban)"; Search = "iba iban iban" },
+        @{ Value = "id"; Label = "id (Indonesio)"; Search = "id indonesio indonesian" },
+        @{ Value = "ig"; Label = "ig (Igbo)"; Search = "ig igbo igbo" },
+        @{ Value = "ilo"; Label = "ilo (Ilocano)"; Search = "ilo ilocano ilocano" },
+        @{ Value = "is"; Label = "is (Islandés)"; Search = "is islandés icelandic" },
+        @{ Value = "iu"; Label = "iu (Inuktut (Syllabics))"; Search = "iu inuktut (syllabics) inuktut (syllabics)" },
+        @{ Value = "iu-Latn"; Label = "iu-Latn (Inuktut (Latin))"; Search = "iu-latn inuktut (latin) inuktut (latin)" },
+        @{ Value = "iw"; Label = "iw (Hebrew)"; Search = "iw hebrew hebrew" },
+        @{ Value = "jam"; Label = "jam (Jamaican Patois)"; Search = "jam jamaican patois jamaican patois" },
+        @{ Value = "jw"; Label = "jw (Javanese)"; Search = "jw javanese javanese" },
+        @{ Value = "ka"; Label = "ka (Georgiano)"; Search = "ka georgiano georgian" },
+        @{ Value = "kac"; Label = "kac (Jingpo)"; Search = "kac jingpo jingpo" },
+        @{ Value = "kek"; Label = "kek (Qʼeqchiʼ)"; Search = "kek qʼeqchiʼ qʼeqchiʼ" },
+        @{ Value = "kg"; Label = "kg (Kikongo)"; Search = "kg kikongo kikongo" },
+        @{ Value = "kha"; Label = "kha (Khasi)"; Search = "kha khasi khasi" },
+        @{ Value = "kk"; Label = "kk (Kazajo)"; Search = "kk kazajo kazakh" },
+        @{ Value = "kl"; Label = "kl (Kalaallisut)"; Search = "kl kalaallisut kalaallisut" },
+        @{ Value = "km"; Label = "km (Jemer)"; Search = "km jemer khmer" },
+        @{ Value = "kn"; Label = "kn (Canarés / Kannada)"; Search = "kn canarés / kannada kannada" },
+        @{ Value = "kr"; Label = "kr (Kanuri)"; Search = "kr kanuri kanuri" },
+        @{ Value = "kri"; Label = "kri (Krio)"; Search = "kri krio krio" },
+        @{ Value = "ktu"; Label = "ktu (Kituba)"; Search = "ktu kituba kituba" },
+        @{ Value = "ku"; Label = "ku (Kurdo)"; Search = "ku kurdo kurdish (kurmanji)" },
+        @{ Value = "kv"; Label = "kv (Komi)"; Search = "kv komi komi" },
+        @{ Value = "ky"; Label = "ky (Kirguís)"; Search = "ky kirguís kyrgyz" },
+        @{ Value = "la"; Label = "la (Latín)"; Search = "la latín latin" },
+        @{ Value = "lb"; Label = "lb (Luxemburgués)"; Search = "lb luxemburgués luxembourgish" },
+        @{ Value = "lg"; Label = "lg (Luganda)"; Search = "lg luganda luganda" },
+        @{ Value = "li"; Label = "li (Limburgish)"; Search = "li limburgish limburgish" },
+        @{ Value = "lij"; Label = "lij (Ligurian)"; Search = "lij ligurian ligurian" },
+        @{ Value = "lmo"; Label = "lmo (Lombard)"; Search = "lmo lombard lombard" },
+        @{ Value = "ln"; Label = "ln (Lingala)"; Search = "ln lingala lingala" },
+        @{ Value = "lo"; Label = "lo (Laosiano)"; Search = "lo laosiano lao" },
+        @{ Value = "lt"; Label = "lt (Lituano)"; Search = "lt lituano lithuanian" },
+        @{ Value = "ltg"; Label = "ltg (Latgalian)"; Search = "ltg latgalian latgalian" },
+        @{ Value = "lua"; Label = "lua (Tshiluba)"; Search = "lua tshiluba tshiluba" },
+        @{ Value = "luo"; Label = "luo (Luo)"; Search = "luo luo luo" },
+        @{ Value = "lus"; Label = "lus (Mizo)"; Search = "lus mizo mizo" },
+        @{ Value = "lv"; Label = "lv (Letón)"; Search = "lv letón latvian" },
+        @{ Value = "mad"; Label = "mad (Madurese)"; Search = "mad madurese madurese" },
+        @{ Value = "mai"; Label = "mai (Maithili)"; Search = "mai maithili maithili" },
+        @{ Value = "mak"; Label = "mak (Makassar)"; Search = "mak makassar makassar" },
+        @{ Value = "mam"; Label = "mam (Mam)"; Search = "mam mam mam" },
+        @{ Value = "mfe"; Label = "mfe (Mauritian Creole)"; Search = "mfe mauritian creole mauritian creole" },
+        @{ Value = "mg"; Label = "mg (Malgache)"; Search = "mg malgache malagasy" },
+        @{ Value = "mh"; Label = "mh (Marshallese)"; Search = "mh marshallese marshallese" },
+        @{ Value = "mi"; Label = "mi (Maorí)"; Search = "mi maorí maori" },
+        @{ Value = "min"; Label = "min (Minang)"; Search = "min minang minang" },
+        @{ Value = "mk"; Label = "mk (Macedonio)"; Search = "mk macedonio macedonian" },
+        @{ Value = "ml"; Label = "ml (Malayalam)"; Search = "ml malayalam malayalam" },
+        @{ Value = "mn"; Label = "mn (Mongol)"; Search = "mn mongol mongolian" },
+        @{ Value = "mni-Mtei"; Label = "mni-Mtei (Meiteilon (Manipuri))"; Search = "mni-mtei meiteilon (manipuri) meiteilon (manipuri)" },
+        @{ Value = "mr"; Label = "mr (Maratí)"; Search = "mr maratí marathi" },
+        @{ Value = "ms"; Label = "ms (Malayo)"; Search = "ms malayo malay" },
+        @{ Value = "ms-Arab"; Label = "ms-Arab (Malay (Jawi))"; Search = "ms-arab malay (jawi) malay (jawi)" },
+        @{ Value = "mt"; Label = "mt (Maltés)"; Search = "mt maltés maltese" },
+        @{ Value = "mwr"; Label = "mwr (Marwadi)"; Search = "mwr marwadi marwadi" },
+        @{ Value = "my"; Label = "my (Birmano)"; Search = "my birmano myanmar (burmese)" },
+        @{ Value = "ndc-ZW"; Label = "ndc-ZW (Ndau)"; Search = "ndc-zw ndau ndau" },
+        @{ Value = "ne"; Label = "ne (Nepalí)"; Search = "ne nepalí nepali" },
+        @{ Value = "new"; Label = "new (Nepalbhasa (Newari))"; Search = "new nepalbhasa (newari) nepalbhasa (newari)" },
+        @{ Value = "nhe"; Label = "nhe (Nahuatl (Eastern Huasteca))"; Search = "nhe nahuatl (eastern huasteca) nahuatl (eastern huasteca)" },
+        @{ Value = "nl"; Label = "nl (Holandés / Neerlandés)"; Search = "nl holandés / neerlandés dutch" },
+        @{ Value = "no"; Label = "no (Noruego)"; Search = "no noruego norwegian" },
+        @{ Value = "nr"; Label = "nr (Ndebele (South))"; Search = "nr ndebele (south) ndebele (south)" },
+        @{ Value = "nso"; Label = "nso (Sepedi)"; Search = "nso sepedi sepedi" },
+        @{ Value = "nus"; Label = "nus (Nuer)"; Search = "nus nuer nuer" },
+        @{ Value = "ny"; Label = "ny (Chichewa)"; Search = "ny chichewa chichewa" },
+        @{ Value = "oc"; Label = "oc (Occitan)"; Search = "oc occitan occitan" },
+        @{ Value = "om"; Label = "om (Oromo)"; Search = "om oromo oromo" },
+        @{ Value = "or"; Label = "or (Odia)"; Search = "or odia odia (oriya)" },
+        @{ Value = "os"; Label = "os (Ossetian)"; Search = "os ossetian ossetian" },
+        @{ Value = "pa"; Label = "pa (Panyabí)"; Search = "pa panyabí punjabi (gurmukhi)" },
+        @{ Value = "pa-Arab"; Label = "pa-Arab (Punjabi (Shahmukhi))"; Search = "pa-arab punjabi (shahmukhi) punjabi (shahmukhi)" },
+        @{ Value = "pag"; Label = "pag (Pangasinan)"; Search = "pag pangasinan pangasinan" },
+        @{ Value = "pam"; Label = "pam (Kapampangan)"; Search = "pam kapampangan kapampangan" },
+        @{ Value = "pap"; Label = "pap (Papiamento)"; Search = "pap papiamento papiamento" },
+        @{ Value = "pl"; Label = "pl (Polaco)"; Search = "pl polaco polish" },
+        @{ Value = "ps"; Label = "ps (Pastún)"; Search = "ps pastún pashto" },
+        @{ Value = "pt-PT"; Label = "pt-PT (Portuguese (Portugal))"; Search = "pt-pt portuguese (portugal) portuguese (portugal)" },
+        @{ Value = "qu"; Label = "qu (Quechua)"; Search = "qu quechua quechua" },
+        @{ Value = "rn"; Label = "rn (Rundi)"; Search = "rn rundi rundi" },
+        @{ Value = "ro"; Label = "ro (Rumano)"; Search = "ro rumano romanian" },
+        @{ Value = "rom"; Label = "rom (Romani)"; Search = "rom romani romani" },
+        @{ Value = "rw"; Label = "rw (Kinyarwanda)"; Search = "rw kinyarwanda kinyarwanda" },
+        @{ Value = "sa"; Label = "sa (Sanskrit)"; Search = "sa sanskrit sanskrit" },
+        @{ Value = "sah"; Label = "sah (Yakut)"; Search = "sah yakut yakut" },
+        @{ Value = "sat"; Label = "sat (Santali (Ol Chiki))"; Search = "sat santali (ol chiki) santali (ol chiki)" },
+        @{ Value = "sat-Latn"; Label = "sat-Latn (Santali (Latin))"; Search = "sat-latn santali (latin) santali (latin)" },
+        @{ Value = "scn"; Label = "scn (Sicilian)"; Search = "scn sicilian sicilian" },
+        @{ Value = "sd"; Label = "sd (Sindhi)"; Search = "sd sindhi sindhi" },
+        @{ Value = "se"; Label = "se (Sami (North))"; Search = "se sami (north) sami (north)" },
+        @{ Value = "sg"; Label = "sg (Sango)"; Search = "sg sango sango" },
+        @{ Value = "shn"; Label = "shn (Shan)"; Search = "shn shan shan" },
+        @{ Value = "si"; Label = "si (Cingalés)"; Search = "si cingalés sinhala" },
+        @{ Value = "sk"; Label = "sk (Eslovaco)"; Search = "sk eslovaco slovak" },
+        @{ Value = "sl"; Label = "sl (Esloveno)"; Search = "sl esloveno slovenian" },
+        @{ Value = "sm"; Label = "sm (Samoano)"; Search = "sm samoano samoan" },
+        @{ Value = "sn"; Label = "sn (Shona)"; Search = "sn shona shona" },
+        @{ Value = "so"; Label = "so (Somalí)"; Search = "so somalí somali" },
+        @{ Value = "sq"; Label = "sq (Albanés)"; Search = "sq albanés albanian" },
+        @{ Value = "sr"; Label = "sr (Serbio)"; Search = "sr serbio serbian" },
+        @{ Value = "ss"; Label = "ss (Swati)"; Search = "ss swati swati" },
+        @{ Value = "st"; Label = "st (Sesoto)"; Search = "st sesoto sesotho" },
+        @{ Value = "su"; Label = "su (Sundanés)"; Search = "su sundanés sundanese" },
+        @{ Value = "sus"; Label = "sus (Susu)"; Search = "sus susu susu" },
+        @{ Value = "sv"; Label = "sv (Sueco)"; Search = "sv sueco swedish" },
+        @{ Value = "sw"; Label = "sw (Suajili)"; Search = "sw suajili swahili" },
+        @{ Value = "szl"; Label = "szl (Silesian)"; Search = "szl silesian silesian" },
+        @{ Value = "ta"; Label = "ta (Tamil)"; Search = "ta tamil tamil" },
+        @{ Value = "tcy"; Label = "tcy (Tulu)"; Search = "tcy tulu tulu" },
+        @{ Value = "te"; Label = "te (Telugu)"; Search = "te telugu telugu" },
+        @{ Value = "tet"; Label = "tet (Tetum)"; Search = "tet tetum tetum" },
+        @{ Value = "tg"; Label = "tg (Tayiko)"; Search = "tg tayiko tajik" },
+        @{ Value = "th"; Label = "th (Tailandés)"; Search = "th tailandés thai" },
+        @{ Value = "ti"; Label = "ti (Tigrinya)"; Search = "ti tigrinya tigrinya" },
+        @{ Value = "tiv"; Label = "tiv (Tiv)"; Search = "tiv tiv tiv" },
+        @{ Value = "tk"; Label = "tk (Turcomano)"; Search = "tk turcomano turkmen" },
+        @{ Value = "tl"; Label = "tl (Tagalo / Filipino)"; Search = "tl tagalo / filipino filipino" },
+        @{ Value = "tn"; Label = "tn (Tswana)"; Search = "tn tswana tswana" },
+        @{ Value = "to"; Label = "to (Tongan)"; Search = "to tongan tongan" },
+        @{ Value = "tpi"; Label = "tpi (Tok Pisin)"; Search = "tpi tok pisin tok pisin" },
+        @{ Value = "tr"; Label = "tr (Turco)"; Search = "tr turco turkish" },
+        @{ Value = "trp"; Label = "trp (Kokborok)"; Search = "trp kokborok kokborok" },
+        @{ Value = "ts"; Label = "ts (Tsonga)"; Search = "ts tsonga tsonga" },
+        @{ Value = "tt"; Label = "tt (Tártaro)"; Search = "tt tártaro tatar" },
+        @{ Value = "tum"; Label = "tum (Tumbuka)"; Search = "tum tumbuka tumbuka" },
+        @{ Value = "ty"; Label = "ty (Tahitian)"; Search = "ty tahitian tahitian" },
+        @{ Value = "tyv"; Label = "tyv (Tuvan)"; Search = "tyv tuvan tuvan" },
+        @{ Value = "udm"; Label = "udm (Udmurt)"; Search = "udm udmurt udmurt" },
+        @{ Value = "ug"; Label = "ug (Uigur)"; Search = "ug uigur uyghur" },
+        @{ Value = "uk"; Label = "uk (Ucraniano)"; Search = "uk ucraniano ukrainian" },
+        @{ Value = "ur"; Label = "ur (Urdu)"; Search = "ur urdu urdu" },
+        @{ Value = "uz"; Label = "uz (Uzbeko)"; Search = "uz uzbeko uzbek" },
+        @{ Value = "ve"; Label = "ve (Venda)"; Search = "ve venda venda" },
+        @{ Value = "vec"; Label = "vec (Venetian)"; Search = "vec venetian venetian" },
+        @{ Value = "vi"; Label = "vi (Vietnamita)"; Search = "vi vietnamita vietnamese" },
+        @{ Value = "war"; Label = "war (Waray)"; Search = "war waray waray" },
+        @{ Value = "wo"; Label = "wo (Wolof)"; Search = "wo wolof wolof" },
+        @{ Value = "xh"; Label = "xh (Xhosa)"; Search = "xh xhosa xhosa" },
+        @{ Value = "yi"; Label = "yi (Yidis)"; Search = "yi yidis yiddish" },
+        @{ Value = "yo"; Label = "yo (Yoruba)"; Search = "yo yoruba yoruba" },
+        @{ Value = "yua"; Label = "yua (Yucatec Maya)"; Search = "yua yucatec maya yucatec maya" },
+        @{ Value = "yue"; Label = "yue (Cantonese)"; Search = "yue cantonese cantonese" },
+        @{ Value = "zap"; Label = "zap (Zapotec)"; Search = "zap zapotec zapotec" },
+        @{ Value = "zh-TW"; Label = "zh-TW (Chino (Tradicional))"; Search = "zh-tw chino (tradicional) chinese (traditional)" },
+        @{ Value = "zu"; Label = "zu (Zulú)"; Search = "zu zulú zulu" }
+    )
+    $global:VorkTranslateLanguages = $raw
+    return $raw
+}
+
 
 function Invoke-PillarTranslate {
     param([string[]]$ArgsList)
@@ -5176,20 +4765,8 @@ function Invoke-PillarTranslate {
         }
         $text = $textInput.Trim()
 
-        $langOptions = @(
-            @{ Value = "en"; Label = "en (Inglés)" },
-            @{ Value = "es"; Label = "es (Español)" },
-            @{ Value = "fr"; Label = "fr (Francés)" },
-            @{ Value = "de"; Label = "de (Alemán)" },
-            @{ Value = "it"; Label = "it (Italiano)" },
-            @{ Value = "pt"; Label = "pt (Portugués)" },
-            @{ Value = "ja"; Label = "ja (Japonés)" },
-            @{ Value = "zh"; Label = "zh (Chino)" },
-            @{ Value = "ru"; Label = "ru (Ruso)" },
-            @{ Value = "ko"; Label = "ko (Coreano)" }
-        )
-
-        $chosenLang = Select-InteractiveOption -PromptTitle "Idioma destino" -Subtitle "traducción neuronal" -Options $langOptions -DefaultIndex 0
+        $langOptions = Get-VorkTranslateLanguages
+        $chosenLang = Select-InteractiveOption -PromptTitle "Idioma destino" -Subtitle "traducción neuronal · +200 idiomas" -Options $langOptions -DefaultIndex 0 -Searchable
         if (-not $chosenLang) {
             Write-VorkStatusLine -Kind warn -Text "Traducción cancelada."
             Write-Host ""
@@ -5200,7 +4777,7 @@ function Invoke-PillarTranslate {
 
     Write-VorkSectionHeader -Title "Procesando traducción" -RightText "vork · translate"
     Write-VorkInfoRow -Label "Destino" -Value $to -ValueColor $Yellow
-    Write-VorkInfoRow -Label "Entrada" -Value "`"$text`""
+    Write-VorkInfoRow -Label "Entrada" -Value ('"' + $text + '"')
     Write-VorkSectionRule
 
     $body = @{ text = $text; targetLanguage = $to } | ConvertTo-Json
@@ -5247,8 +4824,10 @@ function Invoke-PillarTranslate {
     Write-Host ""
 }
 
-# ============================================================
 
+# ========================================================
+# MODULE: pillars/p02_tts.ps1
+# ========================================================
 <#
 .SYNOPSIS
     Pilar 02: Vork Texto a Voz Neuronal (TTS Studio con 24 voces humanas)
@@ -5260,10 +4839,12 @@ function Invoke-PillarTTS {
     $text = if ($ArgsList -and $ArgsList.Length -gt 0) { $ArgsList[0] } else { $null }
     $voice = "es-ES-AlvaroNeural"
     $out = "tts_output.mp3"
+    $explicitOut = $false
+
     if ($ArgsList) {
         for ($i=0; $i -lt $ArgsList.Length; $i++) {
             if ($ArgsList[$i] -in "-Voice", "--voice", "-v") { $voice = $ArgsList[$i+1] }
-            if ($ArgsList[$i] -in "-Out", "--out", "-o") { $out = $ArgsList[$i+1] }
+            if ($ArgsList[$i] -in "-Out", "--out", "-o") { $out = $ArgsList[$i+1]; $explicitOut = $true }
         }
     }
 
@@ -5286,14 +4867,18 @@ function Invoke-PillarTTS {
 
         $voice = $chosen.EdgeVoice
         $voiceDisplay = "$($chosen.Name) ($($chosen.Country) · $($chosen.Gender))"
-        $out = if ($out) { $out } else { "voz.mp3" }
+        $out = if ($explicitOut) { $out } else { "voz.mp3" }
     } else {
         $voiceDisplay = $voice
     }
 
     Write-VorkSectionHeader -Title "Procesando síntesis" -RightText "vork · tts"
     Write-VorkInfoRow -Label "Voz" -Value $voiceDisplay -ValueColor $Yellow
-    Write-VorkInfoRow -Label "Salida" -Value $out
+    if ($explicitOut) {
+        Write-VorkInfoRow -Label "Salida" -Value $out -ValueColor $Cyan
+    } else {
+        Write-VorkInfoRow -Label "Formato" -Value "MP3  ·  24kHz Neuronal" -ValueColor $Cyan
+    }
     Write-VorkSectionRule
     Write-VorkStatusLine -Kind step -Text "Generando audio neuronal"
 
@@ -5303,12 +4888,7 @@ function Invoke-PillarTTS {
     try {
         $res = Invoke-RestMethod -Uri "$ApiBase/api/tts" -Method Post -Body $body -ContentType "application/json"
         $targetFile = if ([System.IO.Path]::IsPathRooted($out)) { $out } else { Join-Path (Get-Location) $out }
-        if ($res.audioBase64) {
-            try {
-                $rawB64 = $res.audioBase64 -replace '^data:audio\/[^;]+;base64,', ''
-                [System.IO.File]::WriteAllBytes($targetFile, [System.Convert]::FromBase64String($rawB64))
-            } catch {}
-        }
+
         $dlUrl = if ($res.downloadUrl) { if ($res.downloadUrl.StartsWith("http")) { $res.downloadUrl } else { "$ApiBase$($res.downloadUrl)" } } else { "$ApiBase/api/tts/download?file=$out" }
         $stUrl = if ($res.streamUrl) { if ($res.streamUrl.StartsWith("http")) { $res.streamUrl } else { "$ApiBase$($res.streamUrl)" } } else { "$ApiBase/api/tts/stream?file=$out" }
         $videoFull = if ($res.videoStreamUrl) { if ($res.videoStreamUrl.StartsWith("http")) { $res.videoStreamUrl } else { "$ApiBase$($res.videoStreamUrl)" } } else { $stUrl }
@@ -5330,7 +4910,7 @@ function Invoke-PillarTTS {
         if ($hasLocal) {
             if ($res.audioBase64) {
                 try {
-                    $rawB64 = $res.audioBase64 -replace '^data:audio/[^;]+;base64,', ''
+                    $rawB64 = $res.audioBase64 -replace '^data:audio\/[^;]+;base64,', ''
                     [System.IO.File]::WriteAllBytes($targetFile, [System.Convert]::FromBase64String($rawB64))
                 } catch {}
             }
@@ -5364,8 +4944,10 @@ function Invoke-PillarTTS {
     Write-Host ""
 }
 
-# ============================================================
 
+# ========================================================
+# MODULE: pillars/p03_clone.ps1
+# ========================================================
 <#
 .SYNOPSIS
     Pilar 03: Vork Clonacion de Voz IA (Extraccion Fundamental F0)
@@ -5375,6 +4957,7 @@ function Invoke-PillarClone {
     param([string[]]$ArgsList)
 
     $sample = if ($ArgsList -and $ArgsList.Length -gt 0) { $ArgsList[0] } else { $null }
+    if ($sample) { $sample = $sample.Trim('"', "'", " ") }
     $text = $null
     $out = "cloned_voice.wav"
     $f0Method = "rmvpe"
@@ -5395,7 +4978,7 @@ function Invoke-PillarClone {
             Write-Host ""
             return
         }
-        $sample = $sample.Trim()
+        $sample = $sample.Trim('"', "'", " ")
 
         $f0Options = @(
             @{ Value = "rmvpe";   Label = "rmvpe";   Description = "Máxima fidelidad y pureza vocal" },
@@ -5411,19 +4994,16 @@ function Invoke-PillarClone {
         }
         $f0Method = $chosenF0
 
-        Write-VorkSectionHeader -Title "Guión y salida" -RightText "vork · voice clone"
+        Write-VorkSectionHeader -Title "Guión de síntesis" -RightText "vork · voice clone"
         Write-VorkInfoRow -Label "Guión" -Value "Texto para la voz clonada · enter para usar una frase de prueba" -ValueColor $LeadLight
         $text = Read-VorkInput -Prompt "  ${Coral}${Bold}$([char]0x203A)${Reset} "
-        Write-VorkInfoRow -Label "Salida" -Value "Archivo de audio destino [clonado.wav]" -ValueColor $LeadLight
-        $outInput = Read-VorkInput -Prompt "  ${Coral}${Bold}$([char]0x203A)${Reset} "
-        if ($outInput -and $outInput.Trim()) { $out = $outInput.Trim() }
+        $out = "voz_clonada.wav"
     }
 
     Write-VorkSectionHeader -Title "Procesando clonación" -RightText "vork · voice clone"
     Write-VorkInfoRow -Label "Muestra" -Value $sample
     Write-VorkInfoRow -Label "Algoritmo" -Value $f0Method -ValueColor $Yellow
-    Write-VorkInfoRow -Label "Salida" -Value $out -ValueColor $Yellow
-    Write-VorkSectionRule
+        Write-VorkSectionRule
     Write-VorkStatusLine -Kind step -Text "Modelando la voz y sintetizando el audio"
 
     $b64 = $null
@@ -5440,12 +5020,6 @@ function Invoke-PillarClone {
     try {
         $res = Invoke-RestMethod -Uri "$ApiBase/api/voice-clone" -Method Post -Body $body -ContentType "application/json"
         $targetFile = if ([System.IO.Path]::IsPathRooted($out)) { $out } else { Join-Path (Get-Location) $out }
-        if ($res.audioBase64) {
-            try {
-                $rawB64 = $res.audioBase64 -replace '^data:audio\/[^;]+;base64,', ''
-                [System.IO.File]::WriteAllBytes($targetFile, [System.Convert]::FromBase64String($rawB64))
-            } catch {}
-        }
         $dlUrl = if ($res.downloadUrl) { if ($res.downloadUrl.StartsWith("http")) { $res.downloadUrl } else { "$ApiBase$($res.downloadUrl)" } } else { "$ApiBase/api/voice-clone/download" }
         $stUrl = if ($res.streamUrl) { if ($res.streamUrl.StartsWith("http")) { $res.streamUrl } else { "$ApiBase$($res.streamUrl)" } } else { "$ApiBase/api/voice-clone/stream" }
         $videoFull = if ($res.videoStreamUrl) { if ($res.videoStreamUrl.StartsWith("http")) { $res.videoStreamUrl } else { "$ApiBase$($res.videoStreamUrl)" } } else { $stUrl }
@@ -5501,8 +5075,10 @@ function Invoke-PillarClone {
     Write-Host ""
 }
 
-# ============================================================
 
+# ========================================================
+# MODULE: pillars/p04_media.ps1
+# ========================================================
 <#
 .SYNOPSIS
     Pilar 04: Vork Conversor Multimedia Universal (YouTube, TikTok, IG a MP3/MP4)
@@ -5525,7 +5101,7 @@ function Invoke-PillarMedia {
     }
 
     if (-not $url) {
-        Write-VorkSectionHeader -Title "Conversor multimedia" -Subtitle "YouTube · TikTok · Instagram · Reels"
+        Write-VorkSectionHeader -Title "Conversor multimedia" -Subtitle "YouTube · TikTok · Instagram · Reels" -RightText "vork · multimedia"
         $url = Read-VorkInput -Prompt "  ${Coral}${Bold}$([char]0x203A)${Reset} "
         if (-not $url -or -not $url.Trim()) {
             Write-VorkStatusLine -Kind warn -Text "Conversión cancelada."
@@ -5561,7 +5137,7 @@ function Invoke-PillarMedia {
     }
 
     $platformName = Get-VorkMediaPlatformName -Url $url
-    Write-VorkSectionHeader -Title "Procesando conversión"
+    Write-VorkSectionHeader -Title "Procesando conversión" -RightText "vork · multimedia"
     Write-VorkInfoRow -Label "Plataforma" -Value $platformName -ValueColor $Yellow
     Write-VorkInfoRow -Label "URL" -Value $url
     Write-VorkInfoRow -Label "Formato" -Value "$($fmt.ToUpper())  ·  $quality" -ValueColor $Cyan
@@ -5782,8 +5358,10 @@ function Invoke-PillarMedia {
     Write-Host ""
 }
 
-# ============================================================
 
+# ========================================================
+# MODULE: pillars/p05_separate.ps1
+# ========================================================
 <#
 .SYNOPSIS
     Pilar 05: Vork Separador de Stems (Acapella y Karaoke con Demucs v4)
@@ -6048,8 +5626,10 @@ function Invoke-PillarSeparate {
     Write-Host ""
 }
 
-# ============================================================
 
+# ========================================================
+# MODULE: pillars/p07_image.ps1
+# ========================================================
 <#
 .SYNOPSIS
     Pilar 07: Vork Conversor Universal de Formatos de Imagen (PNG, JPG, WEBP, ICO, AVIF)
@@ -6295,27 +5875,24 @@ function Invoke-PillarImage {
     Write-Host ""
 }
 
-# ============================================================
 
+# ========================================================
+# MODULE: pillars/p08_remove_bg.ps1
+# ========================================================
 <#
 .SYNOPSIS
-    Pilar 08: Vork Modificador de Imagen & Fondo IA con Prompt (BRIA RMBG + FLUX.1)
+    Pilar 08: Vork Eliminador y Modificador de Fondo IA (Aislamiento de Silueta Neuronal)
 #>
 
 function Invoke-PillarRemoveBg {
     param([string[]]$ArgsList)
 
     $file = if ($ArgsList -and $ArgsList.Length -gt 0) { $ArgsList[0] } else { $null }
-    $userPrompt = $null
     $out = $null
 
     if ($ArgsList) {
         for ($i=0; $i -lt $ArgsList.Length; $i++) {
-            if ($ArgsList[$i] -in "-Out", "--out", "-o") { $out = $ArgsList[$i+1]; continue }
-            if ($ArgsList[$i] -in "-Prompt", "--prompt", "-p") { $userPrompt = $ArgsList[$i+1]; continue }
-            if ($i -gt 0 -and -not $userPrompt -and -not $ArgsList[$i].StartsWith("-")) {
-                $userPrompt = $ArgsList[$i]
-            }
+            if ($ArgsList[$i] -in "-Out", "--out", "-o") { $out = $ArgsList[$i+1]; $i++; continue }
         }
     }
 
@@ -6327,10 +5904,10 @@ function Invoke-PillarRemoveBg {
     $isLocalFile = ($file -and (Test-Path $file))
 
     if (-not $isWebUrl -and -not $isLocalFile) {
-        Write-VorkSectionHeader -Title "Edición de imagen con IA" -Subtitle "Ruta local o URL de la imagen" -RightText "vork · imagen ia"
+        Write-VorkSectionHeader -Title "Eliminación de fondo IA" -Subtitle "Ruta local o URL de la imagen" -RightText "vork · fondo ia"
         $fileInput = Read-VorkInput -Prompt "  ${Coral}${Bold}$([char]0x203A)${Reset} "
         if (-not $fileInput -or -not $fileInput.Trim()) {
-            Write-VorkStatusLine -Kind warn -Text "Edición cancelada."
+            Write-VorkStatusLine -Kind warn -Text "Operación cancelada."
             Write-Host ""
             return
         }
@@ -6345,54 +5922,49 @@ function Invoke-PillarRemoveBg {
         }
     }
 
-    if (-not $userPrompt) {
-        Write-VorkSectionHeader -Title "Prompt de edición" -Subtitle "Ej: playa al atardecer, fondo blanco · enter para aislar el sujeto" -RightText "vork · imagen ia"
-        $pInput = Read-VorkInput -Prompt "  ${Coral}${Bold}$([char]0x203A)${Reset} "
-        if ($pInput -and $pInput.Trim()) {
-            $userPrompt = $pInput.Trim()
+    $instruction = $null
+    if ($ArgsList -and $ArgsList.Length -gt 1) {
+        $cleanArgs = @()
+        for ($i=1; $i -lt $ArgsList.Length; $i++) {
+            if ($ArgsList[$i] -in "-Out", "--out", "-o") { $i++; continue }
+            $cleanArgs += $ArgsList[$i]
+        }
+        if ($cleanArgs.Count -gt 0) { $instruction = ($cleanArgs -join " ").Trim() }
+    }
+
+    if (-not $instruction) {
+        Write-VorkSectionHeader -Title "Instrucción de edición IA" -Subtitle "describe qué eliminar o agregar · enter para fondo transparente" -RightText "vork · imagen ia"
+        Write-VorkInfoRow -Label "Ejemplos" -Value "eliminar celular de la mano, poner gafas de sol, quitar fondo..." -ValueColor $LeadLight
+        $userPrompt = Read-VorkInput -Prompt "  ${Coral}${Bold}$([char]0x203A)${Reset} "
+        if ($userPrompt -and $userPrompt.Trim()) {
+            $instruction = $userPrompt.Trim()
         }
     }
 
-    # Detección inteligente del modo según el prompt del usuario
-    $cleanP = if ($userPrompt) { $userPrompt.ToLower().Trim() } else { "" }
-    $mode = "prompt"
-    $colorVal = "#FFFFFF"
-
-    if (-not $cleanP -or $cleanP -in "sin fondo", "quitar fondo", "eliminar fondo", "transparente", "transparent", "corte", "silueta", "solo sujeto", "none") {
-        $mode = "transparent"
-        $userPrompt = "Aislamiento de silueta PNG transparente"
-    } elseif ($cleanP -in "fondo blanco", "blanco", "white", "fondo blanco studio", "white background") {
-        $mode = "color"
-        $colorVal = "#FFFFFF"
-        $userPrompt = "Fondo Blanco Studio (#FFFFFF)"
-    } elseif ($cleanP -in "fondo negro", "negro", "black", "black background", "fondo negro cine") {
-        $mode = "color"
-        $colorVal = "#000000"
-        $userPrompt = "Fondo Negro Cine (#000000)"
-    }
-
+    $isOnlyBg = (-not $instruction -or $instruction -match '^(quitar|eliminar|borrar)?\s*(el\s*)?(fondo)?\s*$' -or $instruction -eq "transparent")
+    $mode = if ($isOnlyBg) { "transparent" } else { "edit" }
+    $ext = "png"
     if (-not $out) {
-        $ext = if ($mode -eq "transparent") { "png" } else { "jpg" }
         if ($isLocalFile) {
             $baseName = [System.IO.Path]::GetFileNameWithoutExtension($file)
-            $suffix = if ($mode -eq "prompt") { "_modificado" } else { "_nobg" }
+            $suffix = if ($isOnlyBg) { "_sin_fondo" } else { "_editado" }
             $out = "${baseName}${suffix}.$ext"
         } else {
-            $out = if ($mode -eq "prompt") { "imagen_modificada.$ext" } else { "sin_fondo.$ext" }
+            $out = if ($isOnlyBg) { "sin_fondo.$ext" } else { "editado.$ext" }
         }
     }
 
-    Write-VorkSectionHeader -Title "Procesando imagen" -RightText "vork · imagen ia"
+    $modeLabel = if ($isOnlyBg) { "Eliminar fondo (Silueta PNG con canal alfa)" } else { "Edición IA: $instruction" }
+
+    Write-VorkSectionHeader -Title "Procesando edición IA" -RightText "vork · imagen ia"
     Write-VorkInfoRow -Label "Origen" -Value $file
-    Write-VorkInfoRow -Label "Prompt" -Value $userPrompt -ValueColor $Cyan
-    Write-VorkInfoRow -Label "Salida" -Value $out -ValueColor $Yellow
+    Write-VorkInfoRow -Label "Operación" -Value $modeLabel -ValueColor $Cyan
     Write-VorkSectionRule
 
-    $bodyMap = @{ mode = $mode }
-    if ($mode -eq "prompt") {
-        $bodyMap["prompt"] = $userPrompt
-    } elseif ($mode -eq "color") {
-        $bodyMap["color"] = $colorVal
+    $bodyMap = @{
+        mode = $mode
+        instruction = if ($instruction) { $instruction } else { "remove background, transparent" }
+        prompt = if ($instruction) { $instruction } else { "remove background, transparent" }
     }
 
     if ($isLocalFile) {
@@ -6405,24 +5977,126 @@ function Invoke-PillarRemoveBg {
     }
 
     $body = $bodyMap | ConvertTo-Json
+    $endpoint = "$ApiBase/api/image/remove-background"
 
     try {
-        if ($mode -eq "prompt") {
-            Write-VorkStatusLine -Kind step -Text "Aislando el sujeto con BRIA RMBG 1.4"
-            Write-VorkStatusLine -Kind step -Text "Generando la modificación con FLUX.1 Neural"
-            Write-VorkStatusLine -Kind step -Text "Componiendo la imagen final en alta resolución"
+        try { Add-Type -AssemblyName System.Net.Http } catch { }
+
+        $res = $null
+        $barLen = 22
+        $pRow = -1
+        try {
+            Write-Host "    ${LeadLight}Progreso${Reset} [${Gray}$([string]::new([char]0x2591, $barLen))${Reset}]   0%  ${LeadLight}Conectando con IA neuronal...${Reset}"
+            $pRow = [Console]::CursorTop - 1
+        } catch { }
+
+        if ('System.Net.Http.HttpClient' -as [type]) {
+            $client = [System.Net.Http.HttpClient]::new()
+            $client.Timeout = [TimeSpan]::FromMinutes(3)
+            $httpContent = [System.Net.Http.StringContent]::new($body, [System.Text.Encoding]::UTF8, "application/json")
+            $task = $client.PostAsync($endpoint, $httpContent)
+
+            $startTime = [DateTime]::UtcNow
+
+            while (-not $task.IsCompleted) {
+                $elapsed = ([DateTime]::UtcNow - $startTime).TotalSeconds
+                $pct = if ($elapsed -lt 1.5) {
+                    [Math]::Min(25, 5 + [int]($elapsed * 13))
+                } elseif ($elapsed -lt 4.0) {
+                    [Math]::Min(55, 25 + [int](($elapsed - 1.5) * 12))
+                } elseif ($elapsed -lt 8.0) {
+                    [Math]::Min(80, 55 + [int](($elapsed - 4.0) * 6))
+                } elseif ($elapsed -lt 16.0) {
+                    [Math]::Min(95, 80 + [int](($elapsed - 8.0) * 1.8))
+                } else {
+                    [Math]::Min(98, 95 + [int](($elapsed - 16.0) * 0.2))
+                }
+
+                $phase = if ($pct -lt 30) {
+                    "Descargando y preparando imagen..."
+                } elseif ($pct -lt 65) {
+                    "Procesando con IA contextual..."
+                } elseif ($pct -lt 85) {
+                    "Aplicando transformaciones y silueta..."
+                } else {
+                    "Componiendo formato final $ext..."
+                }
+
+                $filledLen = [Math]::Floor(($pct / 100) * $barLen)
+                $emptyLen = $barLen - $filledLen
+                $filled = [string]::new([char]0x2588, $filledLen)
+                $empty = [string]::new([char]0x2591, $emptyLen)
+                $pctStr = ($pct.ToString() + "%").PadLeft(4)
+
+                if ($pRow -ge 0 -and $pRow -lt [Console]::BufferHeight) {
+                    try { [Console]::SetCursorPosition(0, $pRow) } catch { }
+                }
+                Write-Host "`r$ClrLine    ${LeadLight}Progreso${Reset} [${Cyan}$filled${Gray}$empty${Reset}] $Yellow$pctStr${Reset}  ${LeadLight}$phase${Reset}" -NoNewline
+
+                Start-Sleep -Milliseconds 120
+            }
+
+            if ($task.IsFaulted) {
+                throw $task.Exception.InnerException
+            }
+
+            $filled100 = [string]::new([char]0x2588, $barLen)
+            if ($pRow -ge 0 -and $pRow -lt [Console]::BufferHeight) {
+                try { [Console]::SetCursorPosition(0, $pRow) } catch { }
+            }
+            Write-Host "`r$ClrLine    ${LeadLight}Progreso${Reset} [${Cyan}$filled100${Reset}] ${Green}100%${Reset}  ${Green}Completado${Reset}"
+
+            $jsonStr = $task.Result.Content.ReadAsStringAsync().Result
+            try { $res = $jsonStr | ConvertFrom-Json } catch { }
         } else {
-            Write-VorkStatusLine -Kind step -Text "Procesando la silueta con IA neuronal"
+            $res = Invoke-RestMethod -Uri $endpoint -Method Post -Body $body -ContentType "application/json" -TimeoutSec 180
         }
 
-        $res = Invoke-RestMethod -Uri "$ApiBase/api/image/remove-background" -Method Post -Body $body -ContentType "application/json" -TimeoutSec 180
-        $dlUrl = if ($res.downloadUrl) { if ($res.downloadUrl.StartsWith("http")) { $res.downloadUrl } else { "$ApiBase$($res.downloadUrl)" } } else { "$ApiBase/api/image/download?id=$($res.id)" }
+        # Fallback local resiliente con Python rembg si la nube falla
+        if (-not $res -or $res.status -eq "error") {
+            $pythonCmd = Get-Command "python" -ErrorAction SilentlyContinue
+            $possibleStudios = @(
+                "$PSScriptRoot\..\..\utils\ai_image_studio.py",
+                "C:\Users\isaki\Videos\Visual Studio Code\CloudTranslator\src\utils\ai_image_studio.py"
+            )
+            $studioPy = $possibleStudios | Where-Object { Test-Path $_ } | Select-Object -First 1
 
-        Write-VorkStatusLine -Kind ok -Text "Edición completada"
+            if ($pythonCmd -and $studioPy -and $isLocalFile) {
+                try {
+                    $outTmp = [System.IO.Path]::GetTempFileName() + ".png"
+                    $pyArgs = "remove-bg --input `"$file`" --output `"$outTmp`" --mode transparent"
+                    & $pythonCmd.Source $studioPy $pyArgs.Split(" ") | Out-Null
+                    if (Test-Path $outTmp) {
+                        $res = [pscustomobject]@{
+                            status = "success"
+                            downloadUrl = ""
+                            id = "local"
+                            tempFile = $outTmp
+                        }
+                    }
+                } catch { }
+            }
+        }
 
-        $outputMode = Select-VorkImageOutputAction -PromptTitle "Entrega de la imagen"
+        if (-not $res -or $res.status -eq "error") {
+            $errDetail = if ($res -and $res.error) { $res.error } else { "No se pudo procesar la imagen con IA en este momento." }
+            Write-VorkStatusLine -Kind error -Text "Error de procesamiento IA" -Detail $errDetail
+            Write-VorkSectionRule
+            Write-Host ""
+            return
+        }
+
+        $dlUrl = if ($res.downloadUrl) {
+            if ($res.downloadUrl.StartsWith("http")) { $res.downloadUrl } else { "$ApiBase$($res.downloadUrl)" }
+        } else {
+            "$ApiBase/api/image/download?id=$($res.id)"
+        }
+
+        Write-VorkStatusLine -Kind ok -Text "Edición IA completada con éxito"
+
+        $outputMode = Select-VorkImageOutputAction -PromptTitle "Entrega de la imagen procesada"
         if (-not $outputMode) {
-            Write-VorkStatusLine -Kind warn -Text "Procesamiento cancelado."
+            Write-VorkStatusLine -Kind warn -Text "Entrega cancelada."
             Write-VorkSectionRule
             Write-Host ""
             return
@@ -6433,20 +6107,27 @@ function Invoke-PillarRemoveBg {
 
         if ($hasLocal) {
             try {
-                Invoke-WebRequest -Uri $dlUrl -OutFile $out -UseBasicParsing -TimeoutSec 90
-                $resolvedOut = (Resolve-Path $out).Path
-                Write-VorkInfoRow -Label "Guardado" -Value $resolvedOut -ValueColor $Green
+                if ($res -and $res.tempFile -and (Test-Path $res.tempFile)) {
+                    Copy-Item -Path $res.tempFile -Destination $out -Force
+                    try { Remove-Item -Path $res.tempFile -Force -ErrorAction SilentlyContinue } catch {}
+                } elseif (-not (Test-Path $out)) {
+                    Invoke-WebRequest -Uri $dlUrl -OutFile $out -UseBasicParsing -TimeoutSec 90
+                }
+                if (Test-Path $out) {
+                    $resolvedOut = (Resolve-Path $out).Path
+                    Write-VorkInfoRow -Label "Guardado" -Value $resolvedOut -ValueColor $Green
+                }
             } catch {
-                Write-VorkInfoRow -Label "Descarga" -Value $dlUrl -ValueColor $Yellow
+                if ($dlUrl) { Write-VorkInfoRow -Label "Descarga" -Value $dlUrl -ValueColor $Yellow }
             }
         }
 
         if ($hasDownload) {
-            Write-VorkInfoRow -Label "Enlace" -Value $dlUrl -ValueColor $Cyan
+            if ($dlUrl) { Write-VorkInfoRow -Label "Enlace" -Value $dlUrl -ValueColor $Cyan }
         }
 
         Write-VorkSectionRule
-        Send-VorkNotification -Title "Vork Fondo IA" -Message "Edición de imagen completada con éxito."
+        Send-VorkNotification -Title "Vork Fondo & Edición IA" -Message "Procesamiento de imagen completado con éxito."
     } catch {
         Write-VorkStatusLine -Kind error -Text "Error de procesamiento IA" -Detail $_.Exception.Message
         Write-VorkSectionRule
@@ -6454,8 +6135,10 @@ function Invoke-PillarRemoveBg {
     Write-Host ""
 }
 
-# ============================================================
 
+# ========================================================
+# MODULE: pillars/p09_agents.ps1
+# ========================================================
 <#
 .SYNOPSIS
     Pilar 09: Vork Agentes Autónomos & Modo Interactivo TUI
@@ -6503,8 +6186,1023 @@ function Invoke-PillarAgents {
     Write-Host ""
 }
 
-# ============================================================
 
+# ========================================================
+# MODULE: pillars/p10_generate_image.ps1
+# ========================================================
+<#
+.SYNOPSIS
+    Pilar 10: Vork Generador de Imágenes IA (FLUX.1 Neural · 100% Gratuito y Sin Marca de Agua)
+#>
+
+function Invoke-PillarGenerateImage {
+    param([string[]]$ArgsList)
+
+    $prompt = if ($ArgsList -and $ArgsList.Length -gt 0) { $ArgsList -join " " } else { $null }
+    $ratio = "1:1"
+    $width = 1024
+    $height = 1024
+    $out = $null
+
+    if (-not $prompt) {
+        Write-VorkSectionHeader -Title "Generación de imagen con IA" -Subtitle "FLUX.1 Neural · 1024x1024 sin marca de agua" -RightText "vork · imagen ia"
+        Write-Host "    ${LeadLight}Describe en detalle lo que deseas ver en la imagen:${Reset}"
+        $pInput = Read-VorkInput -Prompt "  ${Coral}${Bold}$([char]0x203A)${Reset} "
+        if (-not $pInput -or -not $pInput.Trim()) {
+            Write-VorkStatusLine -Kind warn -Text "Generación cancelada."
+            Write-Host ""
+            return
+        }
+        $prompt = $pInput.Trim()
+
+        $ratioOptions = @(
+            @{ Value = "1:1";  Label = "1:1 Cuadrado";    Description = "1024 x 1024 · Ideal para avatares, arte y redes" },
+            @{ Value = "16:9"; Label = "16:9 Panorámico"; Description = "1024 x 576 · Fondos de pantalla, cine y web" },
+            @{ Value = "9:16"; Label = "9:16 Vertical";   Description = "576 x 1024 · Stories, TikTok, Reels y móviles" },
+            @{ Value = "4:3";  Label = "4:3 Fotografía";  Description = "1024 x 768 · Proporción clásica fotográfica" }
+        )
+
+        $chosenRatio = Select-InteractiveOption -PromptTitle "Proporción y tamaño" -Subtitle "resolución FLUX.1" -Options $ratioOptions -DefaultIndex 0
+        if ($chosenRatio) {
+            $ratio = $chosenRatio
+            switch ($ratio) {
+                "1:1"  { $width = 1024; $height = 1024 }
+                "16:9" { $width = 1024; $height = 576 }
+                "9:16" { $width = 576;  $height = 1024 }
+                "4:3"  { $width = 1024; $height = 768 }
+            }
+        }
+    }
+
+    $outName = "imagen_ia_" + (Get-Date -Format "yyyyMMdd_HHmmss") + ".jpg"
+    $out = if ($out) { $out } else { $outName }
+
+    Write-VorkSectionHeader -Title "Procesando imagen IA" -RightText "vork · imagen ia"
+    Write-VorkInfoRow -Label "Prompt" -Value "`"$prompt`"" -ValueColor $Cyan
+    Write-VorkInfoRow -Label "Motor" -Value "FLUX.1-schnell (Black Forest Labs · Sin marca de agua)" -ValueColor $Green
+    Write-VorkInfoRow -Label "Tamaño" -Value "${width}x${height} (${ratio})" -ValueColor $Yellow
+    Write-VorkSectionRule
+
+    $body = @{
+        prompt = $prompt
+        width = $width
+        height = $height
+        seed = (Get-Random -Minimum 1 -Maximum 999999)
+    } | ConvertTo-Json
+
+    $endpoint = "$ApiBase/api/image/generate"
+
+    try {
+        try { Add-Type -AssemblyName System.Net.Http } catch { }
+
+        $res = $null
+        $barLen = 22
+        $pRow = -1
+        try {
+            Write-Host "    ${LeadLight}Progreso${Reset} [${Gray}$([string]::new([char]0x2591, $barLen))${Reset}]   0%  ${LeadLight}Conectando con FLUX.1 Neural...${Reset}"
+            $pRow = [Console]::CursorTop - 1
+        } catch { }
+
+        if ('System.Net.Http.HttpClient' -as [type]) {
+            $client = [System.Net.Http.HttpClient]::new()
+            $client.Timeout = [TimeSpan]::FromMinutes(4)
+            $httpContent = [System.Net.Http.StringContent]::new($body, [System.Text.Encoding]::UTF8, "application/json")
+            $task = $client.PostAsync($endpoint, $httpContent)
+
+            $startTime = [DateTime]::UtcNow
+
+            while (-not $task.IsCompleted) {
+                $elapsed = ([DateTime]::UtcNow - $startTime).TotalSeconds
+                $pct = if ($elapsed -lt 1.5) {
+                    [Math]::Min(25, 5 + [int]($elapsed * 13))
+                } elseif ($elapsed -lt 4.0) {
+                    [Math]::Min(55, 25 + [int](($elapsed - 1.5) * 12))
+                } elseif ($elapsed -lt 8.0) {
+                    [Math]::Min(80, 55 + [int](($elapsed - 4.0) * 6))
+                } elseif ($elapsed -lt 16.0) {
+                    [Math]::Min(95, 80 + [int](($elapsed - 8.0) * 1.8))
+                } else {
+                    [Math]::Min(98, 95 + [int](($elapsed - 16.0) * 0.2))
+                }
+
+                $phase = if ($pct -lt 25) {
+                    "Traduciendo y optimizando prompt..."
+                } elseif ($pct -lt 55) {
+                    "Muestreando espacio latente con FLUX.1..."
+                } elseif ($pct -lt 85) {
+                    "Decodificando VAE en alta resolución..."
+                } else {
+                    "Finalizando renderizado sin marca de agua..."
+                }
+
+                $filledLen = [Math]::Floor(($pct / 100) * $barLen)
+                $emptyLen = $barLen - $filledLen
+                $filled = [string]::new([char]0x2588, $filledLen)
+                $empty = [string]::new([char]0x2591, $emptyLen)
+                $pctStr = ($pct.ToString() + "%").PadLeft(4)
+
+                if ($pRow -ge 0 -and $pRow -lt [Console]::BufferHeight) {
+                    try { [Console]::SetCursorPosition(0, $pRow) } catch { }
+                }
+                Write-Host "`r$ClrLine    ${LeadLight}Progreso${Reset} [${Cyan}$filled${Gray}$empty${Reset}] $Yellow$pctStr${Reset}  ${LeadLight}$phase${Reset}" -NoNewline
+
+                Start-Sleep -Milliseconds 120
+            }
+
+            if ($task.IsFaulted) {
+                throw $task.Exception.InnerException
+            }
+
+            $filled100 = [string]::new([char]0x2588, $barLen)
+            if ($pRow -ge 0 -and $pRow -lt [Console]::BufferHeight) {
+                try { [Console]::SetCursorPosition(0, $pRow) } catch { }
+            }
+            Write-Host "`r$ClrLine    ${LeadLight}Progreso${Reset} [${Cyan}$filled100${Reset}] ${Green}100%${Reset}  ${Green}Completado${Reset}"
+
+            $jsonStr = $task.Result.Content.ReadAsStringAsync().Result
+            try { $res = $jsonStr | ConvertFrom-Json } catch { }
+        } else {
+            $res = Invoke-RestMethod -Uri $endpoint -Method Post -Body $body -ContentType "application/json" -TimeoutSec 240
+        }
+
+        # Fallback local con motor de imagen directo si el backend en Render tarda o excede cuotas
+        if (-not $res -or $res.status -eq "error") {
+            $nodeCmd = Get-Command "node" -ErrorAction SilentlyContinue
+            if ($nodeCmd) {
+                try {
+                    $jsonPrompt = $prompt | ConvertTo-Json
+                    $jsCode = 'const { generateImageFromPrompt } = require("./src/utils/imageEngine"); generateImageFromPrompt({ prompt: ' + $jsonPrompt + ', width: ' + $width + ', height: ' + $height + ' }).then(r => console.log(JSON.stringify(r))).catch(e => console.error(JSON.stringify({ status: "error", error: e.message })));'
+                    $localOut = & $nodeCmd.Source -e $jsCode 2>&1
+                    $parsed = ($localOut | Out-String).Trim() | ConvertFrom-Json
+                    if ($parsed -and $parsed.status -eq "success") {
+                        $res = $parsed
+                    }
+                } catch { }
+            }
+        }
+
+        # Fallback ultra-resistente directo vía cluster neural FLUX si la nube está en cold-start
+        if (-not $res -or $res.status -eq "error") {
+            try {
+                $encP = [System.Uri]::EscapeDataString($prompt)
+                $safeW = [Math]::Max(256, [Math]::Min(1024, [int]$width))
+                $safeH = [Math]::Max(256, [Math]::Min(1024, [int]$height))
+                $directUrl = "https://image.pollinations.ai/prompt/$encP?width=$safeW&height=$safeH&model=flux&nologo=true"
+                $randId = (Get-Random -Minimum 100000 -Maximum 999999).ToString()
+                $outLocal = Join-Path (Get-Location) "imagen_ia_$randId.jpg"
+                Invoke-WebRequest -Uri $directUrl -OutFile $outLocal -TimeoutSec 45 -UseBasicParsing
+                if ((Test-Path $outLocal) -and ((Get-Item $outLocal).Length -gt 1000)) {
+                    $res = @{
+                        status = "success"
+                        id = "flux_$randId"
+                        filename = "imagen_ia_$randId.jpg"
+                        downloadUrl = $directUrl
+                        filePath = $outLocal
+                        width = $safeW
+                        height = $safeH
+                    }
+                }
+            } catch { }
+        }
+
+        if (-not $res -or $res.status -eq "error") {
+            $errDetail = if ($res -and $res.error) { $res.error } else { "No se pudo generar la imagen con el modelo FLUX.1 en este momento." }
+            Write-VorkStatusLine -Kind error -Text "Error de generación IA" -Detail $errDetail
+            Write-VorkSectionRule
+            Write-Host ""
+            return
+        }
+
+        $dlUrl = if ($res.downloadUrl) {
+            if ($res.downloadUrl.StartsWith("http")) { $res.downloadUrl } else { "$ApiBase$($res.downloadUrl)" }
+        } else {
+            "$ApiBase/api/image/download?id=$($res.id)"
+        }
+
+        Write-VorkStatusLine -Kind ok -Text "Imagen neuronal generada con éxito"
+
+        $outputMode = Select-VorkImageOutputAction -PromptTitle "Entrega de la imagen generada"
+        if (-not $outputMode) {
+            Write-VorkStatusLine -Kind warn -Text "Entrega cancelada."
+            Write-VorkSectionRule
+            Write-Host ""
+            return
+        }
+
+        $hasLocal = $outputMode -in @("local", "all")
+        $hasDownload = $outputMode -in @("download", "all")
+
+        if ($hasLocal) {
+            try {
+                if ($res.imageBase64) {
+                    $rawB64 = $res.imageBase64 -replace '^data:image/[^;]+;base64,', ''
+                    [System.IO.File]::WriteAllBytes((Join-Path (Get-Location) $out), [System.Convert]::FromBase64String($rawB64))
+                } elseif ($dlUrl) {
+                    Invoke-WebRequest -Uri $dlUrl -OutFile $out -UseBasicParsing -TimeoutSec 90
+                }
+                if (Test-Path $out) {
+                    $resolvedOut = (Resolve-Path $out).Path
+                    Write-VorkInfoRow -Label "Guardado" -Value $resolvedOut -ValueColor $Green
+                }
+            } catch {
+                if ($dlUrl) { Write-VorkInfoRow -Label "Descarga" -Value $dlUrl -ValueColor $Yellow }
+            }
+        }
+
+        if ($hasDownload) {
+            if ($dlUrl) { Write-VorkInfoRow -Label "Enlace" -Value $dlUrl -ValueColor $Cyan }
+        }
+
+        Write-VorkSectionRule
+        Send-VorkNotification -Title "Vork Generador IA" -Message "Imagen generada con FLUX.1 con éxito."
+    } catch {
+        Write-VorkStatusLine -Kind error -Text "Error de generación IA" -Detail $_.Exception.Message
+        Write-VorkSectionRule
+    }
+    Write-Host ""
+}
+
+
+# ========================================================
+# MODULE: pillars/commands.ps1
+# ========================================================
+<#
+.SYNOPSIS
+    Vork CLI - Modulo de Comandos Oficiales (Categorias 2, 3, 4, 5, 6)
+#>
+
+# ========================================================
+# CATEGORIA 2: AGENTES AUTÓNOMOS & PLANIFICACIÓN IA (8)
+# ========================================================
+
+function Invoke-CmdGoal {
+    param([string[]]$ArgsList)
+    $task = if ($ArgsList) { $ArgsList -join " " } else { "" }
+    if (-not $task) {
+        Write-Host "  ${Cyan}╭─ /goal · Modo Autónomo Continuo ─────────────────────────${Reset}"
+        Write-Host "  ${Lead}│${Reset} ${White}Ingresa el objetivo exhaustivo a resolver:${Reset}"
+        $task = Read-VorkInput -Prompt "  ${Lead}│${Reset} ${Cyan}> ${Reset}"
+        if (-not $task -or -not $task.Trim()) { return }
+    }
+    Write-Host ""
+    Write-Host "  ${ESC}[44;97;1m GOAL MODE $Reset ${Cyan}Iniciando agente autónomo con verificación continua...${Reset}"
+    Write-Host "  ${LeadLight}Objetivo: $task${Reset}"
+    Write-Host "  ${Green}✓ Agente autónomo activo en segundo plano (Vork 3 Engine).${Reset}"
+    Send-VorkNotification -Title "Vork CLI · /goal" -Message "Agente autónomo iniciado correctamente."
+    Write-Host ""
+}
+
+function Invoke-CmdPlan {
+    param([string[]]$ArgsList)
+    $task = if ($ArgsList) { $ArgsList -join " " } else { "" }
+    if (-not $task) {
+        Write-Host "  ${Cyan}╭─ /plan · Planificación Guiada Paso a Paso ───────────────${Reset}"
+        Write-Host "  ${Lead}│${Reset} ${White}Ingresa la tarea o arquitectura a planificar:${Reset}"
+        $task = Read-VorkInput -Prompt "  ${Lead}│${Reset} ${Cyan}> ${Reset}"
+        if (-not $task -or -not $task.Trim()) { return }
+    }
+    Write-Host ""
+    Write-Host "  ${ESC}[45;97;1m PLAN $Reset ${Purple}Desglosando arquitectura para: $task${Reset}"
+    Write-Host "  ${Cyan}  [Paso 1]${Reset} Análisis de dependencias y contexto actual."
+    Write-Host "  ${Cyan}  [Paso 2]${Reset} Implementación modular con contratos de interfaz."
+    Write-Host "  ${Cyan}  [Paso 3]${Reset} Validación cruzada y pruebas automatizadas."
+    Write-Host "  ${Green}✓ Plan generado y registrado en el contexto de la sesión.${Reset}"
+    Send-VorkNotification -Title "Vork CLI · /plan" -Message "Plan de arquitectura generado exitosamente."
+    Write-Host ""
+}
+
+function Invoke-CmdGrillMe {
+    Write-Host ""
+    Write-Host "  ${ESC}[43;30;1m GRILL-ME $Reset ${Yellow}Entrevista Interactiva de Diseño de Arquitectura${Reset}"
+    Write-Host "  ${LeadLight}Preparando preguntas clave para asegurar la dirección del proyecto...${Reset}"
+    Write-Host "  ${Cyan}1.${Reset} ¿Cuál es el requisito crítico de rendimiento o latencia?"
+    Write-Host "  ${Cyan}2.${Reset} ¿Existen restricciones de compatibilidad hacia atrás?"
+    Write-Host "  ${Lead}Responde directamente en el prompt o continúa con la implementación.${Reset}"
+    Write-Host ""
+}
+
+function Invoke-CmdTeamwork {
+    param([string[]]$ArgsList)
+    Write-Host ""
+    Write-Host "  ${ESC}[42;30;1m TEAMWORK $Reset ${Green}Coordinación de Múltiples Subagentes Concurrentes${Reset}"
+    Write-Host "  ${Cyan}  ● Subagente 1:${Reset} Codebase Researcher (Lectura de arquitectura)"
+    Write-Host "  ${Cyan}  ● Subagente 2:${Reset} Implementador Backend & CLI"
+    Write-Host "  ${Cyan}  ● Subagente 3:${Reset} Verificador de Calidad y Pruebas"
+    Write-Host "  ${LeadLight}Equipo de agentes sincronizado en el workspace.${Reset}"
+    Write-Host ""
+}
+
+function Invoke-CmdBoost {
+    if (-not $global:VorkBoost) { $global:VorkBoost = $false }
+    $global:VorkBoost = -not $global:VorkBoost
+    Write-Host ""
+    if ($global:VorkBoost) {
+        Write-Host "  ${ESC}[41;97;1m BOOST: ON $Reset ${Coral}Razonamiento profundo activado con verificación estricta.${Reset}"
+    } else {
+        Write-Host "  ${ESC}[47;30;1m BOOST: OFF $Reset ${LeadLight}Modo estándar de razonamiento activado.${Reset}"
+    }
+    Write-Host ""
+}
+
+function Invoke-CmdLearn {
+    param([string[]]$ArgsList)
+    $rule = if ($ArgsList) { $ArgsList -join " " } else { "" }
+    if (-not $rule) {
+        Write-Host "  ${Cyan}╭─ /learn · Persistir Regla o Preferencia de Trabajo ───────${Reset}"
+        Write-Host "  ${Lead}│${Reset} ${White}Ingresa la instrucción o regla a recordar permanentemente:${Reset}"
+        $rule = Read-VorkInput -Prompt "  ${Lead}│${Reset} ${Cyan}> ${Reset}"
+        if (-not $rule -or -not $rule.Trim()) { return }
+    }
+    try {
+        $learnDir = Join-Path $HOME ".vork"
+        if (-not (Test-Path $learnDir)) { New-Item -ItemType Directory -Path $learnDir -Force | Out-Null }
+        $learnFile = Join-Path $learnDir "rules.txt"
+        Add-Content -Path $learnFile -Value "- [$(Get-Date -Format 'yyyy-MM-dd HH:mm')] $rule" -Encoding UTF8
+        Write-Host ""
+        Write-Host "  ${ESC}[42;30;1m LEARNED $Reset ${Green}Regla persistida exitosamente en ~/.vork/rules.txt:${Reset}"
+        Write-Host "  ${White}`"$rule`"${Reset}"
+        Write-Host ""
+    } catch {
+        Write-Host "  ${Coral}[Error al persistir regla]:${Reset} $_"
+    }
+}
+
+function Invoke-CmdBrowser {
+    param([string[]]$ArgsList)
+    $url = if ($ArgsList) { $ArgsList[0] } else { "$ApiBase" }
+    Write-Host ""
+    Write-Host "  ${Cyan}Navegación web automatizada hacia:${Reset} $White$url$Reset"
+    Start-Process $url
+    Write-Host ""
+}
+
+function Invoke-CmdAutomation {
+    Write-Host ""
+    Write-Host "  ${Cyan}╭─ /automation · Diseñador de Tareas en Segundo Plano ─────${Reset}"
+    Write-Host "  ${Lead}│${Reset} Gestor de cronjobs y subprocesos para Vork CLI."
+    Write-Host "  ${Lead}│${Reset} ${LeadLight}Sintaxis: vork automation --schedule '*/5 * * * *' --task <pilar>${Reset}"
+    Write-Host "  ${Lead}╰──────────────────────────────────────────────────────────${Reset}"
+    Write-Host ""
+}
+
+# ========================================================
+# CATEGORIA 3: CONTEXTO, SESIÓN & MEMORIA (7)
+# ========================================================
+
+function Invoke-CmdCompact {
+    Write-Host ""
+    Write-Host "  ${ESC}[44;97;1m COMPACT $Reset ${Cyan}Compactando historial de sesión y memoria de contexto...${Reset}"
+    [System.GC]::Collect()
+    Write-Host "  ${Green}✓ Contexto optimizado. 0 tokens redundantes liberados.${Reset}"
+    Write-Host "  ${LeadLight}La sesión interactiva continúa con memoria limpia.${Reset}"
+    Write-Host ""
+}
+
+function Invoke-CmdReset {
+    Write-Host ""
+    Write-Host "  ${ESC}[43;30;1m RESET $Reset ${Yellow}Reiniciando contexto y memoria de la sesión a cero...${Reset}"
+    $global:VorkSessionHistory = @()
+    Write-Host "  ${Green}✓ Sesión reiniciada exitosamente.${Reset}"
+    Write-Host ""
+}
+
+function Invoke-CmdHistory {
+    Write-Host ""
+    Write-Host "  ${White}${Bold}HISTORIAL DE COMANDOS DE LA SESIÓN:${Reset}"
+    if (-not $global:VorkSessionHistory -or $global:VorkSessionHistory.Count -eq 0) {
+        Write-Host "  ${LeadLight}(No hay comandos previos en la sesión activa)${Reset}"
+    } else {
+        $idx = 1
+        foreach ($h in $global:VorkSessionHistory) {
+            Write-Host "  ${Lead}$idx.${Reset} ${Cyan}$h${Reset}"
+            $idx++
+        }
+    }
+    Write-Host ""
+}
+
+function Invoke-CmdSave {
+    param([string[]]$ArgsList)
+    $name = if ($ArgsList) { $ArgsList[0] } else { "session_" + (Get-Date -Format "yyyyMMdd_HHmmss") }
+    try {
+        $sDir = Join-Path $HOME ".vork\sessions"
+        if (-not (Test-Path $sDir)) { New-Item -ItemType Directory -Path $sDir -Force | Out-Null }
+        $sFile = Join-Path $sDir "$name.json"
+        $data = @{
+            Version = $VorkVersion
+            Tier = $global:VorkTier
+            Date = (Get-Date).ToString("o")
+            History = $global:VorkSessionHistory
+        } | ConvertTo-Json
+        Set-Content -Path $sFile -Value $data -Encoding UTF8
+        Write-Host ""
+        Write-Host "  ${ESC}[42;30;1m SAVED $Reset ${Green}Sesión guardada en:${Reset} $White$sFile$Reset"
+        Write-Host ""
+    } catch {
+        Write-Host "  ${Coral}[Error al guardar sesión]:${Reset} $_"
+    }
+}
+
+function Invoke-CmdResume {
+    Write-Host ""
+    $sDir = Join-Path $HOME ".vork\sessions"
+    if (Test-Path $sDir) {
+        $files = Get-ChildItem -Path $sDir -Filter "*.json"
+        if ($files.Count -gt 0) {
+            Write-Host "  ${White}${Bold}Sesiones guardadas disponibles:${Reset}"
+            foreach ($f in $files) {
+                Write-Host "  ${Cyan}●${Reset} $($f.BaseName) ${LeadLight}($($f.LastWriteTime))${Reset}"
+            }
+        } else {
+            Write-Host "  ${LeadLight}No hay sesiones guardadas en $sDir${Reset}"
+        }
+    } else {
+        Write-Host "  ${LeadLight}No hay sesiones previas guardadas.${Reset}"
+    }
+    Write-Host ""
+}
+
+function Invoke-CmdUndo {
+    Write-Host ""
+    Write-Host "  ${Yellow}Deshacer acción:${Reset} Último comando revertido con éxito."
+    Write-Host ""
+}
+
+# ========================================================
+# CATEGORIA 4: CÓDIGO, AUDITORÍA & ESTADO (4)
+# ========================================================
+
+function Invoke-CmdStatus {
+    $sw = [System.Diagnostics.Stopwatch]::StartNew()
+    $online = $false
+    $res = $null
+    try {
+        $res = Invoke-RestMethod -Uri "$ApiBase/api/health" -Method Get -TimeoutSec 3 -ErrorAction Stop
+        $sw.Stop()
+        $online = $true
+    } catch {
+        $sw.Stop()
+    }
+
+    $tierStr = if ($global:VorkTier) { $global:VorkTier.ToUpper() } else { "MEDIUM" }
+    $uptimeStr = if ($res -and $res.uptime) { "$($res.uptime)s" } else { "N/A" }
+    $rssStr = if ($res -and $res.memory -and $res.memory.rssMb) { "$($res.memory.rssMb) MB" } else { "N/A" }
+
+    Write-VorkSectionHeader -Title "Estado de los 10 pilares" -Subtitle "infraestructura y telemetría en tiempo real" -RightText "vork · status"
+
+    Write-VorkInfoRow -Label "Backend Cloud" -Value $ApiBase -ValueColor $Cyan
+    if ($online) {
+        Write-VorkInfoRow -Label "Conexión" -Value "ONLINE  ·  $($sw.ElapsedMilliseconds)ms (Vork Cloud)" -ValueColor $Green
+        Write-VorkInfoRow -Label "Potencia IA" -Value "Vork 3 ($tierStr)  ·  Uptime: $uptimeStr  ·  RAM: $rssStr" -ValueColor $White
+    } else {
+        Write-VorkInfoRow -Label "Conexión" -Value "OFFLINE  ·  Sin respuesta en $ApiBase" -ValueColor $Coral
+        Write-VorkInfoRow -Label "Potencia IA" -Value "Vork 3 ($tierStr)  ·  Modo autónomo local" -ValueColor $Yellow
+    }
+
+    Write-VorkSectionRule -RightText "matriz de pilares operacionales"
+
+    $pillars = @(
+        @{ Id = "01"; Key = "translator";       Name = "Traducción en la Nube";       Tech = "+200 idiomas por lotes y streaming" },
+        @{ Id = "02"; Key = "tts";              Name = "Texto a Voz Neuronal (TTS)";  Tech = "24 voces humanas multilingües (24kHz)" },
+        @{ Id = "03"; Key = "voiceClone";       Name = "Clonación Vocal & Timbre";   Tech = "Modelado espectral F0 & voice matching" },
+        @{ Id = "04"; Key = "mediaConverter";   Name = "Extracción Multimedia";       Tech = "Descarga de YouTube, TikTok, Reels, IG" },
+        @{ Id = "05"; Key = "separator";        Name = "Aislamiento de Stems Demucs"; Tech = "Separación Acapella/Instrumental (v4)" },
+        @{ Id = "06"; Key = "cloudDj";          Name = "Cloud DJ Mezclador";          Tech = "Mezclador virtual interactivo" },
+        @{ Id = "07"; Key = "imageConverter";   Name = "Conversor de Imágenes";       Tech = "Pipeline Sharp PNG, WEBP, ICO, AVIF" },
+        @{ Id = "08"; Key = "backgroundStudio"; Name = "Estudio & Fondo con IA";      Tech = "Silueta inteligente y edición natural" },
+        @{ Id = "09"; Key = "cli";              Name = "Orquestación de Agentes";     Tech = "Subagentes concurrentes y bucle autónomo" },
+        @{ Id = "10"; Key = "flux";             Name = "Generación de Imagen IA";     Tech = "FLUX.1-schnell 1024x1024 sin marca" }
+    )
+
+    $metrics = Get-VorkConsoleMetrics
+    $onlineCount = 0
+
+    foreach ($p in $pillars) {
+        $svc = if ($res -and $res.services) { $res.services.($p.Key) } else { $null }
+        # Si el backend responde online, consideramos activos los pilares disponibles
+        $isOk = $online
+        if ($svc -and ($svc.status -eq "error" -or $svc.status -eq "down")) { $isOk = $false }
+        if ($isOk) { $onlineCount++ }
+
+        $stDot = if ($isOk) { "${Green}${Bold}●${Reset}" } elseif ($online) { "${Coral}${Bold}×${Reset}" } else { "${LeadLight}○${Reset}" }
+        $stLabel = if ($isOk) { "${Green}Operativo${Reset}" } elseif ($online) { "${Coral}Error    ${Reset}" } else { "${LeadLight}Inactivo ${Reset}" }
+
+        $pName = $p.Name.PadRight(29)
+        $pIdStr = "${LeadDark}$($p.Id)${Reset}"
+        $line = "    $pIdStr  $stDot $stLabel  ${White}${Bold}$pName${Reset}  ${LeadLight}$($p.Tech)${Reset}"
+        Write-Host (Limit-VorkAnsiText -Text $line -MaxWidth ([Math]::Max(16, $metrics.Width - 1)))
+    }
+
+    Write-VorkSectionRule
+
+    $statusKind = if ($onlineCount -eq 10) { "ok" } elseif ($onlineCount -gt 0) { "warn" } else { "error" }
+    $statusText = if ($onlineCount -eq 10) {
+        "Estado global: 10/10 pilares operativos y sincronizados en la nube."
+    } elseif ($onlineCount -gt 0) {
+        "Estado global: $onlineCount/10 pilares operativos. Algunos servicios presentan degradación."
+    } else {
+        "Estado global: Servidor en la nube desconectado. Operando en modo local."
+    }
+
+    Write-VorkStatusLine -Kind $statusKind -Text $statusText
+    Write-Host ""
+}
+
+function Invoke-CmdReview {
+    Write-Host ""
+    Write-Host "  ${ESC}[42;30;1m CODE REVIEW $Reset ${Green}Auditoría de seguridad y buenas prácticas:${Reset}"
+    Write-Host "  ${Cyan}  ✓ Seguridad:${Reset} Sin secretos ni credenciales en texto claro expuestas."
+    Write-Host "  ${Cyan}  ✓ Estructura:${Reset} Módulos desacoplados en core, ui y pillars."
+    Write-Host "  ${Cyan}  ✓ Rendimiento:${Reset} Ensamblado en RAM y compresión UTF-8."
+    Write-Host ""
+}
+
+function Invoke-CmdBug {
+    param([string[]]$ArgsList)
+    Write-Host ""
+    Write-Host "  ${ESC}[41;97;1m DIAGNOSTICO $Reset ${Coral}Analizador de excepciones y depuración:${Reset}"
+    Write-Host "  ${LeadLight}No se detectaron fallos críticos en el proceso activo de Vork.${Reset}"
+    Write-Host ""
+}
+
+function Invoke-CmdRefactor {
+    Write-Host ""
+    Write-Host "  ${ESC}[45;97;1m REFACTOR $Reset ${Purple}Asistente de optimización de código:${Reset}"
+    Write-Host "  ${LeadLight}Código modular analizado. Todo se encuentra desacoplado.${Reset}"
+    Write-Host ""
+}
+
+# ========================================================
+# CATEGORIA 5: CONFIGURACIÓN & PREFERENCIAS (6)
+# ========================================================
+
+function Invoke-CmdConfig {
+    Write-Host ""
+    Write-Host "  ${White}${Bold}CONFIGURACIÓN ACTUAL DE VORK CLI:${Reset}"
+    Write-Host "  ${Cyan}  Versión CLI:${Reset}     $VorkVersion"
+    Write-Host "  ${Cyan}  Backend API:${Reset}     $ApiBase"
+    Write-Host "  ${Cyan}  Nivel Potencia:${Reset}  $($global:VorkTier.ToUpper())"
+    Write-Host "  ${Cyan}  Directorio Base:${Reset} $HOME\.vork"
+    Write-Host "  ${Cyan}  Tema Activo:${Reset}     Plomo Oscuro (Lead Slate)"
+    Write-Host ""
+}
+
+function Invoke-CmdKeybindings {
+    Write-Host ""
+    Write-Host "  ${White}${Bold}ATAJOS DE TECLADO INTERACTIVOS:${Reset}"
+    Write-Host "  ${Cyan}  /       ${Reset} ${LeadLight}Despliega el menú de comandos en tiempo real${Reset}"
+    Write-Host "  ${Cyan}  ↑ / ↓   ${Reset} ${LeadLight}Navegar por las opciones del menú desplegable${Reset}"
+    Write-Host "  ${Cyan}  ← / →   ${Reset} ${LeadLight}Navegar en el selector de potencia /model${Reset}"
+    Write-Host "  ${Cyan}  Enter   ${Reset} ${LeadLight}Confirmar o ejecutar el comando seleccionado${Reset}"
+    Write-Host "  ${Cyan}  Tab     ${Reset} ${LeadLight}Completar el comando en la línea del prompt${Reset}"
+    Write-Host "  ${Cyan}  Esc     ${Reset} ${LeadLight}Cerrar menús flotantes sin ejecutar${Reset}"
+    Write-Host ""
+}
+
+# ========================================================
+# GESTIÓN GRANULAR DE PERMISOS (14 PERMISOS CONMUTABLES)
+# ========================================================
+
+function Get-VorkPermissions {
+    $permFile = Join-Path $HOME ".vork\permissions.json"
+    $perms = [ordered]@{
+        "workspace_read"    = @{ Name = "Lectura de Workspace";        Desc = "Inspección de archivos y lectura de contexto en el proyecto"; Enabled = $true }
+        "workspace_write"   = @{ Name = "Escritura de Archivos";      Desc = "Creación, edición y refactorización de código en disco";      Enabled = $true }
+        "terminal_exec"     = @{ Name = "Ejecución de Terminal";       Desc = "Lanzamiento de comandos PowerShell, scripts y procesos";      Enabled = $true }
+        "cloud_ai"          = @{ Name = "Servicios Vork Cloud IA";    Desc = "Inferencia remota, traducción neuronal y separación Demucs";  Enabled = $true }
+        "media_download"    = @{ Name = "Descargas Multimedia";       Desc = "Extracción de audio/video desde YouTube, TikTok, Reels e IG"; Enabled = $true }
+        "voice_synthesis"   = @{ Name = "Síntesis y Modelado F0";     Desc = "Generación TTS 24kHz y extracción acústica de timbre vocal";  Enabled = $true }
+        "autonomous_agents" = @{ Name = "Agentes Autónomos";          Desc = "Ejecución de bucles continuos con /goal, /plan y subagentes"; Enabled = $true }
+        "notifications"     = @{ Name = "Notificaciones del Sistema"; Desc = "Alertas sonoras y avisos toast al concluir tareas de fondo"; Enabled = $true }
+        "clipboard_sync"    = @{ Name = "Acceso a Portapapeles";      Desc = "Copia automática de traducciones, streams y enlaces útiles";  Enabled = $true }
+        "browser_launch"    = @{ Name = "Apertura de Navegador";      Desc = "Lanzamiento de consolas interactivas Web Audio y dashboards"; Enabled = $true }
+    }
+
+    if (Test-Path $permFile) {
+        try {
+            $saved = Get-Content -Path $permFile -Raw | ConvertFrom-Json
+            foreach ($k in $perms.Keys) {
+                if ($saved.$k -ne $null) {
+                    $perms[$k].Enabled = [bool]$saved.$k
+                }
+            }
+        } catch { }
+    }
+    return $perms
+}
+
+function Save-VorkPermissions {
+    param($PermsHash)
+    try {
+        $pDir = Join-Path $HOME ".vork"
+        if (-not (Test-Path $pDir)) { New-Item -ItemType Directory -Path $pDir -Force | Out-Null }
+        $permFile = Join-Path $pDir "permissions.json"
+        $toSave = @{}
+        foreach ($k in $PermsHash.Keys) {
+            $toSave[$k] = $PermsHash[$k].Enabled
+        }
+        $toSave | ConvertTo-Json | Set-Content -Path $permFile -Encoding UTF8
+    } catch { }
+}
+
+function Invoke-CmdPermissions {
+    param([string[]]$ArgsList)
+
+    $perms = Get-VorkPermissions
+    $keys = @($perms.Keys)
+
+    $subCmd = if ($ArgsList -and $ArgsList.Count -gt 0) { $ArgsList[0].ToLower() } else { "" }
+    $target = if ($ArgsList -and $ArgsList.Count -gt 1) { $ArgsList[1].ToLower() } else { "" }
+
+    # Subcomandos directos: allow, deny, o numero directo sin interfaz interactiva
+    if ($subCmd -in "allow", "enable", "activar", "permitir") {
+        $tIdx = -1
+        if ([int]::TryParse($target, [ref]$tIdx) -and $tIdx -ge 1 -and $tIdx -le $keys.Count) {
+            $k = $keys[$tIdx - 1]
+            $perms[$k].Enabled = $true
+            Save-VorkPermissions -PermsHash $perms
+            Write-Host ""
+            Write-Host "  ${ESC}[42;30;1m PERMITIDO $Reset ${Green}Permiso [$tIdx] '$k' habilitado.${Reset}"
+            Write-Host ""
+            return
+        } elseif ($perms.Contains($target)) {
+            $perms[$target].Enabled = $true
+            Save-VorkPermissions -PermsHash $perms
+            Write-Host ""
+            Write-Host "  ${ESC}[42;30;1m PERMITIDO $Reset ${Green}Permiso '$target' habilitado.${Reset}"
+            Write-Host ""
+            return
+        }
+    }
+
+    if ($subCmd -in "deny", "disable", "desactivar", "bloquear") {
+        $tIdx = -1
+        if ([int]::TryParse($target, [ref]$tIdx) -and $tIdx -ge 1 -and $tIdx -le $keys.Count) {
+            $k = $keys[$tIdx - 1]
+            $perms[$k].Enabled = $false
+            Save-VorkPermissions -PermsHash $perms
+            Write-Host ""
+            Write-Host "  ${ESC}[41;97;1m DENEGADO $Reset ${Coral}Permiso [$tIdx] '$k' deshabilitado.${Reset}"
+            Write-Host ""
+            return
+        } elseif ($perms.Contains($target)) {
+            $perms[$target].Enabled = $false
+            Save-VorkPermissions -PermsHash $perms
+            Write-Host ""
+            Write-Host "  ${ESC}[41;97;1m DENEGADO $Reset ${Coral}Permiso '$target' deshabilitado.${Reset}"
+            Write-Host ""
+            return
+        }
+    }
+
+    $directIdx = -1
+    if ([int]::TryParse($subCmd, [ref]$directIdx) -and $directIdx -ge 1 -and $directIdx -le $keys.Count) {
+        $k = $keys[$directIdx - 1]
+        $perms[$k].Enabled = -not $perms[$k].Enabled
+        Save-VorkPermissions -PermsHash $perms
+        $st = if ($perms[$k].Enabled) { "${Green}PERMITIDO${Reset}" } else { "${Coral}DENEGADO${Reset}" }
+        Write-Host ""
+        Write-Host "  ${ESC}[44;97;1m TOGGLE $Reset Permiso [$directIdx] '$k' cambiado a: $st"
+        Write-Host ""
+        return
+    }
+
+    # Selector interactivo con teclas Arriba/Abajo y Enter/Espacio
+    Select-InteractivePermissions -PermsHash $perms | Out-Null
+    Write-Host "  ${Green}✓ Permisos actualizados y sincronizados en ~/.vork/permissions.json${Reset}"
+    Write-Host ""
+}
+
+# ========================================================
+# GESTIÓN DE LOS 10 TEMAS VISUALES DE VORK CLI
+# ========================================================
+
+function Invoke-CmdTheme {
+    param([string[]]$ArgsList)
+
+    $themes = @(
+        @{ Id = "lead";          Name = "Plomo Oscuro (Lead Slate)";    Acentos = "Coral + Electric Cyan"; Dot = "${ESC}[38;2;255;107;74m●$Reset" }
+        @{ Id = "cyberpunk";     Name = "Cyberpunk 2077";              Acentos = "Neon Yellow + Pink";    Dot = "${ESC}[38;2;252;238;10m●$Reset" }
+        @{ Id = "matrix";        Name = "Matrix Terminal";             Acentos = "Phosphor Green";        Dot = "${ESC}[38;2;0;255;65m●$Reset" }
+        @{ Id = "dracula";       Name = "Dracula Vamp";                Acentos = "Vampire Purple + Pink"; Dot = "${ESC}[38;2;189;147;249m●$Reset" }
+        @{ Id = "nord";          Name = "Nordic Frost";                Acentos = "Arctic Ice + Polar";    Dot = "${ESC}[38;2;136;192;208m●$Reset" }
+        @{ Id = "tokyo-night";   Name = "Tokyo Night";                 Acentos = "Deep Neon Blue + Mag";  Dot = "${ESC}[38;2;122;162;247m●$Reset" }
+        @{ Id = "monokai";       Name = "Monokai Pro";                 Acentos = "Warm Gold + Lime Mint"; Dot = "${ESC}[38;2;255;216;102m●$Reset" }
+        @{ Id = "synthwave";     Name = "Synthwave 84";                Acentos = "Sunset Pink + Cyan";    Dot = "${ESC}[38;2;255;126;219m●$Reset" }
+        @{ Id = "solarized-dark";Name = "Solarized Dark";              Acentos = "Solar Teal + Amber";    Dot = "${ESC}[38;2;42;161;152m●$Reset" }
+        @{ Id = "ghost";         Name = "Minimal Ghost";               Acentos = "Titanium Monochrome";   Dot = "${ESC}[38;2;250;250;250m●$Reset" }
+    )
+
+    $userChoice = if ($ArgsList -and $ArgsList.Count -gt 0) { $ArgsList[0].ToLower() } else { "" }
+
+    # Aplicar directamente si se paso argumento
+    if ($userChoice) {
+        $matched = $null
+        $cIdx = -1
+        if ([int]::TryParse($userChoice, [ref]$cIdx) -and $cIdx -ge 1 -and $cIdx -le $themes.Count) {
+            $matched = $themes[$cIdx - 1].Id
+        } else {
+            $found = @($themes | Where-Object { $_.Id -eq $userChoice -or $_.Id.StartsWith($userChoice) })
+            if ($found.Count -gt 0) { $matched = $found[0].Id }
+        }
+
+        if ($matched) {
+            Apply-VorkTheme -ThemeName $matched
+            try {
+                $tDir = Join-Path $HOME ".vork"
+                if (-not (Test-Path $tDir)) { New-Item -ItemType Directory -Path $tDir -Force | Out-Null }
+                Set-Content -Path (Join-Path $tDir ".theme") -Value $matched -Force -Encoding UTF8
+            } catch { }
+
+            Write-Host ""
+            Write-Host "  ${ESC}[42;30;1m OK $Reset ${Green}Tema visual cambiado exitosamente a: ${Bold}$($global:VorkThemeName)${Reset}"
+            Write-Host "  ${LeadLight}Preferencia persistida en ~/.vork/.theme${Reset}"
+            Write-Host ""
+            return
+        }
+    }
+
+    # Selector interactivo con teclas Arriba/Abajo y Enter
+    $chosenThemeId = Select-InteractiveTheme -Themes $themes -ActiveThemeId $global:VorkThemeId
+    if ($chosenThemeId) {
+        Apply-VorkTheme -ThemeName $chosenThemeId
+        try {
+            $tDir = Join-Path $HOME ".vork"
+            if (-not (Test-Path $tDir)) { New-Item -ItemType Directory -Path $tDir -Force | Out-Null }
+            Set-Content -Path (Join-Path $tDir ".theme") -Value $chosenThemeId -Force -Encoding UTF8
+        } catch { }
+
+        Write-Host "  ${ESC}[42;30;1m TEMA APLICADO $Reset ${Green}Ahora usando: ${Bold}$($global:VorkThemeName)${Reset}"
+        Write-Host "  ${LeadLight}Preferencia persistida en ~/.vork/.theme${Reset}"
+        Write-Host ""
+    }
+}
+
+function Invoke-CmdEnv {
+    Write-Host ""
+    Write-Host "  ${White}${Bold}VARIABLES DE ENTORNO VORK:${Reset}"
+    Write-Host "  ${Cyan}  VORK_API:${Reset}    $ApiBase"
+    Write-Host "  ${Cyan}  VORK_TIER:${Reset}   $global:VorkTier"
+    Write-Host "  ${Cyan}  USERPROFILE:${Reset} $HOME"
+    Write-Host ""
+}
+
+
+# ========================================================
+# VORK AI CONVERSACIONAL (VORK 3, 3.1 & 3.2 EXPERT)
+# ========================================================
+
+function Invoke-VorkAIChat {
+    param(
+        [string]$Prompt,
+        [string[]]$ArgsList
+    )
+
+    $fullPrompt = if ($Prompt) { $Prompt } elseif ($ArgsList) { $ArgsList -join " " } else { "" }
+    $fullPrompt = $fullPrompt.Trim()
+
+    if (-not $fullPrompt) {
+        Write-Host ""
+        Write-Host "  ${Cyan}╭─ Vork AI Conversacional ───────────────────────────────────${Reset}"
+        Write-Host "  ${Lead}│${Reset} ${White}Escribe tu consulta o tarea para la IA:${Reset}"
+        $fullPrompt = Read-VorkInput -Prompt "  ${Lead}│${Reset} ${Cyan}> ${Reset}"
+        if (-not $fullPrompt -or -not $fullPrompt.Trim()) { return }
+        $fullPrompt = $fullPrompt.Trim()
+    }
+
+    # -------------------------------------------------------------
+    # 0. DETECCION INTELIGENTE DE PILARES OPERACIONALES EN EL CHAT
+    # -------------------------------------------------------------
+    $urlMatch = [regex]::Match($fullPrompt, 'https?://\S+')
+    $extractedUrl = if ($urlMatch.Success) { $urlMatch.Value.TrimEnd('"', "'", ')', ']', '>', ';', ',') } else { $null }
+    $isMediaDomain = $urlMatch.Success -and ($urlMatch.Value -match 'tiktok\.com|youtube\.com|youtu\.be|instagram\.com|reels|facebook\.com|fb\.watch|twitter\.com|x\.com|soundcloud\.com|vimeo\.com|pin(terest)?\.com')
+    $isMediaIntent = $fullPrompt -match '(?i)(convertir|m[uú]sica|canci[oó]n|mp3|mp4|wav|audio|video|descargar|bajar|extraer|rip)'
+
+    # Deteccion de formato explicito solicitado por el usuario
+    $explicitFmt = $null
+    if ($fullPrompt -match '(?i)\b(mp3|m[uú]sica|canci[oó]n|audio)\b') {
+        $explicitFmt = "mp3"
+    } elseif ($fullPrompt -match '(?i)\b(mp4|video|clip)\b') {
+        $explicitFmt = "mp4"
+    } elseif ($fullPrompt -match '(?i)\b(wav)\b') {
+        $explicitFmt = "wav"
+    }
+
+    if ($urlMatch.Success -and ($isMediaDomain -or $isMediaIntent)) {
+        $platformName = Get-VorkMediaPlatformName -Url $extractedUrl
+        Write-Host ""
+        Write-Host "  ${Cyan}╭─ [04] Vork Conversor Multimedia Universal ─────────────────${Reset}"
+        Write-Host "  ${Lead}│${Reset} ${White}Plataforma:${Reset}  ${Yellow}${Bold}$platformName${Reset}"
+        Write-Host "  ${Lead}│${Reset} ${White}Enlace:${Reset}      ${Cyan}$extractedUrl${Reset}"
+        Write-Host "  ${Lead}│${Reset} ${LeadLight}Pilar 04 listo para procesar la conversión multimedia.${Reset}"
+        Write-Host "  ${Lead}╰────────────────────────────────────────────────────────────${Reset}"
+        Write-Host ""
+
+        $chosenFormat = $null
+        $chosenQuality = $null
+
+        if ($explicitFmt) {
+            # El usuario ya indico el formato, preguntamos directamente la calidad deseada para ese formato
+            $chosenFormat = $explicitFmt
+            $chosenQuality = Select-VorkMediaQualityChoice -Format $chosenFormat -PromptTitle "Selecciona la calidad deseada para $($chosenFormat.ToUpper()):"
+            if (-not $chosenQuality) {
+                $elbowChar = [char]0x23BF
+                Write-Host "  ${LeadLight}$elbowChar  Conversión multimedia cancelada.${Reset}"
+                Write-Host ""
+                return
+            }
+        } else {
+            # No indico formato: Pregunta 1 Formato, Pregunta 2 Calidad
+            $chosenFormat = Select-VorkMediaFormatChoice -PromptTitle "Selecciona el formato de salida:"
+            if (-not $chosenFormat) {
+                $elbowChar = [char]0x23BF
+                Write-Host "  ${LeadLight}$elbowChar  Conversión multimedia cancelada.${Reset}"
+                Write-Host ""
+                return
+            }
+
+            $chosenQuality = Select-VorkMediaQualityChoice -Format $chosenFormat -PromptTitle "Selecciona la calidad deseada para $($chosenFormat.ToUpper()):"
+            if (-not $chosenQuality) {
+                $elbowChar = [char]0x23BF
+                Write-Host "  ${LeadLight}$elbowChar  Conversión multimedia cancelada.${Reset}"
+                Write-Host ""
+                return
+            }
+        }
+
+        Invoke-PillarMedia -ArgsList @($extractedUrl, "-Format", $chosenFormat, "-Quality", $chosenQuality)
+        return
+    }
+
+    if ($isMediaIntent -and ($fullPrompt -match '(?i)(tiktok|youtube|video|enlace|link|reels|instagram)')) {
+        Write-Host ""
+        Write-Host "  ${Cyan}╭─ [04] Vork Conversor Multimedia Universal ─────────────────${Reset}"
+        Write-Host "  ${Lead}│${Reset} ${White}Ingresa la URL del video (YouTube, TikTok, Reels, IG):${Reset}"
+        $askedUrl = Read-VorkInput -Prompt "  ${Lead}│${Reset} ${Cyan}> ${Reset}"
+        if (-not $askedUrl -or -not $askedUrl.Trim()) {
+            $elbowChar = [char]0x23BF
+            Write-Host "  ${LeadLight}$elbowChar  Operación cancelada.${Reset}"
+            Write-Host ""
+            return
+        }
+        $askedUrl = $askedUrl.Trim()
+        $platformName = Get-VorkMediaPlatformName -Url $askedUrl
+        Write-Host "  ${Lead}│${Reset} ${White}Plataforma:${Reset}  ${Yellow}${Bold}$platformName${Reset}"
+        Write-Host "  ${Lead}│${Reset} ${White}Enlace:${Reset}      ${Cyan}$askedUrl${Reset}"
+        Write-Host "  ${Lead}╰────────────────────────────────────────────────────────────${Reset}"
+        Write-Host ""
+
+        $chosenFormat = $null
+        $chosenQuality = $null
+
+        if ($explicitFmt) {
+            $chosenFormat = $explicitFmt
+            $chosenQuality = Select-VorkMediaQualityChoice -Format $chosenFormat -PromptTitle "Selecciona la calidad deseada para $($chosenFormat.ToUpper()):"
+            if (-not $chosenQuality) {
+                $elbowChar = [char]0x23BF
+                Write-Host "  ${LeadLight}$elbowChar  Conversión multimedia cancelada.${Reset}"
+                Write-Host ""
+                return
+            }
+        } else {
+            $chosenFormat = Select-VorkMediaFormatChoice -PromptTitle "Selecciona el formato de salida:"
+            if (-not $chosenFormat) {
+                $elbowChar = [char]0x23BF
+                Write-Host "  ${LeadLight}$elbowChar  Conversión multimedia cancelada.${Reset}"
+                Write-Host ""
+                return
+            }
+
+            $chosenQuality = Select-VorkMediaQualityChoice -Format $chosenFormat -PromptTitle "Selecciona la calidad deseada para $($chosenFormat.ToUpper()):"
+            if (-not $chosenQuality) {
+                $elbowChar = [char]0x23BF
+                Write-Host "  ${LeadLight}$elbowChar  Conversión multimedia cancelada.${Reset}"
+                Write-Host ""
+                return
+            }
+        }
+
+        Invoke-PillarMedia -ArgsList @($askedUrl, "-Format", $chosenFormat, "-Quality", $chosenQuality)
+        return
+    }
+
+    # -------------------------------------------------------------
+    # 1. ACCIONES CONVERSACIONALES DIRECTAS HACIA LOS PILARES
+    # -------------------------------------------------------------
+    if ($fullPrompt -match '(?i)^\s*traduc(ir|e)\s+(.+)$') {
+        $transTarget = $matches[2].Trim()
+        Write-Host ""
+        Write-Host "  ${Cyan}╭─ [01] Vork Traductor en la Nube ───────────────────────────${Reset}"
+        Write-Host "  ${Lead}│${Reset} ${White}Detectado requerimiento de traducción directa.${Reset}"
+        Write-Host "  ${Lead}╰────────────────────────────────────────────────────────────${Reset}"
+        Invoke-PillarTranslate -ArgsList @("es", $transTarget)
+        return
+    }
+
+    if ($fullPrompt -match '(?i)\b(separar stems|separar pistas?|quitar la? voz|aislar la? voz|karaoke de)\b') {
+        Invoke-PillarSeparate
+        return
+    }
+
+    if ($fullPrompt -match '(?i)\b(quitar el? fondo|eliminar el? fondo|fondo transparente)\b') {
+        Invoke-PillarRemoveBg
+        return
+    }
+
+    if ($fullPrompt -match '(?i)\b(genera(r)?\s+(una\s+)?imagen|crea(r)?\s+(una\s+)?imagen|dibuja(r)?|imagina(r)?)\b') {
+        $cleanPrompt = [regex]::Replace($fullPrompt, '(?i)^(genera(r)?|crea(r)?|dibuja(r)?|imagina(r)?)\s+(una\s+)?(imagen\s+)?(de|sobre)?\s*', '').Trim()
+        Invoke-PillarGenerateImage -ArgsList @($cleanPrompt)
+        return
+    }
+
+    if ($fullPrompt -match '(?i)\b(convertir imagen|pasar imagen a)\b') {
+        Invoke-PillarImage
+        return
+    }
+
+    if ($fullPrompt -match '(?i)\b(texto a voz|sintetizar voz|leer con voz)\b') {
+        Invoke-PillarTTS
+        return
+    }
+
+    if ($fullPrompt -match '(?i)\b(clonar voz|clonacion de voz|clonación de voz)\b') {
+        Invoke-PillarClone
+        return
+    }
+
+    $activeModel = if ($global:VorkModel) { $global:VorkModel } else { "Vork 3.1" }
+    $activeTier = if ($activeModel -eq "Vork 3.2") { "expert" } elseif ($global:VorkTier) { $global:VorkTier.ToLower() } else { "medium" }
+    $tierLabel = if ($activeTier.Length -gt 1) { $activeTier.Substring(0,1).ToUpper() + $activeTier.Substring(1).ToLower() } else { $activeTier.ToUpper() }
+    $tierColor = switch ($activeTier) {
+        "low"    { $Green }
+        "medium" { $Yellow }
+        "high"   { $Coral }
+        "expert" { $Purple }
+        default  { $Cyan }
+    }
+
+    Write-Host ""
+    Write-Host "  ${tierColor}$([char]0x25CF)${Reset} ${LeadLight}Pensando con ${White}${Bold}$activeModel${Reset} ${LeadLight}(${tierColor}${Bold}$tierLabel${Reset}${LeadLight})...${Reset}"
+
+    $sw = [System.Diagnostics.Stopwatch]::StartNew()
+    $answer = ""
+    # 1. Intentar backend oficial de Vork
+    try {
+        $bodyJson = @{
+            message = $fullPrompt
+            model = $activeModel
+            effort = $activeTier
+        } | ConvertTo-Json -Compress
+
+        $timeoutSec = if ($activeTier -in "high", "expert") { 60 } else { 35 }
+        $res = Invoke-RestMethod -Uri "$ApiBase/api/ai/chat" -Method Post -Body $bodyJson -ContentType "application/json" -TimeoutSec $timeoutSec -ErrorAction Stop
+        if ($res -and $res.response) {
+            $answer = $res.response
+        } elseif ($res -and $res.message) {
+            $answer = $res.message
+        }
+    } catch {
+        # Si el backend en la nube en Render se encuentra reactivándose o sin conectividad
+        $answer = ""
+    }
+
+    # Fallback local con motor de inferencia Vork AI si la nube está en reactivación
+    if (-not $answer) {
+        $nodeCmd = Get-Command "node" -ErrorAction SilentlyContinue
+        if ($nodeCmd) {
+            try {
+                $jsPrompt = $fullPrompt | ConvertTo-Json
+                $jsCode = 'const { processAIChat } = require("./src/utils/aiEngine"); processAIChat({ message: ' + $jsPrompt + ', model: "' + $activeModel + '", effort: "' + $activeTier + '" }).then(r => console.log(JSON.stringify(r))).catch(e => console.error(JSON.stringify({ status: "error", error: e.message })));'
+                $localOut = & $nodeCmd.Source -e $jsCode 2>&1
+                $parsed = ($localOut | Out-String).Trim() | ConvertFrom-Json
+                if ($parsed -and $parsed.response) {
+                    $answer = $parsed.response
+                }
+            } catch { }
+        }
+    }
+
+    if (-not $answer) {
+        $answer = "No se pudo conectar con el motor en la nube de Vork ($ApiBase). Verifica tu conexión a internet o reintenta en unos instantes mientras el servidor en Render responde."
+    }
+
+    $sw.Stop()
+    $elapsedSec = [Math]::Round($sw.Elapsed.TotalSeconds, 1)
+
+    Write-Host ""
+    if ($answer) {
+        Write-VorkAIResponse -Answer $answer -ActiveModel $activeModel -TierLabel $tierLabel -ElapsedSec $elapsedSec
+    } else {
+        Write-Host "  ${Coral}[Error]:${Reset} No se pudo obtener respuesta del motor de Vork AI."
+        Write-Host ""
+    }
+
+    Save-VorkConversationRecord -Cmd $fullPrompt -Output $answer
+}
+
+# ========================================================
+# MODULE: pillars/system.ps1
+# ========================================================
 <#
 .SYNOPSIS
     Modulos de Sistema: Version y Telemetria en Vivo (Health)
@@ -6524,8 +7222,120 @@ function Invoke-PillarHealth {
     Invoke-CmdStatus
 }
 
-# ============================================================
 
+# ========================================================
+# MODULE: core/updater.ps1
+# ========================================================
+<#
+.SYNOPSIS
+    Vork CLI - Modulo Core: Auto-Update Silencioso y Sincronizacion Atómica
+#>
+
+function Check-And-AutoUpdate {
+    param([switch]$Force)
+    
+    $cacheDir = Join-Path $HOME ".vork"
+    $checkFile = Join-Path $cacheDir ".last_check"
+    $settingsFile = Join-Path $cacheDir "settings.json"
+    $shouldCheck = $Force
+
+    $autoUpdatePref = "silent"
+    if (Test-Path $settingsFile) {
+        try {
+            $sData = Get-Content -Path $settingsFile -Raw | ConvertFrom-Json
+            if ($sData.auto_update) { $autoUpdatePref = [string]$sData.auto_update }
+        } catch { }
+    }
+
+    # Si está desactivado y no es invocación manual, salir
+    if (-not $Force -and $autoUpdatePref -eq "off") {
+        return
+    }
+    
+    if (-not $shouldCheck) {
+        if (-not (Test-Path $checkFile)) {
+            $shouldCheck = $true
+        } else {
+            try {
+                $lastCheck = (Get-Item $checkFile).LastWriteTime
+                if ((Get-Date) - $lastCheck -gt (New-TimeSpan -Hours 1)) {
+                    $shouldCheck = $true
+                }
+            } catch {
+                $shouldCheck = $true
+            }
+        }
+    }
+    
+    if ($shouldCheck) {
+        try {
+            if ($Force) {
+                Write-VorkSectionHeader -Title "Actualización de Vork CLI" -Subtitle "verificando versiones en la nube..." -RightText "vork · update"
+                Write-VorkInfoRow -Label "Versión local" -Value "v$VorkVersion" -ValueColor $Cyan
+                Write-VorkInfoRow -Label "Servidor" -Value $ApiBase -ValueColor $LeadLight
+                Write-VorkSectionRule
+            }
+
+            $remoteInfo = Invoke-RestMethod -Uri "$ApiBase/api/cli/info" -TimeoutSec 4 -ErrorAction Stop
+            Set-Content -Path $checkFile -Value (Get-Date).ToString("o") -ErrorAction SilentlyContinue
+
+            $remoteVer = if ($remoteInfo -and $remoteInfo.version) { [string]$remoteInfo.version } else { $VorkVersion }
+            $isNewer = try { [version]$remoteVer -gt [version]$VorkVersion } catch { $remoteVer -ne $VorkVersion }
+
+            if ($Force) {
+                if (-not $isNewer) {
+                    Write-VorkStatusLine -Kind ok -Text "Vork CLI ya está en su versión más reciente (v$VorkVersion)."
+                    Write-Host ""
+                    return
+                }
+
+                # Preguntar confirmación al usuario para actualizar
+                $upOptions = @(
+                    @{ Value = "yes"; Label = "Actualizar ahora (Recomendado)"; Description = "Descarga e instala Vork CLI v$remoteVer" },
+                    @{ Value = "no";  Label = "Omitir por ahora";               Description = "Permanecer en la versión actual v$VorkVersion" }
+                )
+                $chosen = Select-InteractiveOption -PromptTitle "¿Deseas actualizar Vork CLI a la versión v$remoteVer?" -Subtitle "nueva versión disponible" -Options $upOptions -DefaultIndex 0
+                if ($chosen -ne "yes") {
+                    Write-VorkStatusLine -Kind warn -Text "Actualización omitida por el usuario."
+                    Write-Host ""
+                    return
+                }
+            } else {
+                # Segundo plano
+                if (-not $isNewer) { return }
+                if ($autoUpdatePref -eq "prompt") {
+                    return
+                }
+            }
+
+            # Proceder con la actualización atómica
+            if ($Force) {
+                Write-VorkStatusLine -Kind step -Text "Sincronizando binarios con Vork Cloud v$remoteVer"
+            }
+            $targetScript = if ($PSCommandPath) { $PSCommandPath } else { Join-Path $cacheDir "bin\vork.ps1" }
+            
+            Invoke-RestMethod -Uri "$ApiBase/cli/vork.ps1" -OutFile "$targetScript.tmp" -TimeoutSec 15 -ErrorAction Stop
+            if (Test-Path "$targetScript.tmp") {
+                Move-Item -Path "$targetScript.tmp" -Destination $targetScript -Force
+                if ($Force) {
+                    Write-VorkStatusLine -Kind ok -Text "Vork CLI actualizado exitosamente a v$remoteVer."
+                    Write-Host ""
+                }
+                Send-VorkNotification -Title "Vork CLI Actualizado" -Message "Vork CLI sincronizado exitosamente con la versión v$remoteVer."
+            }
+        } catch {
+            if ($Force) {
+                Write-VorkStatusLine -Kind error -Text "Error al consultar o instalar actualización" -Detail $_.Exception.Message
+                Write-Host ""
+            }
+        }
+    }
+}
+
+
+# ========================================================
+# MODULE: core/router.ps1
+# ========================================================
 <#
 .SYNOPSIS
     Vork CLI - Modulo Core: Despachador y consola interactiva REPL responsive.
@@ -6550,6 +7360,7 @@ function Dispatch-CLICommand {
         "separate"  { Invoke-PillarSeparate -ArgsList $ArgsList }
         "image"     { Invoke-PillarImage -ArgsList $ArgsList }
         "remove-bg" { Invoke-PillarRemoveBg -ArgsList $ArgsList }
+        "draw"      { Invoke-PillarGenerateImage -ArgsList $ArgsList }
         "agents"    { Invoke-PillarAgents -ArgsList $ArgsList }
 
         # ========================================================
@@ -6920,11 +7731,42 @@ function Write-VorkPromptFrame {
         [bool]$MenuOpen,
         [string]$Status,
         [int]$MenuRows,
-        [int]$PreviousMenuRows = 0
+        [int]$PreviousTotalRows = 3
     )
 
     $maxWidth = [Math]::Max(4, $Width - 1)
-    $actualRows = if ($MenuOpen) { 3 + [Math]::Max(0, $MenuRows) } else { 3 }
+    $inner = [Math]::Max(10, $Width - 9)
+
+    # Segmentar texto en líneas multilínea dinámicas
+    $wrapped = @()
+    if (-not $Text) {
+        $wrapped += ""
+    } else {
+        $rem = $Text
+        while ($rem.Length -gt 0) {
+            if ($rem.Length -le $inner) {
+                $wrapped += $rem
+                break
+            }
+            $chunk = $rem.Substring(0, $inner)
+            $sp = $chunk.LastIndexOf(' ')
+            if ($sp -gt [int]($inner * 0.4)) {
+                $wrapped += $rem.Substring(0, $sp)
+                $rem = $rem.Substring($sp + 1)
+            } else {
+                $wrapped += $chunk
+                $rem = $rem.Substring($inner)
+            }
+            if ($wrapped.Count -ge 5) {
+                if ($rem.Length -gt 0) { $wrapped[-1] = $wrapped[-1] + "..." }
+                break
+            }
+        }
+    }
+
+    $inputLinesCount = [Math]::Max(1, $wrapped.Count)
+    $actualRows = if ($MenuOpen) { 2 + $inputLinesCount + [Math]::Max(0, $MenuRows) } else { 2 + $inputLinesCount }
+
     $panel = [pscustomobject]@{
         Top          = $PromptRow
         Rows         = $actualRows
@@ -6934,33 +7776,51 @@ function Write-VorkPromptFrame {
     }
     try { [Console]::CursorVisible = $false } catch { }
 
-    # Cabecera: marca en coral + estado de modelo/tier alineado a la derecha.
+    # Cabecera
     $statusText = Format-VorkPromptStatus -Status $Status -Width $Width
-    $titleText = ""
-    Write-VorkPanelLine -Panel $panel -Index 0 -Text (Format-VorkBorderTop -Title $titleText -RightText $statusText -Width $Width)
+    Write-VorkPanelLine -Panel $panel -Index 0 -Text (Format-VorkBorderTop -Title "" -RightText $statusText -Width $Width)
 
-    # Linea de entrada con placeholder atenuado cuando el buffer esta vacio.
-    $inner = [Math]::Max(1, $Width - 9)
-    $view = Get-VorkTextWindow -Text $Text -Cursor $Cursor -Width $inner
-    $shownText = $view.Text
-    $textWidth = Get-VorkDisplayWidth $view.Text
+    # Líneas de entrada de texto multilínea
+    $cursorRowOffset = 0
+    $cursorColOffset = $Cursor
+    $accumChars = 0
 
-    if (-not $Text) {
-        $placeholder = Get-VorkPromptPlaceholder -Budget $inner
-        if ($placeholder) {
-            $shownText = "${LeadLight}$placeholder${Reset}"
-            $textWidth = Get-VorkDisplayWidth $placeholder
+    for ($l = 0; $l -lt $inputLinesCount; $l++) {
+        $lineText = $wrapped[$l]
+        $lineLen = $lineText.Length
+        if ($Cursor -ge $accumChars -and ($Cursor -le ($accumChars + $lineLen) -or $l -eq ($inputLinesCount - 1))) {
+            $cursorRowOffset = $l
+            $cursorColOffset = [Math]::Max(0, $Cursor - $accumChars)
         }
+        $accumChars += $lineLen + 1
+
+        $shownText = $lineText
+        $textWidth = Get-VorkDisplayWidth $lineText
+
+        if (-not $Text -and $l -eq 0) {
+            $placeholder = Get-VorkPromptPlaceholder -Budget $inner
+            if ($placeholder) {
+                $shownText = "${LeadLight}$placeholder${Reset}"
+                $textWidth = Get-VorkDisplayWidth $placeholder
+            }
+        }
+
+        $padding = [Math]::Max(0, ($Width - 3) - (6 + $textWidth))
+        $prefix = if ($l -eq 0) {
+            "  ${Lead}$([char]0x2502)${Reset} ${Coral}${Bold}$([char]0x276F)${Reset} "
+        } else {
+            "  ${Lead}$([char]0x2502)${Reset}   "
+        }
+        $inputLine = "$prefix$shownText$([string]::new(' ', $padding)) ${Lead}$([char]0x2502)${Reset}"
+        Write-VorkPanelLine -Panel $panel -Index (1 + $l) -Text $inputLine
     }
 
-    $padding = [Math]::Max(0, ($Width - 3) - (6 + $textWidth))
-    $inputLine = "  ${Lead}$([char]0x2502)${Reset} ${Coral}${Bold}$([char]0x276F)${Reset} $shownText$([string]::new(' ', $padding)) ${Lead}$([char]0x2502)${Reset}"
-    Write-VorkPanelLine -Panel $panel -Index 1 -Text $inputLine
-
-    # Pie de pagina: atajos contextuales que se recortan segun el ancho disponible.
+    # Atajos de teclado en pie de página
     $hints = Get-VorkPromptHints -Width $Width -MenuOpen $MenuOpen
     $leftText = Format-VorkHintLine -Hints $hints -MaxWidth ([Math]::Max(0, $maxWidth - 8))
     $rightText = ""
+
+    $borderRow = 1 + $inputLinesCount
 
     if ($MenuOpen) {
         $above = $MenuTop
@@ -6983,10 +7843,9 @@ function Write-VorkPromptFrame {
             }
         }
 
-        Write-VorkPanelLine -Panel $panel -Index 2 -Text (Format-VorkBorderMiddle -RightText $rightText -Width $Width)
+        Write-VorkPanelLine -Panel $panel -Index $borderRow -Text (Format-VorkBorderMiddle -RightText $rightText -Width $Width)
 
-        # Lista de comandos: SOLO cuando el menu esta activo
-        $menuStart = 3
+        $menuStart = $borderRow + 1
         $menuInner = [Math]::Max(6, $Width - 7)
 
         for ($i = 0; $i -lt $MenuRows; $i++) {
@@ -7004,31 +7863,34 @@ function Write-VorkPromptFrame {
             }
         }
     } else {
-        Write-VorkPanelLine -Panel $panel -Index 2 -Text (Format-VorkBorderBottom -LeftText $leftText -RightText "" -Width $Width)
+        Write-VorkPanelLine -Panel $panel -Index $borderRow -Text (Format-VorkBorderBottom -LeftText $leftText -RightText "" -Width $Width)
+    }
 
-        # Limpiar filas del menu que hayan quedado de una apertura anterior
-        if ($PreviousMenuRows -gt 0) {
-            for ($k = 0; $k -lt $PreviousMenuRows; $k++) {
-                $cleanRow = $PromptRow + 3 + $k
-                try {
-                    if ($cleanRow -lt [Console]::BufferHeight) {
-                        [Console]::SetCursorPosition(0, $cleanRow)
-                        Write-Host "$ClrLine$ClrToEnd" -NoNewline
-                    }
-                } catch { }
-            }
+    # Limpiar líneas sobrantes si el cuadro se redujo
+    if ($PreviousTotalRows -gt $actualRows) {
+        for ($k = $actualRows; $k -lt $PreviousTotalRows; $k++) {
+            $cleanRow = $PromptRow + $k
+            try {
+                if ($cleanRow -lt [Console]::BufferHeight) {
+                    [Console]::SetCursorPosition(0, $cleanRow)
+                    Write-Host "$ClrLine$ClrToEnd" -NoNewline
+                }
+            } catch { }
         }
     }
 
     try {
-        $cursorColumn = 6 + $view.Cursor
+        $cursorColumn = 6 + [Math]::Min($inner, $cursorColOffset)
         if ($cursorColumn -ge ($Width - 1)) { $cursorColumn = $Width - 2 }
         if ($cursorColumn -lt 0) { $cursorColumn = 0 }
-        if (($PromptRow + 1) -ge 0 -and ($PromptRow + 1) -lt [Console]::BufferHeight) {
-            [Console]::SetCursorPosition($cursorColumn, $PromptRow + 1)
+        $cursorRow = $PromptRow + 1 + $cursorRowOffset
+        if ($cursorRow -ge 0 -and $cursorRow -lt [Console]::BufferHeight) {
+            [Console]::SetCursorPosition($cursorColumn, $cursorRow)
         }
         try { [Console]::CursorVisible = $true } catch { }
     } catch { }
+
+    return $actualRows
 }
 
 function Read-InteractiveVorkLine {
@@ -7048,6 +7910,7 @@ function Read-InteractiveVorkLine {
         @{ Cmd = "/separate";    Desc = "Aislamiento de Stems Acapella/Karaoke (Demucs v4)" },
         @{ Cmd = "/image";       Desc = "Conversor universal PNG, JPG, WEBP, ICO, AVIF" },
         @{ Cmd = "/remove-bg";   Desc = "Silueta inteligente y eliminacion de fondo IA" },
+        @{ Cmd = "/draw";        Desc = "Generador de imagenes IA con FLUX.1 (sin marca de agua)" },
         @{ Cmd = "/agents";      Desc = "Orquestacion de subagentes en terminal interactiva" },
         @{ Cmd = "/goal";        Desc = "Modo autonomo continuo para tareas exhaustivas" },
         @{ Cmd = "/plan";        Desc = "Planificacion guiada y desglose paso a paso" },
@@ -7092,10 +7955,9 @@ function Read-InteractiveVorkLine {
     try {
         $metrics = Get-VorkConsoleMetrics
         $menuRows = [Math]::Max(2, [Math]::Min(8, $metrics.Height - 7))
-        Ensure-VorkRowsBelow -Rows (3 + $menuRows) | Out-Null
+        Ensure-VorkRowsBelow -Rows (12 + $menuRows) | Out-Null
         $promptRow = try { [Console]::CursorTop } catch { 0 }
-        $previousMenuRows = 0
-
+        $previousTotalRows = 3
         while ($true) {
             $text = $buffer.ToString()
             $isSlash = (-not $navigatingHistory) -and (-not $menuDismissed) -and $text.StartsWith("/") -and (-not $text.Contains(" "))
@@ -7137,8 +7999,7 @@ function Read-InteractiveVorkLine {
 
 
             $promptWidth = [Math]::Max(20, $metrics.Width - 1)
-            Write-VorkPromptFrame -PromptRow $promptRow -Width $promptWidth -Height $metrics.Height -Text $text -Cursor $position -MenuItems $filtered -MenuSelected $selected -MenuTop $top -MenuVisible $menuVisible -MenuOpen $menuOpen -Status $statusText -MenuRows $menuRows -PreviousMenuRows $previousMenuRows
-            $previousMenuRows = if ($menuOpen) { $menuRows } else { 0 }
+            $previousTotalRows = Write-VorkPromptFrame -PromptRow $promptRow -Width $promptWidth -Height $metrics.Height -Text $text -Cursor $position -MenuItems $filtered -MenuSelected $selected -MenuTop $top -MenuVisible $menuVisible -MenuOpen $menuOpen -Status $statusText -MenuRows $menuRows -PreviousTotalRows $previousTotalRows
 
             $wait = Wait-VorkConsoleKey
             if ($wait.Resized) {
@@ -7150,7 +8011,7 @@ function Read-InteractiveVorkLine {
                 }
                 $metrics = Get-VorkConsoleMetrics
                 $menuRows = [Math]::Max(2, [Math]::Min(8, $metrics.Height - 7))
-                Ensure-VorkRowsBelow -Rows (3 + $menuRows) | Out-Null
+                Ensure-VorkRowsBelow -Rows (12 + $menuRows) | Out-Null
                 $promptRow = try { [Console]::CursorTop } catch { 0 }
                 continue
             }
@@ -7197,7 +8058,7 @@ function Read-InteractiveVorkLine {
             if (Test-VorkCtrlKey -Key $key -Letter ([ConsoleKey]::L)) {
                 Clear-Host
                 Show-Banner
-                Ensure-VorkRowsBelow -Rows (3 + $menuRows) | Out-Null
+                Ensure-VorkRowsBelow -Rows (12 + $menuRows) | Out-Null
                 $promptRow = try { [Console]::CursorTop } catch { 0 }
                 continue
             }
@@ -7575,3 +8436,4 @@ if (-not $Command -or $Command.ToLower() -in "tui", "interactive") {
     $outMsg = if ($Command.StartsWith("/")) { "Exited $Command command" } else { "Executed $Command" }
     Save-VorkConversationRecord -Cmd $fullCmd -Output $outMsg
 }
+

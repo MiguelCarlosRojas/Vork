@@ -19,6 +19,7 @@
   "use strict";
 
   const COOKIE_NAME = "vork_lang";
+  const LEGACY_COOKIE = "cloud_translator_lang";
 
   function setCookie(name, value, days = 365) {
     try {
@@ -42,11 +43,15 @@
 
   class VorkClient {
     constructor(options = {}) {
-      this.apiEndpoint = options.apiEndpoint || "/api/translate";
-      this.currentLang = getCookie(COOKIE_NAME) || "original";
+      this.apiEndpoint = options.apiEndpoint || options.endpoint || "/api/translate";
+      this.currentLang = getCookie(COOKIE_NAME) || getCookie(LEGACY_COOKIE) || "original";
       this.cache = new Map();
       this.originalTexts = new Map();
       this.isTranslating = false;
+    }
+
+    getSavedLanguage() {
+      return this.currentLang || getCookie(COOKIE_NAME) || "original";
     }
 
     async translatePage(targetLang) {
@@ -75,7 +80,7 @@
 
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           const data = await res.json();
-          const translations = data.translations || [];
+          const translations = data.translatedTexts || data.translations || [];
 
           uncached.forEach((original, idx) => {
             const trans = translations[idx];

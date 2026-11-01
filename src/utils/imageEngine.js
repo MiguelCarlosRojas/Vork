@@ -575,7 +575,7 @@ async function generateImageFromPrompt({
 
   let imageBuffer = null;
 
-  // 1. Primario: Modelo FLUX.1-schnell oficial de Black Forest Labs (Alta Fidelidad, 1024x1024, sin marcas)
+  // 1. Primario: Modelo FLUX.1-schnell oficial vía Gradio
   try {
     const { Client } = require("@gradio/client");
     logger.info(`[ImageEngine] Conectando con FLUX.1-schnell Neural...`);
@@ -592,33 +592,53 @@ async function generateImageFromPrompt({
     if (fluxRes && fluxRes.data && fluxRes.data[0] && fluxRes.data[0].url) {
       const resp = await axios.get(fluxRes.data[0].url, {
         responseType: "arraybuffer",
-        timeout: 30000
+        timeout: 20000
       });
       imageBuffer = Buffer.from(resp.data);
+      logger.info(`[ImageEngine] Imagen generada con éxito con FLUX.1 Gradio (${imageBuffer.length} bytes).`);
     } else {
-      throw new Error("Respuesta incompleta de FLUX.1");
+      throw new Error("Respuesta incompleta de FLUX.1 Gradio");
     }
   } catch (primaryErr) {
-    logger.warn(`[ImageEngine] Primario FLUX falló (${primaryErr.message}). Intentando espacio secundario FLUX/SDXL...`);
-    // 2. Respaldo secundario: Espacio público FLUX o Hugging Face
+    logger.warn(`[ImageEngine] Primario Gradio FLUX falló (${primaryErr.message}). Activando cluster alternativo Pollinations FLUX...`);
+
+    // 2. Respaldo secundario: Pollinations FLUX.1 (Sin límites de ZeroGPU, 1024x1024, sin marca de agua)
     try {
-      const { Client } = require("@gradio/client");
-      const client2 = await Client.connect("stabilityai/stable-diffusion-3.5-large-turbo");
-      const res2 = await client2.predict("/infer", {
-        prompt: enPrompt,
-        seed: safeSeed,
-        width: safeWidth,
-        height: safeHeight
+      const encodedPrompt = encodeURIComponent(enPrompt);
+      const pollinationsFluxUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${safeWidth}&height=${safeHeight}&seed=${safeSeed}&model=flux&nologo=true`;
+      const resp = await axios.get(pollinationsFluxUrl, {
+        responseType: "arraybuffer",
+        timeout: 30000
       });
-      if (res2 && res2.data && res2.data[0] && res2.data[0].url) {
-        const resp2 = await axios.get(res2.data[0].url, { responseType: "arraybuffer", timeout: 30000 });
-        imageBuffer = Buffer.from(resp2.data);
+      if (resp && resp.data && resp.data.length > 1000) {
+        imageBuffer = Buffer.from(resp.data);
+        logger.info(`[ImageEngine] Imagen generada con éxito con Pollinations FLUX (${imageBuffer.length} bytes).`);
       } else {
-        throw new Error("Fallo en espacio secundario");
+        throw new Error("Respuesta de imagen inválida o vacía de Pollinations");
       }
-    } catch (secErr) {
-      logger.error(`[ImageEngine] Espacios neuronales saturados: ${secErr.message}`);
-      throw new Error(`No se pudo generar la imagen con IA en este momento: ${primaryErr.message}`);
+    } catch (pollinationsErr) {
+      logger.warn(`[ImageEngine] Pollinations FLUX falló (${pollinationsErr.message}). Intentando espacio secundario HuggingFace SDXL...`);
+
+      // 3. Respaldo terciario: HuggingFace SDXL Turbo
+      try {
+        const { Client } = require("@gradio/client");
+        const client2 = await Client.connect("stabilityai/stable-diffusion-3.5-large-turbo");
+        const res2 = await client2.predict("/infer", {
+          prompt: enPrompt,
+          seed: safeSeed,
+          width: safeWidth,
+          height: safeHeight
+        });
+        if (res2 && res2.data && res2.data[0] && res2.data[0].url) {
+          const resp2 = await axios.get(res2.data[0].url, { responseType: "arraybuffer", timeout: 20000 });
+          imageBuffer = Buffer.from(resp2.data);
+        } else {
+          throw new Error("Fallo en espacio secundario");
+        }
+      } catch (secErr) {
+        logger.error(`[ImageEngine] Todos los clusters de generación neuronal fallaron: ${secErr.message}`);
+        throw new Error(`No se pudo generar la imagen con IA en este momento: ${primaryErr.message}`);
+      }
     }
   }
 

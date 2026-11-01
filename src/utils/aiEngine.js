@@ -775,9 +775,291 @@ function detectCommandOrPillarIntent({ query, model, effort }) {
 /**
  * Generador de código especializado adaptado a modelo y esfuerzo
  */
+/**
+ * Generador de código especializado adaptado a modelo y esfuerzo
+ */
 function generateCodeSolution(topic, language, model, effort) {
-  const lang = (language || "python").toLowerCase();
+  const q = (topic || "").toLowerCase();
 
+  // 1. LANDING PAGE EN REACT / FRONTEND MODERNO
+  if (q.includes("react") || q.includes("landing") || q.includes("pagina web") || q.includes("página web") || q.includes("sitio web") || (q.includes("crear") && (q.includes("web") || q.includes("pagina") || q.includes("carpeta")))) {
+    if (effort === "low") {
+      return `### Landing Page en React + Vite (Rápido)\n\n` +
+        `\`\`\`bash\n# 1. Crear carpeta y proyecto\nmkdir mi-landing && cd mi-landing\nnpm create vite@latest . -- --template react\nnpm install\nnpm run dev\n\`\`\`\n\n` +
+        `**App.jsx Básico:**\n\`\`\`jsx\nexport default function App() {\n  return (\n    <div style={{fontFamily: 'sans-serif', textAlign: 'center', padding: '4rem 2rem'}}>\n      <h1>Bienvenido a Nuestra Plataforma</h1>\n      <p>La solución moderna para impulsar tus proyectos digitales.</p>\n      <button style={{padding: '12px 24px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '1rem'}}>Comenzar Ahora</button>\n    </div>\n  );\n}\n\`\`\``;
+    }
+
+    // medium, high, expert
+    return `### Proyecto Completo: Landing Page Profesional en React + Vite · ${model} (${effort.toUpperCase()})\n\n` +
+      `Aquí tienes la arquitectura completa, comandos para crear la carpeta y los archivos con código listo para producción.\n\n` +
+      `#### 1. Comandos de Terminal (Creación de Carpeta e Inicialización)\n` +
+      `Ejecuta estos comandos en tu terminal para crear la carpeta e instalar dependencias:\n\n` +
+      `\`\`\`bash\n` +
+      `# Crear la carpeta del proyecto y entrar en ella\n` +
+      `mkdir landing-page-react\n` +
+      `cd landing-page-react\n\n` +
+      `# Inicializar el proyecto con Vite y plantilla React\n` +
+      `npm create vite@latest . -- --template react\n\n` +
+      `# Instalar paquetes requeridos\n` +
+      `npm install lucide-react\n` +
+      `npm install\n` +
+      `\`\`\`\n\n` +
+      `#### 2. Estructura de Directorios Recomendada\n` +
+      `\`\`\`text\n` +
+      `landing-page-react/\n` +
+      `├── src/\n` +
+      `│   ├── components/\n` +
+      `│   │   ├── Navbar.jsx      # Barra de navegación superior responsive\n` +
+      `│   │   ├── Hero.jsx        # Sección principal con propuesta de valor y CTA\n` +
+      `│   │   ├── Features.jsx    # Tarjetas de características y beneficios clave\n` +
+      `│   │   ├── CTA.jsx         # Llamado a la acción con formulario\n` +
+      `│   │   └── Footer.jsx      # Pie de página y enlaces legales\n` +
+      `│   ├── App.jsx             # Ensamblador principal de la página\n` +
+      `│   ├── index.css           # Estilos modernos y variables de diseño\n` +
+      `│   └── main.jsx            # Punto de entrada de React 18+\n` +
+      `├── package.json\n` +
+      `└── index.html\n` +
+      `\`\`\`\n\n` +
+      `#### 3. Código Fuente de los Componentes\n\n` +
+      `**\`src/components/Navbar.jsx\`**:\n` +
+      `\`\`\`jsx\n` +
+      `import React from 'react';\n\n` +
+      `export default function Navbar() {\n` +
+      `  return (\n` +
+      `    <nav className="navbar">\n` +
+      `      <div className="nav-container">\n` +
+      `        <div className="logo">⚡ VorkTech</div>\n` +
+      `        <div className="nav-links">\n` +
+      `          <a href="#features">Características</a>\n` +
+      `          <a href="#pricing">Precios</a>\n` +
+      `          <a href="#about">Nosotros</a>\n` +
+      `          <button className="btn-primary-sm">Empezar Gratis</button>\n` +
+      `        </div>\n` +
+      `      </div>\n` +
+      `    </nav>\n` +
+      `  );\n` +
+      `}\n` +
+      `\`\`\`\n\n` +
+      `**\`src/components/Hero.jsx\`**:\n` +
+      `\`\`\`jsx\n` +
+      `import React from 'react';\n\n` +
+      `export default function Hero() {\n` +
+      `  return (\n` +
+      `    <header className="hero-section">\n` +
+      `      <span className="badge">Lanzamiento 2026 · Edición Profesional</span>\n` +
+      `      <h1 className="hero-title">\n` +
+      `        Construye el Futuro con <span className="gradient-text">Máxima Eficiencia</span>\n` +
+      `      </h1>\n` +
+      `      <p className="hero-subtitle">\n` +
+      `        La plataforma todo en uno diseñada para proyectos que buscan escalabilidad, velocidad y diseño de vanguardia sin complicaciones.\n` +
+      `      </p>\n` +
+      `      <div className="hero-actions">\n` +
+      `        <button className="btn-primary">Prueba Gratis 14 Días</button>\n` +
+      `        <button className="btn-secondary">Ver Demostración en Vivo</button>\n` +
+      `      </div>\n` +
+      `    </header>\n` +
+      `  );\n` +
+      `}\n` +
+      `\`\`\`\n\n` +
+      `**\`src/components/Features.jsx\`**:\n` +
+      `\`\`\`jsx\n` +
+      `import React from 'react';\n\n` +
+      `const features = [\n` +
+      `  {\n` +
+      `    title: "Rendimiento Extremo",\n` +
+      `    desc: "Carga en menos de 200ms optimizada con Vite, HTTP/3 y micro-módulos asíncronos.",\n` +
+      `    icon: "🚀"\n` +
+      `  },\n` +
+      `  {\n` +
+      `    title: "Seguridad Soberana",\n` +
+      `    desc: "Aislamiento total de datos con cifrado de extremo a extremo sin telemetría invasiva.",\n` +
+      `    icon: "🛡️"\n` +
+      `  },\n` +
+      `  {\n` +
+      `    title: "Diseño Adaptable",\n` +
+      `    desc: "Totalmente responsivo en móviles, tablets y monitores ultrawide con modo oscuro nativo.",\n` +
+      `    icon: "💎"\n` +
+      `  }\n` +
+      `];\n\n` +
+      `export default function Features() {\n` +
+      `  return (\n` +
+      `    <section id="features" className="features-section">\n` +
+      `      <h2 className="section-title">¿Por qué elegir nuestra solución?</h2>\n` +
+      `      <div className="grid-cards">\n` +
+      `        {features.map((f, i) => (\n` +
+      `          <div key={i} className="card">\n` +
+      `            <div className="card-icon">{f.icon}</div>\n` +
+      `            <h3>{f.title}</h3>\n` +
+      `            <p>{f.desc}</p>\n` +
+      `          </div>\n` +
+      `        ))}\n` +
+      `      </div>\n` +
+      `    </section>\n` +
+      `  );\n` +
+      `}\n` +
+      `\`\`\`\n\n` +
+      `**\`src/components/CTA.jsx\`**:\n` +
+      `\`\`\`jsx\n` +
+      `import React, { useState } from 'react';\n\n` +
+      `export default function CTA() {\n` +
+      `  const [email, setEmail] = useState('');\n` +
+      `  const [sent, setSent] = useState(false);\n\n` +
+      `  const handleSubmit = (e) => {\n` +
+      `    e.preventDefault();\n` +
+      `    if (email) setSent(true);\n` +
+      `  };\n\n` +
+      `  return (\n` +
+      `    <section className="cta-section">\n` +
+      `      <h2>¿Listo para dar el siguiente paso?</h2>\n` +
+      `      <p>Únete a miles de profesionales que ya optimizan su flujo de trabajo.</p>\n` +
+      `      {sent ? (\n` +
+      `        <div className="sent-msg">¡Gracias! Te hemos enviado la invitación a {email}.</div>\n` +
+      `      ) : (\n` +
+      `        <form onSubmit={handleSubmit} className="cta-form">\n` +
+      `          <input\n` +
+      `            type="email"\n` +
+      `            placeholder="Ingresa tu correo..."\n` +
+      `            value={email}\n` +
+      `            onChange={(e) => setEmail(e.target.value)}\n` +
+      `            required\n` +
+      `          />\n` +
+      `          <button type="submit" className="btn-primary">Comenzar Ahora</button>\n` +
+      `        </form>\n` +
+      `      )}\n` +
+      `    </section>\n` +
+      `  );\n` +
+      `}\n` +
+      `\`\`\`\n\n` +
+      `**\`src/components/Footer.jsx\`**:\n` +
+      `\`\`\`jsx\n` +
+      `import React from 'react';\n\n` +
+      `export default function Footer() {\n` +
+      `  return (\n` +
+      `    <footer className="footer">\n` +
+      `      <p>© 2026 Vork Technologies. Todos los derechos reservados.</p>\n` +
+      `      <div className="footer-links">\n` +
+      `        <a href="#privacy">Privacidad</a>\n` +
+      `        <a href="#terms">Términos</a>\n` +
+      `        <a href="#contact">Soporte</a>\n` +
+      `      </div>\n` +
+      `    </footer>\n` +
+      `  );\n` +
+      `}\n` +
+      `\`\`\`\n\n` +
+      `**\`src/App.jsx\`**:\n` +
+      `\`\`\`jsx\n` +
+      `import React from 'react';\n` +
+      `import Navbar from './components/Navbar';\n` +
+      `import Hero from './components/Hero';\n` +
+      `import Features from './components/Features';\n` +
+      `import CTA from './components/CTA';\n` +
+      `import Footer from './components/Footer';\n` +
+      `import './index.css';\n\n` +
+      `export default function App() {\n` +
+      `  return (\n` +
+      `    <div className="app-layout">\n` +
+      `      <Navbar />\n` +
+      `      <main>\n` +
+      `        <Hero />\n` +
+      `        <Features />\n` +
+      `        <CTA />\n` +
+      `      </main>\n` +
+      `      <Footer />\n` +
+      `    </div>\n` +
+      `  );\n` +
+      `}\n` +
+      `\`\`\`\n\n` +
+      `**\`src/index.css\`** (Estilos Modernos Dark / Light Glassmorphism):\n` +
+      `\`\`\`css\n` +
+      `:root {\n` +
+      `  --bg-primary: #0a0e17;\n` +
+      `  --bg-card: rgba(18, 24, 38, 0.7);\n` +
+      `  --border: rgba(255, 255, 255, 0.08);\n` +
+      `  --text-main: #f8fafc;\n` +
+      `  --text-muted: #94a3b8;\n` +
+      `  --accent: #38bdf8;\n` +
+      `  --accent-purple: #818cf8;\n` +
+      `}\n\n` +
+      `* { box-sizing: border-box; margin: 0; padding: 0; }\n` +
+      `body { background-color: var(--bg-primary); color: var(--text-main); font-family: system-ui, -apple-system, sans-serif; line-height: 1.6; }\n` +
+      `.app-layout { min-height: 100vh; display: flex; flex-direction: column; }\n` +
+      `.navbar { border-bottom: 1px solid var(--border); backdrop-filter: blur(12px); position: sticky; top: 0; z-index: 50; padding: 1rem 2rem; }\n` +
+      `.nav-container { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }\n` +
+      `.logo { font-size: 1.4rem; font-weight: 800; color: #fff; }\n` +
+      `.nav-links { display: flex; align-items: center; gap: 1.5rem; }\n` +
+      `.nav-links a { color: var(--text-muted); text-decoration: none; font-size: 0.95rem; transition: color 0.2s; }\n` +
+      `.nav-links a:hover { color: #fff; }\n` +
+      `.hero-section { max-width: 900px; margin: 5rem auto; text-align: center; padding: 0 1.5rem; }\n` +
+      `.badge { display: inline-block; padding: 6px 14px; background: rgba(56, 189, 248, 0.1); color: var(--accent); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 999px; font-size: 0.85rem; font-weight: 600; margin-bottom: 1.5rem; }\n` +
+      `.hero-title { font-size: 3.2rem; font-weight: 800; line-height: 1.15; margin-bottom: 1.5rem; }\n` +
+      `.gradient-text { background: linear-gradient(135deg, #38bdf8 0%, #818cf8 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }\n` +
+      `.hero-subtitle { font-size: 1.2rem; color: var(--text-muted); margin-bottom: 2.5rem; max-width: 700px; margin-left: auto; margin-right: auto; }\n` +
+      `.hero-actions { display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap; }\n` +
+      `.btn-primary { background: linear-gradient(135deg, #0284c7, #2563eb); color: #fff; border: none; padding: 14px 28px; border-radius: 10px; font-weight: 600; font-size: 1rem; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3); }\n` +
+      `.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(37, 99, 235, 0.45); }\n` +
+      `.btn-primary-sm { background: #2563eb; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; }\n` +
+      `.btn-secondary { background: rgba(255, 255, 255, 0.05); color: #fff; border: 1px solid var(--border); padding: 14px 28px; border-radius: 10px; font-weight: 600; font-size: 1rem; cursor: pointer; }\n` +
+      `.features-section { max-width: 1200px; margin: 4rem auto; padding: 0 2rem; }\n` +
+      `.section-title { text-align: center; font-size: 2.2rem; margin-bottom: 3rem; }\n` +
+      `.grid-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; }\n` +
+      `.card { background: var(--bg-card); border: 1px solid var(--border); padding: 2rem; border-radius: 16px; backdrop-filter: blur(10px); transition: border-color 0.2s; }\n` +
+      `.card:hover { border-color: rgba(56, 189, 248, 0.4); }\n` +
+      `.card-icon { font-size: 2.2rem; margin-bottom: 1rem; }\n` +
+      `.cta-section { background: linear-gradient(180deg, rgba(37, 99, 235, 0.08) 0%, transparent 100%); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 5rem 2rem; text-align: center; }\n` +
+      `.cta-form { display: flex; justify-content: center; gap: 0.8rem; max-width: 500px; margin: 2rem auto 0; flex-wrap: wrap; }\n` +
+      `.cta-form input { flex: 1; min-width: 260px; padding: 14px 18px; border-radius: 10px; border: 1px solid var(--border); background: rgba(0,0,0,0.3); color: #fff; font-size: 1rem; outline: none; }\n` +
+      `.cta-form input:focus { border-color: var(--accent); }\n` +
+      `.sent-msg { margin-top: 1.5rem; color: #4ade80; font-weight: 600; }\n` +
+      `.footer { border-top: 1px solid var(--border); padding: 2.5rem 2rem; max-width: 1200px; margin: 0 auto; width: 100%; display: flex; justify-content: space-between; align-items: center; color: var(--text-muted); font-size: 0.9rem; flex-wrap: wrap; gap: 1rem; }\n` +
+      `.footer-links { display: flex; gap: 1.5rem; }\n` +
+      `.footer-links a { color: var(--text-muted); text-decoration: none; }\n` +
+      `\`\`\`\n\n` +
+      `#### 4. Ejecutar el Proyecto\n` +
+      `\`\`\`bash\n` +
+      `npm run dev\n` +
+      `\`\`\`\n` +
+      `Abre tu navegador en el enlace mostrado (habitualmente \`http://localhost:5173\`) para interactuar con tu landing page en tiempo real.`;
+  }
+
+  // 2. BACKEND REST API
+  if (q.includes("api") || q.includes("backend") || q.includes("express") || q.includes("servidor")) {
+    return `### Arquitectura Backend REST API · ${model} (${effort.toUpperCase()})\n\n` +
+      `#### 1. Inicialización en Node.js + Express\n` +
+      `\`\`\`bash\n` +
+      `mkdir api-backend && cd api-backend\n` +
+      `npm init -y\n` +
+      `npm install express cors dotenv helmet\n` +
+      `\`\`\`\n\n` +
+      `#### 2. Código del Servidor (\`server.js\`):\n` +
+      `\`\`\`javascript\n` +
+      `const express = require('express');\n` +
+      `const cors = require('cors');\n` +
+      `const helmet = require('helmet');\n` +
+      `require('dotenv').config();\n\n` +
+      `const app = express();\n` +
+      `const PORT = process.env.PORT || 3000;\n\n` +
+      `// Middlewares\n` +
+      `app.use(helmet());\n` +
+      `app.use(cors());\n` +
+      `app.use(express.json());\n\n` +
+      `// Rutas\n` +
+      `app.get('/api/health', (req, res) => {\n` +
+      `  res.json({ status: 'ok', timestamp: new Date().toISOString() });\n` +
+      `});\n\n` +
+      `app.get('/api/data', (req, res) => {\n` +
+      `  res.json({ status: 'success', data: [{ id: 1, title: 'Item 1', active: true }] });\n` +
+      `});\n\n` +
+      `app.listen(PORT, () => {\n` +
+      `  console.log(\`Servidor API en ejecución en http://localhost:\${PORT}\`);\n` +
+      `});\n` +
+      `\`\`\`\n\n` +
+      `#### 3. Ejecución\n` +
+      `\`\`\`bash\n` +
+      `node server.js\n` +
+      `\`\`\``;
+  }
+
+  // 3. FIBONACCI
   if (topic.includes("fibonacci")) {
     if (effort === "low") {
       return `\`\`\`python\ndef fib(n):\n    a, b = 0, 1\n    for _ in range(n):\n        a, b = b, a + b\n    return a\n\`\`\``;
@@ -794,25 +1076,6 @@ function generateCodeSolution(topic, language, model, effort) {
         `    print([fibonacci(i) for i in range(10)])\n\`\`\`\n\n` +
         `• **Complejidad Temporal:** O(n)\n• **Complejidad Espacial:** O(1)`;
     }
-    if (effort === "high") {
-      return `### Fibonacci: Optimización Dinámica con Memoización y Tipado Estricto\n\n` +
-        `**Modelo:** ${model} · **Nivel:** HIGH\n\n` +
-        `\`\`\`python\nfrom typing import Dict\n\ndef fibonacci_memo(n: int, memo: Dict[int, int] = None) -> int:\n` +
-        `    """Calcula Fibonacci mediante recursión con memoización O(n)."""\n` +
-        `    if memo is None:\n        memo = {0: 0, 1: 1}\n` +
-        `    if n not in memo:\n        memo[n] = fibonacci_memo(n - 1, memo) + fibonacci_memo(n - 2, memo)\n` +
-        `    return memo[n]\n\n` +
-        `def fibonacci_iter(n: int) -> int:\n` +
-        `    """Versión iterativa de memoria constante O(1)."""\n` +
-        `    if n < 0: raise ValueError("n no puede ser negativo")\n` +
-        `    a, b = 0, 1\n` +
-        `    for _ in range(n): a, b = b, a + b\n` +
-        `    return a\n\`\`\`\n\n` +
-        `• **Manejo de Errores:** Validación de tipos y enteros negativos.\n` +
-        `• **Complejidad Temporal:** O(n)\n` +
-        `• **Complejidad Espacial:** O(1) iterativo / O(n) memoizado`;
-    }
-    // expert
     return `### Arquitectura Algorítmica Suprema: Secuencia de Fibonacci en O(log n)\n\n` +
       `**Modelo:** ${model} · **Nivel:** EXPERT (Máxima Capacidad Analítica)\n\n` +
       `Para superar las barreras lineales O(n), implementamos la **exponenciación rápida de matrices (Q-Matrix)** basada en la identidad:\n` +
@@ -837,7 +1100,18 @@ function generateCodeSolution(topic, language, model, effort) {
       `• **Complejidad Asintótica:** O(log n) multiplicaciones | O(1) memoria auxiliar de pila.`;
   }
 
-  return null;
+  // 4. SOLUCIÓN MODULAR GENERAL
+  return `### Solución de Software & Arquitectura Técnica · ${model} (${effort.toUpperCase()})\n\n` +
+    `**Solicitud Analizada:** "${topic}"\n\n` +
+    `#### Plan de Construcción y Pasos Técnicos:\n` +
+    `1. **Creación del Entorno:**\n` +
+    `   \`\`\`bash\n` +
+    `   mkdir mi-proyecto && cd mi-proyecto\n` +
+    `   git init\n` +
+    `   \`\`\`\n` +
+    `2. **Arquitectura Modular:** Separación estricta entre capa de presentación, lógica de negocio y persistencia de datos.\n` +
+    `3. **Despliegue y Pruebas:** Compilación optimizada y tests automatizados.\n\n` +
+    `¿Deseas que profundicemos en algún componente específico o configuración adicional?`;
 }
 
 /**
@@ -1251,7 +1525,8 @@ async function processAIChat({ message, messages, model = "Vork 3.1", effort = "
   // -------------------------------------------------------------
   // 7. CÓDIGO Y SOLUCIONES TÉCNICAS
   // -------------------------------------------------------------
-  if (q.includes("codigo") || q.includes("código") || q.includes("funcion") || q.includes("función") || q.includes("script") || q.includes("fibonacci")) {
+  const isDevQuery = /(crear|hacer|generar|construir|desarrollar|landing|pagina|página|react|vue|angular|html|css|javascript|typescript|python|node|express|api|codigo|código|script|funcion|función|algoritmo|componente|carpeta|proyecto|app|web|frontend|backend)/i.test(q);
+  if (isDevQuery) {
     const codeAns = generateCodeSolution(q, q, activeModel, activeEffort);
     if (codeAns) {
       return {
@@ -1311,13 +1586,13 @@ async function processAIChat({ message, messages, model = "Vork 3.1", effort = "
       `Proporciona los parámetros o la URL que requieras procesar.`;
   } else {
     // expert
-    detailedAnswer = `### Análisis Soberano de Máxima Potencia · ${activeModel} (EXPERT SOVEREIGN)\n\n` +
-      `**Requerimiento formulado:** "${promptText}"\n\n` +
-      `**Directiva de Ingeniería:**\n` +
-      `1. **Exploración de Red:** Capacidad de rastreo de páginas web y consulta a bases de conocimiento públicas habilitada.\n` +
-      `2. **Procesamiento de Señal y Medios:** Conexión directa a los motores FFMPEG, Demucs v4 y síntesis neuronal.\n` +
-      `3. **Gobernanza:** Ejecución con cero latencia de servicios ajenos y total independencia técnica.\n\n` +
-      `Especifica la meta operativa para iniciar el procesamiento.`;
+    detailedAnswer = `### Análisis Técnico & Solución Estratégica · ${activeModel} (EXPERT SOVEREIGN)\n\n` +
+      `**Objetivo:** "${promptText}"\n\n` +
+      `**Diagnóstico & Arquitectura:**\n` +
+      `1. **Plan de Acción:** Para abordar este requerimiento de forma óptima, se recomienda estructurar el flujo en fases iterativas (diseño modular, desarrollo de componentes y validación de rendimiento).\n` +
+      `2. **Herramientas y Estándares:** Empleo de tecnologías modernas, desacoplamiento de dependencias y optimización en producción.\n` +
+      `3. **Capacidades Operativas:** Puedes solicitar generación de código completa, transcodificación multimedia con los 9 pilares (/media, /tts, /draw, /clone) o consultas en tiempo real.\n\n` +
+      `Indica si deseas que detallemos el código fuente, la estructura de archivos o la integración técnica.`;
   }
 
   return {

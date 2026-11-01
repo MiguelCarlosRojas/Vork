@@ -735,6 +735,26 @@ function Invoke-VorkAIChat {
         }
     } catch {
         # Si el backend en la nube en Render se encuentra reactivándose o sin conectividad
+        $answer = ""
+    }
+
+    # Fallback local con motor de inferencia Vork AI si la nube está en reactivación
+    if (-not $answer) {
+        $nodeCmd = Get-Command "node" -ErrorAction SilentlyContinue
+        if ($nodeCmd) {
+            try {
+                $jsPrompt = $fullPrompt | ConvertTo-Json
+                $jsCode = 'const { processAIChat } = require("./src/utils/aiEngine"); processAIChat({ message: ' + $jsPrompt + ', model: "' + $activeModel + '", effort: "' + $activeTier + '" }).then(r => console.log(JSON.stringify(r))).catch(e => console.error(JSON.stringify({ status: "error", error: e.message })));'
+                $localOut = & $nodeCmd.Source -e $jsCode 2>&1
+                $parsed = ($localOut | Out-String).Trim() | ConvertFrom-Json
+                if ($parsed -and $parsed.response) {
+                    $answer = $parsed.response
+                }
+            } catch { }
+        }
+    }
+
+    if (-not $answer) {
         $answer = "No se pudo conectar con el motor en la nube de Vork ($ApiBase). Verifica tu conexión a internet o reintenta en unos instantes mientras el servidor en Render responde."
     }
 

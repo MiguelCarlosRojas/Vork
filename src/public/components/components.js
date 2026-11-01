@@ -390,6 +390,69 @@
     },
 
     /**
+     * Inicializa eventos globales para instalación CLI y pestañas de código IDE
+     */
+    initGlobalInteractions() {
+      if (window._globalInteractionsBound) return;
+      window._globalInteractionsBound = true;
+
+      document.addEventListener("click", (e) => {
+        // 1. Botón Copiar de Instalación CLI
+        const btnInstall = e.target.closest("#btn-copy-install, .btn-terminal-copy");
+        if (btnInstall) {
+          e.preventDefault();
+          const cmdEl = document.getElementById("cli-install-cmd");
+          const cmd = cmdEl?.textContent?.trim() || "irm https://vork-st1k.onrender.com/cli/install.ps1 | iex";
+          navigator.clipboard.writeText(cmd);
+          btnInstall.classList.add("btn-copied");
+          const originalHtml = btnInstall.innerHTML;
+          btnInstall.innerHTML = '<svg class="icon" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" fill="none" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg> <span>¡Copiado!</span>';
+          setTimeout(() => {
+            btnInstall.classList.remove("btn-copied");
+            btnInstall.innerHTML = originalHtml;
+          }, 1800);
+          return;
+        }
+
+        // 2. Pestañas de Bloques de Código IDE (.code-tab-btn)
+        const tabBtn = e.target.closest(".code-tab-btn");
+        if (tabBtn) {
+          e.preventDefault();
+          const group = tabBtn.getAttribute("data-tab-group");
+          const targetId = tabBtn.getAttribute("data-tab-target");
+          if (!group || !targetId) return;
+
+          document.querySelectorAll(`.code-tab-btn[data-tab-group="${group}"]`).forEach(b => b.classList.remove("is-active"));
+          document.querySelectorAll(`.code-tab-panel[data-tab-group="${group}"]`).forEach(p => p.classList.remove("is-active"));
+
+          tabBtn.classList.add("is-active");
+          const targetPanel = document.getElementById(targetId);
+          if (targetPanel) targetPanel.classList.add("is-active");
+          return;
+        }
+
+        // 3. Botón Copiar Bloques de Código IDE (.btn-code-copy)
+        const copyBtn = e.target.closest(".btn-code-copy");
+        if (copyBtn) {
+          e.preventDefault();
+          const targetId = copyBtn.getAttribute("data-target-code");
+          const targetEl = targetId ? document.getElementById(targetId) : copyBtn.closest(".pro-code-window")?.querySelector(".code-tab-panel.is-active .pro-code-body, .pro-code-body");
+          if (!targetEl) return;
+          const codeText = targetEl.innerText || targetEl.textContent || "";
+          navigator.clipboard.writeText(codeText);
+          const origHtml = copyBtn.innerHTML;
+          copyBtn.classList.add("is-copied");
+          copyBtn.innerHTML = '<svg class="icon" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" fill="none" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg> <span>¡Copiado!</span>';
+          setTimeout(() => {
+            copyBtn.classList.remove("is-copied");
+            copyBtn.innerHTML = origHtml;
+          }, 1800);
+          return;
+        }
+      });
+    },
+
+    /**
      * Inyecta el grano de textura (film grain) de Huella si no está presente
      */
     ensureGrain() {
@@ -409,6 +472,7 @@
       this.renderFooter();
       this.initDrawerEvents();
       this.initToolbarEvents();
+      this.initGlobalInteractions();
       this.ensureGrain();
       this.syncLanguageState();
     }

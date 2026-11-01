@@ -448,78 +448,153 @@
     </section>
 
   
-    <!-- Especificaciones de Arquitectura del Pilar 05 -->
-    <section>
-      <div class="section-full-title">
-        <h2>Arquitectura Técnica del Separador</h2>
-        <p>Procesamiento neuronal avanzado con Demucs v4 y streaming dual de alta fidelidad.</p>
+    <!-- VENTAJAS Y ARQUITECTURA DEL MOTOR -->
+    <section id="arquitectura-motor">
+      <div class="section-full-title-wide">
+        <span class="label">Ingeniería &amp; Rendimiento</span>
+        <h2 style="font-size: clamp(1.8rem, 3.5vw, 2.5rem); margin: 6px 0 10px 0;">Ventajas y Arquitectura del Motor</h2>
+        <p>Por qué el separador neuronal Demucs de Vork aísla acapellas e instrumentales con mínima fuga espectral y claridad acústica.</p>
       </div>
 
       <div class="cards-full-grid">
+        <!-- 01 -->
         <div class="tech-card">
-          <span class="tech-card-tag">[ 01 // NEURAL_DEMUCS ]</span>
+          <span class="tech-card-tag">RED NEURONAL DEMUCS</span>
           <div class="tech-card-icon">
-            <svg class="icon" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 12a4 4 0 0 1 8 0"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/></svg>
           </div>
-          <h3>Aislamiento Neuronal Demucs v4</h3>
-          <p>Arquitectura neuronal basada en espectrogramas y transformadores de convolución temporal entrenados para desacoplar voz solista, armonías e instrumentales con fidelidad acústica de estudio.</p>
+          <h3>Separación de Fuentes v4</h3>
+          <p>Arquitectura convolucional temporal con modelado espectral para aislar voz humana de bases musicales con máxima nitidez.</p>
         </div>
 
+        <!-- 02 -->
         <div class="tech-card">
-          <span class="tech-card-tag">[ 02 // ZERO_BLEED ]</span>
+          <span class="tech-card-tag">CANCELACIÓN DE FASE</span>
           <div class="tech-card-icon">
-            <svg class="icon" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+            <svg class="icon" viewBox="0 0 24 24"><path d="M2 12h2l3 7 4-14 3 11 2-4h4"/></svg>
           </div>
-          <h3>Cero Fuga Residual</h3>
-          <p>Atenuación espectral calibrada a -48 dB que erradica por completo la voz de la pista instrumental y purifica la pista vocal de bajos, baterías, cuerdas y sintetizadores.</p>
+          <h3>Acapella &amp; Karaoke Puros</h3>
+          <p>Supresión de armónicos correlacionados sin artefactos metálicos ni pérdida de graves en la pista instrumental resultante.</p>
         </div>
 
+        <!-- 03 -->
         <div class="tech-card">
-          <span class="tech-card-tag">[ 03 // DUAL_STREAMING ]</span>
+          <span class="tech-card-tag">CALIDAD MASTERING</span>
           <div class="tech-card-icon">
-            <svg class="icon" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+            <svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           </div>
-          <h3>Streaming Dual HTTP (206)</h3>
-          <p>Los endpoints <code>/api/separator/stream</code> permiten escuchar tanto la voz como la pista al instante con sincronización temporal exacta al milisegundo mediante Web Audio API.</p>
+          <h3>Exportación a 44.1 kHz / 16-bit</h3>
+          <p>Generación de pistas separadas en contenedores <code>WAV</code> sin compresión y <code>MP3</code> a 320 kbps listas para mezcla profesional en DAW.</p>
         </div>
 
+        <!-- 04 -->
         <div class="tech-card">
-          <span class="tech-card-tag">[ 04 // REST_API_READY ]</span>
+          <span class="tech-card-tag">ESPECTROGRAMA DUAL</span>
           <div class="tech-card-icon">
-            <svg class="icon" viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+            <svg class="icon" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
           </div>
-          <h3>Endpoints REST para Desarrolladores</h3>
-          <p>Automatiza la separación de audio en tus plataformas enviando URLs o archivos a <code>POST /api/separator/process</code> y descargando los stems con <code>GET /api/separator/download</code>.</p>
+          <h3>Monitoreo Visual en Canvas</h3>
+          <p>Análisis de energía espectral por frecuencias en tiempo real para verificar el aislamiento auditivo de la voz y la pista instrumental.</p>
+        </div>
+
+        <!-- 05 -->
+        <div class="tech-card">
+          <span class="tech-card-tag">BALANCE DINÁMICO</span>
+          <div class="tech-card-icon">
+            <svg class="icon" viewBox="0 0 24 24"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/></svg>
+          </div>
+          <h3>Faders de Canal Independiente</h3>
+          <p>Preescucha interactiva de dos canales para calibrar ganancia y verificar el balance acústico antes de descargar los stems.</p>
+        </div>
+
+        <!-- 06 -->
+        <div class="tech-card">
+          <span class="tech-card-tag">API DE SEPARACIÓN</span>
+          <div class="tech-card-icon">
+            <svg class="icon" viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+          </div>
+          <h3>Microservicio de Stems REST</h3>
+          <p>Endpoint <code>/api/separator/process</code> para integrar separación de fuentes en cadenas de DJing, karaoke o plataformas de remix.</p>
         </div>
       </div>
     </section>
 
-    <!-- Consola Interactiva para Desarrolladores (cURL & Fetch) -->
-    <section class="content-box-card">
-      <span class="tech-card-tag">[ DEVELOPER // API_INTEGRATION ]</span>
-      <h2>Integración en tus Proyectos</h2>
-      <p style="margin-bottom: 16px;">Ejemplo de petición REST para separar voz e instrumental desde cURL o JavaScript:</p>
+    <section class="workbench-wrap" style="max-width: 1220px; margin: 36px auto 0 auto; padding: 0 20px;">
+      <div class="workbench-card" style="background: var(--dark); color: #f4ece1;">
+        <span class="label" style="color: var(--accent);">Guía de Integración</span>
+        <h2 class="h-section" style="color: #ffffff; margin-bottom: 8px;">Conecta <em>Vork</em> a tu Aplicación</h2>
+        <p style="color: #a59a8f; margin-bottom: 24px; font-size: 0.95rem;">Separa voz (acapella) y pista instrumental (karaoke) mediante IA de Demucs consumiendo la API REST de Vork.</p>
 
-      <div class="code-box-wrapper">
-        <div class="code-box-header">
-          <span>Petición cURL hacia /api/separator/process</span>
-          <button class="btn btn-outline" style="font-size: 0.75rem; padding: 4px 10px;" onclick="navigator.clipboard.writeText(document.getElementById('code-sample-sep').innerText)">Copiar Código</button>
-        </div>
-        <pre class="code-panel" id="code-sample-sep">curl -X POST https://vork-st1k.onrender.com/api/separator/process \
-  -H "Content-Type: application/json" \
-  -d '{
+        <div class="pro-code-window">
+          <div class="pro-code-topbar">
+            <div style="display: flex; align-items: center; gap: 14px;">
+              <div class="pro-code-dots">
+                <span class="pro-dot pro-dot-red"></span>
+                <span class="pro-dot pro-dot-yellow"></span>
+                <span class="pro-dot pro-dot-green"></span>
+              </div>
+              <div class="code-tabs-nav">
+                <button type="button" class="code-tab-btn is-active" data-tab-group="separator-code" data-tab-target="tab-sep-curl">cURL</button>
+                <button type="button" class="code-tab-btn" data-tab-group="separator-code" data-tab-target="tab-sep-js">Node.js / JS</button>
+                <button type="button" class="code-tab-btn" data-tab-group="separator-code" data-tab-target="tab-sep-py">Python</button>
+              </div>
+            </div>
+            <button class="btn-code-copy" aria-label="Copiar código">
+              <svg class="icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+              <span>Copiar</span>
+            </button>
+          </div>
+
+          <div id="tab-sep-curl" class="code-tab-panel is-active" data-tab-group="separator-code">
+            <pre class="pro-code-body"><code><span class="c-comment"># Separación de stems mediante cURL</span>
+curl -X POST https://vork-st1k.onrender.com/api/separator/process \
+  -H <span class="c-str">"Content-Type: application/json"</span> \
+  -d <span class="c-str">'{
     "url": "https://www.youtube.com/watch?v=jNQXAC9IVRw",
     "quality": "lossless"
-  }'</pre>
+  }'</span></code></pre>
+          </div>
+
+          <div id="tab-sep-js" class="code-tab-panel" data-tab-group="separator-code">
+            <pre class="pro-code-body"><code><span class="c-comment">// separator-service.js (Node.js 18+ / Navegador)</span>
+<span class="c-kw">const</span> response = <span class="c-kw">await</span> <span class="c-fn">fetch</span>(<span class="c-str">"https://vork-st1k.onrender.com/api/separator/process"</span>, {
+  method: <span class="c-str">"POST"</span>,
+  headers: { <span class="c-str">"Content-Type"</span>: <span class="c-str">"application/json"</span> },
+  body: <span class="c-fn">JSON.stringify</span>({
+    url: <span class="c-str">"https://www.youtube.com/watch?v=jNQXAC9IVRw"</span>,
+    quality: <span class="c-str">"lossless"</span>
+  })
+});
+
+<span class="c-kw">const</span> data = <span class="c-kw">await</span> response.<span class="c-fn">json</span>();
+<span class="c-var">console</span>.<span class="c-fn">log</span>(<span class="c-str">"Pista Vocal:"</span>, data.vocalUrl);
+<span class="c-var">console</span>.<span class="c-fn">log</span>(<span class="c-str">"Pista Instrumental:"</span>, data.instrumentalUrl);</code></pre>
+          </div>
+
+          <div id="tab-sep-py" class="code-tab-panel" data-tab-group="separator-code">
+            <pre class="pro-code-body"><code><span class="c-comment"># separator_service.py (Python Requests)</span>
+<span class="c-kw">import</span> requests
+
+payload = {
+    <span class="c-str">"url"</span>: <span class="c-str">"https://www.youtube.com/watch?v=jNQXAC9IVRw"</span>,
+    <span class="c-str">"quality"</span>: <span class="c-str">"lossless"</span>
+}
+
+res = requests.post(<span class="c-str">"https://vork-st1k.onrender.com/api/separator/process"</span>, json=payload)
+data = res.json()
+<span class="c-fn">print</span>(<span class="c-str">"Voz:"</span>, data.get(<span class="c-str">"vocalUrl"</span>))
+<span class="c-fn">print</span>(<span class="c-str">"Instrumental:"</span>, data.get(<span class="c-str">"instrumentalUrl"</span>))</code></pre>
+          </div>
+        </div>
       </div>
     </section>
 
-        <!-- LOS 9 PILARES DE VORK -->
-    <section class="workbench-wrap" id="pilares">
-      <div class="section-head">
+            <!-- LOS 9 PILARES DE VORK -->
+    <section class="workbench-wrap" id="pilares" style="padding: 0 20px !important;">
+      <div class="section-head" style="max-width: 100% !important; margin-bottom: 32px;">
         <span class="label">Pilares Operacionales</span>
         <h2 class="h-section">Los 9 Pilares de <em>Vork</em></h2>
-        <p class="lead">Herramientas especializadas con consolas dedicadas a cada disciplina lingüística, vocal, multimedia y de mezcla musical.</p>
+        <p class="lead" style="max-width: 100% !important;">Herramientas especializadas con consolas dedicadas a cada disciplina lingüística, vocal, multimedia y de mezcla musical.</p>
       </div>
 
       <div class="services-grid">
@@ -576,6 +651,25 @@
           <div class="card-foot">
             <a href="/converter"><span>Abrir Conversor</span></a>
             <a href="/converter" class="card-arrow" aria-label="Ir a Conversor"><svg class="icon" viewBox="0 0 24 24" width="16" height="16"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+          </div>
+        </article>
+
+        <!-- Pilar 05 (Página Actual) -->
+        <article class="card tilt" style="--tone:#ff5a5f; border-color: rgba(255, 90, 95, 0.45); box-shadow: 0 4px 20px rgba(255, 90, 95, 0.12);">
+          <div class="card-top">
+            <span class="card-num" style="color: #ff5a5f;">05</span>
+            <span class="card-tag" style="background: rgba(255, 90, 95, 0.15); color: #ff5a5f; border: 1px solid rgba(255, 90, 95, 0.3);">Stems</span>
+          </div>
+          <h3>Separador de Stems</h3>
+          <p>Aislamiento de voz (Acapella) y pista instrumental (Karaoke) mediante redes neuronales Demucs v4 y cancelación de fase.</p>
+          <div class="card-foot" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+            <span style="font-size: 0.85rem; color: #ff5a5f; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
+              <span style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #ff5a5f; box-shadow: 0 0 6px #ff5a5f;"></span>
+              Estás aquí
+            </span>
+            <span class="card-check-badge" aria-label="Estás aquí">
+              <svg class="icon" viewBox="0 0 24 24" width="17" height="17" stroke="currentColor" fill="none" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+            </span>
           </div>
         </article>
 
@@ -637,21 +731,38 @@
       </div>
     </section>
 
-    <!-- SECCIÓN VORK CLI -->
-    <section class="workbench-wrap">
-      <div class="workbench-card">
-        <div style="flex: 1 1 540px; max-width: 780px;">
-          <span class="label" style="color: var(--accent); display: inline-block; margin-bottom: 8px;">(09) Terminal &amp; Automatización</span>
-          <h2 class="h-section" style="margin: 0 0 12px 0; font-size: clamp(1.8rem, 3.2vw, 2.3rem); line-height: 1.2;">Vork <em>CLI</em></h2>
-          <p style="color: var(--muted); margin: 0; font-size: 1.02rem; line-height: 1.65;">
-            Entorno centrado en la terminal para interactuar con agentes Vork en lenguaje natural. Orquesta subagentes paralelos, atajos configurables y comandos con diagonal sin cambiar de contexto.
-          </p>
-        </div>
-        <div style="flex-shrink: 0;">
-          <a href="/cli" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 10px; padding: 14px 28px; font-size: 0.95rem; font-weight: 700; text-decoration: none;">
-            <span>Ir a Vork CLI</span>
-            <svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-          </a>
+    <!-- INSTALACIÓN RÁPIDA DE VORK CLI -->
+    <section class="workbench-wrap" id="cli-install-section" style="max-width: 1220px !important; width: 100% !important; margin: 20px auto 0 auto !important; padding: 0 20px !important;">
+      <div class="workbench-card" style="background: var(--dark); color: #f4ece1; margin-bottom: 0 !important; padding-bottom: 24px !important;">
+        <span class="label" style="color: var(--accent);">(03) Terminal &amp; Automatización</span>
+        <h2 class="h-section" style="color: #ffffff;">Instala <em>Vork CLI</em> en un solo comando.</h2>
+        <p style="color: #a59a8f; margin-bottom: 24px;">Disponible para Windows PowerShell y Linux / macOS con soporte para los 9 pilares operacionales:</p>
+
+        <!-- Consola de Instalación Rápida Tipo Terminal -->
+        <div class="vork-terminal-box">
+          <div class="vork-terminal-bar">
+            <div class="vork-terminal-bar-left">
+              <div class="vork-terminal-dots">
+                <span class="dot dot-red"></span>
+                <span class="dot dot-yellow"></span>
+                <span class="dot dot-green"></span>
+              </div>
+              <div class="vork-terminal-title">
+                <svg class="icon" viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" fill="none" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+                <span>powershell</span>
+              </div>
+            </div>
+            <button id="btn-copy-install" class="btn btn-sm" aria-label="Copiar comando">
+              <svg class="icon" viewBox="0 0 24 24" width="14" height="14"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+              <span>Copiar</span>
+            </button>
+          </div>
+          <div class="vork-terminal-body">
+            <span class="vork-terminal-prompt">PS &gt;</span>
+            <div class="vork-terminal-code-scroll">
+              <code id="cli-install-cmd">irm https://vork-st1k.onrender.com/cli/install.ps1 | iex</code>
+            </div>
+          </div>
         </div>
       </div>
     </section>
