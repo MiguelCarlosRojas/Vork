@@ -21,9 +21,9 @@ jobs:
       - name: Verificar credenciales de Render
         id: check_auth
         run: |
-          if [ -z "${{ secrets.RENDER_API_KEY }}" ]; then
+          if [ -z "${{ secrets.RENDER_API_KEY }}" ] || [ -z "${{ secrets.RENDER_SERVICE_ID }}" ]; then
             echo "has_key=false" >> $GITHUB_OUTPUT
-            echo "::notice title=Despliegue Automático en Render::No se detectó RENDER_API_KEY en los secretos del repositorio. Render procesa el despliegue automáticamente en cada push a main vía Webhook nativo."
+            echo "::notice title=Despliegue Automático en Render::Faltan secretos requeridos (RENDER_API_KEY o RENDER_SERVICE_ID). Render procesa el despliegue automáticamente en cada push a main vía Webhook nativo."
           else
             echo "has_key=true" >> $GITHUB_OUTPUT
           fi
@@ -34,7 +34,7 @@ jobs:
         continue-on-error: true
         uses: JorgeLNJunior/render-deploy@v1.5.0
         with:
-          service_id: ${{ secrets.RENDER_SERVICE_ID || 'srv-dbdmmron74is739arf9g' }}
+          service_id: ${{ secrets.RENDER_SERVICE_ID }}
           api_key: ${{ secrets.RENDER_API_KEY }}
           wait_deploy: true
           github_deployment: true
