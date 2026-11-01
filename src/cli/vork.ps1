@@ -4031,28 +4031,28 @@ function Show-Help {
             Example = "vork separate cancion.mp3"
         },
         @{
-            Title = "[07] Vork Conversor de Imagenes"
+            Title = "[06] Vork Procesador de Imágenes"
             Tag = "PNG, JPG, WEBP, ICO, AVIF"
             Usage = "vork image <archivo> -Format <formato>"
             Example = "vork image logo.png -Format webp -Quality 90"
         },
         @{
-            Title = "[08] Vork Estudio de Fondo IA"
+            Title = "[07] Vork Estudio y Fondo IA"
             Tag = "U2-Net silueta y transparente"
             Usage = "vork remove-bg <archivo> -Out <archivo.png>"
             Example = "vork remove-bg foto.jpg -Out limpia.png"
         },
         @{
-            Title = "[09] Vork Agentes Autonomos & TUI"
-            Tag = "Modo orquestador de terminal"
-            Usage = "vork agents / vork tui"
-            Example = "vk  (alias ultracorto para ejecutar Vork CLI)"
-        },
-        @{
-            Title = "[10] Vork Generador de Imágenes IA"
+            Title = "[08] Vork Generador de Imágenes IA"
             Tag = "FLUX.1 Neural sin marca de agua"
             Usage = "vork /draw <prompt>"
             Example = "vork /draw 'ciudad cyberpunk al atardecer 8k'"
+        },
+        @{
+            Title = "[09] Vork CLI & Agentes Autónomos"
+            Tag = "Modo orquestador de terminal"
+            Usage = "vork agents / vork tui"
+            Example = "vk  (alias ultracorto para ejecutar Vork CLI)"
         }
     )
 
@@ -4066,7 +4066,7 @@ function Show-Help {
     Write-Host ""
     Write-VorkHelpLine -Width $width -Text "$White$Bold  MANTENIMIENTO & ESTADO:$Reset"
     Write-VorkHelpLine -Width $width -Text "    $Yellow vork update$Reset     ${Dim}Sincroniza y actualiza Vork CLI al instante${Reset}"
-    Write-VorkHelpLine -Width $width -Text "    $Yellow vork status$Reset     ${Dim}Telemetria y estado operativo de los 10 pilares${Reset}"
+    Write-VorkHelpLine -Width $width -Text "    $Yellow vork status$Reset     ${Dim}Telemetria y estado operativo de los 9 pilares${Reset}"
     Write-VorkHelpLine -Width $width -Text "    $Yellow vork version$Reset    ${Dim}Muestra detalles de arquitectura y version${Reset}"
     Write-VorkHelpLine -Width $width -Text "    $Yellow vork slash$Reset      ${Dim}Ver los 40 comandos con barra (/)${Reset}"
     Write-Host ""
@@ -4084,7 +4084,7 @@ function Show-SlashCommands {
 
     $categories = @(
         @{
-            Title = "[CATEGORIA 1] Los 10 Pilares Operacionales (10)"
+            Title = "[CATEGORIA 1] Los 9 Pilares Operacionales (9)"
             Items = @(
                 @{ Cmd = "/translate"; Desc = "Traduccion neuronal por lotes en +200 idiomas" },
                 @{ Cmd = "/tts";       Desc = "Sintesis de voz con 24 voces neuronales humanas" },
@@ -5628,11 +5628,11 @@ function Invoke-PillarSeparate {
 
 
 # ========================================================
-# MODULE: pillars/p07_image.ps1
+# MODULE: pillars/p06_image.ps1
 # ========================================================
 <#
 .SYNOPSIS
-    Pilar 07: Vork Conversor Universal de Formatos de Imagen (PNG, JPG, WEBP, ICO, AVIF)
+    Pilar 06: Vork Procesador de Imágenes de Formatos de Imagen (PNG, JPG, WEBP, ICO, AVIF)
 #>
 
 function Invoke-PillarImage {
@@ -5877,11 +5877,11 @@ function Invoke-PillarImage {
 
 
 # ========================================================
-# MODULE: pillars/p08_remove_bg.ps1
+# MODULE: pillars/p07_remove_bg.ps1
 # ========================================================
 <#
 .SYNOPSIS
-    Pilar 08: Vork Eliminador y Modificador de Fondo IA (Aislamiento de Silueta Neuronal)
+    Pilar 07: Vork Estudio y Fondo IA (Aislamiento de Silueta Neuronal)
 #>
 
 function Invoke-PillarRemoveBg {
@@ -6137,62 +6137,11 @@ function Invoke-PillarRemoveBg {
 
 
 # ========================================================
-# MODULE: pillars/p09_agents.ps1
+# MODULE: pillars/p08_generate_image.ps1
 # ========================================================
 <#
 .SYNOPSIS
-    Pilar 09: Vork Agentes Autónomos & Modo Interactivo TUI
-#>
-
-function Invoke-PillarAgents {
-    param([string[]]$ArgsList)
-
-    if (-not $ArgsList -or $ArgsList.Length -eq 0) {
-        $agentOptions = @(
-            @{ Value = "status";   Label = "Estado del clúster";     Description = "Agentes activos y conectividad" },
-            @{ Value = "goal";     Label = "/goal";                  Description = "Tarea autónoma de bucle continuo" },
-            @{ Value = "plan";     Label = "/plan";                  Description = "Desglose guiado de arquitectura" },
-            @{ Value = "teamwork"; Label = "/teamwork";              Description = "Coordinación de múltiples subagentes" },
-            @{ Value = "learn";    Label = "/learn";                 Description = "Guardar una regla en ~/.vork" }
-        )
-
-        $chosenAction = Select-InteractiveOption -PromptTitle "Operación de agentes" -Subtitle "orquestación autónoma" -Options $agentOptions -DefaultIndex 0
-        if (-not $chosenAction) { return }
-        if ($chosenAction -ne "status") {
-            switch ($chosenAction) {
-                "goal" { Invoke-CmdGoal @(); return }
-                "plan" { Invoke-CmdPlan @(); return }
-                "teamwork" { Invoke-CmdTeamwork @(); return }
-                "learn" { Invoke-CmdLearn @(); return }
-            }
-        }
-    }
-
-    Write-VorkSectionHeader -Title "Agentes autónomos" -Subtitle "Orquestación de subagentes en paralelo" -RightText "vork · agents"
-    Write-VorkInfoRow -Label "Motor" -Value "ONLINE  ·  Vork Autonomous Agents v3" -ValueColor $Green
-    Write-VorkSectionRule
-    Write-VorkStatusLine -Kind info -Text "Codebase Researcher" -Detail "Análisis y exploración de contexto"
-    Write-VorkStatusLine -Kind info -Text "Audio Engine Agent" -Detail "Síntesis TTS y modelado F0 espectral"
-    Write-VorkStatusLine -Kind info -Text "Demucs Stem Worker" -Detail "Separación acapella y karaoke en segundo plano"
-    Write-VorkStatusLine -Kind info -Text "Media Extraction Bot" -Detail "Extracción y compresión multimedia 320k"
-    Write-VorkSectionRule
-    $reportFile = "vork_agents_cluster.json"
-    @{ status = "online"; motor = "Vork Autonomous Agents v3"; pilares = 8; subagentes = @("Codebase Researcher", "Audio Engine Agent", "Demucs Stem Worker", "Media Extraction Bot") } | ConvertTo-Json | Set-Content -Path $reportFile -Encoding UTF8
-    $resolvedOut = (Resolve-Path $reportFile).Path
-    Write-VorkStatusLine -Kind ok -Text "Clúster de agentes sincronizado"
-    Write-VorkInfoRow -Label "Guardado" -Value $resolvedOut -ValueColor $Green
-    Write-VorkSectionRule
-    Send-VorkNotification -Title "Vork Agentes Autónomos" -Message "Clúster de subagentes sincronizado con éxito."
-    Write-Host ""
-}
-
-
-# ========================================================
-# MODULE: pillars/p10_generate_image.ps1
-# ========================================================
-<#
-.SYNOPSIS
-    Pilar 10: Vork Generador de Imágenes IA (FLUX.1 Neural · 100% Gratuito y Sin Marca de Agua)
+    Pilar 08: Vork Generador de Imágenes IA (FLUX.1 Neural · 100% Gratuito y Sin Marca de Agua)
 #>
 
 function Invoke-PillarGenerateImage {
@@ -6424,6 +6373,57 @@ function Invoke-PillarGenerateImage {
 
 
 # ========================================================
+# MODULE: pillars/p09_agents.ps1
+# ========================================================
+<#
+.SYNOPSIS
+    Pilar 09: Vork CLI & Agentes Autónomos & Modo Interactivo TUI
+#>
+
+function Invoke-PillarAgents {
+    param([string[]]$ArgsList)
+
+    if (-not $ArgsList -or $ArgsList.Length -eq 0) {
+        $agentOptions = @(
+            @{ Value = "status";   Label = "Estado del clúster";     Description = "Agentes activos y conectividad" },
+            @{ Value = "goal";     Label = "/goal";                  Description = "Tarea autónoma de bucle continuo" },
+            @{ Value = "plan";     Label = "/plan";                  Description = "Desglose guiado de arquitectura" },
+            @{ Value = "teamwork"; Label = "/teamwork";              Description = "Coordinación de múltiples subagentes" },
+            @{ Value = "learn";    Label = "/learn";                 Description = "Guardar una regla en ~/.vork" }
+        )
+
+        $chosenAction = Select-InteractiveOption -PromptTitle "Operación de agentes" -Subtitle "orquestación autónoma" -Options $agentOptions -DefaultIndex 0
+        if (-not $chosenAction) { return }
+        if ($chosenAction -ne "status") {
+            switch ($chosenAction) {
+                "goal" { Invoke-CmdGoal @(); return }
+                "plan" { Invoke-CmdPlan @(); return }
+                "teamwork" { Invoke-CmdTeamwork @(); return }
+                "learn" { Invoke-CmdLearn @(); return }
+            }
+        }
+    }
+
+    Write-VorkSectionHeader -Title "Agentes autónomos" -Subtitle "Orquestación de subagentes en paralelo" -RightText "vork · agents"
+    Write-VorkInfoRow -Label "Motor" -Value "ONLINE  ·  Vork Autonomous Agents v3" -ValueColor $Green
+    Write-VorkSectionRule
+    Write-VorkStatusLine -Kind info -Text "Codebase Researcher" -Detail "Análisis y exploración de contexto"
+    Write-VorkStatusLine -Kind info -Text "Audio Engine Agent" -Detail "Síntesis TTS y modelado F0 espectral"
+    Write-VorkStatusLine -Kind info -Text "Demucs Stem Worker" -Detail "Separación acapella y karaoke en segundo plano"
+    Write-VorkStatusLine -Kind info -Text "Media Extraction Bot" -Detail "Extracción y compresión multimedia 320k"
+    Write-VorkSectionRule
+    $reportFile = "vork_agents_cluster.json"
+    @{ status = "online"; motor = "Vork Autonomous Agents v3"; pilares = 8; subagentes = @("Codebase Researcher", "Audio Engine Agent", "Demucs Stem Worker", "Media Extraction Bot") } | ConvertTo-Json | Set-Content -Path $reportFile -Encoding UTF8
+    $resolvedOut = (Resolve-Path $reportFile).Path
+    Write-VorkStatusLine -Kind ok -Text "Clúster de agentes sincronizado"
+    Write-VorkInfoRow -Label "Guardado" -Value $resolvedOut -ValueColor $Green
+    Write-VorkSectionRule
+    Send-VorkNotification -Title "Vork Agentes Autónomos" -Message "Clúster de subagentes sincronizado con éxito."
+    Write-Host ""
+}
+
+
+# ========================================================
 # MODULE: pillars/commands.ps1
 # ========================================================
 <#
@@ -6648,7 +6648,7 @@ function Invoke-CmdStatus {
     $uptimeStr = if ($res -and $res.uptime) { "$($res.uptime)s" } else { "N/A" }
     $rssStr = if ($res -and $res.memory -and $res.memory.rssMb) { "$($res.memory.rssMb) MB" } else { "N/A" }
 
-    Write-VorkSectionHeader -Title "Estado de los 10 pilares" -Subtitle "infraestructura y telemetría en tiempo real" -RightText "vork · status"
+    Write-VorkSectionHeader -Title "Estado de los 9 pilares" -Subtitle "infraestructura y telemetría en tiempo real" -RightText "vork · status"
 
     Write-VorkInfoRow -Label "Backend Cloud" -Value $ApiBase -ValueColor $Cyan
     if ($online) {
@@ -6667,11 +6667,10 @@ function Invoke-CmdStatus {
         @{ Id = "03"; Key = "voiceClone";       Name = "Clonación Vocal & Timbre";   Tech = "Modelado espectral F0 & voice matching" },
         @{ Id = "04"; Key = "mediaConverter";   Name = "Extracción Multimedia";       Tech = "Descarga de YouTube, TikTok, Reels, IG" },
         @{ Id = "05"; Key = "separator";        Name = "Aislamiento de Stems Demucs"; Tech = "Separación Acapella/Instrumental (v4)" },
-        @{ Id = "06"; Key = "cloudDj";          Name = "Cloud DJ Mezclador";          Tech = "Mezclador virtual interactivo" },
-        @{ Id = "07"; Key = "imageConverter";   Name = "Conversor de Imágenes";       Tech = "Pipeline Sharp PNG, WEBP, ICO, AVIF" },
-        @{ Id = "08"; Key = "backgroundStudio"; Name = "Estudio & Fondo con IA";      Tech = "Silueta inteligente y edición natural" },
-        @{ Id = "09"; Key = "cli";              Name = "Orquestación de Agentes";     Tech = "Subagentes concurrentes y bucle autónomo" },
-        @{ Id = "10"; Key = "flux";             Name = "Generación de Imagen IA";     Tech = "FLUX.1-schnell 1024x1024 sin marca" }
+        @{ Id = "06"; Key = "imageConverter";   Name = "Procesador de Imágenes";      Tech = "Pipeline Sharp PNG, WEBP, ICO, AVIF" },
+        @{ Id = "07"; Key = "backgroundStudio"; Name = "Estudio & Fondo con IA";      Tech = "Silueta inteligente y edición natural" },
+        @{ Id = "08"; Key = "flux";             Name = "Generación de Imagen IA";     Tech = "FLUX.1-schnell 1024x1024 sin marca" },
+        @{ Id = "09"; Key = "cli";              Name = "Vork CLI & Agentes";          Tech = "Subagentes concurrentes y bucle autónomo" }
     )
 
     $metrics = Get-VorkConsoleMetrics
@@ -6695,11 +6694,11 @@ function Invoke-CmdStatus {
 
     Write-VorkSectionRule
 
-    $statusKind = if ($onlineCount -eq 10) { "ok" } elseif ($onlineCount -gt 0) { "warn" } else { "error" }
-    $statusText = if ($onlineCount -eq 10) {
-        "Estado global: 10/10 pilares operativos y sincronizados en la nube."
+    $statusKind = if ($onlineCount -eq 9) { "ok" } elseif ($onlineCount -gt 0) { "warn" } else { "error" }
+    $statusText = if ($onlineCount -eq 9) {
+        "Estado global: 9/9 pilares operativos y sincronizados en la nube."
     } elseif ($onlineCount -gt 0) {
-        "Estado global: $onlineCount/10 pilares operativos. Algunos servicios presentan degradación."
+        "Estado global: $onlineCount/9 pilares operativos. Algunos servicios presentan degradación."
     } else {
         "Estado global: Servidor en la nube desconectado. Operando en modo local."
     }

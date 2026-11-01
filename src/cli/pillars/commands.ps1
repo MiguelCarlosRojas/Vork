@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Vork CLI - Modulo de Comandos Oficiales (Categorias 2, 3, 4, 5, 6)
 #>
@@ -220,7 +220,7 @@ function Invoke-CmdStatus {
     $uptimeStr = if ($res -and $res.uptime) { "$($res.uptime)s" } else { "N/A" }
     $rssStr = if ($res -and $res.memory -and $res.memory.rssMb) { "$($res.memory.rssMb) MB" } else { "N/A" }
 
-    Write-VorkSectionHeader -Title "Estado de los 10 pilares" -Subtitle "infraestructura y telemetría en tiempo real" -RightText "vork · status"
+    Write-VorkSectionHeader -Title "Estado de los 9 pilares" -Subtitle "infraestructura y telemetría en tiempo real" -RightText "vork · status"
 
     Write-VorkInfoRow -Label "Backend Cloud" -Value $ApiBase -ValueColor $Cyan
     if ($online) {
@@ -239,11 +239,10 @@ function Invoke-CmdStatus {
         @{ Id = "03"; Key = "voiceClone";       Name = "Clonación Vocal & Timbre";   Tech = "Modelado espectral F0 & voice matching" },
         @{ Id = "04"; Key = "mediaConverter";   Name = "Extracción Multimedia";       Tech = "Descarga de YouTube, TikTok, Reels, IG" },
         @{ Id = "05"; Key = "separator";        Name = "Aislamiento de Stems Demucs"; Tech = "Separación Acapella/Instrumental (v4)" },
-        @{ Id = "06"; Key = "cloudDj";          Name = "Cloud DJ Mezclador";          Tech = "Mezclador virtual interactivo" },
-        @{ Id = "07"; Key = "imageConverter";   Name = "Conversor de Imágenes";       Tech = "Pipeline Sharp PNG, WEBP, ICO, AVIF" },
-        @{ Id = "08"; Key = "backgroundStudio"; Name = "Estudio & Fondo con IA";      Tech = "Silueta inteligente y edición natural" },
-        @{ Id = "09"; Key = "cli";              Name = "Orquestación de Agentes";     Tech = "Subagentes concurrentes y bucle autónomo" },
-        @{ Id = "10"; Key = "flux";             Name = "Generación de Imagen IA";     Tech = "FLUX.1-schnell 1024x1024 sin marca" }
+        @{ Id = "06"; Key = "imageConverter";   Name = "Procesador de Imágenes";      Tech = "Pipeline Sharp PNG, WEBP, ICO, AVIF" },
+        @{ Id = "07"; Key = "backgroundStudio"; Name = "Estudio & Fondo con IA";      Tech = "Silueta inteligente y edición natural" },
+        @{ Id = "08"; Key = "flux";             Name = "Generación de Imagen IA";     Tech = "FLUX.1-schnell 1024x1024 sin marca" },
+        @{ Id = "09"; Key = "cli";              Name = "Vork CLI & Agentes";          Tech = "Subagentes concurrentes y bucle autónomo" }
     )
 
     $metrics = Get-VorkConsoleMetrics
@@ -267,11 +266,11 @@ function Invoke-CmdStatus {
 
     Write-VorkSectionRule
 
-    $statusKind = if ($onlineCount -eq 10) { "ok" } elseif ($onlineCount -gt 0) { "warn" } else { "error" }
-    $statusText = if ($onlineCount -eq 10) {
-        "Estado global: 10/10 pilares operativos y sincronizados en la nube."
+    $statusKind = if ($onlineCount -eq 9) { "ok" } elseif ($onlineCount -gt 0) { "warn" } else { "error" }
+    $statusText = if ($onlineCount -eq 9) {
+        "Estado global: 9/9 pilares operativos y sincronizados en la nube."
     } elseif ($onlineCount -gt 0) {
-        "Estado global: $onlineCount/10 pilares operativos. Algunos servicios presentan degradación."
+        "Estado global: $onlineCount/9 pilares operativos. Algunos servicios presentan degradación."
     } else {
         "Estado global: Servidor en la nube desconectado. Operando en modo local."
     }

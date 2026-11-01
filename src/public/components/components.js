@@ -26,9 +26,9 @@
         if (p.startsWith("/voice-clone")) return "voice-clone";
         if (p.startsWith("/converter") || p.startsWith("/media")) return "converter";
         if (p.startsWith("/vocal-remover") || p.startsWith("/separator") || p.startsWith("/stems")) return "vocal-remover";
-        if (p.startsWith("/dj") || p.startsWith("/cloud-dj")) return "dj";
         if (p.startsWith("/image-converter") || p.startsWith("/img")) return "image-converter";
         if (p.startsWith("/background-remover") || p.startsWith("/bg-remover") || p.startsWith("/ai-background")) return "background-remover";
+        if (p.startsWith("/draw") || p.startsWith("/image-generator") || p.startsWith("/flux")) return "draw";
         if (p.startsWith("/cli") || p.startsWith("/terminal")) return "cli";
         if (p.startsWith("/donate")) return "donate";
         if (p.startsWith("/api")) return "api";
@@ -134,10 +134,10 @@
         <li><a href="/voice-clone" class="${active === "voice-clone" ? "active" : ""}"><span class="nav-num">03</span> Clonación de Voz IA</a></li>
         <li><a href="/converter" class="${active === "converter" ? "active" : ""}"><span class="nav-num">04</span> Conversor Multimedia</a></li>
         <li><a href="/vocal-remover" class="${active === "vocal-remover" ? "active" : ""}"><span class="nav-num">05</span> Separador de Stems</a></li>
-        <li><a href="/dj" class="${active === "dj" ? "active" : ""}"><span class="nav-num">06</span> Vork DJ Mezclador</a></li>
-        <li><a href="/image-converter" class="${active === "image-converter" ? "active" : ""}"><span class="nav-num">07</span> Conversor de Imágenes</a></li>
-        <li><a href="/background-remover" class="${active === "background-remover" ? "active" : ""}"><span class="nav-num">08</span> Estudio y Fondo IA</a></li>
-        <li><a href="/cli" class="${active === "cli" ? "active" : ""}"><span class="nav-num">09</span> Vork CLI Terminal</a></li>
+        <li><a href="/image-converter" class="${active === "image-converter" ? "active" : ""}"><span class="nav-num">06</span> Procesador de Imágenes</a></li>
+        <li><a href="/background-remover" class="${active === "background-remover" ? "active" : ""}"><span class="nav-num">07</span> Estudio y Fondo IA</a></li>
+        <li><a href="/draw" class="${active === "draw" || active === "image-generator" ? "active" : ""}"><span class="nav-num">08</span> Generador de Imágenes IA</a></li>
+        <li><a href="/cli" class="${active === "cli" ? "active" : ""}"><span class="nav-num">09</span> Vork CLI & Agentes</a></li>
       </ul>
     </div>
 
@@ -169,7 +169,7 @@
         <span class="brand-logo-mark"><img src="/img/logo.png" alt="Vork Logo" class="brand-img" width="36" height="36"></span>
         <span>vork<i>.</i></span>
       </h4>
-      <p>Ecosistema cloud multimodal de alto rendimiento: traducción neuronal distribuida (+200 idiomas), Voz Neuronal TTS, Clonación Vocal IA, Conversor Multimedia Universal MP3/MP4, Separador de Stems, Vork DJ y Vork CLI con Agentes Autónomos.</p>
+      <p>Ecosistema cloud multimodal de alto rendimiento: traducción neuronal distribuida (+200 idiomas), Voz Neuronal TTS, Clonación Vocal IA, Conversor Multimedia Universal MP3/MP4, Separador de Stems, Procesador de Imágenes, Estudio de Fondo IA, Generador de Imágenes FLUX.1 y Vork CLI con Agentes Autónomos.</p>
       <p style="font-size: 0.85rem; color: var(--muted); margin-top: 14px; display: flex; align-items: center; gap: 8px;">
         <span class="pulse"></span>
         <span>Microservicio autónomo activo • <b>v3.0.0 ONLINE</b></span>
@@ -180,9 +180,9 @@
       <h4>Servicios</h4>
       <ul>
         <li><a href="/voice-clone" class="${active === "voice-clone" ? "active" : ""}">Clonación de Voz IA</a></li>
-        <li><a href="/dj" class="${active === "dj" ? "active" : ""}">Vork DJ Mezclador</a></li>
-        <li><a href="/image-converter" class="${active === "image-converter" ? "active" : ""}">Conversor de Imágenes</a></li>
+        <li><a href="/image-converter" class="${active === "image-converter" ? "active" : ""}">Procesador de Imágenes</a></li>
         <li><a href="/background-remover" class="${active === "background-remover" ? "active" : ""}">Estudio de Fondo IA</a></li>
+        <li><a href="/draw" class="${active === "draw" ? "active" : ""}">Generador de Imágenes IA</a></li>
       </ul>
     </div>
 

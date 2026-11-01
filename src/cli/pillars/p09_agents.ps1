@@ -1,6 +1,6 @@
 ﻿<#
 .SYNOPSIS
-    Pilar 09: Vork Agentes Autónomos & Modo Interactivo TUI
+    Pilar 09: Vork CLI & Agentes Autónomos & Modo Interactivo TUI
 #>
 
 function Invoke-PillarAgents {

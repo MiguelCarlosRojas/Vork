@@ -8,11 +8,10 @@ const PILLARS = [
   "3. Vork Clonación Vocal (Clonación de voz por IA y recreación tímbrica)",
   "4. Vork Conversor Multimedia (YouTube, TikTok, Instagram a MP3 / MP4)",
   "5. Vork Separador de Stems (Aislamiento de voz e instrumentos con Demucs v4)",
-  "6. Vork DJ (Mezclador virtual interactivo en vivo con crossfader)",
-  "7. Vork Imagen (Conversor y optimizador entre PNG, JPG, WEBP, ICO, AVIF)",
-  "8. Vork Fondo IA (Aislamiento inteligente de siluetas y composición)",
-  "9. Vork CLI (Entorno de terminal, automatización y agentes autónomos)",
-  "10. Vork Generador de Imágenes IA (FLUX.1 Neural sin marca de agua 100% gratis)"
+  "6. Vork Procesador de Imágenes (Conversor y optimizador entre PNG, JPG, WEBP, ICO, AVIF)",
+  "7. Vork Estudio y Fondo IA (Aislamiento inteligente de siluetas y composición)",
+  "8. Vork Generador de Imágenes IA (FLUX.1 Neural sin marca de agua 100% gratis)",
+  "9. Vork CLI & Agentes (Entorno de terminal, automatización y agentes autónomos)"
 ];
 
 const API_ENDPOINTS = {

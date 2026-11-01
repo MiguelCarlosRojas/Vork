@@ -88,28 +88,28 @@ function Show-Help {
             Example = "vork separate cancion.mp3"
         },
         @{
-            Title = "[07] Vork Conversor de Imagenes"
+            Title = "[06] Vork Procesador de Imágenes"
             Tag = "PNG, JPG, WEBP, ICO, AVIF"
             Usage = "vork image <archivo> -Format <formato>"
             Example = "vork image logo.png -Format webp -Quality 90"
         },
         @{
-            Title = "[08] Vork Estudio de Fondo IA"
+            Title = "[07] Vork Estudio y Fondo IA"
             Tag = "U2-Net silueta y transparente"
             Usage = "vork remove-bg <archivo> -Out <archivo.png>"
             Example = "vork remove-bg foto.jpg -Out limpia.png"
         },
         @{
-            Title = "[09] Vork Agentes Autonomos & TUI"
-            Tag = "Modo orquestador de terminal"
-            Usage = "vork agents / vork tui"
-            Example = "vk  (alias ultracorto para ejecutar Vork CLI)"
-        },
-        @{
-            Title = "[10] Vork Generador de Imágenes IA"
+            Title = "[08] Vork Generador de Imágenes IA"
             Tag = "FLUX.1 Neural sin marca de agua"
             Usage = "vork /draw <prompt>"
             Example = "vork /draw 'ciudad cyberpunk al atardecer 8k'"
+        },
+        @{
+            Title = "[09] Vork CLI & Agentes Autónomos"
+            Tag = "Modo orquestador de terminal"
+            Usage = "vork agents / vork tui"
+            Example = "vk  (alias ultracorto para ejecutar Vork CLI)"
         }
     )
 
@@ -123,7 +123,7 @@ function Show-Help {
     Write-Host ""
     Write-VorkHelpLine -Width $width -Text "$White$Bold  MANTENIMIENTO & ESTADO:$Reset"
     Write-VorkHelpLine -Width $width -Text "    $Yellow vork update$Reset     ${Dim}Sincroniza y actualiza Vork CLI al instante${Reset}"
-    Write-VorkHelpLine -Width $width -Text "    $Yellow vork status$Reset     ${Dim}Telemetria y estado operativo de los 10 pilares${Reset}"
+    Write-VorkHelpLine -Width $width -Text "    $Yellow vork status$Reset     ${Dim}Telemetria y estado operativo de los 9 pilares${Reset}"
     Write-VorkHelpLine -Width $width -Text "    $Yellow vork version$Reset    ${Dim}Muestra detalles de arquitectura y version${Reset}"
     Write-VorkHelpLine -Width $width -Text "    $Yellow vork slash$Reset      ${Dim}Ver los 40 comandos con barra (/)${Reset}"
     Write-Host ""
@@ -141,7 +141,7 @@ function Show-SlashCommands {
 
     $categories = @(
         @{
-            Title = "[CATEGORIA 1] Los 10 Pilares Operacionales (10)"
+            Title = "[CATEGORIA 1] Los 9 Pilares Operacionales (9)"
             Items = @(
                 @{ Cmd = "/translate"; Desc = "Traduccion neuronal por lotes en +200 idiomas" },
                 @{ Cmd = "/tts";       Desc = "Sintesis de voz con 24 voces neuronales humanas" },
