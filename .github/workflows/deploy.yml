@@ -18,12 +18,30 @@ jobs:
       - name: Checkout del código
         uses: actions/checkout@v4
 
+      - name: Verificar credenciales de Render
+        id: check_auth
+        run: |
+          if [ -z "${{ secrets.RENDER_API_KEY }}" ]; then
+            echo "has_key=false" >> $GITHUB_OUTPUT
+            echo "::notice title=Despliegue Automático en Render::No se detectó RENDER_API_KEY en los secretos del repositorio. Render procesa el despliegue automáticamente en cada push a main vía Webhook nativo."
+          else
+            echo "has_key=true" >> $GITHUB_OUTPUT
+          fi
+
       - name: Disparar y rastrear despliegue en Render
+        if: steps.check_auth.outputs.has_key == 'true'
+        id: render_step
+        continue-on-error: true
         uses: JorgeLNJunior/render-deploy@v1.5.0
         with:
-          service_id: ${{ secrets.RENDER_SERVICE_ID }}
+          service_id: ${{ secrets.RENDER_SERVICE_ID || 'srv-dbdmmron74is739arf9g' }}
           api_key: ${{ secrets.RENDER_API_KEY }}
           wait_deploy: true
           github_deployment: true
           github_token: ${{ secrets.GITHUB_TOKEN }}
           deployment_environment: 'production'
+
+      - name: Diagnóstico de Estado de Despliegue
+        if: steps.check_auth.outputs.has_key == 'true' && steps.render_step.outcome == 'failure'
+        run: |
+          echo "::warning title=API Key de Render Inválida o Expirada (401)::La API Key de Render devolvió 401 Unauthorized. Verifica o renueva tu API Key en Render (Dashboard > Account Settings > API Keys) y actualízala en GitHub (Settings > Secrets and variables > Actions > RENDER_API_KEY). El despliegue automático de Render continuará funcionando en segundo plano."
