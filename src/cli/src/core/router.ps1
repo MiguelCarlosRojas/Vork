@@ -49,7 +49,7 @@ function Dispatch-CLICommand {
         # ========================================================
         # CATEGORIA VORK AGENT: CAPACIDADES AVANZADAS (VORK ENGINE)
         # ========================================================
-        { $_ -in "undo", "redo", "diff", "todos", "connect", "disconnect", "providers", "limites", "limits", "doctor", "bug", "skills", "mcp", "lsp", "sessions", "export", "yolo", "models", "profe", "planear", "programar" } {
+        { $_ -in "undo", "redo", "diff", "todos", "connect", "disconnect", "providers", "limites", "limits", "doctor", "bug", "skills", "mcp", "lsp", "sessions", "export", "yolo", "models", "profe", "planear", "programar", "run", "auth", "tutorial", "trust", "tui", "version" } {
             Invoke-VorkAgentCommand -Command $Normalized -ArgsList $ArgsList
         }
 

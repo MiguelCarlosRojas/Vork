@@ -789,11 +789,12 @@ function Get-VorkCliEnginePath {
         (Join-Path $PSScriptRoot "../../dist/index.js"),
         (Join-Path $PSScriptRoot "../dist/index.js"),
         (Join-Path $PSScriptRoot "dist/index.js"),
+        (Join-Path $PSScriptRoot "../engine/dist/index.js"),
         (Join-Path $HOME ".vork/engine/dist/index.js"),
         "C:\Users\isaki\Videos\Visual Studio Code\CloudTranslator\src\cli\dist\index.js"
     )
     foreach ($cand in $candidates) {
-        if (Test-Path $cand) { return (Resolve-Path $cand).Path }
+        if ($cand -and (Test-Path $cand)) { return (Resolve-Path $cand).Path }
     }
     return $null
 }
@@ -809,14 +810,26 @@ function Invoke-VorkAgentCommand {
     if ($enginePath -and $nodeCmd) {
         $nodePath = $nodeCmd.Source
         $fullArgs = @("$enginePath")
-        if ($Command -in @("models", "doctor", "bug", "limites", "limits", "skills", "sessions", "export")) {
-            $fullArgs += $Command
+        $cmdNorm = if ($Command) { $Command.TrimStart("/").ToLower() } else { "" }
+
+        if ($cmdNorm -in @("models", "doctor", "bug", "limites", "limits", "skills", "sessions", "export", "run", "auth", "tutorial", "trust")) {
+            $fullArgs += $cmdNorm
             if ($ArgsList) { $fullArgs += $ArgsList }
-        } elseif ($Command -eq "providers") {
+        } elseif ($cmdNorm -in @("version", "--version", "-v")) {
+            $fullArgs += "--version"
+        } elseif ($cmdNorm -in @("providers")) {
             $fullArgs += @("auth", "list")
+        } elseif ($cmdNorm -eq "connect") {
+            $fullArgs += @("auth", "login")
+            if ($ArgsList) { $fullArgs += $ArgsList }
+        } elseif ($cmdNorm -eq "disconnect") {
+            $fullArgs += @("auth", "logout")
+            if ($ArgsList) { $fullArgs += $ArgsList }
+        } elseif ($cmdNorm -in @("tui", "interactive")) {
+            if ($ArgsList) { $fullArgs += $ArgsList }
         } else {
             $joinedArgs = if ($ArgsList) { $ArgsList -join " " } else { "" }
-            $fullArgs += @("run", "/$Command $joinedArgs".Trim())
+            $fullArgs += @("run", "/$cmdNorm $joinedArgs".Trim())
         }
         & $nodePath @fullArgs
     } else {

@@ -54,10 +54,45 @@ fs.writeFileSync(globalPs1, fullCode, 'utf8');
 console.log('Vork CLI PowerShell launcher assembled directly in:', globalPs1);
 
 const globalEngine = path.join(userHome, '.vork', 'engine');
+if (!fs.existsSync(globalEngine)) fs.mkdirSync(globalEngine, { recursive: true });
+
 const localDist = path.join(cliDir, 'dist');
 if (fs.existsSync(localDist)) {
   const engineDist = path.join(globalEngine, 'dist');
   if (!fs.existsSync(engineDist)) fs.mkdirSync(engineDist, { recursive: true });
   fs.cpSync(localDist, engineDist, { recursive: true });
   console.log('Synced engine dist to global:', engineDist);
+}
+
+// Sincronizar package.json y dependencias en el motor global
+const localPkg = path.join(cliDir, 'package.json');
+if (fs.existsSync(localPkg)) {
+  fs.copyFileSync(localPkg, path.join(globalEngine, 'package.json'));
+}
+
+const localModules = path.join(cliDir, 'node_modules');
+const globalModules = path.join(globalEngine, 'node_modules');
+if (fs.existsSync(localModules)) {
+  try {
+    let recreate = false;
+    if (fs.existsSync(globalModules)) {
+      try {
+        fs.readdirSync(globalModules);
+      } catch {
+        fs.unlinkSync(globalModules);
+        recreate = true;
+      }
+    } else {
+      recreate = true;
+    }
+    if (recreate) {
+      fs.symlinkSync(localModules, globalModules, 'junction');
+      console.log('Linked node_modules junction to global engine:', globalModules);
+    }
+  } catch (err) {
+    // Si falla el junction, copiar dependencias
+    if (!fs.existsSync(globalModules)) {
+      fs.cpSync(localModules, globalModules, { recursive: true });
+    }
+  }
 }

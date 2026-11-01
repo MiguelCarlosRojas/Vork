@@ -1,4 +1,4 @@
-﻿# ==============================================================================
+# ==============================================================================
 # Vork CLI - Windows PowerShell Installer v1.0.3
 # Despliega el motor completo de Vork CLI consumiendo src/cli/src
 # Soporte para Motor de Agente IA Soberano y los 9 Pilares Operacionales
@@ -133,7 +133,7 @@ if ($srcDir -and (Test-Path $srcDir)) {
         if (-not (Test-Path $targetModules)) {
             Write-Host "  ${Cyan}==>${Reset} Enlazando módulos de dependencias del motor..."
             try {
-                New-Item -ItemType SymbolicLink -Path $targetModules -Target $localNodeModules -Force | Out-Null
+                New-Item -ItemType Junction -Path $targetModules -Target $localNodeModules -Force | Out-Null
             } catch {
                 Copy-Item -Path $localNodeModules -Destination $targetModules -Recurse -Force
             }
