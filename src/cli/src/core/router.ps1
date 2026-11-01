@@ -46,6 +46,13 @@ function Dispatch-CLICommand {
         "history" { Invoke-CmdHistory }
         "save"    { Invoke-CmdSave -ArgsList $ArgsList }
         "resume"  { Invoke-CmdResume }
+        # ========================================================
+        # CATEGORIA VORK AGENT: CAPACIDADES AVANZADAS (VORK ENGINE)
+        # ========================================================
+        { $_ -in "undo", "redo", "diff", "todos", "connect", "disconnect", "providers", "limites", "limits", "doctor", "bug", "skills", "mcp", "lsp", "sessions", "export", "yolo", "models", "profe", "planear", "programar" } {
+            Invoke-VorkAgentCommand -Command $Normalized -ArgsList $ArgsList
+        }
+
         "undo"    { Invoke-CmdUndo }
 
         # ========================================================

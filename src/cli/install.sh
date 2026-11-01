@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# Vork CLI - Universal Installer for macOS and Linux
-# Instala Vork CLI y los 9 Pilares Operacionales en ~/.vork/bin
-# Uso: curl -fsSL https://vork-st1k.onrender.com/cli/install.sh | bash
+# Vork CLI - Universal Installer for macOS and Linux v1.0.3
+# Despliega el motor completo de Vork CLI consumiendo src/cli/src
+# Uso local:  ./install.sh
+# Uso remoto: curl -fsSL https://vork-st1k.onrender.com/cli/install.sh | bash
 # ==============================================================================
 
 set -e
@@ -12,196 +13,174 @@ BOLD='\033[1m'
 CYAN='\033[38;2;56;189;248m'
 CORAL='\033[38;2;255;107;74m'
 GREEN='\033[38;2;74;222;128m'
-YELLOW='\033[38;2;250;204;21m'
+YELLOW='\033[38;2;234;179;8m'
+PURPLE='\033[38;2;168;85;247m'
+WHITE='\033[97m'
 DIM='\033[2m'
 
-printf "${CORAL}${BOLD}"
-cat << "EOF"
-  ██       ██      Vork CLI  v1.0.2
-  ███     ███      9 Pilares Operacionales
-   ███   ███       https://vork-st1k.onrender.com (Vork AI)
-    ███ ███        Instalador Universal macOS & Linux
-     █████
-EOF
-printf "${RESET}\n"
+USER_NAME="$(whoami 2>/dev/null || echo "User")"
+HOST_NAME="$(hostname -s 2>/dev/null || hostname 2>/dev/null || echo "Host")"
+IDENT_LABEL="${USER_NAME}@${HOST_NAME}"
+if [ ${#IDENT_LABEL} -gt 24 ]; then
+    IDENT_LABEL="${IDENT_LABEL:0:21}..."
+fi
 
-# 1. Detección automática del Sistema Operativo
+CURRENT_DIR="$PWD"
+USER_HOME="${HOME:-~}"
+SHORT_DIR="${CURRENT_DIR/#$USER_HOME/\~}"
+if [ ${#SHORT_DIR} -gt 38 ]; then
+    SHORT_DIR=".../$(basename "$CURRENT_DIR")"
+fi
+
+echo ""
+printf "  ${BOLD}VORK CLI v1.0.3${RESET}                            ${CORAL}██     ██${RESET}\n"
+printf "  ${BOLD}Vork 3.2${RESET} ${PURPLE}(Expert)${RESET}                          ${CORAL}▀██   ██▀${RESET}\n"
+printf "  ${WHITE}%-24s${RESET} ${CYAN}(Vork AI)${RESET}       ${CORAL}▀██ ██▀${RESET}\n" "$IDENT_LABEL"
+printf "  ${CORAL}❯${RESET} ${WHITE}%-38s${RESET}   ${CORAL}▀███▀${RESET}\n" "$SHORT_DIR"
+echo ""
+
+# 1. Detección automática del Sistema Operativo y Arquitectura
 OS_TYPE="$(uname -s)"
 ARCH_TYPE="$(uname -m)"
 
 case "$OS_TYPE" in
-    Darwin)
-        PLATFORM="macOS"
-        ;;
-    Linux)
-        PLATFORM="Linux"
-        ;;
-    *)
-        PLATFORM="$OS_TYPE"
-        ;;
+    Darwin) PLATFORM="macOS" ;;
+    Linux)  PLATFORM="Linux" ;;
+    *)      PLATFORM="$OS_TYPE" ;;
 esac
 
-echo -e "  ${CYAN}==>${RESET} Sistema detectado: ${BOLD}${PLATFORM}${RESET} (${ARCH_TYPE})"
+echo -e "  ${CYAN}==>${RESET} Entorno detectado: ${BOLD}${PLATFORM}${RESET} (${ARCH_TYPE})"
 
-# 2. Directorio de instalación
+# 2. Directorios globales de instalación
 INSTALL_DIR="$HOME/.vork"
 BIN_DIR="$INSTALL_DIR/bin"
+ENGINE_DIR="$INSTALL_DIR/engine"
+
 mkdir -p "$BIN_DIR"
+mkdir -p "$ENGINE_DIR"
 
-API_BASE="${VORK_API:-https://vork-st1k.onrender.com}"
+# 3. Localizar el directorio fuente src/cli/src
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd || echo "")"
+SRC_DIR=""
 
-# 3. Descarga del script ejecutable de Vork
-echo -e "  ${CYAN}==>${RESET} Configurando entorno de ejecución en ${BIN_DIR}..."
+for CANDIDATE in \
+    "$SCRIPT_DIR/src" \
+    "$SCRIPT_DIR/src/cli/src" \
+    "$CURRENT_DIR/src/cli/src" \
+    "$CURRENT_DIR/src"
+do
+    if [ -f "$CANDIDATE/core/config.ps1" ] || [ -f "$CANDIDATE/index.ts" ]; then
+        SRC_DIR="$(cd "$CANDIDATE" && pwd)"
+        break
+    fi
+done
 
-cat << 'VORK_SCRIPT' > "$BIN_DIR/vork"
+CLI_ROOT=""
+if [ -n "$SRC_DIR" ]; then
+    CLI_ROOT="$(cd "$SRC_DIR/.." && pwd)"
+fi
+
+if [ -n "$SRC_DIR" ] && [ -d "$SRC_DIR" ]; then
+    echo -e "  ${CYAN}==>${RESET} Consumiendo código fuente local desde: ${BOLD}${SRC_DIR}${RESET}"
+
+    # Compilar y sincronizar motor TypeScript
+    LOCAL_DIST="$CLI_ROOT/dist"
+    ENGINE_DIST="$ENGINE_DIR/dist"
+
+    if [ ! -f "$LOCAL_DIST/index.js" ] && command -v npm >/dev/null 2>&1; then
+        echo -e "  ${CYAN}==>${RESET} Compilando motor TypeScript..."
+        (cd "$CLI_ROOT" && npm run build) >/dev/null 2>&1 || true
+    fi
+
+    if [ -f "$LOCAL_DIST/index.js" ]; then
+        echo -e "  ${CYAN}==>${RESET} Sincronizando distribución compilada a ${ENGINE_DIST}..."
+        mkdir -p "$ENGINE_DIST"
+        cp -R "$LOCAL_DIST"/* "$ENGINE_DIST"/
+        echo -e "  ${GREEN}[OK]${RESET} Motor TypeScript sincronizado con éxito."
+    fi
+
+    if [ -f "$CLI_ROOT/package.json" ]; then
+        cp "$CLI_ROOT/package.json" "$ENGINE_DIR/package.json"
+    fi
+
+    if [ -d "$CLI_ROOT/node_modules" ]; then
+        if [ ! -d "$ENGINE_DIR/node_modules" ]; then
+            echo -e "  ${CYAN}==>${RESET} Vinculando dependencias de Node.js..."
+            ln -sfn "$CLI_ROOT/node_modules" "$ENGINE_DIR/node_modules" 2>/dev/null || cp -R "$CLI_ROOT/node_modules" "$ENGINE_DIR/"
+        fi
+    fi
+
+    # Si pwsh está instalado, ensamblar vork.ps1 en ~/.vork/bin
+    if command -v pwsh >/dev/null 2>&1; then
+        OUT_PS1="$BIN_DIR/vork.ps1"
+        MODULES=(
+            "core/config.ps1"
+            "ui/toolkit.ps1"
+            "ui/banner.ps1"
+            "ui/cards.ps1"
+            "ui/help.ps1"
+            "pillars/p01_translate.ps1"
+            "pillars/p02_tts.ps1"
+            "pillars/p03_clone.ps1"
+            "pillars/p04_media.ps1"
+            "pillars/p05_separate.ps1"
+            "pillars/p06_image.ps1"
+            "pillars/p07_remove_bg.ps1"
+            "pillars/p08_generate_image.ps1"
+            "pillars/p09_agents.ps1"
+            "pillars/commands.ps1"
+            "pillars/system.ps1"
+            "core/updater.ps1"
+            "core/router.ps1"
+        )
+        rm -f "$OUT_PS1"
+        for MOD in "${MODULES[@]}"; do
+            MOD_FILE="$SRC_DIR/$MOD"
+            if [ -f "$MOD_FILE" ]; then
+                echo -e "\n# ========================================================\n# MODULE: $MOD\n# ========================================================" >> "$OUT_PS1"
+                cat "$MOD_FILE" >> "$OUT_PS1"
+            fi
+        done
+        echo -e "  ${GREEN}[OK]${RESET} Lanzador PowerShell Core ensamblado en ${OUT_PS1}"
+    fi
+
+else
+    echo -e "  ${CYAN}==>${RESET} Descargando componentes desde el repositorio oficial..."
+    API_BASE="${VORK_API:-https://vork-st1k.onrender.com}"
+    curl -fsSL "$API_BASE/cli/vork.ps1" -o "$BIN_DIR/vork.ps1" 2>/dev/null || true
+fi
+
+# 4. Generar lanzador universal bin/vork
+cat << 'LAUNCHER' > "$BIN_DIR/vork"
 #!/usr/bin/env bash
-# Vork CLI Launcher (macOS & Linux)
-# Detecta automáticamente el directorio actual ($PWD) y el entorno
-
+# Vork CLI Launcher (macOS & Linux) v1.0.3
 VORK_DIR="$HOME/.vork"
-API_BASE="${VORK_API:-https://vork-st1k.onrender.com}"
-CURRENT_DIR="$PWD"
+ENGINE_INDEX="$VORK_DIR/engine/dist/index.js"
 
-# Si pwsh (PowerShell Core) está disponible, ejecutar vork.ps1 directamente
-if command -v pwsh >/dev/null 2>&1; then
+if [ -f "$ENGINE_INDEX" ] && command -v node >/dev/null 2>&1; then
+    exec node "$ENGINE_INDEX" "$@"
+fi
+
+if [ -f "$VORK_DIR/bin/vork.ps1" ] && command -v pwsh >/dev/null 2>&1; then
     exec pwsh -NoProfile -ExecutionPolicy Bypass -File "$VORK_DIR/bin/vork.ps1" "$@"
 fi
 
-# Si node está disponible, ejecutar el cliente CLI nativo
-if command -v node >/dev/null 2>&1; then
-    exec node -e "
-    const http = require('http');
-    const https = require('https');
-    const fs = require('fs');
-    const path = require('path');
-
-    const args = process.argv.slice(1);
-    const cmd = args[0] ? args[0].replace(/^\//, '').toLowerCase() : '';
-    const apiBase = process.env.VORK_API || 'https://vork-st1k.onrender.com';
-    const pwd = process.cwd();
-
-    const coral = '\x1b[38;2;255;107;74m';
-    const cyan = '\x1b[38;2;56;189;248m';
-    const green = '\x1b[38;2;74;222;128m';
-    const white = '\x1b[38;2;240;246;252m';
-    const reset = '\x1b[0m';
-    const bold = '\x1b[1m';
-    const dim = '\x1b[2m';
-
-    function showBanner() {
-      console.log('');
-      console.log('  ' + coral + '██       ██' + reset + '      ' + coral + bold + 'Vork CLI' + reset + '  ' + cyan + 'v1.0.2' + reset);
-      console.log('  ' + coral + '███     ███' + reset + '      ' + dim + 'Vork 3 (Medium)' + reset);
-      console.log('  ' + coral + ' ███   ███ ' + reset + '      ' + dim + apiBase + ' (Vork AI)' + reset);
-      console.log('  ' + coral + '  ███ ███  ' + reset + '      ' + cyan + pwd.replace(process.env.HOME || '', '~') + reset);
-      console.log('  ' + coral + '   █████   ' + reset);
-      console.log('');
-    }
-
-    if (!cmd || cmd === 'help' || cmd === '--help' || cmd === '-h') {
-      showBanner();
-      console.log('  ' + white + bold + 'LOS 9 PILARES OPERACIONALES:' + reset);
-      console.log('  ' + cyan + '╭─ [01] Traductor en la Nube' + reset + ' · +200 idiomas por lotes');
-      console.log('  ' + cyan + '│' + reset + '  vork translate <texto> --to <iso>');
-      console.log('  ' + cyan + '├─ [02] Texto a Voz Neuronal (TTS)' + reset + ' · 24 voces humanas');
-      console.log('  ' + cyan + '│' + reset + '  vork tts <texto> --voice <id> --out <archivo>');
-      console.log('  ' + cyan + '├─ [03] Clonación Vocal IA' + reset + ' · Modelado espectral F0');
-      console.log('  ' + cyan + '│' + reset + '  vork clone --audio <muestra> --text <guion>');
-      console.log('  ' + cyan + '├─ [04] Extracción Multimedia' + reset + ' · YouTube, TikTok, IG a MP3/MP4');
-      console.log('  ' + cyan + '│' + reset + '  vork media <url> --format <mp3|mp4>');
-      console.log('  ' + cyan + '├─ [05] Separador de Stems Demucs' + reset + ' · Acapella / Karaoke');
-      console.log('  ' + cyan + '│' + reset + '  vork separate <archivo_o_url>');
-      console.log('  ' + cyan + '├─ [06] Mezclador DJ Virtual' + reset + ' · Web Audio Graphs');
-      console.log('  ' + cyan + '│' + reset + '  vork dj <url>');
-      console.log('  ' + cyan + '├─ [07] Conversor de Imágenes' + reset + ' · Sharp PNG, JPG, WEBP, AVIF');
-      console.log('  ' + cyan + '│' + reset + '  vork image <archivo> --format <webp>');
-      console.log('  ' + cyan + '├─ [08] Eliminación de Fondo IA' + reset + ' · Silueta y recorte alfa');
-      console.log('  ' + cyan + '│' + reset + '  vork remove-bg <archivo>');
-      console.log('  ' + cyan + '╰─ [09] Agentes Autónomos' + reset + ' · Orquestación /goal /plan');
-      console.log('  ' + cyan + ' ' + reset + '  vork agents');
-      console.log('');
-      process.exit(0);
-    }
-
-    if (cmd === 'status' || cmd === 'health') {
-      const start = Date.now();
-      const client = apiBase.startsWith('https') ? https : http;
-      client.get(apiBase + '/api/health', (res) => {
-        let data = '';
-        res.on('data', chunk => data += chunk);
-        res.on('end', () => {
-          const lat = Date.now() - start;
-          try {
-            const h = JSON.parse(data);
-            console.log('');
-            console.log('  ' + cyan + '╭─ [STATUS · LOS 9 PILARES OPERACIONALES DE VORK 3] ────────────────────' + reset);
-            console.log('  ' + cyan + '│' + reset + '  Backend Cloud: ' + green + '● ONLINE ' + reset + apiBase + ' (' + lat + 'ms · Vork AI)');
-            console.log('  ' + cyan + '│' + reset + '  Potencia:      ' + cyan + bold + 'Vork 3 (MEDIUM)' + reset + ' · Uptime: ' + h.uptime + 's · Memoria RSS: ' + (h.memory ? h.memory.rssMb : 'N/A') + ' MB');
-            console.log('  ' + cyan + '├─────────────────────────────────────────────────────────────────────────────' + reset);
-            console.log('  ' + cyan + '│' + reset + '  [Pilar 01]  ' + green + 'ONLINE' + reset + '  Traductor en la Nube       · +200 idiomas por lotes');
-            console.log('  ' + cyan + '│' + reset + '  [Pilar 02]  ' + green + 'ONLINE' + reset + '  Texto a Voz Neuronal (TTS) · 24 voces humanas');
-            console.log('  ' + cyan + '│' + reset + '  [Pilar 03]  ' + green + 'ONLINE' + reset + '  Clonación Vocal & Timbre   · Modelado espectral F0');
-            console.log('  ' + cyan + '│' + reset + '  [Pilar 04]  ' + green + 'ONLINE' + reset + '  Extracción Multimedia      · YouTube, TikTok, Reels, IG');
-            console.log('  ' + cyan + '│' + reset + '  [Pilar 05]  ' + green + 'ONLINE' + reset + '  Aislamiento de Stems Demucs· Demucs v4 Acapella');
-            console.log('  ' + cyan + '│' + reset + '  [Pilar 06]  ' + green + 'ONLINE' + reset + '  Mezclador Virtual DJ       · Web Audio Graphs');
-            console.log('  ' + cyan + '│' + reset + '  [Pilar 07]  ' + green + 'ONLINE' + reset + '  Conversor de Imágenes      · Sharp PNG/WEBP/AVIF');
-            console.log('  ' + cyan + '│' + reset + '  [Pilar 08]  ' + green + 'ONLINE' + reset + '  Eliminación de Fondo IA    · Silueta alfa');
-            console.log('  ' + cyan + '│' + reset + '  [Pilar 09]  ' + green + 'ONLINE' + reset + '  Orquestación de Agentes    · Subagentes concurrentes');
-            console.log('  ' + cyan + '╰─────────────────────────────────────────────────────────────────────────────' + reset);
-            console.log('  Estado global: ' + green + '9/9 pilares listos y verificados.' + reset);
-            console.log('');
-          } catch(e) {
-            console.log('  ' + coral + '[Error]:' + reset + ' Respuesta inesperada del backend');
-          }
-        });
-      }).on('error', (err) => {
-        console.log('');
-        console.log('  ' + coral + '● OFFLINE' + reset + ' No se pudo conectar con ' + apiBase);
-        console.log('');
-      });
-      return;
-    }
-
-    if (cmd === 'version' || cmd === '-v' || cmd === '--version') {
-      console.log('');
-      console.log('  ' + cyan + bold + 'Vork CLI' + reset + ' v1.0.2 (' + process.platform + ' ' + process.arch + ')');
-      console.log('  Backend:  ' + apiBase);
-      console.log('  Pilares:  9 Pilares Operacionales Activos');
-      console.log('  Directorio: ' + pwd);
-      console.log('');
-      process.exit(0);
-    }
-
-    console.log('  ' + cyan + 'Ejecutando comando en Vork Cloud (' + cmd + ')...' + reset);
-    " "$@"
-    exit $?
-fi
-
-echo "Vork CLI v1.0.2 en $PLATFORM (Detectado directorio: $CURRENT_DIR)"
-VORK_SCRIPT
+echo "[ERROR] Se requiere Node.js (>=18) o PowerShell Core (pwsh) para ejecutar Vork CLI."
+exit 1
+LAUNCHER
 
 chmod +x "$BIN_DIR/vork"
 ln -sf "$BIN_DIR/vork" "$BIN_DIR/vk"
+ln -sf "$BIN_DIR/vork" "$BIN_DIR/vork-cli"
 
-curl -fsSL "$API_BASE/cli/vork.ps1" -o "$BIN_DIR/vork.ps1" 2>/dev/null || true
-
-SHELL_NAME="$(basename "$SHELL")"
+# 5. Configurar PATH en la configuración de la terminal
+SHELL_NAME="$(basename "${SHELL:-bash}")"
 EXPORT_LINE="export PATH=\"\$HOME/.vork/bin:\$PATH\""
 
 case "$SHELL_NAME" in
-    zsh)
-        RC_FILE="$HOME/.zshrc"
-        ;;
-    bash)
-        if [ "$OS_TYPE" = "Darwin" ]; then
-            RC_FILE="$HOME/.bash_profile"
-        else
-            RC_FILE="$HOME/.bashrc"
-        fi
-        ;;
-    *)
-        RC_FILE="$HOME/.profile"
-        ;;
+    zsh)   RC_FILE="$HOME/.zshrc" ;;
+    bash)  RC_FILE="$([ "$OS_TYPE" = "Darwin" ] && echo "$HOME/.bash_profile" || echo "$HOME/.bashrc")" ;;
+    *)     RC_FILE="$HOME/.profile" ;;
 esac
 
 if [ -f "$RC_FILE" ]; then
@@ -217,12 +196,15 @@ else
 fi
 
 echo ""
-echo -e "  ${GREEN}${BOLD}[OK] Vork CLI se instaló correctamente en ${PLATFORM}!${RESET}"
+echo -e "  ${GREEN}${BOLD}[OK] Vork CLI v1.0.3 se instaló correctamente en ${PLATFORM}!${RESET}"
 echo ""
-echo -e "  ${BOLD}Para comenzar en tu terminal actual ejecuta:${RESET}"
-echo -e "    ${YELLOW}export PATH=\"\$HOME/.vork/bin:\$PATH\"${RESET}"
-echo -e "    ${YELLOW}vork /status${RESET}"
+echo -e "  ${BOLD}Comandos globales disponibles:${RESET}"
+echo -e "    ${YELLOW}vork${RESET}                 -> Abre la interfaz interactiva Vork AI"
+echo -e "    ${YELLOW}vork run <tarea>${RESET}     -> Modo agente autónomo con ejecución y herramientas"
+echo -e "    ${YELLOW}vork doctor${RESET}          -> Diagnóstico del sistema y proveedores gratuitos"
+echo -e "    ${YELLOW}vork models${RESET}          -> Estado de modelos disponibles (+20 proveedores)"
+echo -e "    ${YELLOW}vork translate${RESET}       -> Pilar 01: Traductor en la Nube"
+echo -e "    ${YELLOW}vork agents${RESET}          -> Pilar 09: Agentes Autónomos"
 echo ""
-echo -e "  ${DIM}Detecta automáticamente el directorio en el que estés (\$PWD).${RESET}"
-echo -e "  ${DIM}Alias disponibles: vork, vk${RESET}"
+echo -e "  ${DIM}Alias disponibles: vork, vk, vork-cli${RESET}"
 echo ""

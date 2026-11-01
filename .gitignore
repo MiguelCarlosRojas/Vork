@@ -45,3 +45,9 @@ temp_media/
 # Directorios de pruebas locales y scripts de desarrollo
 src/scratch/
 src/scripts/
+
+# Vork CLI pruebas internas, scripts de release y docs de demo
+src/cli/scripts/
+src/cli/test/
+src/cli/docs/
+src/cli/dist/

@@ -281,7 +281,7 @@ function Exit-VorkSession {
     exit $ExitCode
 }
 
-$VorkVersion = "1.0.2"
+$VorkVersion = "1.0.3"
 $ApiBase = if ($env:VORK_API) { $env:VORK_API } elseif ($env:CLOUDTRANSLATOR_API) { $env:CLOUDTRANSLATOR_API } else { "https://vork-st1k.onrender.com" }
 
 # ========================================================

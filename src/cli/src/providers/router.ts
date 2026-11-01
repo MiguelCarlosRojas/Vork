@@ -1,0 +1,1191 @@
+import fs from "node:fs";
+import OpenAI from "openai";
+import type {
+  ChatCompletionMessageParam,
+  ChatCompletionMessageToolCall,
+  ChatCompletionTool,
+} from "openai/resources/chat/completions";
+import { readAuth, resolveCredentials } from "./auth.js";
+import type { Config, ModelConfig, ProviderConfig } from "../core/config.js";
+import { debugLog } from "../core/debug.js";
+import { wildcardMatch } from "../ui/match.js";
+import { STATE_PATH, writeFileAtomic } from "../core/paths.js";
+import type { Ranking } from "./ranking.js";
+
+// Una combinación proveedor + modelo
+export interface Slot {
+  key: string; // "proveedor/modelo"
+  provider: ProviderConfig;
+  model: ModelConfig;
+  client: OpenAI;
+  // Nota de 0 a 100 según LLM Stats (null si no hay datos) y el modelo de LLM Stats con el que se ha emparejado
+  score: number | null;
+  ratedAs: string | null;
+  // Proveedor de internet usado sin clave
+  anonymous: boolean;
+}
+
+export interface ChatRequest {
+  messages: ChatCompletionMessageParam[];
+  tools?: ChatCompletionTool[];
+  temperature?: number;
+  // Modelo o patrón preferido para esta petición (por ejemplo el del agente)
+  prefer?: string;
+}
+
+export interface ChatHandlers {
+  onText?: (text: string) => void;
+  onReasoning?: (text: string) => void;
+  onNotice?: (text: string) => void;
+  // Justo antes de preguntar a cada modelo
+  onAttempt?: (slot: string) => void;
+}
+
+export interface Usage {
+  prompt: number;
+  completion: number;
+}
+
+export interface ChatResult {
+  message: { role: "assistant"; content: string | null; tool_calls?: ChatCompletionMessageToolCall[] };
+  slot: Slot;
+  // Tokens que dice el proveedor (null si no lo dice)
+  usage: Usage | null;
+}
+
+type ErrorKind = "rate" | "daily" | "context" | "unsupported" | "auth" | "server" | "params" | "other";
+
+interface Classified {
+  kind: ErrorKind;
+  retryAfterMs: number;
+  detail: string;
+  // El proveedor no responde (no empieza a contestar, no hay conexión, su pasarela se rinde): no es algo de este modelo
+  // en concreto, y si les pasa a dos modelos suyos se pausa entero
+  stall?: boolean;
+}
+
+export interface SlotRow {
+  key: string;
+  label: string;
+  status: string;
+  available: boolean;
+  context: number;
+  vision: boolean;
+  score: number | null;
+}
+
+// Lo que dice un proveedor sobre un límite en las cabeceras x-ratelimit-* de su respuesta
+export interface LimitWindow {
+  limit: number | null;
+  remaining: number;
+  // Cuándo se recupera (null si no lo dice)
+  resetAt: number | null;
+  period: "day" | "hour" | "minute" | null;
+}
+
+export interface LimitSnapshot {
+  at: number;
+  requests?: LimitWindow;
+  tokens?: LimitWindow;
+}
+
+// Peticiones y tokens de un día (UTC) por proveedor y por modelo
+export interface UsageDay {
+  day: string;
+  providers: Record<string, { requests: number; tokens: number; models: Record<string, number> }>;
+}
+
+export class NoSlotError extends Error {}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+// Si dos modelos distintos de un proveedor no responden en este tiempo, se pausa el proveedor entero, y tanto como esto
+const STALL_WINDOW_MS = 10 * 60 * 1000;
+const PROVIDER_PAUSE_MS = 5 * 60 * 1000;
+// Si el proveedor deja de mandar datos este tiempo cuando ya está contestando, cortamos y probamos otro
+const IDLE_MS = 120000;
+// Lo que tarda cada modelo en empezar a contestar se recuerda unas horas (luego se le da otra oportunidad)
+const SPEED_TTL_MS = 6 * 60 * 60 * 1000;
+
+// Lo que se espera a que empiece a contestar: lo del config y 1 s más por cada 2.000 tokens que tiene que leer, sin pasar
+// del máximo de siempre
+export function firstResponseMs(base: number, tokens: number): number {
+  return Math.min(IDLE_MS, base + Math.round(tokens / 2000) * 1000);
+}
+
+function duration(ms: number): string {
+  return ms < 60000 ? `${Math.round(ms / 1000)} s` : `${Math.round(ms / 60000)} min`;
+}
+
+// Estimación rápida de tokens (unos 3,6 caracteres por token; cada imagen cuenta como ~1.200)
+export function estimateTokens(value: unknown): number {
+  let chars = 0;
+  let images = 0;
+  const walk = (item: unknown) => {
+    if (typeof item === "string") {
+      if (item.startsWith("data:image/")) {
+        images++;
+      } else {
+        chars += item.length;
+      }
+    } else if (Array.isArray(item)) {
+      for (const child of item) {
+        walk(child);
+      }
+    } else if (item && typeof item === "object") {
+      for (const [key, child] of Object.entries(item)) {
+        chars += key.length + 3;
+        walk(child);
+      }
+    } else if (item !== undefined && item !== null) {
+      chars += String(item).length;
+    }
+  };
+  walk(value);
+  return Math.ceil(chars / 3.6) + images * 1200;
+}
+
+export function hasImages(messages: ChatCompletionMessageParam[]): boolean {
+  return messages.some((message) => Array.isArray(message.content) && message.content.some((part: any) => part?.type === "image_url"));
+}
+
+// Cambia las imágenes por un aviso de texto para los modelos que no ven
+export function stripImages(messages: ChatCompletionMessageParam[]): ChatCompletionMessageParam[] {
+  return messages.map((message) => {
+    if (!Array.isArray(message.content)) {
+      return message;
+    }
+    const parts = message.content.map((part: any) => {
+      if (part?.type === "image_url") {
+        return { type: "text", text: "[imagen omitida: este modelo no acepta imágenes]" };
+      }
+      return part;
+    });
+    return { ...message, content: parts } as ChatCompletionMessageParam;
+  });
+}
+
+// Id corto y alfanumérico: Mistral exige 9 caracteres y el resto acepta cualquier cosa
+function shortId(): string {
+  const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let id = "";
+  for (let i = 0; i < 9; i++) {
+    id += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return id;
+}
+
+function nextUtcMidnight(): number {
+  const now = new Date();
+  return Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 0, 1);
+}
+
+function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(resolve, ms);
+    if (signal) {
+      signal.addEventListener("abort", () => {
+        clearTimeout(timer);
+        reject(new Error("aborted"));
+      });
+    }
+  });
+}
+
+function isAbort(err: unknown, signal?: AbortSignal): boolean {
+  if (signal && signal.aborted) {
+    return true;
+  }
+  const name = (err as Error)?.name || "";
+  return name === "AbortError" || name === "APIUserAbortError";
+}
+
+// "1m25.5s", "7.66s", "2h3m" → milisegundos
+function parseDuration(text: string): number {
+  let ms = 0;
+  const hours = /(\d+(?:\.\d+)?)h/.exec(text);
+  const minutes = /(\d+(?:\.\d+)?)m(?!s)/.exec(text);
+  const seconds = /(\d+(?:\.\d+)?)s/.exec(text);
+  if (hours) {
+    ms += Number(hours[1]) * 3600000;
+  }
+  if (minutes) {
+    ms += Number(minutes[1]) * 60000;
+  }
+  if (seconds) {
+    ms += Number(seconds[1]) * 1000;
+  }
+  return Math.ceil(ms);
+}
+
+function retryFromHeaders(headers: unknown): number {
+  const h = headers as Headers | undefined;
+  if (!h || typeof h.get !== "function") {
+    return 0;
+  }
+  const ms = h.get("retry-after-ms");
+  if (ms && !Number.isNaN(Number(ms))) {
+    return Number(ms);
+  }
+  const retryAfter = h.get("retry-after");
+  if (retryAfter) {
+    if (!Number.isNaN(Number(retryAfter))) {
+      return Number(retryAfter) * 1000;
+    }
+    const date = Date.parse(retryAfter);
+    if (!Number.isNaN(date)) {
+      return Math.max(0, date - Date.now());
+    }
+  }
+  return 0;
+}
+
+// Gemini manda "retryDelay": "41s" y Groq "Please try again in 1m25.5s"
+function retryFromMessage(message: string): number {
+  const delay = /retry_?delay["'\s:=]+["']?(\d+(?:\.\d+)?s)/i.exec(message);
+  if (delay) {
+    return parseDuration(delay[1]);
+  }
+  const again = /try again in\s+((?:\d+(?:\.\d+)?h)?(?:\d+(?:\.\d+)?m(?!s))?(?:\d+(?:\.\d+)?s)?)/i.exec(message);
+  if (again && again[1]) {
+    return parseDuration(again[1]);
+  }
+  return 0;
+}
+
+// Decide qué hacer con un error del proveedor
+function classify(err: unknown): Classified {
+  let message = String((err as Error)?.message || err);
+  // Lo que se enseña: el mensaje tal cual (el de abajo lleva además el cuerpo del error, para reconocerlo)
+  const original = message;
+  let status = 0;
+  let retryAfterMs = 0;
+
+  // Tarda demasiado en empezar a contestar: un rato en pausa, para no volver a esperarle enseguida
+  if (message.startsWith("no ha empezado a contestar")) {
+    return { kind: "server", retryAfterMs: 5 * 60000, detail: message, stall: true };
+  }
+  if (err instanceof OpenAI.APIConnectionError) {
+    return { kind: "server", retryAfterMs: 30000, detail: "sin conexión", stall: true };
+  }
+  if (err instanceof OpenAI.APIError) {
+    status = err.status || 0;
+    retryAfterMs = retryFromHeaders(err.headers);
+    if (err.error) {
+      message += ` ${JSON.stringify(err.error)}`;
+    }
+  }
+  if (!retryAfterMs) {
+    retryAfterMs = retryFromMessage(message);
+  }
+
+  const lower = message.toLowerCase();
+  const compact = lower.replace(/\s+/g, "");
+
+  if (status >= 400 && status < 500 && /stream_options|include_usage/.test(lower)) {
+    return { kind: "params", retryAfterMs: 0, detail: "no acepta stream_options" };
+  }
+  if (
+    status === 401 ||
+    /api key not valid|invalid api key|incorrect api key|invalid_api_key|api_key_invalid|invalid authentication|authentication failed|missing or invalid api key/.test(lower)
+  ) {
+    return { kind: "auth", retryAfterMs: 0, detail: "clave inválida o sin permiso" };
+  }
+  if (status === 403) {
+    if (/model|region|not available|access to/.test(lower)) {
+      return { kind: "unsupported", retryAfterMs: DAY_MS, detail: "sin acceso a este modelo" };
+    }
+    return { kind: "auth", retryAfterMs: 0, detail: "clave inválida o sin permiso" };
+  }
+  if (status === 402 || /insufficient (credits|balance|quota)|credit balance|payment required/.test(lower)) {
+    return { kind: "daily", retryAfterMs, detail: "sin créditos" };
+  }
+  if (status === 429 || /rate.?limit|too many requests|quota exceeded|resource_exhausted|resource exhausted/.test(lower)) {
+    if (/limit:\s*0\b|"limit":\s*0\b|limit 0\b/.test(lower)) {
+      return { kind: "unsupported", retryAfterMs: 7 * DAY_MS, detail: "no incluido en el plan gratis" };
+    }
+    if (/per.?day|daily|rpd|tpd|requestsperday|tokensperday|free-models-per-day/.test(compact)) {
+      return { kind: "daily", retryAfterMs, detail: "límite diario agotado" };
+    }
+    if (/per.?month|monthly/.test(compact)) {
+      return { kind: "daily", retryAfterMs: retryAfterMs || DAY_MS, detail: "límite mensual agotado" };
+    }
+    return { kind: "rate", retryAfterMs, detail: "límite por minuto" };
+  }
+  if (
+    status === 413 ||
+    /context.?length|context window|maximum context|too long|too large|reduce the length|max_tokens|prompt is too long|request too large|input is too long|exceeds the (maximum|limit)/.test(lower)
+  ) {
+    return { kind: "context", retryAfterMs: 0, detail: "conversación demasiado larga para este modelo" };
+  }
+  if (
+    status === 404 ||
+    /model.{0,40}(not found|does not exist|not exist|no longer|decommissioned|deprecated|unknown|invalid|not available|not supported)|no endpoints found|unknown model|invalid model|model_not_found|does not support (tools|tool|function)|tools? (use |calling )?(is |are )?not supported|function calling is not|tool_choice.{0,30}not supported/.test(lower)
+  ) {
+    return { kind: "unsupported", retryAfterMs: DAY_MS, detail: "modelo no disponible o sin soporte de herramientas" };
+  }
+  if (status >= 500 || /overloaded|unavailable|timeout|timed out|econnreset|socket hang up|bad gateway|dejó de responder/.test(lower)) {
+    // 503 es que está saturado (le llegan demasiadas peticiones), no que se haya roto: se dice así, que no alarme. Un pico
+    // de demanda dura minutos (Gemini 3.8 Flash tardaba 90 s en contestar «12:15» o devolvía 503): a los 30 s volvería
+    // a fallar, así que se deja más rato y mientras se usan otros
+    if (status === 503 || /overloaded|high demand/.test(lower)) {
+      return { kind: "server", retryAfterMs: retryAfterMs || 120000, detail: `saturado${status ? ` (${status})` : ""}` };
+    }
+    // 502 y 504 los da la pasarela del proveedor cuando lo de detrás no contesta
+    return { kind: "server", retryAfterMs: 30000, detail: status ? `error del servidor (${status})` : "el servidor no responde", stall: !status || status === 502 || status === 504 };
+  }
+  if (/respuesta vacía/.test(lower)) {
+    return { kind: "other", retryAfterMs: 0, detail: "respuesta vacía" };
+  }
+  // Sin repetir el código si el mensaje ya empieza por él («400 400 …»)
+  const shown = status && !original.startsWith(String(status)) ? `${status} ${original}` : original;
+  return { kind: "other", retryAfterMs: 0, detail: shown.trim().slice(0, 160) };
+}
+
+// Cada proveedor quiere el historial un poco distinto
+function prepareMessages(slot: Slot, messages: ChatCompletionMessageParam[]): ChatCompletionMessageParam[] {
+  const gemini = slot.provider.baseURL.includes("generativelanguage.googleapis.com");
+  return messages.map((message: any) => {
+    if (message.role !== "assistant" || !Array.isArray(message.tool_calls)) {
+      return message;
+    }
+    const toolCalls = message.tool_calls.map((call: any) => {
+      const { extra_content, ...rest } = call;
+      if (!gemini) {
+        return rest;
+      }
+      // Gemini 3 exige la "firma de pensamiento" en cada llamada; si vino de otro modelo, usamos la de comodín
+      const signature = extra_content?.google?.thought_signature || "skip_thought_signature_validator";
+      return { ...rest, extra_content: { google: { thought_signature: signature } } };
+    });
+    return { ...message, tool_calls: toolCalls };
+  });
+}
+
+interface RouterState {
+  cooldowns: Record<string, number>;
+  // Modelos que no existen o no sirven: hasta cuándo no se vuelven a probar
+  unsupported: Record<string, number>;
+  // Proveedores que rechazan stream_options
+  noStreamUsage: Record<string, boolean>;
+  // Para /limites: uso de hoy, lo último que dijo cada modelo de sus límites y las peticiones de la última hora
+  usage?: UsageDay;
+  limits?: Record<string, LimitSnapshot>;
+  recent?: Record<string, number[]>;
+  // Lo que suele tardar cada modelo en empezar a contestar
+  speed?: Record<string, { ms: number; at: number }>;
+  // Tokens que cuentan los proveedores por cada uno de los que calcula estimateTokens
+  tokenFactor?: number;
+}
+
+// Entre lo que cuentan los proveedores y lo que calculamos no hay más diferencia que esta (un dato raro no la dispara)
+function clampFactor(value: number): number {
+  return Math.min(2.5, Math.max(0.85, value));
+}
+
+function utcDay(time = Date.now()): string {
+  return new Date(time).toISOString().slice(0, 10);
+}
+
+const HOUR_MS = 60 * 60 * 1000;
+
+// Cuándo se recupera un límite: segundos que faltan ("33011.38"), duración ("2m59.56s") o fecha en segundos o milisegundos
+function parseReset(value: string | null, now: number): number | null {
+  if (!value) {
+    return null;
+  }
+  const text = value.trim();
+  if (/^\d+(\.\d+)?$/.test(text)) {
+    const n = Number(text);
+    if (n > 1e12) {
+      return n;
+    }
+    if (n > 1e9) {
+      return n * 1000;
+    }
+    return now + n * 1000;
+  }
+  const ms = parseDuration(text);
+  if (ms > 0) {
+    return now + ms;
+  }
+  const date = Date.parse(text);
+  return Number.isNaN(date) ? null : date;
+}
+
+// Las cabeceras x-ratelimit-* de una respuesta (o de un error): peticiones y tokens que quedan
+export function readLimitHeaders(headers: unknown, provider: ProviderConfig, now = Date.now()): LimitSnapshot | null {
+  if (!headers || typeof headers !== "object") {
+    return null;
+  }
+  const get = (name: string): string | null => {
+    const h = headers as { get?: (name: string) => string | null } & Record<string, unknown>;
+    if (typeof h.get === "function") {
+      return h.get(name);
+    }
+    const value = h[name] ?? h[name.toLowerCase()];
+    return typeof value === "string" ? value : null;
+  };
+  const read = (sets: [string, LimitWindow["period"]][]): LimitWindow | undefined => {
+    for (const [base, period] of sets) {
+      const remaining = get(`x-ratelimit-remaining${base}`);
+      if (remaining === null || remaining.trim() === "" || Number.isNaN(Number(remaining))) {
+        continue;
+      }
+      const limit = get(`x-ratelimit-limit${base}`);
+      return {
+        limit: limit !== null && !Number.isNaN(Number(limit)) ? Number(limit) : null,
+        remaining: Number(remaining),
+        resetAt: parseReset(get(`x-ratelimit-reset${base}`), now),
+        period,
+      };
+    }
+    return undefined;
+  };
+  const requests = read([
+    ["-requests-day", "day"],
+    ["-requests", provider.rateHeaders?.requests ?? null],
+    ["", null],
+  ]);
+  const tokens = read([
+    ["-tokens-minute", "minute"],
+    ["-tokens", provider.rateHeaders?.tokens ?? null],
+  ]);
+  if (!requests && !tokens) {
+    return null;
+  }
+  return { at: now, requests, tokens };
+}
+
+export class Router {
+  slots: Slot[] = [];
+  // Hasta cuándo está en pausa cada slot (se guarda en disco para recordar límites diarios)
+  cooldowns: Record<string, number> = {};
+  unsupported: Record<string, number> = {};
+  noStreamUsage: Record<string, boolean> = {};
+  // Para /limites (se guardan en state.json con las pausas)
+  usage: UsageDay = { day: utcDay(), providers: {} };
+  limits: Record<string, LimitSnapshot> = {};
+  recent: Record<string, number[]> = {};
+  // Lo que suele tardar cada modelo en empezar a contestar (media en la que pesa más lo último)
+  speed: Record<string, { ms: number; at: number }> = {};
+  // Modelos de cada proveedor que no han respondido hace poco (cuándo y cuál), para ver si lo que falla es el proveedor
+  private stalls: Record<string, { key: string; at: number }[]> = {};
+  // Cuántos tokens cuentan de verdad los proveedores por cada uno de los que calculamos: estimateTokens va por caracteres
+  // y el código, por ejemplo, gasta más tokens por carácter que el texto. Media en la que pesa más lo último; null hasta
+  // la primera respuesta que lo diga
+  tokenFactor: number | null = null;
+  // Slots descartados durante esta ejecución (clave mala…)
+  skipped = new Set<string>();
+  // Si no es null, se usa ese slot primero
+  pinned: string | null = null;
+  lastSlot: Slot | null = null;
+
+  constructor(
+    private config: Config,
+    providers: ProviderConfig[],
+    // Puntuaciones de LLM Stats para ordenar de mejor a peor (null = orden del catálogo)
+    private ranking: Ranking | null = null,
+  ) {
+    this.loadState();
+    this.reload(providers);
+  }
+
+  setRanking(ranking: Ranking | null, providers: ProviderConfig[]) {
+    this.ranking = ranking;
+    this.reload(providers);
+  }
+
+  // Rehace la lista de slots (al arrancar, al descubrir modelos o al añadir una clave)
+  reload(providers: ProviderConfig[]) {
+    const auth = readAuth();
+    const slots: Slot[] = [];
+    for (const provider of providers) {
+      if (provider.enabled === false || provider.models.length === 0) {
+        continue;
+      }
+      const credentials = resolveCredentials(provider, auth);
+      if (!credentials) {
+        continue;
+      }
+      const headers: Record<string, string | null> = { ...(provider.headers || {}) };
+      if (credentials.apiKey === "no-key") {
+        // Sin clave no se manda la cabecera: Kilo y OVHcloud rechazan un token inventado
+        headers.Authorization = null;
+      }
+      const client = new OpenAI({
+        apiKey: credentials.apiKey,
+        baseURL: credentials.baseURL,
+        defaultHeaders: headers,
+        maxRetries: 0, // reintentar lo hacemos nosotros cambiando de proveedor
+        timeout: 180000,
+      });
+      const anonymous = credentials.apiKey === "no-key" && !provider.local;
+      for (const model of provider.models) {
+        const rated = this.ranking ? this.ranking.score(model.id) : null;
+        slots.push({
+          key: `${provider.name}/${model.id}`,
+          provider,
+          model,
+          client,
+          score: rated ? rated.score : null,
+          ratedAs: rated ? rated.model.id : null,
+          anonymous,
+        });
+      }
+    }
+    this.slots = this.sortSlots(slots);
+  }
+
+  // Orden de la rotación: primero los patrones de "order" del config; después tus proveedores propios
+  // y luego todos los demás, de mejor a peor según LLM Stats (con "anonymousLast", los anónimos al final)
+  private sortSlots(slots: Slot[]): Slot[] {
+    const patterns = this.config.order || [];
+    const byScore = Boolean(this.ranking) && this.config.ranking?.enabled !== false;
+    const anonymousLast = this.config.ranking?.anonymousLast === true;
+    const patternRank = (slot: Slot) => {
+      const index = patterns.findIndex((pattern) => wildcardMatch(pattern, slot.key) || pattern === slot.provider.name);
+      if (index < 0) {
+        return patterns.length;
+      }
+      return index;
+    };
+    const group = (slot: Slot) => {
+      if (slot.provider.custom) {
+        return 0;
+      }
+      if (anonymousLast && slot.anonymous) {
+        return 2;
+      }
+      return 1;
+    };
+    // Los que no tienen nota van detrás de los que sí, en el orden del catálogo
+    const quality = (slot: Slot) => {
+      if (!byScore || slot.score === null) {
+        return -1;
+      }
+      return slot.score;
+    };
+    return slots
+      .map((slot, index) => ({ slot, index }))
+      .sort(
+        (a, b) =>
+          patternRank(a.slot) - patternRank(b.slot) ||
+          group(a.slot) - group(b.slot) ||
+          quality(b.slot) - quality(a.slot) ||
+          a.index - b.index,
+      )
+      .map((entry) => entry.slot);
+  }
+
+  private loadState() {
+    try {
+      const data = JSON.parse(fs.readFileSync(STATE_PATH, "utf8")) as Partial<RouterState>;
+      this.cooldowns = data.cooldowns || {};
+      this.unsupported = data.unsupported || {};
+      this.noStreamUsage = data.noStreamUsage || {};
+      if (data.usage?.day === utcDay() && data.usage.providers) {
+        this.usage = data.usage;
+      }
+      this.limits = data.limits || {};
+      this.recent = data.recent || {};
+      this.speed = data.speed || {};
+      this.tokenFactor = typeof data.tokenFactor === "number" && Number.isFinite(data.tokenFactor) ? clampFactor(data.tokenFactor) : null;
+    } catch {
+      this.cooldowns = {};
+      this.unsupported = {};
+      this.noStreamUsage = {};
+    }
+  }
+
+  private saveState() {
+    const now = Date.now();
+    // Quitamos las pausas que ya han pasado para que el fichero no crezca
+    for (const table of [this.cooldowns, this.unsupported]) {
+      for (const [key, until] of Object.entries(table)) {
+        if (until < now) {
+          delete table[key];
+        }
+      }
+    }
+    // Lo que dijeron los proveedores hace más de dos días ya no sirve
+    for (const [key, snapshot] of Object.entries(this.limits)) {
+      if (now - snapshot.at > 2 * DAY_MS) {
+        delete this.limits[key];
+      }
+    }
+    for (const [name, times] of Object.entries(this.recent)) {
+      this.recent[name] = times.filter((time) => now - time < HOUR_MS);
+      if (this.recent[name].length === 0) {
+        delete this.recent[name];
+      }
+    }
+    for (const [key, entry] of Object.entries(this.speed)) {
+      if (now - entry.at > SPEED_TTL_MS) {
+        delete this.speed[key];
+      }
+    }
+    try {
+      const state: RouterState = {
+        cooldowns: this.cooldowns,
+        unsupported: this.unsupported,
+        noStreamUsage: this.noStreamUsage,
+        usage: this.usage,
+        limits: this.limits,
+        recent: this.recent,
+        speed: this.speed,
+        tokenFactor: this.tokenFactor ?? undefined,
+      };
+      writeFileAtomic(STATE_PATH, JSON.stringify(state, null, 2));
+    } catch {
+      // no es grave si no se puede guardar
+    }
+  }
+
+  private setCooldown(slots: Slot[], until: number) {
+    for (const slot of slots) {
+      this.cooldowns[slot.key] = until;
+    }
+    this.saveState();
+  }
+
+  // Uso de hoy (si ha cambiado el día, empieza de cero)
+  today(): UsageDay {
+    if (this.usage.day !== utcDay()) {
+      this.usage = { day: utcDay(), providers: {} };
+    }
+    return this.usage;
+  }
+
+  private countRequest(slot: Slot) {
+    const day = this.today();
+    const entry = (day.providers[slot.provider.name] ??= { requests: 0, tokens: 0, models: {} });
+    entry.requests++;
+    entry.models[slot.model.id] = (entry.models[slot.model.id] || 0) + 1;
+    const now = Date.now();
+    const times = (this.recent[slot.provider.name] || []).filter((time) => now - time < HOUR_MS);
+    times.push(now);
+    // Basta con saber cuántas van en la última hora; más de 1.000 no hace falta guardarlas
+    this.recent[slot.provider.name] = times.slice(-1000);
+  }
+
+  private countTokens(slot: Slot, usage: Usage | null) {
+    const entry = this.today().providers[slot.provider.name];
+    if (entry && usage) {
+      entry.tokens += usage.prompt + usage.completion;
+    }
+  }
+
+  // Aprende cuánto se queda corto (o se pasa) estimateTokens con lo que cuenta el proveedor de una petición. Solo con las
+  // que tienen un tamaño suficiente (en las pequeñas pesa mucho lo que añade cada proveedor por su cuenta) y sin
+  // imágenes (cada proveedor las cuenta a su manera)
+  private learnTokens(estimated: number, usage: Usage | null, messages: ChatCompletionMessageParam[]) {
+    if (!usage || !(usage.prompt > 0) || estimated < 1500 || hasImages(messages)) {
+      return;
+    }
+    const ratio = clampFactor(usage.prompt / estimated);
+    this.tokenFactor = this.tokenFactor === null ? ratio : clampFactor(this.tokenFactor * 0.7 + ratio * 0.3);
+  }
+
+  // Apunta que este modelo no ha respondido y dice si ya le había pasado lo mismo hace poco a otro modelo de su proveedor
+  // (un solo modelo atascado no basta para pausar a todo el proveedor)
+  private providerStalled(slot: Slot, now: number): boolean {
+    const name = slot.provider.name;
+    const recent = (this.stalls[name] || []).filter((entry) => now - entry.at < STALL_WINDOW_MS);
+    if (recent.some((entry) => entry.key !== slot.key)) {
+      delete this.stalls[name];
+      return true;
+    }
+    this.stalls[name] = [...recent, { key: slot.key, at: now }];
+    return false;
+  }
+
+  // Por cuánto hay que multiplicar lo que calcula estimateTokens para tener lo que cuentan los proveedores
+  tokenScale(): number {
+    return this.tokenFactor ?? 1;
+  }
+
+  // El contexto de un modelo en las unidades de estimateTokens: así se compara con lo que se calcula de una petición
+  private effectiveContext(slot: Slot): number {
+    return Math.floor(slot.model.context / this.tokenScale());
+  }
+
+  // Cuánto ha tardado en empezar a contestar (o lo que se le esperó si no llegó a empezar)
+  private noteSpeed(slot: Slot, ms: number) {
+    const old = this.speed[slot.key];
+    const fresh = old && Date.now() - old.at < SPEED_TTL_MS;
+    this.speed[slot.key] = { ms: Math.round(fresh ? old.ms * 0.6 + ms * 0.4 : ms), at: Date.now() };
+  }
+
+  // Lo que se le espera a un modelo a que empiece a contestar: lo de tu config, o más si su proveedor suele tardar
+  private firstWait(slot: Slot): number {
+    return Math.max(this.config.firstResponseMs, slot.provider.firstResponseMs || 0);
+  }
+
+  // Lento: de media tarda en empezar más de la mitad de lo que se le espera
+  private slowStart(slot: Slot, now: number): number | null {
+    const entry = this.speed[slot.key];
+    if (!entry || slot.provider.local || now - entry.at > SPEED_TTL_MS || entry.ms <= this.firstWait(slot) / 2) {
+      return null;
+    }
+    return entry.ms;
+  }
+
+  private noteLimits(slot: Slot, headers: unknown) {
+    const snapshot = readLimitHeaders(headers, slot.provider);
+    if (snapshot) {
+      this.limits[slot.key] = snapshot;
+    }
+  }
+
+  slotFor(key: string): Slot | undefined {
+    return this.slots.find((slot) => slot.key === key);
+  }
+
+  // Estado legible de cada slot para /models
+  describe(): SlotRow[] {
+    const now = Date.now();
+    return this.slots.map((slot) => {
+      let status = "disponible";
+      let available = true;
+      const until = this.cooldowns[slot.key] || 0;
+      const unsupportedUntil = this.unsupported[slot.key] || 0;
+      if (this.skipped.has(slot.key)) {
+        status = "descartado (clave inválida)";
+        available = false;
+      } else if (unsupportedUntil > now) {
+        status = `no disponible hasta ${new Date(unsupportedUntil).toLocaleDateString()}`;
+        available = false;
+      } else if (until > now) {
+        status = `en pausa hasta ${new Date(until).toLocaleTimeString()}`;
+        available = false;
+      }
+      const slow = available ? this.slowStart(slot, now) : null;
+      if (slow) {
+        status += ` (lento: ~${duration(slow)} en empezar a contestar)`;
+      }
+      if (this.pinned === slot.key) {
+        status += " (fijado)";
+      }
+      return {
+        key: slot.key,
+        label: slot.provider.label || slot.provider.name,
+        status,
+        available,
+        context: slot.model.context,
+        vision: Boolean(slot.model.vision),
+        score: slot.score,
+      };
+    });
+  }
+
+  availableCount(): number {
+    return this.describe().filter((row) => row.available).length;
+  }
+
+  resetCooldowns() {
+    this.cooldowns = {};
+    this.unsupported = {};
+    this.skipped.clear();
+    this.saveState();
+  }
+
+  // Slots utilizables ahora mismo para una petición de este tamaño
+  private candidates(estTokens: number, excluded: Set<string>, needsVision: boolean, needsTools: boolean, prefer?: string): Slot[] {
+    const now = Date.now();
+    let list = this.slots.filter((slot) => {
+      if (this.skipped.has(slot.key) || excluded.has(slot.key)) {
+        return false;
+      }
+      if ((this.unsupported[slot.key] || 0) > now || (this.cooldowns[slot.key] || 0) > now) {
+        return false;
+      }
+      if (needsVision && !slot.model.vision) {
+        return false;
+      }
+      if (needsTools && slot.model.tools === false) {
+        return false;
+      }
+      return this.effectiveContext(slot) >= estTokens;
+    });
+    // Los que suelen tardar mucho en empezar a contestar, detrás (sin cambiar el orden de los demás)
+    const slow = list.filter((slot) => this.slowStart(slot, now) !== null);
+    list = [...list.filter((slot) => !slow.includes(slot)), ...slow];
+    // El fijado con /model va el primero; detrás, el preferido del agente
+    for (const pattern of [prefer, this.pinned]) {
+      if (!pattern) {
+        continue;
+      }
+      const matching = list.filter((slot) => slot.key === pattern || wildcardMatch(pattern, slot.key));
+      if (matching.length > 0) {
+        list = [...matching, ...list.filter((slot) => !matching.includes(slot))];
+      }
+    }
+    return list;
+  }
+
+  // Cuánto falta para que vuelva el primer slot que cabe en la petición
+  private soonestReturn(estTokens: number, excluded: Set<string>, needsVision: boolean, needsTools: boolean): number {
+    const now = Date.now();
+    let soonest = Infinity;
+    for (const slot of this.slots) {
+      if (this.skipped.has(slot.key) || excluded.has(slot.key) || this.effectiveContext(slot) < estTokens) {
+        continue;
+      }
+      if ((needsVision && !slot.model.vision) || (needsTools && slot.model.tools === false)) {
+        continue;
+      }
+      if ((this.unsupported[slot.key] || 0) > now) {
+        continue;
+      }
+      const wait = (this.cooldowns[slot.key] || 0) - now;
+      if (wait < soonest) {
+        soonest = wait;
+      }
+    }
+    return soonest;
+  }
+
+  // Los modelos que se pueden usar para una petición (sin los descartados, los que no tienen soporte ni, si hacen falta
+  // herramientas, los que no las admiten): su contexto (en las unidades de estimateTokens, para compararlo con lo que se
+  // calcula) y cuánto falta para que vuelvan si están en pausa (0 si ya están libres)
+  contextOptions(needsTools = false): { key: string; context: number; waitMs: number }[] {
+    const now = Date.now();
+    return this.slots
+      .filter((slot) => !this.skipped.has(slot.key) && (this.unsupported[slot.key] || 0) <= now && !(needsTools && slot.model.tools === false))
+      .map((slot) => ({ key: slot.key, context: this.effectiveContext(slot), waitMs: Math.max(0, (this.cooldowns[slot.key] || 0) - now) }));
+  }
+
+  // El contexto más grande entre los modelos libres ahora mismo (en las unidades de estimateTokens): los que están en
+  // pausa no cuentan
+  maxContext(needsTools = false): number {
+    let max = 0;
+    for (const option of this.contextOptions(needsTools)) {
+      if (option.waitMs === 0 && option.context > max) {
+        max = option.context;
+      }
+    }
+    return max;
+  }
+
+  async chat(request: ChatRequest, signal: AbortSignal | undefined, handlers: ChatHandlers = {}): Promise<ChatResult> {
+    if (this.slots.length === 0) {
+      throw new NoSlotError("No hay ningún proveedor configurado. Añade una clave con «vork auth login» o exporta, por ejemplo, GEMINI_API_KEY.");
+    }
+
+    let messages = request.messages;
+    const needsTools = Boolean(request.tools && request.tools.length > 0);
+    let needsVision = hasImages(messages);
+    if (needsVision && !this.slots.some((slot) => slot.model.vision && !this.skipped.has(slot.key))) {
+      messages = stripImages(messages);
+      needsVision = false;
+      handlers.onNotice?.("Ningún modelo configurado acepta imágenes; las envío sin ellas.");
+    }
+
+    let estTokens = estimateTokens(messages) + estimateTokens(request.tools || []);
+    // Slots que han fallado en esta petición por motivos no permanentes (contexto, error raro)
+    const excluded = new Set<string>();
+
+    while (true) {
+      const list = this.candidates(estTokens, excluded, needsVision, needsTools, request.prefer);
+
+      if (list.length === 0) {
+        const wait = this.soonestReturn(estTokens, excluded, needsVision, needsTools);
+        if (wait > 0 && wait <= this.config.maxWaitMs) {
+          handlers.onNotice?.(`Todos los proveedores están en pausa; espero ${Math.ceil(wait / 1000)} s…`);
+          await sleep(wait + 500, signal);
+          continue;
+        }
+        if (needsVision) {
+          // Los que ven imágenes están agotados: seguimos con el resto sin las imágenes
+          messages = stripImages(messages);
+          needsVision = false;
+          estTokens = estimateTokens(messages) + estimateTokens(request.tools || []);
+          handlers.onNotice?.("Los modelos que aceptan imágenes no están disponibles; sigo sin las imágenes.");
+          continue;
+        }
+        // Solo es que la conversación es demasiado larga si no cabe en ninguno; si cabe, es que todos han fallado (cada
+        // uno ha dicho por qué en su aviso)
+        const fits = this.slots.some((slot) => this.effectiveContext(slot) >= estTokens && !(needsTools && slot.model.tools === false));
+        let reason = "Todos los proveedores están agotados o en pausa.";
+        if (!fits) {
+          reason = `Ningún modelo admite una conversación de ~${Math.round(estTokens * this.tokenScale())} tokens. Usa /compact o /new.`;
+        } else if (wait === Infinity) {
+          reason = "Ningún modelo ha podido contestar: arriba está lo que ha fallado en cada uno (/models dice cómo está cada uno).";
+        } else if (wait > 0) {
+          reason += ` El primero vuelve a las ${new Date(Date.now() + wait).toLocaleTimeString()}.`;
+        }
+        throw new NoSlotError(reason);
+      }
+
+      const slot = list[0];
+      let streamedText = false;
+      handlers.onAttempt?.(slot.key);
+      this.countRequest(slot);
+
+      try {
+        const result = await this.streamOnce(slot, { ...request, messages }, signal, {
+          onText: (text) => {
+            streamedText = true;
+            handlers.onText?.(text);
+          },
+          onReasoning: handlers.onReasoning,
+        });
+        if (this.lastSlot && this.lastSlot.key !== slot.key) {
+          handlers.onNotice?.(`usando ${slot.key}`);
+        }
+        this.lastSlot = slot;
+        this.countTokens(slot, result.usage);
+        this.learnTokens(estTokens, result.usage, messages);
+        this.saveState();
+        return { ...result, slot };
+      } catch (err) {
+        this.noteLimits(slot, (err as { headers?: unknown })?.headers);
+        if (isAbort(err, signal)) {
+          this.saveState();
+          throw err;
+        }
+        const info = classify(err);
+        debugLog("error", slot.key, info.kind, String((err as Error)?.message || err));
+        const now = Date.now();
+        // Si el límite es de toda la cuenta, se pausan todos los modelos del proveedor
+        let scope = [slot];
+        if (slot.provider.limitScope === "provider") {
+          scope = this.slots.filter((other) => other.provider === slot.provider);
+        }
+        let action = "";
+
+        if (info.kind === "params") {
+          // Reintentamos el mismo modelo sin stream_options
+          this.noStreamUsage[slot.provider.name] = true;
+          this.saveState();
+          continue;
+        } else if (info.kind === "rate") {
+          let ms = info.retryAfterMs;
+          if (ms <= 0) {
+            ms = 60000;
+          }
+          this.setCooldown(scope, now + ms);
+          action = `pausa ${Math.ceil(ms / 1000)} s`;
+        } else if (info.kind === "daily") {
+          let until = nextUtcMidnight();
+          if (info.retryAfterMs > 0) {
+            until = now + info.retryAfterMs;
+          }
+          this.setCooldown(scope, until);
+          action = `pausa hasta ${new Date(until).toLocaleString()}`;
+        } else if (info.kind === "server") {
+          if (info.stall && this.providerStalled(slot, now)) {
+            // Tampoco contestaba otro modelo suyo hace poco: lo que falla es el proveedor. Se pausa entero, y así no se
+            // pierde el tiempo de espera con cada uno de sus modelos
+            this.setCooldown(
+              this.slots.filter((other) => other.provider === slot.provider),
+              now + Math.max(info.retryAfterMs, PROVIDER_PAUSE_MS),
+            );
+            action = `pausa ${duration(Math.max(info.retryAfterMs, PROVIDER_PAUSE_MS))} a todo ${slot.provider.label || slot.provider.name} (no contesta ninguno de sus modelos)`;
+          } else {
+            this.setCooldown([slot], now + info.retryAfterMs);
+            action = `pausa ${duration(info.retryAfterMs)}`;
+          }
+        } else if (info.kind === "auth") {
+          // Si la clave falla, fallan todos los modelos de ese proveedor
+          for (const other of this.slots) {
+            if (other.provider === slot.provider) {
+              this.skipped.add(other.key);
+            }
+          }
+          action = "proveedor descartado";
+        } else if (info.kind === "unsupported") {
+          this.unsupported[slot.key] = now + (info.retryAfterMs || DAY_MS);
+          this.saveState();
+          action = "modelo descartado";
+        } else {
+          excluded.add(slot.key);
+          action = "pruebo otro";
+        }
+
+        this.saveState();
+        let prefix = "";
+        if (streamedText) {
+          prefix = "\n";
+        }
+        handlers.onNotice?.(`${prefix}${slot.key}: ${info.detail} → ${action}`);
+      }
+    }
+  }
+
+  // Una sola llamada en streaming; junta el texto y las llamadas a herramientas
+  private async streamOnce(
+    slot: Slot,
+    request: ChatRequest,
+    signal: AbortSignal | undefined,
+    handlers: { onText: (text: string) => void; onReasoning?: (text: string) => void },
+  ): Promise<{ message: ChatResult["message"]; usage: Usage | null }> {
+    const params: Record<string, unknown> = {
+      model: slot.model.id,
+      messages: prepareMessages(slot, request.messages),
+      stream: true,
+    };
+    if (request.tools && request.tools.length > 0) {
+      params.tools = request.tools;
+      params.tool_choice = "auto";
+    }
+    if (request.temperature !== undefined) {
+      params.temperature = request.temperature;
+    }
+    if (slot.model.reasoningEffort) {
+      params.reasoning_effort = slot.model.reasoningEffort;
+    }
+    if (slot.provider.streamUsage !== false && !this.noStreamUsage[slot.provider.name]) {
+      params.stream_options = { include_usage: true };
+    }
+
+    // Hasta que empieza a contestar se le da poco tiempo (más si tiene mucho que leer): si no, se prueba otro. Cuando
+    // ya escribe, solo se corta si deja de mandar datos mucho rato. Los modelos de tu ordenador pueden tardar en
+    // empezar: con ellos se espera como siempre
+    const firstMs = slot.provider.local ? IDLE_MS : firstResponseMs(this.firstWait(slot), estimateTokens(params.messages));
+    const startedAt = Date.now();
+    let started = false;
+    const idle = new AbortController();
+    let combined: AbortSignal = idle.signal;
+    if (signal) {
+      combined = AbortSignal.any([signal, idle.signal]);
+    }
+    let idleTimer = setTimeout(() => idle.abort(), firstMs);
+    // Cada trozo que llega cuenta como que sigue vivo; empezar a contestar es mandar texto, razonamiento o herramientas
+    const bump = (answer: boolean) => {
+      if (!started && !answer) {
+        return;
+      }
+      if (!started) {
+        started = true;
+        this.noteSpeed(slot, Date.now() - startedAt);
+      }
+      clearTimeout(idleTimer);
+      idleTimer = setTimeout(() => idle.abort(), IDLE_MS);
+    };
+
+    let content = "";
+    let usage: Usage | null = null;
+    interface PartialCall {
+      id: string;
+      name: string;
+      args: string;
+      extra?: unknown;
+    }
+    const calls: PartialCall[] = [];
+    const byIndex = new Map<number, PartialCall>();
+    const byId = new Map<string, PartialCall>();
+
+    try {
+      // withResponse para leer las cabeceras: algunos proveedores dicen ahí cuántas peticiones te quedan
+      const { data, response } = await slot.client.chat.completions.create(params as any, { signal: combined }).withResponse();
+      this.noteLimits(slot, response.headers);
+      const stream = data as unknown as AsyncIterable<any>;
+
+      for await (const chunk of stream) {
+        bump(false);
+        // Algunos proveedores mandan el error dentro del stream
+        if (chunk && chunk.error) {
+          const apiError = new Error(chunk.error.message || JSON.stringify(chunk.error) || "error en el stream");
+          throw apiError;
+        }
+        const reported = chunk?.usage || chunk?.x_groq?.usage;
+        if (reported && typeof reported.prompt_tokens === "number") {
+          usage = { prompt: reported.prompt_tokens || 0, completion: reported.completion_tokens || 0 };
+        }
+        const choice = chunk?.choices?.[0];
+        if (!choice || !choice.delta) {
+          continue;
+        }
+        const delta = choice.delta;
+
+        const reasoning = delta.reasoning_content ?? delta.reasoning;
+        if (typeof reasoning === "string" && reasoning.length > 0) {
+          bump(true);
+          handlers.onReasoning?.(reasoning);
+        }
+
+        if (typeof delta.content === "string" && delta.content.length > 0) {
+          bump(true);
+          content += delta.content;
+          handlers.onText(delta.content);
+        }
+
+        if (Array.isArray(delta.tool_calls)) {
+          bump(true);
+          for (const tc of delta.tool_calls) {
+            let entry: PartialCall | undefined;
+            if (typeof tc.index === "number") {
+              entry = byIndex.get(tc.index);
+            } else if (tc.id) {
+              entry = byId.get(tc.id);
+            } else {
+              entry = calls[calls.length - 1];
+            }
+            if (!entry) {
+              entry = { id: "", name: "", args: "" };
+              calls.push(entry);
+              if (typeof tc.index === "number") {
+                byIndex.set(tc.index, entry);
+              }
+            }
+            if (tc.id && !entry.id) {
+              entry.id = tc.id;
+              byId.set(tc.id, entry);
+            }
+            if (tc.function?.name && !entry.name) {
+              entry.name = tc.function.name;
+            }
+            if (tc.function?.arguments) {
+              entry.args += tc.function.arguments;
+            }
+            if (tc.extra_content) {
+              entry.extra = tc.extra_content;
+            }
+          }
+        }
+      }
+    } catch (err) {
+      if (idle.signal.aborted && !signal?.aborted) {
+        if (!started) {
+          this.noteSpeed(slot, firstMs);
+          throw new Error(`no ha empezado a contestar en ${duration(firstMs)}`);
+        }
+        throw new Error("el proveedor dejó de responder (timeout)");
+      }
+      throw err;
+    } finally {
+      clearTimeout(idleTimer);
+    }
+
+    const toolCalls: ChatCompletionMessageToolCall[] = [];
+    for (const call of calls) {
+      if (!call.name) {
+        continue;
+      }
+      let args = call.args;
+      if (args.trim() === "") {
+        args = "{}";
+      }
+      // Usamos ids propios para que el historial funcione al cambiar de proveedor
+      const toolCall: any = { id: shortId(), type: "function", function: { name: call.name, arguments: args } };
+      if (call.extra) {
+        toolCall.extra_content = call.extra;
+      }
+      toolCalls.push(toolCall);
+    }
+
+    if (toolCalls.length === 0 && content.trim() === "") {
+      throw new Error("respuesta vacía del modelo");
+    }
+
+    if (toolCalls.length > 0) {
+      let finalContent: string | null = null;
+      if (content.length > 0) {
+        finalContent = content;
+      }
+      return { message: { role: "assistant", content: finalContent, tool_calls: toolCalls }, usage };
+    }
+    return { message: { role: "assistant", content }, usage };
+  }
+}

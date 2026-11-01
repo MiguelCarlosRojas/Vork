@@ -8,6 +8,7 @@ const path = require("path");
 const fs = require("fs");
 
 const CLI_DIR = path.join(__dirname, "..", "cli");
+const CLI_SRC_DIR = fs.existsSync(path.join(CLI_DIR, "src")) ? path.join(CLI_DIR, "src") : CLI_DIR;
 
 /**
  * Ensambla de forma dinamica y modular los componentes de Vork CLI
@@ -18,13 +19,13 @@ function assembleVorkScript() {
   const readPart = (filePath) => fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, "").trim();
 
   // 1. Core Config
-  const configFile = path.join(CLI_DIR, "core", "config.ps1");
+  const configFile = path.join(CLI_SRC_DIR, "core", "config.ps1");
   if (fs.existsSync(configFile)) {
     parts.push(readPart(configFile));
   }
 
   // 2. UI Modules (Toolkit, Banner, Cards, Help)
-  const uiDir = path.join(CLI_DIR, "ui");
+  const uiDir = path.join(CLI_SRC_DIR, "ui");
   if (fs.existsSync(uiDir)) {
     const uiFiles = ["toolkit.ps1", "banner.ps1", "cards.ps1", "help.ps1"];
     uiFiles.forEach(file => {
@@ -36,13 +37,13 @@ function assembleVorkScript() {
   }
 
   // 3. Core Updater
-  const updaterFile = path.join(CLI_DIR, "core", "updater.ps1");
+  const updaterFile = path.join(CLI_SRC_DIR, "core", "updater.ps1");
   if (fs.existsSync(updaterFile)) {
     parts.push(readPart(updaterFile));
   }
 
   // 4. Pillars
-  const pillarsDir = path.join(CLI_DIR, "pillars");
+  const pillarsDir = path.join(CLI_SRC_DIR, "pillars");
   if (fs.existsSync(pillarsDir)) {
     const pillarFiles = fs.readdirSync(pillarsDir).filter(f => f.endsWith(".ps1")).sort();
     pillarFiles.forEach(file => {
@@ -51,12 +52,12 @@ function assembleVorkScript() {
   }
 
   // 5. Core Router
-  const routerFile = path.join(CLI_DIR, "core", "router.ps1");
+  const routerFile = path.join(CLI_SRC_DIR, "core", "router.ps1");
   if (fs.existsSync(routerFile)) {
     parts.push(readPart(routerFile));
   }
 
-  // Si no hubiera modulos, usar vork.ps1 en src/cli
+  // Si no hubiera modulos, usar vork.ps1 en src/cli o dist
   if (parts.length === 0) {
     const fallbackPath = path.join(CLI_DIR, "vork.ps1");
     return fs.existsSync(fallbackPath) ? fs.readFileSync(fallbackPath, "utf8") : "";

@@ -1,0 +1,451 @@
+import os from "node:os";
+import path from "node:path";
+import { Box, Text } from "ink";
+import pc from "picocolors";
+import type { ToolEndEvent } from "../../agent/agent.js";
+import type { App } from "../../core/app.js";
+import { toolLabel } from "../labels.js";
+import { renderMarkdown } from "../markdown.js";
+import { VERSION } from "../../core/meta.js";
+import { showControl, stripControl, stripUnsafe } from "../sanitize.js";
+import { colorPreview } from "../ui.js";
+import { look } from "./theme.js";
+
+// Lo que sale en la conversación (tus mensajes, las respuestas, las herramientas, los avisos…) y cómo se pinta cada cosa
+
+export type Item =
+  | { id: number; kind: "banner" }
+  | { id: number; kind: "user"; text: string; images: number; queued?: boolean; color: string }
+  | { id: number; kind: "assistant"; text: string; color: string }
+  | { id: number; kind: "tool"; event: ToolEndEvent; ms: number }
+  // Pie de cada respuesta: qué modelo contestó, cuánto tardó y cuántos tokens gastó
+  | { id: number; kind: "answer"; slot: string; score: number | null; ms: number; tokens: number }
+  | { id: number; kind: "shell"; command: string; output: string; code: number | null }
+  // Recuadro de versión nueva de Vork CLI
+  | { id: number; kind: "update"; version: string; security: boolean }
+  // Lo que trae esta versión, la primera vez que la abres
+  | { id: number; kind: "news"; version: string; markdown: string; security: boolean }
+  // /update ha instalado una versión nueva: hay que reiniciar Vork CLI para usarla
+  | { id: number; kind: "updated"; version: string }
+  // El paso del tutorial en el que vas
+  | { id: number; kind: "tutorial"; step: number; total: number; title: string; text: string }
+  | { id: number; kind: "info" | "notice" | "error" | "block"; text: string };
+
+type WithoutId<T> = T extends unknown ? Omit<T, "id"> : never;
+
+export type NewItem = WithoutId<Item>;
+
+// El texto de un mensaje tal cual llegó (para encontrar entera una dirección que se ha partido al pintarla)
+export function itemText(item: Item): string {
+  switch (item.kind) {
+    case "user":
+    case "assistant":
+    case "info":
+    case "notice":
+    case "error":
+    case "block":
+    case "tutorial":
+      return item.text;
+    case "news":
+      return item.markdown;
+    case "tool":
+      return `${item.event.summary}\n${item.event.output || ""}\n${item.event.display || ""}`;
+    case "shell":
+      return `${item.command}\n${item.output}`;
+    default:
+      return "";
+  }
+}
+
+export function formatDuration(ms: number): string {
+  if (ms < 1000) {
+    return "<1 s";
+  }
+  const seconds = ms / 1000;
+  if (seconds < 10) {
+    return `${seconds.toFixed(1).replace(".", ",")} s`;
+  }
+  if (seconds < 60) {
+    return `${Math.round(seconds)} s`;
+  }
+  return `${Math.floor(seconds / 60)} min ${Math.round(seconds % 60)} s`;
+}
+
+export function shortTokens(tokens: number): string {
+  if (tokens >= 1000000) {
+    return `${(tokens / 1000000).toFixed(1)}M`;
+  }
+  if (tokens >= 1000) {
+    return `${Math.round(tokens / 1000)}k`;
+  }
+  return String(tokens);
+}
+
+function firstLine(text: string, max = 200): string {
+  return (text.split("\n")[0] || "").slice(0, max);
+}
+
+export function tildify(file: string): string {
+  const home = os.homedir();
+  if (file === home || file.startsWith(home + path.sep)) {
+    return `~${file.slice(home.length)}`;
+  }
+  return file;
+}
+
+// Líneas añadidas y quitadas de un diff
+function diffStats(display: string | undefined): { added: number; removed: number } | null {
+  if (!display) {
+    return null;
+  }
+  let added = 0;
+  let removed = 0;
+  for (const line of display.split("\n")) {
+    if (line.startsWith("+") && !line.startsWith("+++")) {
+      added++;
+    } else if (line.startsWith("-") && !line.startsWith("---")) {
+      removed++;
+    }
+  }
+  if (added === 0 && removed === 0) {
+    return null;
+  }
+  return { added, removed };
+}
+
+// Debajo de cada herramienta, un resumen corto de lo que pasó
+function toolDetail(event: ToolEndEvent): string[] {
+  // La salida viene de ficheros y comandos: sin secuencias de la terminal
+  const output = stripControl(event.output || "");
+  if (event.isError) {
+    return [pc.red(firstLine(output))];
+  }
+  if (event.display) {
+    const lines = colorPreview(event.display).split("\n");
+    if (lines.length > 14) {
+      return [...lines.slice(0, 14), pc.dim(`… ${lines.length - 14} líneas más del diff`)];
+    }
+    return lines;
+  }
+  const count = output.split("\n").filter((line) => line.trim() !== "").length;
+  switch (event.name) {
+    case "read_file":
+      if (output.startsWith("Imagen")) {
+        return [pc.dim(firstLine(output))];
+      }
+      return [pc.dim(`Leídas ${output.split("\n").length} líneas`)];
+    case "glob":
+    case "grep":
+      if (/^Sin (resultados|coincidencias)/.test(output)) {
+        return [pc.dim(firstLine(output))];
+      }
+      return [pc.dim(`${count} resultados`)];
+    case "list_dir":
+      return [pc.dim(`${count} entradas`)];
+    case "bash": {
+      const lines = output.split("\n");
+      const header = lines[0] || "";
+      const body = lines.slice(1).filter((line) => line.trim() !== "");
+      const tail = body.slice(-4).map((line) => pc.dim(line.slice(0, 200)));
+      const ok = header === "Código de salida: 0";
+      return [ok ? pc.dim(header) : pc.yellow(header), ...tail];
+    }
+    case "webfetch":
+      return [pc.dim(`${output.length} caracteres`)];
+    case "websearch":
+      return [pc.dim(`${(output.match(/^\d+\. /gm) || []).length} resultados`)];
+    case "todowrite":
+      return output
+        .split("\n")
+        .slice(1)
+        .map((line) => pc.dim(line));
+    case "task":
+      return output
+        .split("\n")
+        .filter((line) => line.trim() !== "")
+        .slice(0, 3)
+        .map((line) => pc.dim(line.slice(0, 200)));
+    case "skill":
+      return [pc.dim(event.summary.includes("·") ? "fichero leído" : "instrucciones cargadas")];
+    default:
+      return [pc.dim(firstLine(output))];
+  }
+}
+
+// El resumen sale de lo que pidió el modelo (comandos, rutas): los caracteres de control se ven, no actúan
+// Lo que está haciendo una herramienta, en una línea: un comando de varias líneas ocuparía media pantalla (y no dejaría
+// sitio al diálogo de permiso, donde va entero)
+export function oneLine(text: string): string {
+  const [first, ...rest] = text.split("\n");
+  return rest.length > 0 ? `${first} …` : text;
+}
+
+export function ToolHeader(props: { name: string; summary: string }) {
+  return (
+    <>
+      <Text bold>{showControl(toolLabel(props.name))}</Text>
+      {props.summary ? <Text> {showControl(props.summary)}</Text> : null}
+    </>
+  );
+}
+
+// Toda la salida de una herramienta, para verla desplegada (hasta 400 líneas)
+function fullOutput(event: ToolEndEvent): string[] {
+  const lines = event.display ? colorPreview(event.display).split("\n") : stripControl(event.output || "").replace(/\s+$/, "").split("\n");
+  if (lines.length === 1 && lines[0] === "") {
+    return [];
+  }
+  return lines.length > 400 ? [...lines.slice(0, 400), pc.dim(`… ${lines.length - 400} líneas más`)] : lines;
+}
+
+// En pantalla completa la salida de una herramienta sale resumida y con un clic se despliega entera («fold»); sin él,
+// siempre resumida
+function ToolView(props: { event: ToolEndEvent; ms: number; fold?: "folded" | "open" }) {
+  const { event } = props;
+  const summary = toolDetail(event);
+  const full = props.fold ? fullOutput(event) : [];
+  // Solo si desplegada enseña algo más que el resumen
+  const plain = (lines: string[]) => stripControl(lines.join("\n")).split("\n").map((line) => line.trim()).filter(Boolean).join("\n");
+  const foldable = full.length > 0 && plain(full) !== plain(summary);
+  const open = foldable && props.fold === "open";
+  const detail = open ? full : summary;
+  const stats = event.isError ? null : diffStats(event.display);
+  return (
+    <Box flexDirection="column" marginLeft={event.depth > 0 ? 4 : 0}>
+      <Text wrap="truncate-end">
+        <Text color={event.isError ? "red" : "green"}>● </Text>
+        <ToolHeader name={event.name} summary={event.summary} />
+        {stats ? (
+          <Text>
+            {"  "}
+            <Text color="green">+{stats.added}</Text> <Text color="red">−{stats.removed}</Text>
+          </Text>
+        ) : null}
+        {props.ms >= 1000 ? <Text dimColor> ({formatDuration(props.ms)})</Text> : null}
+        {foldable ? <Text dimColor>{open ? "  ▾ plegar" : "  ▸ ver"}</Text> : null}
+      </Text>
+      {detail.map((line, index) => (
+        <Text key={index}>
+          {"  "}
+          {index === 0 ? pc.dim("⎿ ") : "  "}
+          {line}
+        </Text>
+      ))}
+    </Box>
+  );
+}
+
+// Pantalla de bienvenida
+function Banner(props: { app: App }) {
+  const { app } = props;
+  const slots = app.router.slots;
+  const providers = new Set(slots.map((slot) => slot.provider.name)).size;
+  const first = slots[0];
+  const extras: string[] = [];
+  if (app.skills.length > 0) {
+    extras.push(`${app.skills.length} skill${app.skills.length > 1 ? "s" : ""}`);
+  }
+  const mcp = Object.keys(app.config.mcp || {}).length;
+  if (mcp > 0) {
+    extras.push(`${mcp} MCP`);
+  }
+  // Zen: sin bienvenida; compacta: en una línea
+  if (look.minimal) {
+    return null;
+  }
+  if (look.bare) {
+    return (
+      <Text wrap="truncate-end">
+        <Text bold color="magenta">
+          ◆ Vork CLI
+        </Text>
+        <Text dimColor>
+          {" "}
+          v{VERSION} · {slots.length} modelo{slots.length === 1 ? "" : "s"} de {providers} proveedor{providers === 1 ? "" : "es"} · /help ayuda
+        </Text>
+      </Text>
+    );
+  }
+  return (
+    <Box flexDirection="column" alignSelf="flex-start" borderStyle="round" borderColor="magenta" paddingX={2}>
+      <Text>
+        <Text bold color="magenta">
+          ◆ Vork CLI
+        </Text>
+        <Text dimColor> v{VERSION} · programa con IAs gratuitas</Text>
+      </Text>
+      <Text dimColor>{tildify(app.root)}</Text>
+      <Text> </Text>
+      <Text>
+        <Text color={slots.length > 0 ? "green" : "red"}>●</Text> {slots.length} modelo{slots.length === 1 ? "" : "s"} de {providers} proveedor
+        {providers === 1 ? "" : "es"}
+        {extras.length > 0 ? <Text dimColor> · {extras.join(" · ")}</Text> : null}
+      </Text>
+      {first ? (
+        <Text wrap="truncate-end">
+          <Text color="yellow">★</Text> Empieza con <Text bold>{first.key}</Text>
+          {first.score !== null ? <Text dimColor> (nota {first.score} en LLM Stats)</Text> : null}
+        </Text>
+      ) : null}
+      <Text> </Text>
+      <Text dimColor wrap="truncate-end">
+        Ctrl+P comandos · @ adjunta · ! terminal · Tab cambia de agente · /help ayuda
+      </Text>
+    </Box>
+  );
+}
+
+// El «●» delante de cada respuesta, en un hueco fijo de dos columnas: escrito como <Text>● </Text>, Ink no cuenta el
+// espacio al repartir el ancho y el texto de al lado se pasa una columna (y la terminal lo corta)
+export function Bullet(props: { color: string }) {
+  return (
+    <Box width={2} flexShrink={0}>
+      <Text color={props.color}>●</Text>
+    </Box>
+  );
+}
+
+export function ItemView(props: { item: Item; app: App; width: number; fold?: "folded" | "open" }) {
+  const { item, width } = props;
+  switch (item.kind) {
+    case "banner":
+      return <Banner app={props.app} />;
+    case "user": {
+      const lines = stripControl(item.text).split("\n");
+      let text = lines.join("\n");
+      if (lines.length > 20) {
+        text = `${lines.slice(0, 20).join("\n")}\n… (${lines.length - 20} líneas más)`;
+      }
+      return (
+        <Box marginTop={look.gap} borderStyle="bold" borderTop={false} borderRight={false} borderBottom={false} borderColor={item.color} paddingLeft={1}>
+          <Text>
+            {text}
+            {item.images > 0 ? pc.dim(` [${item.images} imagen${item.images > 1 ? "es" : ""}]`) : ""}
+            {item.queued ? pc.dim(" (en cola: se le entrega al acabar el paso)") : ""}
+          </Text>
+        </Box>
+      );
+    }
+    case "assistant":
+      return (
+        <Box marginTop={look.gap}>
+          <Bullet color={item.color} />
+          <Box flexDirection="column" flexGrow={1}>
+            <Text>{renderMarkdown(item.text, Math.max(20, width - 2))}</Text>
+          </Box>
+        </Box>
+      );
+    case "tool":
+      return <ToolView event={item.event} ms={item.ms} fold={props.fold} />;
+    case "answer":
+      return (
+        <Box marginLeft={2}>
+          <Text dimColor wrap="truncate-end">
+            ◆ {item.slot}
+            {item.score !== null ? ` · nota ${item.score}` : ""} · {formatDuration(item.ms)}
+            {item.tokens > 0 ? ` · ${shortTokens(item.tokens)} tokens` : ""}
+          </Text>
+        </Box>
+      );
+    case "shell": {
+      const lines = item.output ? stripControl(item.output).split("\n") : [];
+      const shown = lines.slice(-30);
+      return (
+        <Box flexDirection="column" marginTop={look.gap}>
+          <Text>
+            <Text color="yellow" bold>
+              ${" "}
+            </Text>
+            <Text bold>{showControl(item.command)}</Text>
+          </Text>
+          {lines.length > shown.length ? <Text dimColor>  … {lines.length - shown.length} líneas antes</Text> : null}
+          {shown.length > 0 ? <Text>{shown.map((line) => `  ${line}`).join("\n")}</Text> : null}
+          <Text dimColor>
+            {"  "}
+            {item.code === 0 ? "✓" : "✗"} código {item.code ?? "?"} · el agente verá la salida con tu siguiente mensaje
+          </Text>
+        </Box>
+      );
+    }
+    case "update": {
+      // Si trae arreglos de seguridad, en rojo y diciéndolo: que no se deje para luego
+      const tone = item.security ? "red" : "green";
+      return (
+        <Box marginY={look.gap} alignSelf="flex-start" flexDirection="column" borderStyle="round" borderColor={tone} paddingX={2}>
+          <Text bold color={tone}>
+            {item.security ? "↑ ¡Hay una versión nueva de Vork CLI con arreglos de seguridad!" : "↑ ¡Hay una versión nueva de Vork CLI!"}
+          </Text>
+          <Text>
+            {VERSION} → <Text bold color={tone}>{stripControl(item.version)}</Text> · escribe{" "}
+            <Text bold color="cyan">
+              /update
+            </Text>{" "}
+            para instalarla{item.security ? " cuanto antes" : ""}
+          </Text>
+        </Box>
+      );
+    }
+    case "updated":
+      // Hasta que no se reinicia sigue funcionando la versión de antes: que no pase desapercibido
+      return (
+        <Box marginY={look.gap} alignSelf="flex-start" flexDirection="column" borderStyle="round" borderColor="green" paddingX={2}>
+          <Text bold color="green">
+            ✓ Vork CLI {stripControl(item.version)} instalado
+          </Text>
+          <Text>
+            Para usar la versión nueva, reinicia Vork CLI: escribe{" "}
+            <Text bold color="cyan">
+              /exit
+            </Text>{" "}
+            y vuelve a abrirlo con{" "}
+            <Text bold color="cyan">
+              vork -c
+            </Text>{" "}
+            para seguir en esta conversación.
+          </Text>
+        </Box>
+      );
+    case "tutorial": {
+      const finished = item.step > item.total;
+      return (
+        <Box marginY={look.gap} flexDirection="column" borderStyle="round" borderColor="magenta" paddingX={2}>
+          <Text bold color="magenta">
+            {finished ? `✓ ${item.title}` : `Tutorial · paso ${item.step} de ${item.total}: ${item.title}`}
+          </Text>
+          <Text>{item.text}</Text>
+          {finished ? null : <Text dimColor>Cuando lo hagas, pasas solo al siguiente paso (/tutorial lo repite).</Text>}
+        </Box>
+      );
+    }
+    case "news": {
+      // En pantalla completa, un clic en «y más» las enseña enteras («fold»), y otro las pliega
+      const lines = renderMarkdown(item.markdown, Math.max(20, width - 6)).split("\n");
+      const open = props.fold === "open";
+      const shown = open ? lines : lines.slice(0, 18);
+      const tone = item.security ? "yellow" : "cyan";
+      return (
+        <Box marginY={look.gap} flexDirection="column" borderStyle="round" borderColor={tone} paddingX={2}>
+          <Text bold color={tone}>
+            ◆ Novedades de Vork CLI {item.version}
+            {item.security ? " · trae arreglos de seguridad" : ""}
+          </Text>
+          <Text>{shown.join("\n")}</Text>
+          {lines.length > 18 ? <Text dimColor>{open ? "▴ clic aquí para plegarlo" : "… y más en CHANGELOG.md · clic aquí para verlo"}</Text> : null}
+        </Box>
+      );
+    }
+    // Avisos y bloques pueden llevar mensajes de los proveedores o datos de fuera: solo se dejan los colores
+    case "info":
+      return <Text dimColor>{stripUnsafe(item.text)}</Text>;
+    case "notice":
+      return <Text color="yellow">⚠ {stripUnsafe(item.text)}</Text>;
+    case "error":
+      return <Text color="red">✖ {stripUnsafe(item.text)}</Text>;
+    case "block":
+      return (
+        <Box marginY={look.gap}>
+          <Text>{stripUnsafe(item.text)}</Text>
+        </Box>
+      );
+  }
+}

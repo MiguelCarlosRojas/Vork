@@ -712,6 +712,19 @@ function Invoke-VorkAIChat {
         default  { $Cyan }
     }
 
+        # ========================================================
+    # MOTOR AUTONOMO VORK AGENT (MULTI-PROVEEDOR, HERRAMIENTAS, UNDO)
+    # ========================================================
+    $vorkEnginePath = Get-VorkCliEnginePath
+    $nodeCmd = Get-Command "node" -ErrorAction SilentlyContinue
+    if ($vorkEnginePath -and $nodeCmd) {
+        Write-Host ""
+        & $nodeCmd.Source "$vorkEnginePath" "run" "$fullPrompt"
+        Write-Host ""
+        Save-VorkConversationRecord -Cmd $fullPrompt -Output "Tarea completada por Vork AI Agent."
+        return
+    }
+
     Write-Host ""
     Write-Host "  ${tierColor}$([char]0x25CF)${Reset} ${LeadLight}Pensando con ${White}${Bold}$activeModel${Reset} ${LeadLight}(${tierColor}${Bold}$tierLabel${Reset}${LeadLight})...${Reset}"
 
@@ -769,4 +782,44 @@ function Invoke-VorkAIChat {
     }
 
     Save-VorkConversationRecord -Cmd $fullPrompt -Output $answer
+}
+
+function Get-VorkCliEnginePath {
+    $candidates = @(
+        (Join-Path $PSScriptRoot "../../dist/index.js"),
+        (Join-Path $PSScriptRoot "../dist/index.js"),
+        (Join-Path $PSScriptRoot "dist/index.js"),
+        (Join-Path $HOME ".vork/engine/dist/index.js"),
+        "C:\Users\isaki\Videos\Visual Studio Code\CloudTranslator\src\cli\dist\index.js"
+    )
+    foreach ($cand in $candidates) {
+        if (Test-Path $cand) { return (Resolve-Path $cand).Path }
+    }
+    return $null
+}
+
+function Invoke-VorkAgentCommand {
+    param(
+        [string]$Command,
+        [string[]]$ArgsList
+    )
+
+    $enginePath = Get-VorkCliEnginePath
+    $nodeCmd = Get-Command "node" -ErrorAction SilentlyContinue
+    if ($enginePath -and $nodeCmd) {
+        $nodePath = $nodeCmd.Source
+        $fullArgs = @("$enginePath")
+        if ($Command -in @("models", "doctor", "bug", "limites", "limits", "skills", "sessions", "export")) {
+            $fullArgs += $Command
+            if ($ArgsList) { $fullArgs += $ArgsList }
+        } elseif ($Command -eq "providers") {
+            $fullArgs += @("auth", "list")
+        } else {
+            $joinedArgs = if ($ArgsList) { $ArgsList -join " " } else { "" }
+            $fullArgs += @("run", "/$Command $joinedArgs".Trim())
+        }
+        & $nodePath @fullArgs
+    } else {
+        Write-Host "  `$ESC[31;1m[Error]:`$ESC[0m Motor de Vork Agent no encontrado o Node.js no disponible."
+    }
 }
