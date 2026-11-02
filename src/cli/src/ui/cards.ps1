@@ -1622,9 +1622,21 @@ function Write-VorkSettingsFrame {
         $row++
     }
 
-    # Linea en blanco limpia antes del borde inferior
-    $blankPad = [string]::new(' ', $inner)
-    Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${Lead}$([char]0x2502)${Reset} $blankPad ${Lead}$([char]0x2502)${Reset}"
+    # Linea de descripcion corta dinamica segun el item seleccionado
+    $desc = ""
+    if ($FilteredKeys.Count -gt 0 -and $Selected -lt $FilteredKeys.Count) {
+        $desc = [string]$SettingsData[$FilteredKeys[$Selected]].Desc
+    }
+
+    if ($desc) {
+        $maxDescWidth = [Math]::Max(10, $inner - 2)
+        $cleanDesc = Limit-VorkAnsiText -Text $desc -MaxWidth $maxDescWidth -Ellipsis "..."
+        $descPad = [Math]::Max(0, $inner - (Get-VorkDisplayWidth $cleanDesc))
+        Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${Lead}$([char]0x2502)${Reset} ${LeadLight}$cleanDesc${Reset}$([string]::new(' ', $descPad)) ${Lead}$([char]0x2502)${Reset}"
+    } else {
+        $blankPad = [string]::new(' ', $inner)
+        Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${Lead}$([char]0x2502)${Reset} $blankPad ${Lead}$([char]0x2502)${Reset}"
+    }
     $row++
 
     Write-VorkPanelLine -Panel $Panel -Index $row -Text (Format-VorkBorderBottom -LeftText "flechas mover/cambiar  ·  enter siguiente  ·  esc limpiar/salir" -Width $Panel.Width)
@@ -1643,13 +1655,13 @@ function Show-InteractiveSettings {
     }
 
     $settingsData = [ordered]@{
-        "auto_update"     = @{ Label = "Auto Update";       Options = @("silent", "prompt", "off"); Value = if ($savedSettings["auto_update"]) { $savedSettings["auto_update"] } else { "silent" }; Desc = "Actualización automática: silent (segundo plano), prompt (preguntar), off (desactivar)." }
-        "notifications"   = @{ Label = "Notifications";     Options = @("on", "off"); Value = if ($savedSettings["notifications"]) { $savedSettings["notifications"] } else { "on" }; Desc = "Alertas toast de Windows al concluir tareas y pilares." }
-        "cloud_ai"        = @{ Label = "Cloud AI Engine";   Options = @("on", "off"); Value = if ($savedSettings["cloud_ai"]) { $savedSettings["cloud_ai"] } else { "on" }; Desc = "Inferencia remota con Vork 3, 3.1 y 3.2 Expert Edition." }
-        "media_download"  = @{ Label = "Media Download";    Options = @("on", "off"); Value = if ($savedSettings["media_download"]) { $savedSettings["media_download"] } else { "on" }; Desc = "Descargas y streams desde TikTok, YouTube, Reels y audio." }
-        "workspace_write" = @{ Label = "Workspace Write";   Options = @("on", "off"); Value = if ($savedSettings["workspace_write"]) { $savedSettings["workspace_write"] } else { "on" }; Desc = "Guardado físico de archivos convertidos en el directorio local." }
-        "agent_mode"      = @{ Label = "Agent Mode";        Options = @("programar", "planear", "profe"); Value = if ($savedSettings["agent_mode"]) { $savedSettings["agent_mode"] } elseif ($global:VorkAgentMode) { $global:VorkAgentMode } else { "programar" }; Desc = "Modo de permisos: programar (edición y ejecución), planear (solo lectura), profe (tutor sin cambios)." }
-        "color_scheme"    = @{ Label = "Color Scheme";      Options = @("dark", "light", "system"); Value = if ($savedSettings["color_scheme"]) { $savedSettings["color_scheme"] } else { "dark" }; Desc = "Paleta de color y contraste visual de la terminal." }
+        "auto_update"     = @{ Label = "Auto Update";       Options = @("silent", "prompt", "off"); Value = if ($savedSettings["auto_update"]) { $savedSettings["auto_update"] } else { "silent" }; Desc = "Actualizacion automatica en segundo plano o al iniciar la terminal" }
+        "notifications"   = @{ Label = "Notifications";     Options = @("on", "off"); Value = if ($savedSettings["notifications"]) { $savedSettings["notifications"] } else { "on" }; Desc = "Alertas y notificaciones toast de Windows al finalizar tareas" }
+        "cloud_ai"        = @{ Label = "Cloud AI Engine";   Options = @("on", "off"); Value = if ($savedSettings["cloud_ai"]) { $savedSettings["cloud_ai"] } else { "on" }; Desc = "Inferencia remota con modelos neuronales avanzados Vork Cloud IA" }
+        "media_download"  = @{ Label = "Media Download";    Options = @("on", "off"); Value = if ($savedSettings["media_download"]) { $savedSettings["media_download"] } else { "on" }; Desc = "Descarga y extraccion multimedia desde YouTube, TikTok, Reels y audio" }
+        "workspace_write" = @{ Label = "Workspace Write";   Options = @("on", "off"); Value = if ($savedSettings["workspace_write"]) { $savedSettings["workspace_write"] } else { "on" }; Desc = "Permiso para crear, editar y guardar archivos directamente en el proyecto" }
+        "agent_mode"      = @{ Label = "Agent Mode";        Options = @("programar", "planear", "profe"); Value = if ($savedSettings["agent_mode"]) { $savedSettings["agent_mode"] } elseif ($global:VorkAgentMode) { $global:VorkAgentMode } else { "programar" }; Desc = "Modo: programar (edicion completa), planear (solo lectura), profe (tutor)" }
+        "color_scheme"    = @{ Label = "Color Scheme";      Options = @("dark", "light", "system"); Value = if ($savedSettings["color_scheme"]) { $savedSettings["color_scheme"] } else { "dark" }; Desc = "Esquema de color y contraste visual de la interfaz de la consola" }
     }
 
     $keys = @($settingsData.Keys)
