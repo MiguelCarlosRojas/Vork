@@ -1,4 +1,4 @@
-﻿param(
+param(
     [Parameter(Position=0, ValueFromPipeline=$true)]
     [string]$Command = "",
 
@@ -587,22 +587,27 @@ $cTriL = [char]0x25C0 # ◀
 # ========================================================
 # MODELO ACTIVO & PERFIL DE ESFUERZO / TIER
 # ========================================================
-$modelFile = Join-Path $HOME ".vork\.model"
-$validModels = @("Vork 3", "Vork 3.1", "Vork 3.2")
+$pinnedFile = Join-Path $HOME ".vork\.pinned_model"
+if (Test-Path $pinnedFile) {
+    $savedPinned = try { (Get-Content -Path $pinnedFile -Raw).Trim() } catch { "" }
+    if ($savedPinned -and $savedPinned -ne "auto") {
+        $global:VorkPinnedModel = $savedPinned
+    }
+}
 
+$modelFile = Join-Path $HOME ".vork\.model"
 if (-not $global:VorkModel) {
-    if (Test-Path $modelFile) {
+    if ($global:VorkPinnedModel) {
+        $global:VorkModel = $global:VorkPinnedModel
+    } elseif (Test-Path $modelFile) {
         $savedModel = try { (Get-Content -Path $modelFile -Raw).Trim() } catch { "Vork 3.1" }
-        if ($savedModel -in $validModels) {
+        if ($savedModel -and $savedModel -ne "auto") {
             $global:VorkModel = $savedModel
         }
     }
     if (-not $global:VorkModel) {
-        $global:VorkModel = if ($env:VORK_MODEL -and $env:VORK_MODEL -in $validModels) { $env:VORK_MODEL } else { "Vork 3.1" }
+        $global:VorkModel = if ($env:VORK_MODEL) { $env:VORK_MODEL } else { "Vork 3.1" }
     }
-}
-if ($global:VorkModel -notin $validModels) {
-    $global:VorkModel = "Vork 3.1"
 }
 
 $tierFile = Join-Path $HOME ".vork\.tier"
@@ -619,8 +624,12 @@ if (-not $global:VorkTier) {
 }
 if ($global:VorkModel -eq "Vork 3.2") {
     $global:VorkTier = "expert"
-} elseif ($global:VorkTier -notin @("low", "medium", "high")) {
-    $global:VorkTier = "medium"
+} elseif ($global:VorkModel -in @("Vork 3", "Vork 3.1")) {
+    if ($global:VorkTier -notin @("low", "medium", "high")) {
+        $global:VorkTier = "medium"
+    }
+} elseif (-not $global:VorkTier) {
+    $global:VorkTier = "expert"
 }
 
 # ========================================================

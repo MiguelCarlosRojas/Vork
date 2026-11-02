@@ -1125,8 +1125,14 @@ function Start-InteractiveREPL {
         }
 
         if ($cmdCheck -in "mode", "modal", "model", "tier", "effort") {
+            $prevModel = $global:VorkModel
+            $prevTier = $global:VorkTier
             Invoke-CmdModel -ArgsList $replArgs
-            $outMsg = "Exited /model command"
+            $outMsg = if ($global:VorkModel -ne $prevModel -or $global:VorkTier -ne $prevTier) {
+                "Switched model to $global:VorkModel ($global:VorkTier)"
+            } else {
+                "Exited /model command"
+            }
             Write-Host "  ${LeadLight}$elbow  $outMsg${Reset}"
             Write-Host ""
             Save-VorkConversationRecord -Cmd $line -Output $outMsg

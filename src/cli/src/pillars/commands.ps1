@@ -815,38 +815,42 @@ function Get-VorkAvailableModels {
     $models = @(
         # 1. Modo Automático (Rotación Inteligente)
         @{
-            Id       = "auto"
-            Name     = "Auto (Rotación Inteligente Soberana)"
-            Provider = "Vork Orchestrator"
-            Badge    = "Recomendado"
-            Desc     = "Elige automáticamente la mejor IA gratis según la tarea y rota si hay pausas"
-            Ctx      = "Auto"
+            Id             = "auto"
+            Name           = "Auto (Rotación Inteligente Soberana)"
+            Provider       = "Vork Orchestrator"
+            Badge          = "Recomendado"
+            Desc           = "Elige automáticamente la mejor IA gratis según la tarea y rota si hay pausas"
+            Ctx            = "Auto"
+            SupportsEffort = $false
         },
 
         # 2. Perfiles Vork
         @{
-            Id       = "Vork 3.2"
-            Name     = "Vork 3.2 (Expert)"
-            Provider = "Vork Cloud IA"
-            Badge    = "Expert"
-            Desc     = "Motor de razonamiento avanzado y resolución autónoma de código"
-            Ctx      = "128k"
+            Id             = "Vork 3.2"
+            Name           = "Vork 3.2 (Expert)"
+            Provider       = "Vork Cloud IA"
+            Badge          = "Expert"
+            Desc           = "Nivel expert de alta capacidad (superior a Vork 3 y Vork 3.1)"
+            Ctx            = "128k"
+            SupportsEffort = $false
         },
         @{
-            Id       = "Vork 3.1"
-            Name     = "Vork 3.1"
-            Provider = "Vork Cloud IA"
-            Badge    = "Medium"
-            Desc     = "Equilibrio óptimo entre velocidad de inferencia y profundidad"
-            Ctx      = "64k"
+            Id             = "Vork 3.1"
+            Name           = "Vork 3.1"
+            Provider       = "Vork Cloud IA"
+            Badge          = "Avanzado"
+            Desc           = "Modelo intermedio avanzado (superior a Vork 3, configurable en low/medium/high)"
+            Ctx            = "64k"
+            SupportsEffort = $true
         },
         @{
-            Id       = "Vork 3"
-            Name     = "Vork 3"
-            Provider = "Vork Cloud IA"
-            Badge    = "Low"
-            Desc     = "Inferencia ultraligera para respuestas inmediatas"
-            Ctx      = "32k"
+            Id             = "Vork 3"
+            Name           = "Vork 3"
+            Provider       = "Vork Cloud IA"
+            Badge          = "Base"
+            Desc           = "Modelo base ligero y ágil (configurable en low/medium/high)"
+            Ctx            = "32k"
+            SupportsEffort = $true
         },
 
         # 3. Modelos Soberanos Gratuitos (Sin clave / Free)
@@ -942,7 +946,10 @@ function Get-VorkAvailableModels {
 }
 
 function Apply-VorkModelSelection {
-    param($Model)
+    param(
+        $Model,
+        [string]$Tier = ""
+    )
 
     $vorkDir = Join-Path $HOME ".vork"
     if (-not (Test-Path $vorkDir)) { New-Item -ItemType Directory -Path $vorkDir -Force | Out-Null }
@@ -954,6 +961,7 @@ function Apply-VorkModelSelection {
         try {
             Remove-Item -Path (Join-Path $vorkDir ".pinned_model") -Force -ErrorAction SilentlyContinue
             Set-Content -Path (Join-Path $vorkDir ".model") -Value "auto" -Force -Encoding UTF8
+            Set-Content -Path (Join-Path $vorkDir ".tier") -Value "expert" -Force -Encoding UTF8
         } catch { }
 
         Write-VorkSectionHeader -Title "Rotación Inteligente Activada" -Subtitle "motor de inferencia en modo automático" -RightText "vork · model"
@@ -966,9 +974,17 @@ function Apply-VorkModelSelection {
     } else {
         $global:VorkPinnedModel = $Model.Id
         $global:VorkModel = $Model.Name
-        if ($Model.Id -eq "Vork 3") { $global:VorkTier = "low" }
-        elseif ($Model.Id -eq "Vork 3.1") { $global:VorkTier = "medium" }
-        else { $global:VorkTier = "expert" }
+        if ($Model.Id -eq "Vork 3.2") {
+            $global:VorkTier = "expert"
+        } elseif ($Tier -and $Tier -in @("low", "medium", "high")) {
+            $global:VorkTier = $Tier.ToLower()
+        } elseif ($Model.Id -eq "Vork 3") {
+            $global:VorkTier = "low"
+        } elseif ($Model.Id -eq "Vork 3.1") {
+            $global:VorkTier = "medium"
+        } else {
+            $global:VorkTier = "expert"
+        }
 
         try {
             Set-Content -Path (Join-Path $vorkDir ".pinned_model") -Value $Model.Id -Force -Encoding UTF8
@@ -978,11 +994,27 @@ function Apply-VorkModelSelection {
 
         Write-VorkSectionHeader -Title "Modelo Fijado Exitosamente" -Subtitle "preferencia guardada para la sesión activa y futuras" -RightText "vork · model"
         Write-VorkInfoRow -Label "Modelo Activo" -Value $Model.Name -ValueColor $Green
+        $tierColor = switch ($global:VorkTier) {
+            "low"    { $Green }
+            "medium" { $Yellow }
+            "high"   { $Coral }
+            "expert" { $Purple }
+            default  { $Cyan }
+        }
+        Write-VorkInfoRow -Label "Nivel / Effort" -Value $global:VorkTier.ToUpper() -ValueColor $tierColor
+        $tierDesc = switch ($global:VorkTier) {
+            "low"    { "Inferencia ultrarrápida para consultas ligeras y tareas inmediatas." }
+            "medium" { "Balance óptimo entre velocidad y profundidad analítica." }
+            "high"   { "Máxima profundidad de razonamiento para resolución de código complejo." }
+            "expert" { "Nivel expert de alta capacidad (superior a Vork 3 y Vork 3.1)." }
+            default  { "Modo soberano estándar." }
+        }
+        Write-VorkInfoRow -Label "Rendimiento"   -Value $tierDesc -ValueColor $LeadLight
         Write-VorkInfoRow -Label "Proveedor"     -Value $Model.Provider -ValueColor $Cyan
         Write-VorkInfoRow -Label "Identificador"  -Value $Model.Id -ValueColor $White
         Write-VorkInfoRow -Label "Persistencia"   -Value "Fijado en ~/.vork/.pinned_model" -ValueColor $Yellow
         Write-VorkSectionRule
-        Write-VorkStatusLine -Kind ok -Text "Todas las próximas consultas y tareas del agente usarán exclusivamente '$($Model.Name)'."
+        Write-VorkStatusLine -Kind ok -Text "Todas las próximas consultas y tareas del agente usarán exclusivamente '$($Model.Name)' en nivel '$($global:VorkTier)'."
         Write-VorkInfoRow -Label "Tip" -Value "Para volver a la rotación automática en cualquier momento, escribe /model auto" -ValueColor $LeadLight
         Write-Host ""
     }
@@ -1004,53 +1036,59 @@ function Invoke-CmdModel {
 
     if ($userArg) {
         $matched = $null
-        if ($userArg -in @("auto", "rotacion", "inteligente")) {
+        $tierArg = ""
+        $tokens = $userArg -split '\s+'
+        $mainArg = $tokens[0]
+        if ($tokens.Count -gt 1) {
+            if ($tokens[1] -in @("low", "medium", "high", "expert")) {
+                $tierArg = $tokens[1]
+            }
+        }
+
+        if ($mainArg -in @("auto", "rotacion", "inteligente")) {
             $matched = $allModels | Where-Object { $_.Id -eq "auto" } | Select-Object -First 1
+        } elseif ($mainArg -in @("3", "vork 3", "vork3")) {
+            $matched = $allModels | Where-Object { $_.Id -eq "Vork 3" } | Select-Object -First 1
+        } elseif ($mainArg -in @("3.1", "vork 3.1", "vork3.1")) {
+            $matched = $allModels | Where-Object { $_.Id -eq "Vork 3.1" } | Select-Object -First 1
+        } elseif ($mainArg -in @("3.2", "vork 3.2", "vork3.2", "expert")) {
+            $matched = $allModels | Where-Object { $_.Id -eq "Vork 3.2" } | Select-Object -First 1
         } else {
             $matched = $allModels | Where-Object {
-                $_.Id.ToLower() -eq $userArg -or
-                $_.Name.ToLower() -eq $userArg -or
-                $_.Id.ToLower().Contains($userArg) -or
-                $_.Name.ToLower().Contains($userArg)
+                $_.Id.ToLower() -eq $mainArg -or
+                $_.Name.ToLower() -eq $mainArg
             } | Select-Object -First 1
+
+            if (-not $matched) {
+                $matched = $allModels | Where-Object {
+                    $_.Id.ToLower().Contains($mainArg) -or
+                    $_.Name.ToLower().Contains($mainArg)
+                } | Select-Object -First 1
+            }
         }
 
         if ($matched) {
-            Apply-VorkModelSelection -Model $matched
+            Apply-VorkModelSelection -Model $matched -Tier $tierArg
             return
         }
     }
 
-    $activeId = if ($global:VorkPinnedModel) { $global:VorkPinnedModel } elseif ($global:VorkModel) { $global:VorkModel } else { "auto" }
-
-    $options = @()
-    $defIdx = 0
-    $idx = 0
-    foreach ($m in $allModels) {
-        $isCurrent = ($m.Id -eq $activeId -or $m.Name -eq $activeId)
-        if ($isCurrent) { $defIdx = $idx }
-        $currTag = if ($isCurrent) { " [ACTIVO]" } else { "" }
-        $options += @{
-            Label       = "$($m.Name)$currTag"
-            Value       = $m.Id
-            Badge       = $m.Badge
-            Description = "$($m.Provider) · $($m.Desc)"
+    # Lanzar el Switcher interactivo de Vork con Slider de Potencia (low / medium / high)
+    $res = Show-InteractiveModelSwitcher
+    if ($res -and $res.Action -eq "selected" -and $res.Model) {
+        $chosenModelObj = $res.Model
+        if ($chosenModelObj -is [string]) {
+            $chosenModelObj = $allModels | Where-Object { $_.Id -eq $res.Model -or $_.Name -eq $res.Model } | Select-Object -First 1
         }
-        $idx++
-    }
-
-    $chosenId = Select-InteractiveOption -PromptTitle "Selector de Modelo IA (Model Switcher)" -Subtitle "Elige un modelo específico o activa la rotación automática" -Options $options -DefaultIndex $defIdx -Searchable
-
-    if (-not $chosenId) {
-        $elbowChar = [char]0x23BF
-        Write-Host "  ${LeadLight}$elbowChar  Exited /model command${Reset}"
-        Write-Host ""
-        return
-    }
-
-    $chosenObj = $allModels | Where-Object { $_.Id -eq $chosenId } | Select-Object -First 1
-    if ($chosenObj) {
-        Apply-VorkModelSelection -Model $chosenObj
+        if (-not $chosenModelObj) {
+            $chosenModelObj = @{
+                Id       = $res.Model
+                Name     = $res.Model
+                Provider = "Vork Inferencia"
+                Desc     = "Modelo seleccionado por el usuario"
+            }
+        }
+        Apply-VorkModelSelection -Model $chosenModelObj -Tier $res.Tier
     }
 }
 
@@ -1540,6 +1578,8 @@ function Invoke-VorkAIChat {
             $runArgs += @("-m", $global:VorkPinnedModel)
         }
         $runArgs += $fullPrompt
+        $env:VORK_MODEL = $activeModel
+        $env:VORK_TIER = $activeTier
         & $nodeCmd.Source @runArgs
         Write-Host ""
         Save-VorkConversationRecord -Cmd $fullPrompt -Output "Tarea completada por Vork AI Agent."
