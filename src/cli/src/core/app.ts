@@ -24,7 +24,6 @@ import { type Session, deleteSession, listSessions, newSession, saveExport, save
 import { Snapshots } from "../agent/snapshot.js";
 import { commandShell, findProgram, killTree, spawnGroup } from "../tools/shell.js";
 import { type UpdateStep, compareVersions, updateVork } from "../utils/update.js";
-import { type TutorialCard, type TutorialEvent, isTutorialDir, tutorialCard, tutorialDone } from "../utils/tutorial.js";
 import { INTERFACES, interfaceFor } from "./interfaces.js";
 import { formatTodos, truncate } from "../tools/tools.js";
 import { showLine } from "../ui/sanitize.js";
@@ -52,8 +51,6 @@ export interface UiAdapter {
   progress?(progress: Progress | null): void;
   // Se ha instalado una versión nueva de Vork CLI: hay que reiniciarlo para usarla
   updated?(version: string): void;
-  // El paso del tutorial en el que vas
-  tutorial?(card: TutorialCard): void;
   // /interfaz: la interfaz completa se pinta con la que has elegido
   setInterface?(id: string): void;
 }
@@ -94,7 +91,6 @@ export const BUILTIN_COMMANDS: { name: string; args?: string; description: strin
   { name: "copiar", args: "[código]", description: "copia la última respuesta (o su último bloque de código) al portapapeles" },
   { name: "doctor", description: "comprueba que todo funciona (programas, claves, proveedores) y dice cómo arreglar lo que falte" },
   { name: "bug", args: "[qué ha pasado]", description: "avisa de un fallo: abre un issue en GitHub con el informe de /doctor ya puesto (sin tus claves)" },
-  { name: "tutorial", description: "aprende lo básico en 5 pasos, en una carpeta de prácticas" },
   { name: "interfaz", description: "elige cómo se ve Vork CLI: pantalla completa, compacta, zen o criaturas" },
   { name: "undo", description: "deshacer el último mensaje (ficheros y conversación)" },
   { name: "redo", description: "rehacer lo deshecho" },
@@ -201,10 +197,8 @@ export class App {
   updateInstalled = false;
   // La versión que se ha instalado con /update (al salir se recuerda abrir Vork CLI otra vez para usarla)
   installedVersion: string | null = null;
-  // Con qué abrir Vork CLI otra vez al cerrar la interfaz: la versión nueva tras /update o el tutorial
+  // Con qué abrir Vork CLI otra vez al cerrar la interfaz: la versión nueva tras /update
   relaunch: string[] | null = null;
-  // El paso del tutorial en el que vas (null si no lo estás haciendo)
-  tutorialStep: number | null = null;
   // Proveedores a los que ya se les ha sugerido otra cuenta porque se les acaban las peticiones (una vez cada uno)
   private quotaTips = new Set<string>();
   // La interfaz pone aquí cómo preguntar los permisos
@@ -463,23 +457,6 @@ export class App {
   // Para abrir la versión nueva en esta misma conversación (si todavía no hay nada, una nueva)
   restartArgs(): string[] {
     return this.agent.session.messages.length > 0 ? ["--session", this.agent.session.id] : [];
-  }
-
-  startTutorial(): TutorialCard {
-    this.tutorialStep = 0;
-    return tutorialCard(0);
-  }
-
-  // Si lo que acaba de pasar completa el paso del tutorial, el siguiente (o el final)
-  tutorialEvent(event: TutorialEvent): TutorialCard | null {
-    if (this.tutorialStep === null || !tutorialDone(this.tutorialStep, event)) {
-      return null;
-    }
-    const card = tutorialCard(++this.tutorialStep);
-    if (card.step > card.total) {
-      this.tutorialStep = null;
-    }
-    return card;
   }
 
   // Cuando quedan pocas peticiones gratis hoy en el modelo en uso: lo dice una vez y sugiere las cuentas gratis que más
@@ -1172,26 +1149,6 @@ export class App {
         setGlobalConfigValue("interfaz", choice);
         this.config.interfaz = choice;
         ui.setInterface(choice);
-        return {};
-      }
-      case "/tutorial": {
-        // Ya en la carpeta de prácticas: se empieza (o se repite el paso en el que vas)
-        if (ui.tutorial && (this.tutorialStep !== null || isTutorialDir(this.root))) {
-          ui.tutorial(this.tutorialStep !== null ? tutorialCard(this.tutorialStep) : this.startTutorial());
-          return {};
-        }
-        if (!ui.tutorial || !ui.select) {
-          ui.info("El tutorial necesita la interfaz completa: ábrelo en tu terminal con «vork tutorial».");
-          return {};
-        }
-        const choice = await ui.select("El tutorial se hace en una carpeta de prácticas (~/vork-tutorial), para no tocar tus ficheros. ¿Lo abro?", [
-          { label: "Abrir el tutorial", description: "cuando acabes, vork -c te devuelve a esta conversación", value: "si" },
-          { label: "Ahora no", value: "no" },
-        ]);
-        if (choice === "si") {
-          this.relaunch = ["tutorial"];
-          return { restart: true };
-        }
         return {};
       }
       case "/limites":

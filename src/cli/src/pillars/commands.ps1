@@ -1315,18 +1315,6 @@ function Invoke-CmdResetLimits {
     Write-Host ""
 }
 
-function Invoke-CmdTutorial {
-    Write-VorkSectionHeader -Title "Tutorial Interactivo Vork" -Subtitle "guía práctica en 5 pasos" -RightText "vork · tutorial"
-    Write-VorkInfoRow -Label "Paso 1" -Value "Escribe una pregunta en lenguaje natural o usa /comando" -ValueColor $White
-    Write-VorkInfoRow -Label "Paso 2" -Value "Usa /connect para conectar proveedores gratuitos" -ValueColor $White
-    Write-VorkInfoRow -Label "Paso 3" -Value "Usa /plan para estructurar tareas complejas" -ValueColor $White
-    Write-VorkInfoRow -Label "Paso 4" -Value "Usa /status para supervisar los 9 pilares" -ValueColor $White
-    Write-VorkInfoRow -Label "Paso 5" -Value "Usa /undo para deshacer cambios si lo necesitas" -ValueColor $White
-    Write-VorkSectionRule
-    Write-VorkStatusLine -Kind ok -Text "¡Listo para programar con Vork CLI!"
-    Write-Host ""
-}
-
 function Invoke-CmdInterfaz {
     param([string[]]$ArgsList)
     $modes = @(
@@ -1624,7 +1612,7 @@ function Invoke-VorkAgentCommand {
         $fullArgs = @("$enginePath")
         $cmdNorm = if ($Command) { $Command.TrimStart("/").ToLower() } else { "" }
 
-        if ($cmdNorm -in @("models", "doctor", "bug", "limites", "limits", "skills", "sessions", "export", "run", "auth", "tutorial", "trust")) {
+        if ($cmdNorm -in @("models", "doctor", "bug", "limites", "limits", "skills", "sessions", "export", "run", "auth", "trust")) {
             $fullArgs += $cmdNorm
             if ($ArgsList) { $fullArgs += $ArgsList }
         } elseif ($cmdNorm -in @("version", "--version", "-v")) {

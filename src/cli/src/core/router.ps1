@@ -89,7 +89,6 @@ function Dispatch-CLICommand {
         "init"         { Invoke-CmdInit }
         "review"       { Invoke-CmdReview }
         "reset-limits" { Invoke-CmdResetLimits }
-        "tutorial"     { Invoke-CmdTutorial }
         "interfaz"     { Invoke-CmdInterfaz -ArgsList $ArgsList }
         "compact"      { Invoke-CmdCompact }
         "new"          { Invoke-CmdReset }
@@ -642,7 +641,6 @@ function Read-InteractiveVorkLine {
         @{ Cmd = "/sessions";    Desc = "Historial de sesiones guardadas en esta carpeta" },
         @{ Cmd = "/export";      Desc = "Exportar la conversacion activa a Markdown" },
         @{ Cmd = "/tui";         Desc = "Abrir la interfaz visual interactiva Ink React" },
-        @{ Cmd = "/tutorial";    Desc = "Aprende lo basico en 5 pasos en carpeta de practicas" },
         @{ Cmd = "/bug";         Desc = "Avisar de un fallo con informe de /doctor a GitHub" },
         @{ Cmd = "/planear";     Desc = "Agente de solo lectura: investiga y propone un plan" },
         @{ Cmd = "/programar";   Desc = "Agente activo que puede modificar archivos y programar" },

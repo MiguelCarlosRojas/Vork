@@ -175,7 +175,7 @@ function Show-SlashCommands {
             )
         },
         @{
-            Title = "[CATEGORIA 4] Ecosistema Soberano, Modelos & Herramientas (19)"
+            Title = "[CATEGORIA 4] Ecosistema Soberano, Modelos & Herramientas (18)"
             Items = @(
                 @{ Cmd = "/run";          Desc = "Modo agente autonomo: resuelve tareas leyendo y editando codigo" },
                 @{ Cmd = "/models";       Desc = "Lista modelos disponibles en tiempo real (+20 proveedores)" },
@@ -190,7 +190,6 @@ function Show-SlashCommands {
                 @{ Cmd = "/sessions";     Desc = "Historial de sesiones guardadas en esta carpeta" },
                 @{ Cmd = "/export";       Desc = "Exportar la conversacion activa a Markdown" },
                 @{ Cmd = "/tui";          Desc = "Abrir la interfaz visual interactiva Ink React" },
-                @{ Cmd = "/tutorial";     Desc = "Aprende lo basico en 5 pasos en carpeta de practicas" },
                 @{ Cmd = "/planear";      Desc = "Agente de solo lectura: investiga y propone un plan" },
                 @{ Cmd = "/programar";    Desc = "Agente activo que puede modificar archivos y programar" },
                 @{ Cmd = "/profe";        Desc = "Agente tutor que ensena paso a paso sin cambiar archivos" },
@@ -275,7 +274,6 @@ function Show-InteractiveHelpModal {
         @{ Cmd = "/sessions";    Desc = "Historial de sesiones guardadas en esta carpeta" },
         @{ Cmd = "/export";      Desc = "Exportar la conversacion activa a Markdown" },
         @{ Cmd = "/tui";         Desc = "Abrir la interfaz visual interactiva Ink React" },
-        @{ Cmd = "/tutorial";    Desc = "Aprende lo basico en 5 pasos en carpeta de practicas" },
         @{ Cmd = "/bug";         Desc = "Avisar de un fallo con informe de /doctor a GitHub" },
         @{ Cmd = "/planear";     Desc = "Agente de solo lectura: investiga y propone un plan" },
         @{ Cmd = "/programar";   Desc = "Agente activo que puede modificar archivos y programar" },
@@ -585,3 +583,5 @@ function Show-InteractiveHelpModal {
         try { [Console]::CursorVisible = $savedCursorVisible } catch { }
     }
 }
+
+

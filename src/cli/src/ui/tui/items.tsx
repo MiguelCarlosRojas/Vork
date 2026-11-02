@@ -27,8 +27,6 @@ export type Item =
   | { id: number; kind: "news"; version: string; markdown: string; security: boolean }
   // /update ha instalado una versión nueva: hay que reiniciar Vork CLI para usarla
   | { id: number; kind: "updated"; version: string }
-  // El paso del tutorial en el que vas
-  | { id: number; kind: "tutorial"; step: number; total: number; title: string; text: string }
   | { id: number; kind: "info" | "notice" | "error" | "block"; text: string };
 
 type WithoutId<T> = T extends unknown ? Omit<T, "id"> : never;
@@ -44,7 +42,6 @@ export function itemText(item: Item): string {
     case "notice":
     case "error":
     case "block":
-    case "tutorial":
       return item.text;
     case "news":
       return item.markdown;
@@ -405,18 +402,6 @@ export function ItemView(props: { item: Item; app: App; width: number; fold?: "f
           </Text>
         </Box>
       );
-    case "tutorial": {
-      const finished = item.step > item.total;
-      return (
-        <Box marginY={look.gap} flexDirection="column" borderStyle="round" borderColor="magenta" paddingX={2}>
-          <Text bold color="magenta">
-            {finished ? `✓ ${item.title}` : `Tutorial · paso ${item.step} de ${item.total}: ${item.title}`}
-          </Text>
-          <Text>{item.text}</Text>
-          {finished ? null : <Text dimColor>Cuando lo hagas, pasas solo al siguiente paso (/tutorial lo repite).</Text>}
-        </Box>
-      );
-    }
     case "news": {
       // En pantalla completa, un clic en «y más» las enseña enteras («fold»), y otro las pliega
       const lines = renderMarkdown(item.markdown, Math.max(20, width - 6)).split("\n");

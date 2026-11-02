@@ -15,7 +15,6 @@ import { NoSlotError } from "../../providers/router.js";
 import { showControl, stripControl } from "../sanitize.js";
 import { type Session, appendHistory, loadHistory, sessionMarkdownPath } from "../../agent/session.js";
 import { type Todo, suggestFiles } from "../../tools/tools.js";
-import { type TutorialCard, tutorialCard } from "../../utils/tutorial.js";
 import { colorPreview } from "../ui.js";
 import { CHECK_MS, checkForUpdate, stepProgress } from "../../utils/update.js";
 import { INTERFACES, interfaceFor } from "../../core/interfaces.js";
@@ -459,7 +458,6 @@ function Main(props: { app: App; initial: string }) {
       setInput: (text) => setEditor({ value: text, cursor: text.length }),
       progress: (state) => setProgress((previous) => (state ? { ...state, since: previous?.since ?? Date.now(), stepSince: Date.now() } : null)),
       updated: (version) => push({ kind: "updated", version }),
-      tutorial: (card) => push({ kind: "tutorial", ...card }),
       setInterface: (id: string) => {
         const next = INTERFACES.find((item) => item.id === id) || INTERFACES[0];
         setLook(next);
@@ -504,13 +502,6 @@ function Main(props: { app: App; initial: string }) {
 
   const sessionTokens = () => app.agent.session.usage.prompt + app.agent.session.usage.completion;
 
-  // Si lo que acaba de pasar completa el paso del tutorial, el siguiente
-  const tutorialStep = (card: TutorialCard | null) => {
-    if (card) {
-      push({ kind: "tutorial", ...card });
-    }
-  };
-
   const runAgent = async (input: UserInput, options: RunOptions) => {
     const ranAs = options.agent || app.agent.agent.name;
     setBusy(true);
@@ -550,7 +541,6 @@ function Main(props: { app: App; initial: string }) {
       if (tip) {
         push({ kind: "notice", text: tip });
       }
-      tutorialStep(app.tutorialEvent({ kind: "message", text: input.text, agent: ranAs }));
       live.current.running.clear();
       live.current.model = "";
       controller.current = null;
@@ -585,7 +575,6 @@ function Main(props: { app: App; initial: string }) {
         abort.signal,
       );
       push({ kind: "shell", command, output: result.output, code: result.code });
-      tutorialStep(app.tutorialEvent({ kind: "shell", text: command, agent: app.agent.agent.name }));
     } finally {
       live.current.shell = null;
       controller.current = null;
@@ -652,7 +641,6 @@ function Main(props: { app: App; initial: string }) {
         if (result.loaded) {
           startOver(app.agent.session);
         }
-        tutorialStep(app.tutorialEvent({ kind: "command", text, agent: app.agent.agent.name }));
         if (result.run) {
           void runAgent({ ...result.run.input, images }, result.run.options);
         }
@@ -683,9 +671,6 @@ function Main(props: { app: App; initial: string }) {
       return;
     }
     app.acceptPrivacyNotice();
-    if (app.tutorialStep === null) {
-      push({ kind: "info", text: "¿Es tu primera vez con Vork CLI? Escribe /tutorial: en 5 pasos aprendes lo básico, sin tocar tus ficheros." });
-    }
     if (choice === "connect") {
       await app.connect(adapter, "");
     } else if (choice === "off") {
@@ -898,10 +883,6 @@ function Main(props: { app: App; initial: string }) {
     const news = app.takeNews();
     if (news) {
       conversation.reveal(push({ kind: "news", ...news }));
-    }
-    // «vork tutorial»: el primer paso
-    if (app.tutorialStep !== null) {
-      push({ kind: "tutorial", ...tutorialCard(app.tutorialStep) });
     }
     // Mira en npm y GitHub si hay una versión nueva de Vork CLI (como mucho una vez por hora). Al abrirlo la anuncia
     // con el recuadro; si sale con Vork CLI abierto, en la barra de abajo
