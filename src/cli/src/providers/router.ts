@@ -810,17 +810,127 @@ export class Router {
     // Los que suelen tardar mucho en empezar a contestar, detrás (sin cambiar el orden de los demás)
     const slow = list.filter((slot) => this.slowStart(slot, now) !== null);
     list = [...list.filter((slot) => !slow.includes(slot)), ...slow];
-    // El fijado con /model va el primero; detrás, el preferido del agente
-    for (const pattern of [prefer, this.pinned]) {
-      if (!pattern) {
-        continue;
+    // Si hay un modelo fijado por el usuario (y no es 'auto'), usar EXCLUSIVAMENTE ese modelo o familia
+    if (this.pinned && this.pinned !== "auto") {
+      const matching = this.matchPinnedSlots(this.pinned, list);
+      if (matching.length > 0) {
+        list = matching;
+      } else {
+        throw new NoSlotError(
+          `El modelo seleccionado '${this.pinned}' no está disponible actualmente. Conecta su proveedor con /connect o escribe /model auto para volver a la rotación automática.`
+        );
       }
-      const matching = list.filter((slot) => slot.key === pattern || wildcardMatch(pattern, slot.key));
+    } else if (prefer) {
+      const matching = list.filter((slot) => slot.key === prefer || wildcardMatch(prefer, slot.key));
       if (matching.length > 0) {
         list = [...matching, ...list.filter((slot) => !matching.includes(slot))];
       }
     }
     return list;
+  }
+
+  // Empareja slots según el modelo fijado por el usuario o nivel de potencia de Vork
+  private matchPinnedSlots(pattern: string, slots: Slot[]): Slot[] {
+    const p = pattern.toLowerCase().trim();
+    const tier = (process.env.VORK_TIER || "").toLowerCase().trim();
+
+    // 1. Vork 3.2 (Expert)
+    if (p === "vork 3.2" || p.includes("3.2") || p === "expert") {
+      const expert = slots.filter((slot) => {
+        const k = slot.key.toLowerCase();
+        return (
+          k.includes("120b") ||
+          k.includes("397b") ||
+          k.includes("550b") ||
+          k.includes("ultra") ||
+          k.includes("deepseek") ||
+          k.includes("r1") ||
+          k.includes("expert") ||
+          k.includes("pro") ||
+          k.includes("thinking")
+        );
+      });
+      if (expert.length > 0) return expert;
+    }
+
+    // 2. Vork 3.1 (Intermediate / Balanced - configurable en low/medium/high)
+    if (p === "vork 3.1" || p.includes("3.1")) {
+      let filtered: Slot[] = [];
+      if (tier === "high") {
+        filtered = slots.filter((s) => {
+          const k = s.key.toLowerCase();
+          return k.includes("70b") || k.includes("deepseek") || k.includes("397b");
+        });
+      } else if (tier === "low") {
+        filtered = slots.filter((s) => {
+          const k = s.key.toLowerCase();
+          return k.includes("20b") || k.includes("9b") || k.includes("8b") || k.includes("fast");
+        });
+      } else {
+        // medium / default balanced
+        filtered = slots.filter((s) => {
+          const k = s.key.toLowerCase();
+          return (
+            k.includes("codestral") ||
+            k.includes("24b") ||
+            k.includes("27b") ||
+            k.includes("32b") ||
+            k.includes("70b")
+          );
+        });
+      }
+      if (filtered.length > 0) return filtered;
+    }
+
+    // 3. Vork 3 (Base / Agile - configurable en low/medium/high)
+    if (p === "vork 3" || p === "vork3") {
+      let filtered: Slot[] = [];
+      if (tier === "high") {
+        filtered = slots.filter((s) => {
+          const k = s.key.toLowerCase();
+          return k.includes("70b") || k.includes("27b");
+        });
+      } else if (tier === "medium") {
+        filtered = slots.filter((s) => {
+          const k = s.key.toLowerCase();
+          return k.includes("20b") || k.includes("24b") || k.includes("codestral");
+        });
+      } else {
+        // low / default
+        filtered = slots.filter((s) => {
+          const k = s.key.toLowerCase();
+          return k.includes("fast") || k.includes("20b") || k.includes("9b") || k.includes("mini") || k.includes("liquid");
+        });
+      }
+      if (filtered.length > 0) return filtered;
+    }
+
+    // 4. Exact slot key match or wildcard
+    const exact = slots.filter((slot) => slot.key === pattern || wildcardMatch(pattern, slot.key));
+    if (exact.length > 0) return exact;
+
+    // 5. Substring match on key, model ID or provider name
+    const cleanToken = p.split("/").pop() || p;
+    const sub = slots.filter((slot) => {
+      const k = slot.key.toLowerCase();
+      const m = slot.model.id.toLowerCase();
+      const prov = slot.provider.name.toLowerCase();
+      return (
+        k.includes(p) ||
+        m.includes(p) ||
+        k.includes(cleanToken) ||
+        m.includes(cleanToken) ||
+        prov === p
+      );
+    });
+    if (sub.length > 0) return sub;
+
+    // 6. Si es un perfil Vork genérico, usar la lista completa como red de seguridad
+    if (p.startsWith("vork 3") || p === "vork3") {
+      return slots;
+    }
+
+    return [];
   }
 
   // Cuánto falta para que vuelva el primer slot que cabe en la petición

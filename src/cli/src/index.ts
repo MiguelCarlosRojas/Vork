@@ -649,10 +649,10 @@ async function main() {
     process.exitCode = 1;
     return;
   }
-  if (!interactive && app.needsPrivacyNotice()) {
+  if (!interactive && app.needsPrivacyNotice() && !process.env.VORK_REPL) {
     ui.notice(app.privacyNotice());
     app.acceptPrivacyNotice();
-  } else if (!interactive && app.onlyAnonymous()) {
+  } else if (!interactive && app.onlyAnonymous() && !process.env.VORK_REPL) {
     ui.info(app.anonymousNotice());
   }
 

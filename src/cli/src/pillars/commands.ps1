@@ -1455,6 +1455,7 @@ function Invoke-VorkAIChat {
         $runArgs += $fullPrompt
         $env:VORK_MODEL = $activeModel
         $env:VORK_TIER = $activeTier
+        $env:VORK_REPL = "1"
         & $nodeCmd.Source @runArgs
         Write-Host ""
         Save-VorkConversationRecord -Cmd $fullPrompt -Output "Tarea completada por Vork AI Agent."

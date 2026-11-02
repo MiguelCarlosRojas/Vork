@@ -685,10 +685,11 @@ export class Agent {
       saveSession(this.session);
 
       if (!message.tool_calls || message.tool_calls.length === 0) {
+        const displayModel = this.formatDisplayModel(result.slot.key);
         if (this.events.onAnswer) {
-          this.events.onAnswer(result.slot.key);
+          this.events.onAnswer(displayModel);
         } else {
-          this.events.onInfo?.(`  ${result.slot.key}`);
+          this.events.onInfo?.(`  ${displayModel}`);
         }
         return;
       }
@@ -827,5 +828,25 @@ export class Agent {
     }
     const last = turns[turns.length - 1];
     return this.deps.snapshots.diff(last.before!, last.after || undefined);
+  }
+
+  private formatDisplayModel(slotKey: string): string {
+    const pinned = this.deps.router.pinned;
+    if (pinned && pinned !== "auto") {
+      const pLower = pinned.toLowerCase();
+      if (pLower === "vork 3.2" || pLower.includes("3.2")) {
+        return "Vork 3.2 (Expert)";
+      }
+      if (pLower === "vork 3.1" || pLower.includes("3.1")) {
+        const tier = process.env.VORK_TIER ? ` (${process.env.VORK_TIER.charAt(0).toUpperCase() + process.env.VORK_TIER.slice(1).toLowerCase()})` : " (Medium)";
+        return `Vork 3.1${tier}`;
+      }
+      if (pLower === "vork 3" || pLower === "vork3") {
+        const tier = process.env.VORK_TIER ? ` (${process.env.VORK_TIER.charAt(0).toUpperCase() + process.env.VORK_TIER.slice(1).toLowerCase()})` : " (Base)";
+        return `Vork 3${tier}`;
+      }
+      return `${pinned} · ${slotKey}`;
+    }
+    return `auto · ${slotKey}`;
   }
 }
