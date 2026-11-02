@@ -9,12 +9,19 @@ function Dispatch-CLICommand {
         [string[]]$ArgsList
     )
 
-    $tokens = if ($Cmd) { $Cmd.Trim().Split([char[]]@(' ', "`t"), [System.StringSplitOptions]::RemoveEmptyEntries) } else { @() }
-    $mainCmd = if ($tokens.Count -gt 0) { $tokens[0] } else { "" }
-    $Normalized = if ($mainCmd) { $mainCmd.TrimStart("/").ToLower() } else { "" }
-    if ($tokens.Count -gt 1) {
-        $extraArgs = @($tokens[1..($tokens.Count - 1)])
-        $ArgsList = if ($ArgsList) { $extraArgs + $ArgsList } else { $extraArgs }
+    $Normalized = ""
+    if ($Cmd) {
+        $trimmed = [string]$Cmd.Trim()
+        $firstSpace = $trimmed.IndexOfAny([char[]]@(' ', "`t"))
+        $mainCmd = if ($firstSpace -gt 0) { $trimmed.Substring(0, $firstSpace) } else { $trimmed }
+        $Normalized = $mainCmd.TrimStart([char[]]@('/', '\')).ToLower()
+        if ($firstSpace -gt 0) {
+            $remaining = $trimmed.Substring($firstSpace).Trim()
+            if ($remaining) {
+                $extra = @($remaining -split '\s+')
+                $ArgsList = if ($ArgsList) { $extra + $ArgsList } else { $extra }
+            }
+        }
     }
 
     switch ($Normalized) {
@@ -1168,3 +1175,4 @@ if (-not $Command -or $Command.ToLower() -in "tui", "interactive") {
     $outMsg = if ($Command.StartsWith("/")) { "Exited $Command command" } else { "Executed $Command" }
     Save-VorkConversationRecord -Cmd $fullCmd -Output $outMsg
 }
+

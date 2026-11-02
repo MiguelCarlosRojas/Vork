@@ -991,6 +991,14 @@ function Apply-VorkModelSelection {
 function Invoke-CmdModel {
     param([string[]]$ArgsList)
 
+    $pinnedFile = Join-Path $HOME ".vork\.pinned_model"
+    if (Test-Path $pinnedFile) {
+        $savedPinned = (Get-Content -Path $pinnedFile -Raw).Trim()
+        if ($savedPinned -and $savedPinned -ne "auto") {
+            $global:VorkPinnedModel = $savedPinned
+        }
+    }
+
     $allModels = Get-VorkAvailableModels
     $userArg = if ($ArgsList -and $ArgsList.Count -gt 0) { ($ArgsList -join " ").Trim().ToLower() } else { "" }
 
@@ -1053,6 +1061,14 @@ function Invoke-CmdModels {
 
     if ($isRefresh) {
         Write-VorkStatusLine -Kind info -Text "Buscando modelos gratis nuevos en todos los proveedores..."
+    }
+
+    $pinnedFile = Join-Path $HOME ".vork\.pinned_model"
+    if (Test-Path $pinnedFile) {
+        $savedPinned = (Get-Content -Path $pinnedFile -Raw).Trim()
+        if ($savedPinned -and $savedPinned -ne "auto") {
+            $global:VorkPinnedModel = $savedPinned
+        }
     }
 
     $allModels = Get-VorkAvailableModels
