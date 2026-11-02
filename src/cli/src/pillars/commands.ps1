@@ -1198,28 +1198,6 @@ function Invoke-CmdLsp {
     Write-Host ""
 }
 
-function Invoke-CmdYolo {
-    param([string[]]$ArgsList)
-    if (-not $global:VorkYolo) { $global:VorkYolo = $false }
-    $sub = if ($ArgsList -and $ArgsList.Count -gt 0) { $ArgsList[0].ToLower() } else { "toggle" }
-
-    if ($sub -in @("on", "true", "1")) {
-        $global:VorkYolo = $true
-    } elseif ($sub -in @("off", "false", "0")) {
-        $global:VorkYolo = $false
-    } else {
-        $global:VorkYolo = -not $global:VorkYolo
-    }
-
-    Write-VorkSectionHeader -Title "Modo YOLO (Aprobación Automática)" -Subtitle "ejecución de acciones sin solicitud de confirmación" -RightText "vork · yolo"
-    if ($global:VorkYolo) {
-        Write-VorkStatusLine -Kind warn -Text "Modo YOLO ACTIVADO: El agente ejecutará herramientas y comandos sin preguntar."
-    } else {
-        Write-VorkStatusLine -Kind ok -Text "Modo YOLO DESACTIVADO: Se requerirá confirmación explícita para cada acción."
-    }
-    Write-Host ""
-}
-
 function Invoke-CmdRun {
     param([string[]]$ArgsList)
     $task = if ($ArgsList) { $ArgsList -join " " } else { "" }

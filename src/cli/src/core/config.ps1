@@ -1087,20 +1087,26 @@ if ($activeInfo -and $activeInfo.IsVork) {
 }
 
 # ========================================================
-# MODO DE PERMISOS DEL AGENTE (programar, planear, profe)
+# MODO DE PERMISOS DEL AGENTE (programar, planear, profe) & YOLO
 # ========================================================
 $settingsFile = Join-Path $HOME ".vork\settings.json"
-if (-not $global:VorkAgentMode) {
+if (-not $global:VorkAgentMode -or $global:VorkYolo -eq $null) {
     if (Test-Path $settingsFile) {
         try {
             $savedSettings = Get-Content -Path $settingsFile -Raw | ConvertFrom-Json
             if ($savedSettings.agent_mode -in @("programar", "planear", "profe")) {
                 $global:VorkAgentMode = [string]$savedSettings.agent_mode
             }
+            if ($savedSettings.auto_approve -eq "on") {
+                $global:VorkYolo = $true
+            }
         } catch { }
     }
     if (-not $global:VorkAgentMode) {
         $global:VorkAgentMode = "programar"
+    }
+    if ($global:VorkYolo -eq $null) {
+        $global:VorkYolo = $false
     }
 }
 

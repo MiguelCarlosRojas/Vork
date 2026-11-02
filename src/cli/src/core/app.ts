@@ -102,7 +102,6 @@ export const BUILTIN_COMMANDS: { name: string; args?: string; description: strin
   { name: "usage", description: "tokens gastados en esta sesión" },
   { name: "mcp", description: "estado de los servidores MCP" },
   { name: "lsp", description: "servidores de lenguaje (diagnósticos)" },
-  { name: "yolo", args: "[on|off]", description: "aprobar todo sin preguntar en esta sesión" },
   { name: "reset-limits", description: "olvidar las pausas guardadas de los proveedores" },
   { name: "config", description: "rutas de configuración" },
   { name: "update", description: "actualiza Vork CLI a lo último del repositorio o a la última versión publicada" },
@@ -1161,16 +1160,6 @@ export class App {
         }
         lines.push("", "Disponibles en este ordenador:", ...available.map((line) => `  ${line}`));
         ui.block(lines.join("\n"));
-        return {};
-      }
-      case "/yolo": {
-        const value = arg === "" ? !this.yolo : arg === "on";
-        this.setYolo(value);
-        if (value) {
-          ui.notice("Modo yolo: apruebo todo sin preguntar en esta sesión (las reglas «deny» se respetan).");
-        } else {
-          ui.info("Modo yolo desactivado: vuelvo a preguntar.");
-        }
         return {};
       }
       case "/update": {

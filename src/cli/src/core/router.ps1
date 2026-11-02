@@ -78,7 +78,6 @@ function Dispatch-CLICommand {
         "diff"         { Invoke-CmdDiff -ArgsList $ArgsList }
         "undo"         { Invoke-CmdUndo }
         "redo"         { Invoke-CmdRedo }
-        "yolo"         { Invoke-CmdYolo -ArgsList $ArgsList }
         "run"          { Invoke-CmdRun -ArgsList $ArgsList }
         "trust"        { Invoke-CmdTrust }
         "init"         { Invoke-CmdInit }
@@ -646,7 +645,6 @@ function Read-InteractiveVorkLine {
         @{ Cmd = "/usage";       Desc = "Tokens gastados y coste estimado de la sesion" },
         @{ Cmd = "/mcp";         Desc = "Estado y herramientas de servidores MCP conectados" },
         @{ Cmd = "/lsp";         Desc = "Servidores de lenguaje (diagnosticos de codigo)" },
-        @{ Cmd = "/yolo";        Desc = "Aprobar todo sin preguntar en esta sesion" },
         @{ Cmd = "/interfaz";    Desc = "Elegir como se ve Vork CLI (completa, compacta, zen)" },
         @{ Cmd = "/init";        Desc = "Crear o mejorar la especificacion AGENTS.md" },
         @{ Cmd = "/review";      Desc = "Revisar cambios sin confirmar en el workspace" },

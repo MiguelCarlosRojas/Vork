@@ -194,13 +194,12 @@ function Show-SlashCommands {
             )
         },
         @{
-            Title = "[CATEGORIA 5] Auditoria, Seguridad & Control (6)"
+            Title = "[CATEGORIA 5] Auditoria, Seguridad & Control (5)"
             Items = @(
                 @{ Cmd = "/todos";        Desc = "Lista de tareas pendientes del agente" },
                 @{ Cmd = "/usage";        Desc = "Tokens gastados y coste estimado de la sesion" },
                 @{ Cmd = "/review";       Desc = "Revisar cambios sin confirmar en el workspace" },
                 @{ Cmd = "/init";         Desc = "Crear o mejorar la especificacion AGENTS.md" },
-                @{ Cmd = "/yolo";         Desc = "Aprobar todo sin preguntar en esta sesion" },
                 @{ Cmd = "/reset-limits"; Desc = "Reiniciar pausas temporales de los proveedores" }
             )
         },
@@ -279,7 +278,6 @@ function Show-InteractiveHelpModal {
         @{ Cmd = "/usage";       Desc = "Tokens gastados y coste estimado de la sesion" },
         @{ Cmd = "/mcp";         Desc = "Estado y herramientas de servidores MCP conectados" },
         @{ Cmd = "/lsp";         Desc = "Servidores de lenguaje (diagnosticos de codigo)" },
-        @{ Cmd = "/yolo";        Desc = "Aprobar todo sin preguntar en esta sesion" },
         @{ Cmd = "/interfaz";    Desc = "Elegir como se ve Vork CLI (completa, compacta, zen)" },
         @{ Cmd = "/init";        Desc = "Crear o mejorar la especificacion AGENTS.md" },
         @{ Cmd = "/review";      Desc = "Revisar cambios sin confirmar en el workspace" },

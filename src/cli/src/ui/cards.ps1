@@ -1726,6 +1726,15 @@ function Show-InteractiveSettings {
                 "profe"     = "modo tutor: te ensena y explica paso a paso"
             }
         }
+        "auto_approve"    = @{
+            Label = "Auto Approve"
+            Options = @("off", "on")
+            Value = if ($savedSettings["auto_approve"]) { $savedSettings["auto_approve"] } elseif ($global:VorkYolo) { "on" } else { "off" }
+            Desc = @{
+                "off" = "pide confirmacion antes de ejecutar cada accion"
+                "on"  = "modo YOLO: ejecuta comandos sin pedir confirmacion"
+            }
+        }
     }
 
     $keys = @($settingsData.Keys)
@@ -1750,9 +1759,11 @@ function Show-InteractiveSettings {
             $toExport | ConvertTo-Json | Set-Content -Path $settingsFile -Encoding UTF8
 
             $global:VorkAgentMode = $toExport["agent_mode"]
+            $global:VorkYolo = ($toExport["auto_approve"] -eq "on")
 
             $permFile = Join-Path $vorkDir "permissions.json"
             $perms = @{
+                "auto_approve"    = ($toExport["auto_approve"] -eq "on")
                 "agent_mode"      = $toExport["agent_mode"]
                 "auto_update"     = $toExport["auto_update"]
                 "notifications"   = ($toExport["notifications"] -ne "off")
