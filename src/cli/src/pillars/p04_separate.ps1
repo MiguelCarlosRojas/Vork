@@ -1,6 +1,6 @@
 ﻿<#
 .SYNOPSIS
-    Pilar 05: Vork Separador de Stems (Acapella y Karaoke con Demucs v4)
+    Pilar 04: Vork Separador de Stems (Acapella y Karaoke con Demucs v4)
 #>
 
 function Invoke-PillarSeparate {

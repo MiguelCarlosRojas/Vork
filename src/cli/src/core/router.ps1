@@ -9,15 +9,20 @@ function Dispatch-CLICommand {
         [string[]]$ArgsList
     )
 
-    $Normalized = if ($Cmd) { $Cmd.TrimStart("/").ToLower() } else { "" }
+    $tokens = if ($Cmd) { $Cmd.Trim().Split([char[]]@(' ', "`t"), [System.StringSplitOptions]::RemoveEmptyEntries) } else { @() }
+    $mainCmd = if ($tokens.Count -gt 0) { $tokens[0] } else { "" }
+    $Normalized = if ($mainCmd) { $mainCmd.TrimStart("/").ToLower() } else { "" }
+    if ($tokens.Count -gt 1) {
+        $extraArgs = @($tokens[1..($tokens.Count - 1)])
+        $ArgsList = if ($ArgsList) { $extraArgs + $ArgsList } else { $extraArgs }
+    }
 
     switch ($Normalized) {
         # ========================================================
-        # CATEGORIA 1: PILARES OPERACIONALES (9)
+        # CATEGORIA 1: PILARES OPERACIONALES (8)
         # ========================================================
         "translate" { Invoke-PillarTranslate -ArgsList $ArgsList }
         "tts"       { Invoke-PillarTTS -ArgsList $ArgsList }
-        "clone"     { Invoke-PillarClone -ArgsList $ArgsList }
         "media"     { Invoke-PillarMedia -ArgsList $ArgsList }
         "separate"  { Invoke-PillarSeparate -ArgsList $ArgsList }
         "image"     { Invoke-PillarImage -ArgsList $ArgsList }
@@ -108,15 +113,7 @@ function Dispatch-CLICommand {
             Write-Host ""
         }
         { $_ -in "mode", "modal", "model", "tier", "effort" } {
-            $argVal = if ($ArgsList -and $ArgsList.Count -gt 0) { $ArgsList[0] } else { "" }
-            if ($argVal -in "low", "medium", "high", "expert") {
-                Set-VorkTier -NewTier $argVal
-            } else {
-                $modelResult = Show-InteractiveModelSwitcher
-                $elbowChar = [char]0x23BF
-                Write-Host "  ${LeadLight}$elbowChar  Exited /model command${Reset}"
-                Write-Host ""
-            }
+            Invoke-CmdModel -ArgsList $ArgsList
         }
         "theme"       { Invoke-CmdTheme -ArgsList $ArgsList }
         "env"         { Invoke-CmdEnv }
@@ -618,7 +615,6 @@ function Read-InteractiveVorkLine {
     $allCommands = @(
         @{ Cmd = "/translate";   Desc = "Traduccion neuronal por lotes en +200 idiomas" },
         @{ Cmd = "/tts";         Desc = "Sintesis de voz con 24 voces neuronales humanas" },
-        @{ Cmd = "/clone";       Desc = "Clonacion vocal IA y modelado espectral F0" },
         @{ Cmd = "/media";       Desc = "Conversion multimedia YouTube, TikTok, IG a MP3/MP4" },
         @{ Cmd = "/separate";    Desc = "Aislamiento de Stems Acapella/Karaoke (Demucs v4)" },
         @{ Cmd = "/image";       Desc = "Conversor universal PNG, JPG, WEBP, ICO, AVIF" },
@@ -1122,20 +1118,11 @@ function Start-InteractiveREPL {
         }
 
         if ($cmdCheck -in "mode", "modal", "model", "tier", "effort") {
-            $argVal = if ($replArgs -and $replArgs.Count -gt 0) { $replArgs[0].ToLower() } else { "" }
-            if ($argVal -in "low", "medium", "high") {
-                Set-VorkTier -NewTier $argVal
-                $outMsg = "Set effort to $argVal"
-                Write-Host "  ${LeadLight}$elbow  $outMsg${Reset}"
-                Write-Host ""
-                Save-VorkConversationRecord -Cmd $line -Output $outMsg
-            } else {
-                $modelResult = Show-InteractiveModelSwitcher
-                $outMsg = "Exited /model command"
-                Write-Host "  ${LeadLight}$elbow  $outMsg${Reset}"
-                Write-Host ""
-                Save-VorkConversationRecord -Cmd $line -Output $outMsg
-            }
+            Invoke-CmdModel -ArgsList $replArgs
+            $outMsg = "Exited /model command"
+            Write-Host "  ${LeadLight}$elbow  $outMsg${Reset}"
+            Write-Host ""
+            Save-VorkConversationRecord -Cmd $line -Output $outMsg
             continue
         }
 

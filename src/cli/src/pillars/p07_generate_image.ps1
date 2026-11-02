@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Pilar 08: Vork Generador de Imágenes IA (FLUX.1 Neural · 100% Gratuito y Sin Marca de Agua)
+    Pilar 07: Vork Generador de Imágenes IA (FLUX.1 Neural · 100% Gratuito y Sin Marca de Agua)
 #>
 
 function Invoke-PillarGenerateImage {

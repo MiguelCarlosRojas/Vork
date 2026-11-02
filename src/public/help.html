@@ -6,7 +6,7 @@
   <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
   <meta name="theme-color" content="#11141a">
   <title>Centro de Ayuda y Preguntas Frecuentes | Vork</title>
-  <meta name="description" content="Centro de Ayuda de Vork: respuestas a preguntas frecuentes sobre traducción, síntesis TTS, clonación de voz, cookies y configuración.">
+  <meta name="description" content="Centro de Ayuda de Vork: respuestas a preguntas frecuentes sobre traducción, síntesis TTS, cookies y configuración.">
   <link rel="canonical" href="https://vork-st1k.onrender.com/help">
 
   <!-- Open Graph -->
@@ -59,7 +59,7 @@
             "name": "¿Qué es Vork y qué servicios ofrece?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "Vork es un ecosistema cloud multimodal que integra 9 pilares: traducción neuronal por micro-lotes (+200 idiomas), síntesis de voz TTS, clonación vocal IA, conversor universal, separador de stems Demucs v4, mezclador DJ en vivo, procesador de imágenes, eliminador de fondos con IA y terminal CLI."
+              "text": "Vork es un ecosistema cloud multimodal que integra 8 pilares: traducción neuronal por micro-lotes (+200 idiomas), síntesis de voz TTS, conversor universal, separador de stems Demucs v4, mezclador DJ en vivo, procesador de imágenes, eliminador de fondos con IA y terminal CLI."
             }
           },
           {
@@ -163,15 +163,7 @@
         </div>
       </div>
 
-      <div class="pillar-block">
-        <span class="pillar-tag" style="border-color: rgba(168, 85, 247, 0.4); color: #7c3aed;">PILAR 03 // CLONACIÓN DE VOZ CON IA</span>
-        <div class="faq-item">
-          <h3>¿Cómo funciona la clonación y qué tipo de muestra requiere?</h3>
-          <p>
-            Puedes grabar directamente tu voz con el micrófono del dispositivo (mediante <code>navigator.mediaDevices.getUserMedia</code>) o cargar un archivo de audio (<code>.wav</code>, <code>.mp3</code>, <code>.ogg</code>, <code>.m4a</code>). El motor bio-acústico extrae los formantes y la frecuencia fundamental (F0) para recrear tu timbre único al sintetizar cualquier guion escrito, permitiendo descargar el archivo de audio generado.
-          </p>
-        </div>
-      </div>
+      
 
       <div class="pillar-block">
         <span class="pillar-tag" style="border-color: rgba(239, 68, 68, 0.4); color: #dc2626;">PILAR 04 // CONVERSOR MULTIMEDIA (MP3 / MP4)</span>
@@ -202,12 +194,7 @@
         </p>
       </div>
 
-      <div class="faq-item">
-        <h3>Error en Clonación de Voz: "Muestra de audio requerida"</h3>
-        <p>
-          Asegúrate de proporcionar permisos de micrófono en el navegador o subir un archivo de audio legible (mínimo 3 segundos y máximo 10 MB). El endpoint <code>POST /api/voice-clone</code> procesa la muestra mediante <code>multipart/form-data</code> o JSON con <code>sampleBase64</code>.
-        </p>
-      </div>
+      
 
       <div class="faq-item">
         <h3>Error en Conversor: "URL no soportada o contenido privado"</h3>

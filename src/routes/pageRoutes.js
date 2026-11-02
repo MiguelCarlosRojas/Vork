@@ -17,7 +17,6 @@ router.get("/cli/vork.ps1", cliController.getVorkPs1);
 const pageMap = [
   { path: "/translator", file: "translator.html" },
   { path: "/tts", file: "tts.html" },
-  { path: "/voice-clone", file: "voice-clone.html" },
   { path: "/converter", file: "converter.html" },
   { path: "/media", file: "converter.html" },
   { path: "/vocal-remover", file: "vocal-remover.html" },
@@ -51,5 +50,7 @@ pageMap.forEach(({ path: routePath, file }) => {
     res.sendFile(path.join(publicDir, file));
   });
 });
+
+router.get("/voice-clone", (req, res) => res.redirect(301, "/"));
 
 module.exports = router;

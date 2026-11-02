@@ -12,7 +12,7 @@
 ## Metadatos del Repositorio de GitHub
 
 > **Description:**  
-> Microservicio y API REST de alto rendimiento en Node.js y Express para traducción en la nube por lotes, TTS neuronal, clonación vocal IA, conversor multimedia universal, separación de stems, Vork DJ, imágenes con IA y Vork CLI, desplegado en Render.
+> Microservicio y API REST de alto rendimiento en Node.js y Express para traducción en la nube por lotes, TTS neuronal, conversor multimedia universal, separación de stems, imágenes con IA y Vork CLI, desplegado en Render.
 >
 > **Website:**  
 > `https://vork-st1k.onrender.com`
@@ -54,10 +54,6 @@ Vork integra 9 soluciones tecnológicas avanzadas en una arquitectura unificada 
    * Síntesis vocal multilingüe en tiempo real con descarga física de audio en formato `.wav` o `.mp3`.
    * Selección de voces del sistema operativo / navegador, calibración de velocidad (*rate*) y tono (*pitch*).
    * Ecualizador visual animado por ondas de frecuencia y catálogo de 24 voces neuronales backend.
-3. **[Clonación de Voz con IA (Voice Cloning Studio)](/voice-clone):**  
-   * Grabación directa con micrófono del usuario (`getUserMedia`) o carga de archivos de audio (`.wav`, `.mp3`, `.ogg`, `.m4a`).
-   * Extracción de frecuencia fundamental (F0), botón de eliminar muestra grabada con confirmación y reproducción previa.
-   * Generación y descarga real de archivos de audio sintetizado `.wav` en PCM 16-bit y `.mp3` de alta fidelidad.
 4. **[Conversor Multimedia Universal (MP3 / MP4 Studio)](/converter):**  
    * Conversión y descarga de audio y video desde **YouTube, TikTok, Instagram Reels, Facebook, Twitter/X, Pinterest** y URLs directas.
    * Selector dinámico entre **Audio MP3** (320kbps, 256kbps, 192kbps, 128kbps) y **Video MP4** (1080p Full HD, 720p HD, 480p, 360p) sin marcas de agua.
@@ -102,7 +98,7 @@ Vork integra 9 soluciones tecnológicas avanzadas en una arquitectura unificada 
 6. **Compresión HTTP (Gzip / Deflate):** Respuestas comprimidas automáticamente por encima de 512 bytes, reduciendo el ancho de banda transferido.
 7. **CORS Universal Abierto:** Encabezados `Access-Control-Allow-Origin: *` con soporte completo para peticiones preflight (`OPTIONS`), permitiendo la integración desde cualquier frontend (React, Vue, Angular, Svelte, móviles o scripts Vanilla JS).
 8. **Diseño Visual con Iconografía Vectorial SVG (Cero Emojis):** Toda la interfaz de usuario opera con iconos vectoriales SVG limpios con clase estándar `.icon` (`stroke="currentColor"`), eliminando emojis para una experiencia corporativa cristalina y coherente en cualquier pantalla o sistema operativo.
-9. **Procesamiento Efímero y Streaming Binario en Memoria:** Tanto la síntesis TTS como las conversiones de video/audio y clonación espectral se transmiten mediante buffers y streaming HTTP con rangos parciales (`206 Partial Content`), con cero almacenamiento persistente en disco protegiendo la privacidad absoluta del cliente.
+9. **Procesamiento Efímero y Streaming Binario en Memoria:** Tanto la síntesis TTS como las conversiones de video/audio se transmiten mediante buffers y streaming HTTP con rangos parciales (`206 Partial Content`), con cero almacenamiento persistente en disco protegiendo la privacidad absoluta del cliente.
 
 ---
 
@@ -373,46 +369,7 @@ curl -X POST https://vork-st1k.onrender.com/api/translate \
 * **Streaming directo:** `GET /api/tts/stream?id=<audioId>` (reproduce audio binario con `Accept-Ranges: bytes`).
 * **Descarga directa:** `GET /api/tts/download?id=<audioId>` (fuerza descarga de `voz-tts-vork.mp3`).
 
-### 9. `POST /api/voice-clone` (Clonación de Voz IA en Backend)
-* **URL:** `https://vork-st1k.onrender.com/api/voice-clone`
-* **Headers:** `Content-Type: application/json`
-* **Body:**
-  ```json
-  {
-    "text": "Este es un mensaje clonado con mi timbre de voz original",
-    "audioSampleBase64": "data:audio/webm;base64,...",
-    "pitch": 1.0,
-    "similarity": "high"
-  }
-  ```
-* **Respuesta (200 OK):**
-  ```json
-  {
-    "status": "success",
-    "service": "Vork AI Voice Clone Engine",
-    "voiceProfileId": "vp_9fa1b28c",
-    "model": "hybrid-neural-vocoder-v2.5",
-    "text": "Este es un mensaje clonado con mi timbre de voz original",
-    "similarity": "high",
-    "acousticAnalysis": {
-      "estimatedF0Hz": "165 Hz",
-      "sampleDurationSec": 3.8,
-      "sampleSizeKb": 48
-    },
-    "audioBase64": "data:audio/mpeg;base64,...",
-    "streamUrl": "/api/voice-clone/stream?id=aud_7c2ba",
-    "downloadUrl": "/api/voice-clone/download?id=aud_7c2ba",
-    "mimeType": "audio/mpeg",
-    "sizeBytes": 45200,
-    "message": "Voz clonada y sintetizada exitosamente desde el backend de Vork."
-  }
-  ```
-
-### 10. `GET /api/voice-clone/stream` y `GET /api/voice-clone/download`
-* **Streaming directo:** `GET /api/voice-clone/stream?id=<audioId>`
-* **Descarga directa:** `GET /api/voice-clone/download?id=<audioId>` (descarga `voz-clonada-vork.mp3`).
-
-### 11. `POST /api/media/convert` (Conversión 100% Nativa en Backend a MP3 / MP4 con FFmpeg)
+### 9. `POST /api/media/convert` (Conversión 100% Nativa en Backend a MP3 / MP4 con FFmpeg)
 * **URL:** `https://vork-st1k.onrender.com/api/media/convert`
 * **Headers:** `Content-Type: application/json`
 * **Body:**
@@ -477,7 +434,7 @@ curl -X POST https://vork-st1k.onrender.com/api/translate \
   }
   ```
 
-### 13. `GET /api/media/platforms` (Catálogo de Plataformas y Formatos)
+### 11. `GET /api/media/platforms` (Catálogo de Plataformas y Formatos)
 * **URL:** `https://vork-st1k.onrender.com/api/media/platforms`
 * **Respuesta (200 OK):**
   ```json
@@ -510,7 +467,6 @@ Vork incluye un portal web interactivo responsive estructurado con páginas dedi
 * **[Inicio / Landing Page](https://vork-st1k.onrender.com/)**: Visión general, métricas del cluster, arquitectura en 4 pilares, demo interactiva y accesos directos.
 * **[Traductor en la Nube](https://vork-st1k.onrender.com/translator)**: Página dedicada al Pilar 1 con consola en vivo, extracción por lotes del DOM y configuración de cookies.
 * **[Texto a Voz (TTS Studio)](https://vork-st1k.onrender.com/tts)**: Página dedicada al Pilar 2 con síntesis vocal multilingüe, modulación de tono/velocidad, ecualizador en tiempo real y descarga de audio `.wav`.
-* **[Clonación de Voz IA](https://vork-st1k.onrender.com/voice-clone)**: Página dedicada al Pilar 3 con grabación directa por micrófono, carga de archivos, análisis de pitch F0, reproductor de muestra con eliminación y descarga real de `.wav`.
 * **[Conversor Multimedia (MP3 / MP4)](https://vork-st1k.onrender.com/converter)**: Página dedicada al Pilar 4 para conversión de YouTube, TikTok, Instagram, Twitter/X y enlaces directos a MP3 o MP4 sin marcas de agua.
 * **[Separador de Voz e Instrumental](https://vork-st1k.onrender.com/vocal-remover)**: Página dedicada al Pilar 5 para extracción de pistas Acapella y Karaoke con Demucs v4.
 * **[Vork DJ Mezclador](https://vork-st1k.onrender.com/dj)**: Página dedicada al Pilar 6 para mezcla interactiva con doble tornamesa, ecualizador y crossfader.
@@ -518,8 +474,8 @@ Vork incluye un portal web interactivo responsive estructurado con páginas dedi
 * **[Conversor de Formatos de Imagen](https://vork-st1k.onrender.com/image-converter)**: Página dedicada al Pilar 8 para transcodificación y redimensionado multiformato (PNG, JPG, WebP, GIF, BMP, TIFF, ICO).
 * **[Estudio y Eliminador de Fondo IA](https://vork-st1k.onrender.com/background-remover)**: Página dedicada al Pilar 9 para recorte de fondos con rembg U2-Net, sustitución por color o prompts IA.
 * **[Donaciones](https://vork-st1k.onrender.com/donate)**: Página dedicada para apoyar el mantenimiento de servidores con PayPal y QR de Yape ampliable.
-* **[Documentación Técnica](https://vork-st1k.onrender.com/docs)**: Arquitectura, flujo por lotes del DOM, especificación de los 9 pilares y preguntas frecuentes.
-* **[Referencia de API REST](https://vork-st1k.onrender.com/api)**: Playground interactivo (`/api/translate`, `/api/tts`, `/api/voice-clone`, `/api/media/convert`, `/api/separator/process`, `/api/image/convert`, `/api/image/remove-background`, `/api/cli/info`, `/api/health`, `/api/languages`, `/api/ping`).
+* **[Documentación Técnica](https://vork-st1k.onrender.com/docs)**: Arquitectura, flujo por lotes del DOM, especificación de los 8 pilares y preguntas frecuentes.
+* **[Referencia de API REST](https://vork-st1k.onrender.com/api)**: Playground interactivo (`/api/translate`, `/api/tts`, `/api/media/convert`, `/api/separator/process`, `/api/image/convert`, `/api/image/remove-background`, `/api/cli/info`, `/api/health`, `/api/languages`, `/api/ping`).
 * **[Aprender (Guías de Integración)](https://vork-st1k.onrender.com/learn)**: Guías para React, Vue, Vanilla JS, microservicios y optimización de latencia.
 * **[Soporte Técnico](https://vork-st1k.onrender.com/support)**: Canales de contacto y asistencia directa.
 * **[Centro de Ayuda](https://vork-st1k.onrender.com/help)**: Solución de problemas comunes y códigos de error.

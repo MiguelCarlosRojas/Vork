@@ -1,6 +1,6 @@
 ﻿<#
 .SYNOPSIS
-    Pilar 06: Vork Procesador de Imágenes de Formatos de Imagen (PNG, JPG, WEBP, ICO, AVIF)
+    Pilar 05: Vork Procesador de Imágenes de Formatos de Imagen (PNG, JPG, WEBP, ICO, AVIF)
 #>
 
 function Invoke-PillarImage {

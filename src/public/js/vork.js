@@ -4,7 +4,7 @@
  * Librería de cliente para el ecosistema Vork:
  * - Persistencia de configuración en cookies (vork_lang).
  * - Traducción en lote en 1 sola consulta HTTP.
- * - Integración con los 9 pilares de Vork (Traductor, TTS, Clonación, Conversor, Stems, DJ, Imágenes, Fondo IA, CLI).
+ * - Integración con los 8 pilares de Vork (Traductor, TTS, Conversor, Stems, DJ, Imágenes, Fondo IA, CLI).
  */
 
 (function (root, factory) {

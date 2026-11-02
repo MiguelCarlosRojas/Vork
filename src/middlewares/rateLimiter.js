@@ -69,20 +69,6 @@ const ttsLimiter = rateLimit({
   )
 });
 
-/**
- * 4. Limitador para Clonación de Voz (/api/voice-clone, /api/voice-clone/analyze)
- * Operación intensiva en DSP y redes neuronales: hasta 15 peticiones por minuto por IP.
- */
-const voiceCloneLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 15,
-  standardHeaders: true,
-  legacyHeaders: false,
-  handler: createRateLimitHandler(
-    "Límite de clonación vocal por IA alcanzado (15 peticiones/min). Espera un momento.",
-    60
-  )
-});
 
 /**
  * 5. Limitador para Conversor Multimedia (/api/media/convert, /api/media/batch, /api/media/info)
@@ -133,7 +119,6 @@ module.exports = {
   globalLimiter,
   translateLimiter,
   ttsLimiter,
-  voiceCloneLimiter,
   mediaLimiter,
   separatorLimiter,
   imageLimiter

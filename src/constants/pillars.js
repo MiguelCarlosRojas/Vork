@@ -5,19 +5,17 @@
 const PILLARS = [
   "1. Vork Traductor (+200 idiomas por lotes en una sola consulta)",
   "2. Vork Voz Neuronal (TTS Studio con síntesis multilingüe)",
-  "3. Vork Clonación Vocal (Clonación de voz por IA y recreación tímbrica)",
-  "4. Vork Conversor Multimedia (YouTube, TikTok, Instagram a MP3 / MP4)",
-  "5. Vork Separador de Stems (Aislamiento de voz e instrumentos con Demucs v4)",
-  "6. Vork Procesador de Imágenes (Conversor y optimizador entre PNG, JPG, WEBP, ICO, AVIF)",
-  "7. Vork Estudio y Fondo IA (Aislamiento inteligente de siluetas y composición)",
-  "8. Vork Generador de Imágenes IA (FLUX.1 Neural sin marca de agua 100% gratis)",
-  "9. Vork CLI & Agentes (Entorno de terminal, automatización y agentes autónomos)"
+  "3. Vork Conversor Multimedia (YouTube, TikTok, Instagram a MP3 / MP4)",
+  "4. Vork Separador de Stems (Aislamiento de voz e instrumentos con Demucs v4)",
+  "5. Vork Procesador de Imágenes (Conversor y optimizador entre PNG, JPG, WEBP, ICO, AVIF)",
+  "6. Vork Estudio y Fondo IA (Aislamiento inteligente de siluetas y composición)",
+  "7. Vork Generador de Imágenes IA (FLUX.1 Neural sin marca de agua 100% gratis)",
+  "8. Vork CLI & Agentes (Entorno de terminal, automatización y agentes autónomos)"
 ];
 
 const API_ENDPOINTS = {
   translate: "POST /api/translate",
   tts: "POST /api/tts",
-  voiceClone: "POST /api/voice-clone",
   mediaInfo: "POST /api/media/info",
   mediaConvert: "POST /api/media/convert",
   mediaBatch: "POST /api/media/batch",

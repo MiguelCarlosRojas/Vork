@@ -9,7 +9,7 @@
     <priority>1.0</priority>
   </url>
 
-  <!-- Los 9 Pilares Multimodales de Vork -->
+  <!-- Los 8 Pilares Multimodales de Vork -->
   <url>
     <loc>https://vork-st1k.onrender.com/translator</loc>
     <lastmod>2026-10-29</lastmod>
@@ -22,13 +22,7 @@
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
-  <url>
-    <loc>https://vork-st1k.onrender.com/voice-clone</loc>
-    <lastmod>2026-10-29</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
+    <url>
     <loc>https://vork-st1k.onrender.com/converter</loc>
     <lastmod>2026-10-29</lastmod>
     <changefreq>weekly</changefreq>
@@ -41,8 +35,8 @@
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://vork-st1k.onrender.com/dj</loc>
-    <lastmod>2026-10-29</lastmod>
+    <loc>https://vork-st1k.onrender.com/draw</loc>
+    <lastmod>2026-11-01</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>

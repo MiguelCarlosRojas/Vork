@@ -33,13 +33,12 @@ exports.getHealth = (req, res) => {
     services: {
       translator: { name: "Vork Traductor en la Nube", status: "online" },
       tts: { name: "Vork Voz Neuronal", status: "online" },
-      voiceClone: { name: "Vork Clonación Vocal IA", status: "online" },
       mediaConverter: { name: "Vork Conversor Multimedia", status: "online" },
       separator: { name: "Vork Separador de Stems", status: "online" },
-      cloudDj: { name: "Vork DJ Mezclador", status: "online" },
-      cli: { name: "Vork CLI (Terminal & Agentes)", status: "online" },
       imageConverter: { name: "Vork Procesador de Imágenes", status: "online" },
-      backgroundStudio: { name: "Vork Fondo IA Studio", status: "online" }
+      backgroundStudio: { name: "Vork Fondo IA Studio", status: "online" },
+      flux: { name: "Vork Generador de Imágenes IA", status: "online" },
+      cli: { name: "Vork CLI (Terminal & Agentes)", status: "online" }
     },
     cache: cacheStats,
     memory: {

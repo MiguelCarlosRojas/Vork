@@ -54,7 +54,7 @@ function Show-Help {
     Write-VorkHelpLine -Width $width -Text "    $Cyan$Bold/<comando>$Reset $White [argumentos]$Reset   ${Dim}(Ej: /help, /translate, /doctor, /run)${Reset}"
     Write-Host ""
 
-    Write-VorkHelpLine -Width $width -Text "$White$Bold  LOS 9 PILARES OPERACIONALES:$Reset"
+    Write-VorkHelpLine -Width $width -Text "$White$Bold  LOS 8 PILARES OPERACIONALES:$Reset"
 
     $pillars = @(
         @{
@@ -70,19 +70,13 @@ function Show-Help {
             Example = "/tts 'Bienvenido a Vork' -Voice es-ES-AlvaroNeural -Out voz.mp3"
         },
         @{
-            Title = "[03] Vork Clonacion de Voz IA"
-            Tag = "Modelado timbrico F0"
-            Usage = "/clone -Audio <muestra> -Text <guion>"
-            Example = "/clone -Audio muestra.wav -Text 'Texto sintetizado'"
-        },
-        @{
-            Title = "[04] Vork Conversor Multimedia"
+            Title = "[03] Vork Conversor Multimedia"
             Tag = "YouTube, TikTok, IG a MP3/MP4"
             Usage = "/media <url> -Format <mp3|mp4> -Quality 320"
             Example = "/media 'https://youtube.com/watch?v=...' -Format mp3"
         },
         @{
-            Title = "[05] Vork Separador de Stems"
+            Title = "[04] Vork Separador de Stems"
             Tag = "Acapella / Karaoke con Demucs v4"
             Usage = "/separate <url_o_archivo>"
             Example = "/separate cancion.mp3"
@@ -94,7 +88,7 @@ function Show-Help {
             Example = "/image logo.png -Format webp -Quality 90"
         },
         @{
-            Title = "[07] Vork Estudio y Fondo IA"
+            Title = "[06] Vork Estudio y Fondo IA"
             Tag = "U2-Net silueta y transparente"
             Usage = "/remove-bg <archivo> -Out <archivo.png>"
             Example = "/remove-bg foto.jpg -Out limpia.png"
@@ -123,7 +117,7 @@ function Show-Help {
     Write-Host ""
     Write-VorkHelpLine -Width $width -Text "$White$Bold  MANTENIMIENTO & ESTADO:$Reset"
     Write-VorkHelpLine -Width $width -Text "    $Yellow /update$Reset     ${Dim}Sincroniza y actualiza Vork CLI al instante${Reset}"
-    Write-VorkHelpLine -Width $width -Text "    $Yellow /status$Reset     ${Dim}Telemetria y estado operativo de los 9 pilares${Reset}"
+    Write-VorkHelpLine -Width $width -Text "    $Yellow /status$Reset     ${Dim}Telemetria y estado operativo de los 8 pilares${Reset}"
     Write-VorkHelpLine -Width $width -Text "    $Yellow /version$Reset    ${Dim}Muestra detalles de arquitectura y version${Reset}"
     Write-VorkHelpLine -Width $width -Text "    $Yellow /slash$Reset      ${Dim}Ver los 62 comandos con barra (/)${Reset}"
     Write-Host ""
@@ -141,11 +135,10 @@ function Show-SlashCommands {
 
         $categories = @(
         @{
-            Title = "[CATEGORIA 1] Los 9 Pilares Operacionales (9)"
+            Title = "[CATEGORIA 1] Los 8 Pilares Operacionales (8)"
             Items = @(
                 @{ Cmd = "/translate"; Desc = "Traduccion neuronal por lotes en +200 idiomas" },
                 @{ Cmd = "/tts";       Desc = "Sintesis de voz con 24 voces neuronales humanas" },
-                @{ Cmd = "/clone";     Desc = "Clonacion vocal IA y modelado espectral F0" },
                 @{ Cmd = "/media";     Desc = "Conversion multimedia YouTube, TikTok, IG a MP3/MP4" },
                 @{ Cmd = "/separate";  Desc = "Aislamiento de Stems Acapella/Karaoke (Demucs v4)" },
                 @{ Cmd = "/image";     Desc = "Conversor universal PNG, JPG, WEBP, ICO, AVIF" },
@@ -263,7 +256,6 @@ function Show-InteractiveHelpModal {
     $allCommands = @(
         @{ Cmd = "/translate";   Desc = "Traduccion neuronal por lotes en +200 idiomas" },
         @{ Cmd = "/tts";         Desc = "Sintesis de voz con 24 voces neuronales humanas" },
-        @{ Cmd = "/clone";       Desc = "Clonacion vocal IA y modelado espectral F0" },
         @{ Cmd = "/media";       Desc = "Conversion multimedia YouTube, TikTok, IG a MP3/MP4" },
         @{ Cmd = "/separate";    Desc = "Aislamiento de Stems Acapella/Karaoke (Demucs v4)" },
         @{ Cmd = "/image";       Desc = "Conversor universal PNG, JPG, WEBP, ICO, AVIF" },

@@ -1,7 +1,7 @@
 /**
  * routes/index.js
  * Router central de la API de Vork
- * Consolida los 9 pilares de la plataforma bajo una arquitectura modular.
+ * Consolida los 8 pilares de la plataforma bajo una arquitectura modular.
  */
 const express = require("express");
 const router = express.Router();
@@ -9,7 +9,6 @@ const router = express.Router();
 const baseRoutes = require("./baseRoutes");
 const translateRoutes = require("./translateRoutes");
 const ttsRoutes = require("./ttsRoutes");
-const voiceCloneRoutes = require("./voiceCloneRoutes");
 const mediaRoutes = require("./mediaRoutes");
 const separatorRoutes = require("./separatorRoutes");
 const cliRoutes = require("./cliRoutes");
@@ -20,7 +19,6 @@ const aiRoutes = require("./aiRoutes");
 router.use("/", baseRoutes);
 router.use("/", translateRoutes);
 router.use("/", ttsRoutes);
-router.use("/", voiceCloneRoutes);
 router.use("/", mediaRoutes);
 router.use("/", separatorRoutes);
 router.use("/", cliRoutes);

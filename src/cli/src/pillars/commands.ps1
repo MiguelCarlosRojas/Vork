@@ -306,7 +306,7 @@ function Invoke-CmdStatus {
     $uptimeStr = if ($res -and $res.uptime) { "$($res.uptime)s" } else { "N/A" }
     $rssStr = if ($res -and $res.memory -and $res.memory.rssMb) { "$($res.memory.rssMb) MB" } else { "N/A" }
 
-    Write-VorkSectionHeader -Title "Estado de los 9 pilares" -Subtitle "infraestructura y telemetría en tiempo real" -RightText "vork · status"
+    Write-VorkSectionHeader -Title "Estado de los 8 pilares" -Subtitle "infraestructura y telemetría en tiempo real" -RightText "vork · status"
 
     Write-VorkInfoRow -Label "Backend Cloud" -Value $ApiBase -ValueColor $Cyan
     if ($online) {
@@ -322,13 +322,12 @@ function Invoke-CmdStatus {
     $pillars = @(
         @{ Id = "01"; Key = "translator";       Name = "Traducción en la Nube";       Tech = "+200 idiomas por lotes y streaming" },
         @{ Id = "02"; Key = "tts";              Name = "Texto a Voz Neuronal (TTS)";  Tech = "24 voces humanas multilingües (24kHz)" },
-        @{ Id = "03"; Key = "voiceClone";       Name = "Clonación Vocal & Timbre";   Tech = "Modelado espectral F0 & voice matching" },
-        @{ Id = "04"; Key = "mediaConverter";   Name = "Extracción Multimedia";       Tech = "Descarga de YouTube, TikTok, Reels, IG" },
-        @{ Id = "05"; Key = "separator";        Name = "Aislamiento de Stems Demucs"; Tech = "Separación Acapella/Instrumental (v4)" },
-        @{ Id = "06"; Key = "imageConverter";   Name = "Procesador de Imágenes";      Tech = "Pipeline Sharp PNG, WEBP, ICO, AVIF" },
-        @{ Id = "07"; Key = "backgroundStudio"; Name = "Estudio & Fondo con IA";      Tech = "Silueta inteligente y edición natural" },
-        @{ Id = "08"; Key = "flux";             Name = "Generación de Imagen IA";     Tech = "FLUX.1-schnell 1024x1024 sin marca" },
-        @{ Id = "09"; Key = "cli";              Name = "Vork CLI & Agentes";          Tech = "Subagentes concurrentes y bucle autónomo" }
+        @{ Id = "03"; Key = "mediaConverter";   Name = "Extracción Multimedia";       Tech = "Descarga de YouTube, TikTok, Reels, IG" },
+        @{ Id = "04"; Key = "separator";        Name = "Aislamiento de Stems Demucs"; Tech = "Separación Acapella/Instrumental (v4)" },
+        @{ Id = "05"; Key = "imageConverter";   Name = "Procesador de Imágenes";      Tech = "Pipeline Sharp PNG, WEBP, ICO, AVIF" },
+        @{ Id = "06"; Key = "backgroundStudio"; Name = "Estudio & Fondo con IA";      Tech = "Silueta inteligente y edición natural" },
+        @{ Id = "07"; Key = "flux";             Name = "Generación de Imagen IA";     Tech = "FLUX.1-schnell 1024x1024 sin marca" },
+        @{ Id = "08"; Key = "cli";              Name = "Vork CLI & Agentes";          Tech = "Subagentes concurrentes y bucle autónomo" }
     )
 
     $metrics = Get-VorkConsoleMetrics
@@ -351,9 +350,9 @@ function Invoke-CmdStatus {
 
     Write-VorkSectionRule
 
-    $statusKind = if ($onlineCount -eq 9) { "ok" } elseif ($onlineCount -gt 0) { "warn" } else { "error" }
-    $statusText = if ($onlineCount -eq 9) {
-        "Estado global: 9/9 pilares operativos y sincronizados en la nube."
+    $statusKind = if ($onlineCount -eq 8) { "ok" } elseif ($onlineCount -gt 0) { "warn" } else { "error" }
+    $statusText = if ($onlineCount -eq 8) {
+        "Estado global: 8/8 pilares operativos y sincronizados en la nube."
     } elseif ($onlineCount -gt 0) {
         "Estado global: $onlineCount/9 pilares operativos. Algunos servicios presentan degradación."
     } else {
@@ -801,6 +800,252 @@ function Invoke-CmdLimites {
     Write-Host ""
 }
 
+
+# ========================================================
+# GESTIÓN UNIFICADA DE MODELOS (VORK + PROVEEDORES SOBERANOS)
+# ========================================================
+
+function Get-VorkAvailableModels {
+    $authFile = Join-Path $HOME ".vork\auth.json"
+    $authData = @{}
+    if (Test-Path $authFile) {
+        try { $authData = Get-Content -Path $authFile -Raw | ConvertFrom-Json } catch { }
+    }
+
+    $models = @(
+        # 1. Modo Automático (Rotación Inteligente)
+        @{
+            Id       = "auto"
+            Name     = "Auto (Rotación Inteligente Soberana)"
+            Provider = "Vork Orchestrator"
+            Badge    = "Recomendado"
+            Desc     = "Elige automáticamente la mejor IA gratis según la tarea y rota si hay pausas"
+            Ctx      = "Auto"
+        },
+
+        # 2. Perfiles Vork
+        @{
+            Id       = "Vork 3.2"
+            Name     = "Vork 3.2 (Expert)"
+            Provider = "Vork Cloud IA"
+            Badge    = "Expert"
+            Desc     = "Motor de razonamiento avanzado y resolución autónoma de código"
+            Ctx      = "128k"
+        },
+        @{
+            Id       = "Vork 3.1"
+            Name     = "Vork 3.1"
+            Provider = "Vork Cloud IA"
+            Badge    = "Medium"
+            Desc     = "Equilibrio óptimo entre velocidad de inferencia y profundidad"
+            Ctx      = "64k"
+        },
+        @{
+            Id       = "Vork 3"
+            Name     = "Vork 3"
+            Provider = "Vork Cloud IA"
+            Badge    = "Low"
+            Desc     = "Inferencia ultraligera para respuestas inmediatas"
+            Ctx      = "32k"
+        },
+
+        # 3. Modelos Soberanos Gratuitos (Sin clave / Free)
+        @{
+            Id       = "nvidia/nemotron-3-ultra-550b"
+            Name     = "nvidia/nemotron-3-ultra-550b"
+            Provider = "Kilo Gateway"
+            Badge    = "Ultra"
+            Desc     = "Razonamiento profundo, código y soberanía de datos"
+            Ctx      = "128k"
+        },
+        @{
+            Id       = "deepseek/deepseek-r1-distill"
+            Name     = "deepseek/deepseek-r1-distill"
+            Provider = "Kilo Gateway"
+            Badge    = "R1"
+            Desc     = "Razonamiento matemático y lógica algorítmica compleja"
+            Ctx      = "128k"
+        },
+        @{
+            Id       = "meta-llama/llama-3.3-70b"
+            Name     = "meta-llama/llama-3.3-70b"
+            Provider = if ($authData.groq) { "Groq (Conectado)" } elseif ($authData.cerebras) { "Cerebras (Conectado)" } else { "Groq / Cerebras" }
+            Badge    = if ($authData.groq -or $authData.cerebras) { "Conectado" } else { "Llama" }
+            Desc     = "Velocidad extrema y multitarea (800+ tokens/seg)"
+            Ctx      = "128k"
+        },
+        @{
+            Id       = "google/gemini-2.0-flash"
+            Name     = "google/gemini-2.0-flash"
+            Provider = if ($authData.gemini) { "Google AI Studio (Conectado)" } else { "Google AI Studio" }
+            Badge    = if ($authData.gemini) { "Conectado" } else { "Flash" }
+            Desc     = "Multimodal nativo, visión y ventana de 1 millón de tokens"
+            Ctx      = "1M"
+        },
+        @{
+            Id       = "mistralai/codestral-2501"
+            Name     = "mistralai/codestral-2501"
+            Provider = if ($authData.mistral) { "Mistral AI (Conectado)" } else { "Mistral AI" }
+            Badge    = if ($authData.mistral) { "Conectado" } else { "Code" }
+            Desc     = "Especialista en desarrollo de software, pruebas y refactor"
+            Ctx      = "256k"
+        },
+        @{
+            Id       = "qwen/qwen-2.5-coder-32b"
+            Name     = "qwen/qwen-2.5-coder-32b"
+            Provider = "Hetzner / SambaNova"
+            Badge    = "Qwen"
+            Desc     = "Arquitectura de software y generación de pruebas unitarias"
+            Ctx      = "128k"
+        },
+        @{
+            Id       = "zhipu/glm-4.7-flash"
+            Name     = "zhipu/glm-4.7-flash"
+            Provider = if ($authData.zai) { "Z.ai (Conectado)" } else { "Z.ai" }
+            Badge    = if ($authData.zai) { "Conectado" } else { "Free" }
+            Desc     = "Inferencia ultraligera sin coste para tareas rápidas"
+            Ctx      = "128k"
+        },
+        @{
+            Id       = "gpt-oss-20b"
+            Name     = "gpt-oss-20b"
+            Provider = "Pollinations"
+            Badge    = "Free"
+            Desc     = "Conversación abierta sin registro con límites por IP"
+            Ctx      = "32k"
+        }
+    )
+
+    # Proveedores adicionales conectados dinámicamente
+    if ($authData.openrouter) {
+        $models += @{
+            Id       = "openrouter/auto:free"
+            Name     = "openrouter/auto:free"
+            Provider = "OpenRouter (Conectado)"
+            Badge    = "Conectado"
+            Desc     = "Rotación multi-proveedor entre todos los modelos :free de OpenRouter"
+            Ctx      = "128k"
+        }
+    }
+    if ($authData.nvidia) {
+        $models += @{
+            Id       = "nvidia/llama-3.1-nemotron-70b-instruct"
+            Name     = "nvidia/llama-3.1-nemotron-70b-instruct"
+            Provider = "NVIDIA NIM (Conectado)"
+            Badge    = "Conectado"
+            Desc     = "Aceleración por hardware NVIDIA para desarrollo y código"
+            Ctx      = "128k"
+        }
+    }
+
+    return $models
+}
+
+function Apply-VorkModelSelection {
+    param($Model)
+
+    $vorkDir = Join-Path $HOME ".vork"
+    if (-not (Test-Path $vorkDir)) { New-Item -ItemType Directory -Path $vorkDir -Force | Out-Null }
+
+    if ($Model.Id -eq "auto") {
+        $global:VorkPinnedModel = $null
+        $global:VorkModel = "Vork 3.2"
+        $global:VorkTier = "expert"
+        try {
+            Remove-Item -Path (Join-Path $vorkDir ".pinned_model") -Force -ErrorAction SilentlyContinue
+            Set-Content -Path (Join-Path $vorkDir ".model") -Value "auto" -Force -Encoding UTF8
+        } catch { }
+
+        Write-VorkSectionHeader -Title "Rotación Inteligente Activada" -Subtitle "motor de inferencia en modo automático" -RightText "vork · model"
+        Write-VorkInfoRow -Label "Modo" -Value "Auto (Rotación Inteligente Soberana)" -ValueColor $Green
+        Write-VorkInfoRow -Label "Estrategia" -Value "Vork seleccionará dinámicamente la mejor IA gratis según la tarea" -ValueColor $Cyan
+        Write-VorkInfoRow -Label "Tolerancia a fallos" -Value "Si un proveedor satura su límite, salta al siguiente sin pausas" -ValueColor $White
+        Write-VorkSectionRule
+        Write-VorkStatusLine -Kind ok -Text "Rotación automática activa. El agente tiene acceso a todos los modelos del catálogo."
+        Write-Host ""
+    } else {
+        $global:VorkPinnedModel = $Model.Id
+        $global:VorkModel = $Model.Name
+        if ($Model.Id -eq "Vork 3") { $global:VorkTier = "low" }
+        elseif ($Model.Id -eq "Vork 3.1") { $global:VorkTier = "medium" }
+        else { $global:VorkTier = "expert" }
+
+        try {
+            Set-Content -Path (Join-Path $vorkDir ".pinned_model") -Value $Model.Id -Force -Encoding UTF8
+            Set-Content -Path (Join-Path $vorkDir ".model") -Value $Model.Id -Force -Encoding UTF8
+            Set-Content -Path (Join-Path $vorkDir ".tier") -Value $global:VorkTier -Force -Encoding UTF8
+        } catch { }
+
+        Write-VorkSectionHeader -Title "Modelo Fijado Exitosamente" -Subtitle "preferencia guardada para la sesión activa y futuras" -RightText "vork · model"
+        Write-VorkInfoRow -Label "Modelo Activo" -Value $Model.Name -ValueColor $Green
+        Write-VorkInfoRow -Label "Proveedor"     -Value $Model.Provider -ValueColor $Cyan
+        Write-VorkInfoRow -Label "Identificador"  -Value $Model.Id -ValueColor $White
+        Write-VorkInfoRow -Label "Persistencia"   -Value "Fijado en ~/.vork/.pinned_model" -ValueColor $Yellow
+        Write-VorkSectionRule
+        Write-VorkStatusLine -Kind ok -Text "Todas las próximas consultas y tareas del agente usarán exclusivamente '$($Model.Name)'."
+        Write-VorkInfoRow -Label "Tip" -Value "Para volver a la rotación automática en cualquier momento, escribe /model auto" -ValueColor $LeadLight
+        Write-Host ""
+    }
+}
+
+function Invoke-CmdModel {
+    param([string[]]$ArgsList)
+
+    $allModels = Get-VorkAvailableModels
+    $userArg = if ($ArgsList -and $ArgsList.Count -gt 0) { ($ArgsList -join " ").Trim().ToLower() } else { "" }
+
+    if ($userArg) {
+        $matched = $null
+        if ($userArg -in @("auto", "rotacion", "inteligente")) {
+            $matched = $allModels | Where-Object { $_.Id -eq "auto" } | Select-Object -First 1
+        } else {
+            $matched = $allModels | Where-Object {
+                $_.Id.ToLower() -eq $userArg -or
+                $_.Name.ToLower() -eq $userArg -or
+                $_.Id.ToLower().Contains($userArg) -or
+                $_.Name.ToLower().Contains($userArg)
+            } | Select-Object -First 1
+        }
+
+        if ($matched) {
+            Apply-VorkModelSelection -Model $matched
+            return
+        }
+    }
+
+    $activeId = if ($global:VorkPinnedModel) { $global:VorkPinnedModel } elseif ($global:VorkModel) { $global:VorkModel } else { "auto" }
+
+    $options = @()
+    $defIdx = 0
+    $idx = 0
+    foreach ($m in $allModels) {
+        $isCurrent = ($m.Id -eq $activeId -or $m.Name -eq $activeId)
+        if ($isCurrent) { $defIdx = $idx }
+        $currTag = if ($isCurrent) { " [ACTIVO]" } else { "" }
+        $options += @{
+            Label       = "$($m.Name)$currTag"
+            Value       = $m.Id
+            Badge       = $m.Badge
+            Description = "$($m.Provider) · $($m.Desc)"
+        }
+        $idx++
+    }
+
+    $chosenId = Select-InteractiveOption -PromptTitle "Selector de Modelo IA (Model Switcher)" -Subtitle "Elige un modelo específico o activa la rotación automática" -Options $options -DefaultIndex $defIdx -Searchable
+
+    if (-not $chosenId) {
+        $elbowChar = [char]0x23BF
+        Write-Host "  ${LeadLight}$elbowChar  Exited /model command${Reset}"
+        Write-Host ""
+        return
+    }
+
+    $chosenObj = $allModels | Where-Object { $_.Id -eq $chosenId } | Select-Object -First 1
+    if ($chosenObj) {
+        Apply-VorkModelSelection -Model $chosenObj
+    }
+}
+
 function Invoke-CmdModels {
     param([string[]]$ArgsList)
     $isRefresh = ($ArgsList -and $ArgsList -contains "refresh")
@@ -810,25 +1055,24 @@ function Invoke-CmdModels {
         Write-VorkStatusLine -Kind info -Text "Buscando modelos gratis nuevos en todos los proveedores..."
     }
 
-    $models = @(
-        @{ Name = "nvidia/nemotron-3-ultra-550b"; Provider = "Kilo Gateway"; Context = "128k";  Caps = "Razonamiento, Código, Soberano" },
-        @{ Name = "deepseek/deepseek-r1-distill"; Provider = "Kilo Gateway"; Context = "128k";  Caps = "Razonamiento matemático y código" },
-        @{ Name = "meta-llama/llama-3.3-70b";    Provider = "Groq / Cerebras"; Context = "128k"; Caps = "Velocidad extrema, Multitarea" },
-        @{ Name = "google/gemini-2.0-flash";     Provider = "Google AI Studio"; Context = "1M";  Caps = "Multimodal nativo, 1M contexto" },
-        @{ Name = "mistralai/codestral-2501";    Provider = "Mistral AI";    Context = "256k"; Caps = "Especialista en desarrollo y pruebas" },
-        @{ Name = "qwen/qwen-2.5-coder-32b";     Provider = "Hetzner / Samba"; Context = "128k"; Caps = "Arquitectura de software y refactor" },
-        @{ Name = "zhipu/glm-4.7-flash";         Provider = "Z.ai";          Context = "128k"; Caps = "Inferencia ultraligera sin coste" },
-        @{ Name = "gpt-oss-20b";                 Provider = "Pollinations";  Context = "32k";  Caps = "Conversación abierta sin registro" }
-    )
+    $allModels = Get-VorkAvailableModels
+    $activeId = if ($global:VorkPinnedModel) { $global:VorkPinnedModel } elseif ($global:VorkModel) { $global:VorkModel } else { "auto" }
 
-    foreach ($m in $models) {
-        Write-VorkInfoRow -Label $m.Name -Value "$($m.Provider)  ·  Ctx: $($m.Context)  ·  $($m.Caps)" -ValueColor $White
+    foreach ($m in $allModels) {
+        if ($m.Id -eq "auto") { continue }
+        $isCurrent = ($m.Id -eq $activeId -or $m.Name -eq $activeId)
+        $statusBadge = if ($isCurrent) { "${Green}${Bold}● EN USO${Reset}" } else { "${LeadLight}○ DISPONIBLE${Reset}" }
+        $ctxStr = if ($m.Ctx) { "Ctx: $($m.Ctx) · " } else { "" }
+        Write-VorkInfoRow -Label $m.Name -Value "$statusBadge  ·  $($m.Provider)  ·  $ctxStr$($m.Desc)" -ValueColor $(if ($isCurrent) { $White } else { $LeadLight })
     }
 
     Write-VorkSectionRule
-    Write-VorkStatusLine -Kind ok -Text "Total: 22 modelos disponibles actualmente. Usa /model para seleccionar tu modelo activo."
+    $activeName = if ($global:VorkPinnedModel) { $global:VorkPinnedModel } else { "Auto (Rotación Inteligente)" }
+    Write-VorkStatusLine -Kind ok -Text "Modelo activo actual: $activeName"
+    Write-VorkInfoRow -Label "Comando" -Value "Usa /model para fijar cualquier modelo o activar /model auto" -ValueColor $Cyan
     Write-Host ""
 }
+
 
 function Invoke-CmdProviders {
     Write-VorkSectionHeader -Title "Proveedores IA Compatibles" -Subtitle "estado de conexión y credenciales (+25 proveedores)" -RightText "vork · providers"
@@ -1260,12 +1504,7 @@ function Invoke-VorkAIChat {
         return
     }
 
-    if ($fullPrompt -match '(?i)\b(clonar voz|clonacion de voz|clonación de voz)\b') {
-        Invoke-PillarClone
-        return
-    }
-
-    $activeModel = if ($global:VorkModel) { $global:VorkModel } else { "Vork 3.1" }
+    $activeModel = if ($global:VorkPinnedModel) { $global:VorkPinnedModel } elseif ($global:VorkModel) { $global:VorkModel } else { "Vork 3.2" }
     $activeTier = if ($activeModel -eq "Vork 3.2") { "expert" } elseif ($global:VorkTier) { $global:VorkTier.ToLower() } else { "medium" }
     $tierLabel = if ($activeTier.Length -gt 1) { $activeTier.Substring(0,1).ToUpper() + $activeTier.Substring(1).ToLower() } else { $activeTier.ToUpper() }
     $tierColor = switch ($activeTier) {
@@ -1280,7 +1519,12 @@ function Invoke-VorkAIChat {
     $nodeCmd = Get-Command "node" -ErrorAction SilentlyContinue
     if ($vorkEnginePath -and $nodeCmd) {
         Write-Host ""
-        & $nodeCmd.Source "$vorkEnginePath" "run" "$fullPrompt"
+        $runArgs = @("$vorkEnginePath", "run")
+        if ($global:VorkPinnedModel) {
+            $runArgs += @("-m", $global:VorkPinnedModel)
+        }
+        $runArgs += $fullPrompt
+        & $nodeCmd.Source @runArgs
         Write-Host ""
         Save-VorkConversationRecord -Cmd $fullPrompt -Output "Tarea completada por Vork AI Agent."
         return

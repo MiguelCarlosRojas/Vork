@@ -144,14 +144,9 @@
               <td>Audiolibros, asistentes virtuales, accesibilidad auditiva y doblaje dinámico.</td>
               <td>24 voces humanas neuronales, modulación de velocidad y tono, entrega en buffer WAV / MP3.</td>
             </tr>
+            
             <tr>
-              <td><strong>Pilar 3: Clonación de Voz (IA)</strong></td>
-              <td>REST POST <code>/api/voice-clone</code> (multipart/form-data o Base64).</td>
-              <td>Locución personalizada con timbre propio, podcasts sintéticos y agentes de voz corporativos.</td>
-              <td>Extracción bio-acústica de formantes (F0), síntesis de alta fidelidad PCM 16-bit descargable.</td>
-            </tr>
-            <tr>
-              <td><strong>Pilar 4: Conversor Multimedia</strong></td>
+              <td><strong>Pilar 3: Conversor Multimedia</strong></td>
               <td>REST POST <code>/api/media/convert</code> e inspección POST <code>/api/media/info</code>.</td>
               <td>Extracción de audio de videos, conversión a MP3 hasta 320 kbps y video MP4 hasta 1080p.</td>
               <td>Soporta YouTube, TikTok sin marca, Instagram, Facebook y Twitter; modo lote de hasta 10 URLs.</td>
@@ -528,39 +523,8 @@ fetch("https://vork-st1k.onrender.com/api/tts/voices")
     </div>
     </article>
 
-    <!-- Módulo 6: Integración Pilar 3 - Clonación de Voz con IA -->
-    <article class="content-box-card">
-      <span class="tech-card-tag">[ 06 // VOICE_CLONE_INTEGRATION ]</span>
-      <h2>6. Integración del Pilar 3: Clonación de Voz con IA</h2>
-      <p>
-        Envía una muestra vocal (grabada o archivo) junto al texto a narrar para obtener una réplica tímbrica en PCM 16-bit:
-      </p>
-
-      <div class="code-box-wrapper">
-      <div class="code-box-header">
-        <span>NODE.JS (FORMDATA / AXIOS) / CLONACIÓN VOCAL</span>
-        <button class="btn-copy" onclick="copiarAlPortapapeles(this, 'code-learn-clone')">Copiar</button>
-      </div>
-      <pre class="code-panel" id="code-learn-clone">const axios = require("axios");
-const FormData = require("form-data");
-const fs = require("fs");
-
-async function clonarVoz(rutaAudioMuestra, guionTexto) {
-  const form = new FormData();
-  form.append("sample", fs.createReadStream(rutaAudioMuestra));
-  form.append("text", guionTexto);
-  form.append("stability", "0.75");
-
-  const res = await axios.post("https://vork-st1k.onrender.com/api/voice-clone", form, {
-    headers: form.getHeaders(),
-    responseType: "arraybuffer"
-  });
-
-  fs.writeFileSync("audio_clonado.wav", res.data);
-  console.log("Audio sintetizado con tu voz guardado en audio_clonado.wav");
-}</pre>
-    </div>
-    </article>
+    
+    
 
     <!-- Módulo 7: Integración Pilar 4 - Conversor Multimedia (MP3 / MP4) -->
     <article class="content-box-card">

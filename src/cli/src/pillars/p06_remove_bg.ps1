@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Pilar 07: Vork Estudio y Fondo IA (Aislamiento de Silueta Neuronal)
+    Pilar 06: Vork Estudio y Fondo IA (Aislamiento de Silueta Neuronal)
 #>
 
 function Invoke-PillarRemoveBg {

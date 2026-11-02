@@ -3,7 +3,7 @@
 
 ## Nuestro Compromiso
 
-Nosotros, como miembros, contribuyentes y líderes del proyecto **Vork** — ecosistema unificado para traducción en la nube por lotes, texto a voz (TTS), clonación de voz por IA y conversor universal multimedia MP3/MP4 —, nos comprometemos a hacer que la participación en nuestra comunidad y el uso ético de nuestras herramientas sea una experiencia libre de acoso para todas las personas, independientemente de su edad, tamaño corporal, discapacidad visible o invisible, origen étnico, características sexuales, identidad y expresión de género, nivel de experiencia, educación, nivel socioeconómico, nacionalidad, apariencia personal, raza, casta, color, religión o identidad y orientación sexual.
+Nosotros, como miembros, contribuyentes y líderes del proyecto **Vork** — ecosistema unificado para traducción en la nube por lotes, texto a voz (TTS) y conversor universal multimedia MP3/MP4 —, nos comprometemos a hacer que la participación en nuestra comunidad y el uso ético de nuestras herramientas sea una experiencia libre de acoso para todas las personas, independientemente de su edad, tamaño corporal, discapacidad visible o invisible, origen étnico, características sexuales, identidad y expresión de género, nivel de experiencia, educación, nivel socioeconómico, nacionalidad, apariencia personal, raza, casta, color, religión o identidad y orientación sexual.
 
 Nos comprometemos a actuar e interactuar de formas que contribuyan a una comunidad abierta, acogedora, diversa, inclusiva y saludable.
 

@@ -171,24 +171,7 @@
           </div>
         </div>
 
-        <!-- Sesión 04 -->
-        <div class="docs-sidebar-group">
-          <span class="docs-group-label">04 / Pilar 3: Clonación Vocal IA</span>
-          <a href="#session-pilar-3" class="docs-sidebar-session" data-target="session-pilar-3">
-            <span class="session-badge">S.04</span> Biometría Acústica [ALPHA]
-          </a>
-          <div class="docs-sidebar-subsessions">
-            <a href="#sub-p3-spectral-f0" class="docs-sidebar-sublink" data-target="sub-p3-spectral-f0">
-              <span class="sub-num">4.1</span> Detección Espectral F0 y ZCR
-            </a>
-            <a href="#sub-p3-timbre-mapping" class="docs-sidebar-sublink" data-target="sub-p3-timbre-mapping">
-              <span class="sub-num">4.2</span> Huella Vocal y Pitch Shifting
-            </a>
-            <a href="#sub-p3-alpha-status" class="docs-sidebar-sublink" data-target="sub-p3-alpha-status">
-              <span class="sub-num">4.3</span> Alcance Autónomo sin APIs
-            </a>
-          </div>
-        </div>
+        
 
         <!-- Sesión 05 -->
         <div class="docs-sidebar-group">
@@ -345,8 +328,7 @@
             <li><a href="#session-architecture" style="font-weight: 700; color: #fff;">S.01 // Arquitectura Global &amp; Filosofía</a></li>
             <li><a href="#session-pilar-1" style="font-weight: 700; color: #fff;">S.02 // Pilar 1: Traductor en la Nube</a></li>
             <li><a href="#session-pilar-2" style="font-weight: 700; color: #fff;">S.03 // Pilar 2: Texto a Voz (TTS)</a></li>
-            <li><a href="#session-pilar-3" style="font-weight: 700; color: #fff;">S.04 // Pilar 3: Clonación Vocal IA [ALPHA]</a></li>
-            <li><a href="#session-pilar-4" style="font-weight: 700; color: #fff;">S.05 // Pilar 4: Conversor Multimedia</a></li>
+                        <li><a href="#session-pilar-4" style="font-weight: 700; color: #fff;">S.05 // Pilar 4: Conversor Multimedia</a></li>
             <li><a href="#session-pilar-6" style="font-weight: 700; color: #fff;">S.06 // Pilar 5: Separador de Voz e Instrumental</a></li>
             <li><a href="#session-pilar-7" style="font-weight: 700; color: #fff;">S.07 // Pilar 6: Vork DJ Mezclador en Vivo</a></li>
             <li><a href="#session-sdk" style="font-weight: 700; color: #fff;">S.08 // Integración Frontend SDK</a></li>
@@ -628,95 +610,15 @@
         </article>
       </section>
 
-      <!-- ========================================================================= -->
-      <!-- SESIÓN 04: PILAR 3 - CLONACIÓN DE VOZ POR IA (BIOMETRÍA ACÚSTICA)         -->
-      <!-- ========================================================================= -->
-      <section class="docs-section" id="session-pilar-3">
-        <div class="section-full-title">
-          <span class="session-badge">SESIÓN 04</span>
-          <h2>Pilar 3: Clonación de Voz por IA (Bio-Acoustic Voice Clone) <span class="badge" style="background: rgba(234, 179, 8, 0.15); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.4); font-size: 0.8rem; font-weight: 800; padding: 2px 8px; border-radius: 4px; vertical-align: middle;">ALPHA</span></h2>
-          <p>Identificación biométrica espectral, estimación de frecuencia fundamental y re-síntesis tonal.</p>
-        </div>
-
-        <article class="docs-subsection" id="sub-p3-spectral-f0">
-          <h3>4.1 Detección Espectral de F0 y Tasa de Cruces por Cero (ZCR)</h3>
-          <p>
-            Al recibir una muestra de voz en audio PCM/WAV (grabada con el micrófono o subida en archivo), el analizador calcula:
-          </p>
-          <ul style="margin-left: 20px; line-height: 1.8; color: var(--text-secondary);">
-            <li><strong>Tasa de Cruces por Cero (Zero Crossing Rate):</strong> Diferenciación entre consonantes no vocalizadas (alta frecuencia / ruido fricativo) y vocales resonantes.</li>
-            <li><strong>Autocorrelación Espectral:</strong> Detección del desfase de periodicidad en muestras de audio para determinar con exactitud la frecuencia fundamental F0 en Hertz (Hz) de la persona grabada.</li>
-            <li><strong>Clasificación Vocal:</strong> Mapeo de la frecuencia detectada hacia rangos vocales estandarizados (Bajo: 85-115 Hz, Barítono: 115-145 Hz, Tenor: 145-180 Hz, Contralto: 165-210 Hz, Mezzosoprano: 210-250 Hz, Soprano: 250-320 Hz).</li>
-          </ul>
-        </article>
-
-        <article class="docs-subsection" id="sub-p3-timbre-mapping">
-          <h3>4.2 Huella Vocal y Pitch Shifting Adaptativo</h3>
-          <p>
-            Durante la síntesis del guion solicitado, el generador toma las características extraídas y aplica una relación de desplazamiento de tono <code>pitchRatio = userF0 / targetF0</code> junto con un banco de armónicos filtrados. El resultado sintetizado hereda la tesitura, brillo y calidez de la persona original, entregando un archivo de audio WAV PCM personalizado.
-          </p>
-        </article>
-
-        <article class="docs-subsection" id="sub-p3-alpha-status">
-          <div class="table-responsive">
-            <table class="docs-table">
-              <thead>
-                <tr>
-                  <th>Rango F0 Fundamental</th>
-                  <th>Clasificación Biométrica</th>
-                  <th>Tasa Cruces por Cero (ZCR)</th>
-                  <th>Ajuste de Pitch Shifter</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>85 &mdash; 115 Hz</td>
-                  <td>Bajo Profundo</td>
-                  <td>&lt; 0.12 (baja fricción)</td>
-                  <td>Factor de escala 0.70x &mdash; 0.85x</td>
-                </tr>
-                <tr>
-                  <td>115 &mdash; 145 Hz</td>
-                  <td>Barítono Natural</td>
-                  <td>0.12 &mdash; 0.18</td>
-                  <td>Factor de escala 0.85x &mdash; 1.00x</td>
-                </tr>
-                <tr>
-                  <td>145 &mdash; 180 Hz</td>
-                  <td>Tenor Lírico</td>
-                  <td>0.18 &mdash; 0.24</td>
-                  <td>Factor de escala 1.00x &mdash; 1.15x</td>
-                </tr>
-                <tr>
-                  <td>180 &mdash; 220 Hz</td>
-                  <td>Contralto Femenino</td>
-                  <td>0.24 &mdash; 0.30</td>
-                  <td>Factor de escala 1.15x &mdash; 1.30x</td>
-                </tr>
-                <tr>
-                  <td>220 &mdash; 270 Hz</td>
-                  <td>Mezzosoprano / Soprano</td>
-                  <td>&gt; 0.30 (alta resonancia)</td>
-                  <td>Factor de escala 1.30x &mdash; 1.50x</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <h3>4.3 Alcance Autónomo sin Dependencias de Terceros</h3>
-          <p>
-            El motor de clonación vocal de Vork es <strong>100% propietario y autosuficiente</strong>: opera dentro del entorno Node.js sin enviar la muestra de audio a servicios externos ni requerir suscripciones de terceros. Su etiqueta <code>ALPHA</code> refleja el trabajo continuo en la optimización de los formantes dinámicos de dicción rápida.
-          </p>
-        </article>
-      </section>
+      
 
       <!-- ========================================================================= -->
-      <!-- SESIÓN 05: PILAR 4 - CONVERSOR MULTIMEDIA UNIVERSAL                      -->
+      <!-- SESIÓN 04: PILAR 3 - CONVERSOR MULTIMEDIA UNIVERSAL                      -->
       <!-- ========================================================================= -->
       <section class="docs-section" id="session-pilar-4">
         <div class="section-full-title">
-          <span class="session-badge">SESIÓN 05</span>
-          <h2>Pilar 4: Conversor Multimedia Universal (MP3 / MP4)</h2>
+          <span class="session-badge">SESIÓN 04</span>
+          <h2>Pilar 3: Conversor Multimedia Universal (MP3 / MP4)</h2>
           <p>Pipeline de extracción desacoplada, transcodificación a 320 kbps y proxy de miniaturas.</p>
         </div>
 

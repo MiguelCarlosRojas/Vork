@@ -23,7 +23,6 @@
         if (p.startsWith("/status")) return "status";
         if (p.startsWith("/translator")) return "translator";
         if (p.startsWith("/tts")) return "tts";
-        if (p.startsWith("/voice-clone")) return "voice-clone";
         if (p.startsWith("/converter") || p.startsWith("/media")) return "converter";
         if (p.startsWith("/vocal-remover") || p.startsWith("/separator") || p.startsWith("/stems")) return "vocal-remover";
         if (p.startsWith("/image-converter") || p.startsWith("/img")) return "image-converter";
@@ -127,17 +126,16 @@
 
   <div class="drawer-body">
     <div class="drawer-section">
-      <span class="drawer-title">LOS 9 PILARES DE VORK</span>
+      <span class="drawer-title">LOS 8 PILARES DE VORK</span>
       <ul class="drawer-menu">
         <li><a href="/translator" class="${active === "translator" ? "active" : ""}"><span class="nav-num">01</span> Traductor en la Nube</a></li>
         <li><a href="/tts" class="${active === "tts" ? "active" : ""}"><span class="nav-num">02</span> Texto a Voz (TTS)</a></li>
-        <li><a href="/voice-clone" class="${active === "voice-clone" ? "active" : ""}"><span class="nav-num">03</span> Clonación de Voz IA</a></li>
-        <li><a href="/converter" class="${active === "converter" ? "active" : ""}"><span class="nav-num">04</span> Conversor Multimedia</a></li>
-        <li><a href="/vocal-remover" class="${active === "vocal-remover" ? "active" : ""}"><span class="nav-num">05</span> Separador de Stems</a></li>
-        <li><a href="/image-converter" class="${active === "image-converter" ? "active" : ""}"><span class="nav-num">06</span> Procesador de Imágenes</a></li>
-        <li><a href="/background-remover" class="${active === "background-remover" ? "active" : ""}"><span class="nav-num">07</span> Estudio y Fondo IA</a></li>
-        <li><a href="/draw" class="${active === "draw" || active === "image-generator" ? "active" : ""}"><span class="nav-num">08</span> Generador de Imágenes IA</a></li>
-        <li><a href="/cli" class="${active === "cli" ? "active" : ""}"><span class="nav-num">09</span> Vork CLI & Agentes</a></li>
+        <li><a href="/converter" class="${active === "converter" ? "active" : ""}"><span class="nav-num">03</span> Conversor Multimedia</a></li>
+        <li><a href="/vocal-remover" class="${active === "vocal-remover" ? "active" : ""}"><span class="nav-num">04</span> Separador de Stems</a></li>
+        <li><a href="/image-converter" class="${active === "image-converter" ? "active" : ""}"><span class="nav-num">05</span> Procesador de Imágenes</a></li>
+        <li><a href="/background-remover" class="${active === "background-remover" ? "active" : ""}"><span class="nav-num">06</span> Estudio y Fondo IA</a></li>
+        <li><a href="/draw" class="${active === "draw" || active === "image-generator" ? "active" : ""}"><span class="nav-num">07</span> Generador de Imágenes IA</a></li>
+        <li><a href="/cli" class="${active === "cli" ? "active" : ""}"><span class="nav-num">08</span> Vork CLI & Agentes</a></li>
       </ul>
     </div>
 
@@ -169,7 +167,7 @@
         <span class="brand-logo-mark"><img src="/img/logo.png" alt="Vork Logo" class="brand-img" width="36" height="36"></span>
         <span>vork<i>.</i></span>
       </h4>
-      <p>Ecosistema cloud multimodal de alto rendimiento: traducción neuronal distribuida (+200 idiomas), Voz Neuronal TTS, Clonación Vocal IA, Conversor Multimedia Universal MP3/MP4, Separador de Stems, Procesador de Imágenes, Estudio de Fondo IA, Generador de Imágenes FLUX.1 y Vork CLI con Agentes Autónomos.</p>
+      <p>Ecosistema cloud multimodal de alto rendimiento: traducción neuronal distribuida (+200 idiomas), Voz Neuronal TTS, Conversor Multimedia Universal MP3/MP4, Separador de Stems, Procesador de Imágenes, Estudio de Fondo IA, Generador de Imágenes FLUX.1 y Vork CLI con Agentes Autónomos.</p>
       <p style="font-size: 0.85rem; color: var(--muted); margin-top: 14px; display: flex; align-items: center; gap: 8px;">
         <span class="pulse"></span>
         <span>Microservicio autónomo activo • <b>v3.0.0 ONLINE</b></span>
@@ -179,7 +177,7 @@
     <div class="footer-col">
       <h4>Servicios</h4>
       <ul>
-        <li><a href="/voice-clone" class="${active === "voice-clone" ? "active" : ""}">Clonación de Voz IA</a></li>
+        <li><a href="/converter" class="${active === "converter" ? "active" : ""}">Conversor Multimedia</a></li>
         <li><a href="/image-converter" class="${active === "image-converter" ? "active" : ""}">Procesador de Imágenes</a></li>
         <li><a href="/background-remover" class="${active === "background-remover" ? "active" : ""}">Estudio de Fondo IA</a></li>
         <li><a href="/draw" class="${active === "draw" ? "active" : ""}">Generador de Imágenes IA</a></li>

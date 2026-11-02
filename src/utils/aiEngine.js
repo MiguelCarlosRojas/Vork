@@ -713,48 +713,47 @@ function detectCommandOrPillarIntent({ query, model, effort }) {
       `• **Modulación:** Modulación prosódica de pitch y tasa de elocución natural.`;
   }
 
-  // Pilar 03: Clonación de Voz
-  if (q.includes("clonar voz") || q.includes("clonacion") || q.includes("clonación") || q.includes("clonar audio")) {
-    return `### [03] Clonación Vocal IA & Modelado F0 · ${model} (${effort.toUpperCase()})\n\n` +
-      `Extrae el timbre vocal de una muestra de audio y sintetiza cualquier texto con ese tono:\n` +
-      `\`\`\`powershell\nvork clone -Audio muestra.wav -Text "<nuevo_guion>"\n\`\`\`\n\n` +
-      `• **Pipeline:** Extracción de espectrograma de mel y modelado tímbrico F0 en el backend de Vork.`;
-  }
-
-  // Pilar 04: Multimedia (YouTube, TikTok, Reels)
+  // Pilar 03: Multimedia (YouTube, TikTok, Reels)
   if (q.includes("descargar video") || q.includes("bajar video") || q.includes("convertir video") || q.includes("youtube a mp3") || q.includes("tiktok") || q.includes("reels")) {
-    return `### [04] Conversor Multimedia Universal · ${model} (${effort.toUpperCase()})\n\n` +
+    return `### [03] Conversor Multimedia Universal · ${model} (${effort.toUpperCase()})\n\n` +
       `Descarga y transcodificación directa desde YouTube, TikTok, Instagram y Twitter:\n` +
       `\`\`\`powershell\nvork media "<url>" -Format <mp3|mp4|wav> -Quality <320|1080>\n\`\`\`\n\n` +
       `• **Menú Interactivo:** Cuenta con 9 opciones de salida (Guardar Local, Descargar a Carpeta, Abrir Stream de Video, Abrir Stream de Música).`;
   }
 
-  // Pilar 05: Separador de Stems
+  // Pilar 04: Separador de Stems
   if (/(separ.*(voz|pista|stem|musica|música|cancion|canción)|quitar.*(voz|musica|música)|aislar.*(voz|instrumental)|karaoke|acapella|stems?)/i.test(q)) {
-    return `### [05] Separador de Stems con Demucs v4 · ${model} (${effort.toUpperCase()})\n\n` +
+    return `### [04] Separador de Stems con Demucs v4 · ${model} (${effort.toUpperCase()})\n\n` +
       `Aislamiento espectral con la red neuronal Demucs v4 de Meta:\n` +
       `\`\`\`powershell\nvork separate <archivo_o_url> [-Mode 2stems|4stems]\n\`\`\`\n\n` +
       `• **2 Stems:** Vocals (Acapella) + Instrumental (Karaoke).\n` +
       `• **4 Stems:** Vocals, Drums, Bass, Other.`;
   }
 
-  // Pilar 07: Imágenes
+  // Pilar 05: Procesador de Imágenes
   if (q.includes("convertir imagen") || q.includes("formato de imagen") || q.includes("pasar a webp") || q.includes("pasar a png")) {
-    return `### [07] Conversor de Imágenes Universal · ${model} (${effort.toUpperCase()})\n\n` +
+    return `### [05] Procesador de Imágenes Universal · ${model} (${effort.toUpperCase()})\n\n` +
       `Conversión gráfica multiformato de alta velocidad:\n` +
       `\`\`\`powershell\nvork image <archivo> -Format <png|jpg|webp|ico|avif> [-Quality 90]\n\`\`\``;
   }
 
-  // Pilar 08: Quitar Fondo
+  // Pilar 06: Estudio y Fondo IA
   if (q.includes("quitar fondo") || q.includes("eliminar fondo") || q.includes("fondo transparente") || q.includes("remove-bg")) {
-    return `### [08] Estudio de Fondo IA (Silueta) · ${model} (${effort.toUpperCase()})\n\n` +
+    return `### [06] Estudio y Fondo IA (Silueta) · ${model} (${effort.toUpperCase()})\n\n` +
       `Segmentación alpha para siluetas transparentes:\n` +
       `\`\`\`powershell\nvork remove-bg <archivo.jpg> -Out <limpia.png>\n\`\`\``;
   }
 
-  // Pilar 09 & Agentes: Planificación y Metas
+  // Pilar 07: Generador de Imágenes IA
+  if (q.includes("generar imagen") || q.includes("crear imagen") || q.includes("dibujar") || q.includes("flux") || q.includes("draw")) {
+    return `### [07] Generador de Imágenes IA (FLUX.1) · ${model} (${effort.toUpperCase()})\n\n` +
+      `Generación visual fotorrealista sin marcas de agua:\n` +
+      `\`\`\`powershell\nvork draw "<prompt_o_descripcion>" [-Ratio 1:1|16:9|9:16|4:3]\n\`\`\``;
+  }
+
+  // Pilar 08 & Agentes: Planificación y Metas
   if (q.includes("planificar") || q.includes("crear plan") || q.includes("modo autonomo") || q.includes("meta:") || q.includes("goal")) {
-    return `### [09] Planificador Cognitivo & Modo Autónomo · ${model} (${effort.toUpperCase()})\n\n` +
+    return `### [08] Planificador Cognitivo & Modo Autónomo · ${model} (${effort.toUpperCase()})\n\n` +
       `Desglose de tareas paso a paso y orquestación continua:\n` +
       `\`\`\`powershell\nvork /plan "<descripcion_del_proyecto>"\nvork /goal "<meta_autonoma>"\n\`\`\``;
   }
@@ -1381,7 +1380,7 @@ async function processAIChat({ message, messages, model = "Vork 3.1", effort = "
         `El cluster en la nube de Vork se encuentra en estado de máxima disponibilidad con los siguientes canales listos:\n` +
         `1. **Canal de Desarrollo:** Análisis de arquitectura, APIs, microservicios, algoritmos y depuración.\n` +
         `2. **Canal de Procesamiento Multimedia (Pilar 04):** Descarga, transcodificación a MP3/MP4, extracción de audio y compresión.\n` +
-        `3. **Canal de Audio Neuronal (Pilares 02, 03, 05):** Síntesis TTS (24 voces humanas), clonación F0 y separación de stems (Demucs v4).\n` +
+        `3. **Canal de Audio Neuronal (Pilares 02 y 04):** Síntesis TTS (24 voces humanas) y separación de stems (Demucs v4).\n` +
         `4. **Canal de Visión & Silueta (Pilares 07, 08):** Conversión universal de imágenes y eliminación de fondos.\n\n` +
         `Envía tu consulta técnica o código y lo procesaremos de inmediato.`;
     } else {
@@ -1591,7 +1590,7 @@ async function processAIChat({ message, messages, model = "Vork 3.1", effort = "
       `**Diagnóstico & Arquitectura:**\n` +
       `1. **Plan de Acción:** Para abordar este requerimiento de forma óptima, se recomienda estructurar el flujo en fases iterativas (diseño modular, desarrollo de componentes y validación de rendimiento).\n` +
       `2. **Herramientas y Estándares:** Empleo de tecnologías modernas, desacoplamiento de dependencias y optimización en producción.\n` +
-      `3. **Capacidades Operativas:** Puedes solicitar generación de código completa, transcodificación multimedia con los 9 pilares (/media, /tts, /draw, /clone) o consultas en tiempo real.\n\n` +
+      `3. **Capacidades Operativas:** Puedes solicitar generación de código completa, transcodificación multimedia con los 8 pilares (/media, /tts, /draw, /separate, /image) o consultas en tiempo real.\n\n` +
       `Indica si deseas que detallemos el código fuente, la estructura de archivos o la integración técnica.`;
   }
 

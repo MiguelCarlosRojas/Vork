@@ -1,7 +1,7 @@
 {
   "name": "vork",
   "version": "3.0.0",
-  "description": "Microservicio y API REST de alto rendimiento en Node.js y Express para traducción en la nube por lotes, TTS neuronal, clonación vocal IA, conversor multimedia universal, separación de stems, Vork DJ, imágenes con IA y Vork CLI, desplegado en Render.",
+  "description": "Microservicio y API REST de alto rendimiento en Node.js y Express para traducción en la nube por lotes, TTS neuronal, conversor multimedia universal, separación de stems, imágenes con IA y Vork CLI, desplegado en Render.",
   "main": "src/server.js",
   "engines": {
     "node": ">=22.0.0"

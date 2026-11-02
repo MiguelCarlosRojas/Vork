@@ -176,70 +176,62 @@ exports.getCliInfo = (req, res) => {
       },
       {
         pillar: 3,
-        name: "Vork Clonación de Voz con IA",
-        cliCommand: "vork clone --audio <muestra> --text <guion>",
-        endpoint: "POST /api/voice-clone",
-        description: "Extracción fundamental F0 y recreación espectral de timbre"
-      },
-      {
-        pillar: 4,
         name: "Vork Conversor Multimedia Universal",
         cliCommand: "vork media <url> --format <mp3|mp4>",
         endpoint: "POST /api/media/convert",
         description: "Conversión de YouTube, TikTok, Instagram, Twitter a MP3/MP4"
       },
       {
-        pillar: 5,
+        pillar: 4,
         name: "Vork Separador de Stems",
         cliCommand: "vork separate <url_o_archivo>",
         endpoint: "POST /api/separator/process",
         description: "Extracción de stems Acapella y Karaoke con Meta Demucs v4"
       },
       {
-        pillar: 6,
-        name: "Vork DJ Mezclador en Vivo",
-        cliCommand: "vork dj <url>",
-        endpoint: "GET /dj",
-        description: "Mezcla virtual con doble tornamesa, crossfader y cola interactiva"
-      },
-      {
-        pillar: 7,
-        name: "Vork Conversor de Formatos de Imagen",
+        pillar: 5,
+        name: "Vork Procesador de Imágenes",
         cliCommand: "vork image <archivo> --format <png|jpg|webp|ico>",
         endpoint: "POST /api/image/convert",
         description: "Conversión universal entre PNG, JPG, WEBP, GIF, BMP, TIFF e ICO"
       },
       {
-        pillar: 8,
-        name: "Vork Estudio y Eliminador de Fondo IA",
-        cliCommand: "vork remove-bg <archivo> --mode <transparent|creative>",
+        pillar: 6,
+        name: "Vork Estudio y Fondo IA",
+        cliCommand: "vork remove-bg <archivo>",
         endpoint: "POST /api/image/remove-background",
-        description: "Aislamiento de silueta U2-Net y composición generativa libre"
+        description: "Aislamiento de silueta U2-Net y fondos creativos"
       },
       {
-        pillar: 9,
+        pillar: 7,
+        name: "Vork Generador de Imágenes IA",
+        cliCommand: "vork /draw <prompt>",
+        endpoint: "POST /api/image/generate",
+        description: "Generación fotorrealista con FLUX.1 sin marcas de agua"
+      },
+      {
+        pillar: 8,
         name: "Vork CLI & Agentes Autónomos",
-        cliCommand: "vork agents / vork tui",
+        cliCommand: "vork /agents / /tui",
         endpoint: "GET /api/cli/info",
         description: "Orquestación por terminal de agentes y tareas paralelas"
       }
     ],
     commands: [
-      { command: "vork", description: "Comando principal para invocar cualquiera de los 9 pilares" },
+      { command: "vork", description: "Comando principal para invocar cualquiera de los 8 pilares" },
       { command: "vk", description: "Alias ultracorto del comando vork" },
       { command: "vork-cli", description: "Inicia la interfaz interactiva (TUI) con agentes y subagentes" }
     ],
     slashCommands: [
-      // 1. Pilares Operacionales (9)
+      // 1. Pilares Operacionales (8)
       { name: "/translate", category: "Pilares", description: "Pilar 01: Traducción neuronal por lotes en +200 idiomas" },
       { name: "/tts", category: "Pilares", description: "Pilar 02: Síntesis de voz con 24 voces neuronales humanas" },
-      { name: "/clone", category: "Pilares", description: "Pilar 03: Clonación vocal IA y modelado espectral F0" },
-      { name: "/media", category: "Pilares", description: "Pilar 04: Conversión multimedia de YouTube, TikTok, IG a MP3/MP4" },
-      { name: "/separate", category: "Pilares", description: "Pilar 05: Aislamiento de Stems Acapella y Karaoke con Demucs v4" },
-      { name: "/dj", category: "Pilares", description: "Pilar 06: Mezclador virtual en vivo con grafos Web Audio" },
-      { name: "/image", category: "Pilares", description: "Pilar 07: Conversión universal PNG, JPG, WEBP, ICO, AVIF" },
-      { name: "/remove-bg", category: "Pilares", description: "Pilar 08: Silueta inteligente y eliminación de fondo IA" },
-      { name: "/agents", category: "Pilares", description: "Pilar 09: Orquestación de subagentes en terminal interactiva" },
+      { name: "/media", category: "Pilares", description: "Pilar 03: Conversión multimedia de YouTube, TikTok, IG a MP3/MP4" },
+      { name: "/separate", category: "Pilares", description: "Pilar 04: Aislamiento de Stems Acapella y Karaoke con Demucs v4" },
+      { name: "/image", category: "Pilares", description: "Pilar 05: Conversión universal PNG, JPG, WEBP, ICO, AVIF" },
+      { name: "/remove-bg", category: "Pilares", description: "Pilar 06: Silueta inteligente y eliminación de fondo IA" },
+      { name: "/draw", category: "Pilares", description: "Pilar 07: Generador fotorrealista FLUX.1 libre de marcas de agua" },
+      { name: "/agents", category: "Pilares", description: "Pilar 08: Orquestación de subagentes en terminal interactiva" },
 
       // 2. Agentes Autónomos & Planificación IA (8)
       { name: "/goal", category: "Agentes", description: "Modo autónomo continuo para resolución de tareas exhaustivas" },
