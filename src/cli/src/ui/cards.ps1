@@ -1612,9 +1612,36 @@ function Write-VorkSettingsFrame {
             $prefix = if ($isSelected) { "${Cyan}${Bold}$([char]0x25B8)${Reset} " } else { "  " }
             $label = if ($isSelected) { "${White}${Bold}$($item.Label)${Reset}" } else { "${White}$($item.Label)${Reset}" }
             $value = if ($isSelected) { "${Cyan}${Bold}$($item.Value)${Reset}" } else { "${LeadLight}$($item.Value)${Reset}" }
-            $rawLine = $(if ($isSelected) { "$([char]0x25B8) " } else { "  " }) + "$($item.Label)  $($item.Value)"
-            $itemPad = [Math]::Max(0, $inner - (Get-VorkDisplayWidth $rawLine))
-            Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${Lead}$([char]0x2502)${Reset} $prefix$label  $value$([string]::new(' ', $itemPad)) ${Lead}$([char]0x2502)${Reset}"
+
+            $descText = ""
+            if ($isSelected -and $item.Desc) {
+                $curVal = [string]$item.Value
+                if ($item.Desc -is [hashtable] -and $item.Desc.ContainsKey($curVal)) {
+                    $descText = [string]$item.Desc[$curVal]
+                } elseif ($item.Desc -is [string]) {
+                    $descText = [string]$item.Desc
+                }
+            }
+
+            $rawBase = $(if ($isSelected) { "$([char]0x25B8) " } else { "  " }) + "$($item.Label)  $($item.Value)"
+            $styledBase = "$prefix$label  $value"
+
+            if ($descText) {
+                $avail = $inner - (Get-VorkDisplayWidth $rawBase) - 4
+                if ($avail -gt 6) {
+                    $truncatedDesc = Limit-VorkAnsiText -Text $descText -MaxWidth $avail -Ellipsis "..."
+                    $descPart = "  ${LeadLight}$([char]0x00B7) $truncatedDesc${Reset}"
+                    $rawLine = "$rawBase  $([char]0x00B7) $truncatedDesc"
+                    $itemPad = [Math]::Max(0, $inner - (Get-VorkDisplayWidth $rawLine))
+                    Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${Lead}$([char]0x2502)${Reset} $styledBase$descPart$([string]::new(' ', $itemPad)) ${Lead}$([char]0x2502)${Reset}"
+                } else {
+                    $itemPad = [Math]::Max(0, $inner - (Get-VorkDisplayWidth $rawBase))
+                    Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${Lead}$([char]0x2502)${Reset} $styledBase$([string]::new(' ', $itemPad)) ${Lead}$([char]0x2502)${Reset}"
+                }
+            } else {
+                $itemPad = [Math]::Max(0, $inner - (Get-VorkDisplayWidth $rawBase))
+                Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${Lead}$([char]0x2502)${Reset} $styledBase$([string]::new(' ', $itemPad)) ${Lead}$([char]0x2502)${Reset}"
+            }
         } else {
             $blankPad = [string]::new(' ', $inner)
             Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${Lead}$([char]0x2502)${Reset} $blankPad ${Lead}$([char]0x2502)${Reset}"
@@ -1622,21 +1649,9 @@ function Write-VorkSettingsFrame {
         $row++
     }
 
-    # Linea de descripcion corta dinamica segun el item seleccionado
-    $desc = ""
-    if ($FilteredKeys.Count -gt 0 -and $Selected -lt $FilteredKeys.Count) {
-        $desc = [string]$SettingsData[$FilteredKeys[$Selected]].Desc
-    }
-
-    if ($desc) {
-        $maxDescWidth = [Math]::Max(10, $inner - 2)
-        $cleanDesc = Limit-VorkAnsiText -Text $desc -MaxWidth $maxDescWidth -Ellipsis "..."
-        $descPad = [Math]::Max(0, $inner - (Get-VorkDisplayWidth $cleanDesc))
-        Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${Lead}$([char]0x2502)${Reset} ${LeadLight}$cleanDesc${Reset}$([string]::new(' ', $descPad)) ${Lead}$([char]0x2502)${Reset}"
-    } else {
-        $blankPad = [string]::new(' ', $inner)
-        Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${Lead}$([char]0x2502)${Reset} $blankPad ${Lead}$([char]0x2502)${Reset}"
-    }
+    # Linea en blanco limpia antes del borde inferior
+    $blankPad = [string]::new(' ', $inner)
+    Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${Lead}$([char]0x2502)${Reset} $blankPad ${Lead}$([char]0x2502)${Reset}"
     $row++
 
     Write-VorkPanelLine -Panel $Panel -Index $row -Text (Format-VorkBorderBottom -LeftText "flechas mover/cambiar  ·  enter siguiente  ·  esc limpiar/salir" -Width $Panel.Width)
@@ -1655,13 +1670,72 @@ function Show-InteractiveSettings {
     }
 
     $settingsData = [ordered]@{
-        "auto_update"     = @{ Label = "Auto Update";       Options = @("silent", "prompt", "off"); Value = if ($savedSettings["auto_update"]) { $savedSettings["auto_update"] } else { "silent" }; Desc = "Actualizacion automatica en segundo plano o al iniciar la terminal" }
-        "notifications"   = @{ Label = "Notifications";     Options = @("on", "off"); Value = if ($savedSettings["notifications"]) { $savedSettings["notifications"] } else { "on" }; Desc = "Alertas y notificaciones toast de Windows al finalizar tareas" }
-        "cloud_ai"        = @{ Label = "Cloud AI Engine";   Options = @("on", "off"); Value = if ($savedSettings["cloud_ai"]) { $savedSettings["cloud_ai"] } else { "on" }; Desc = "Inferencia remota con modelos neuronales avanzados Vork Cloud IA" }
-        "media_download"  = @{ Label = "Media Download";    Options = @("on", "off"); Value = if ($savedSettings["media_download"]) { $savedSettings["media_download"] } else { "on" }; Desc = "Descarga y extraccion multimedia desde YouTube, TikTok, Reels y audio" }
-        "workspace_write" = @{ Label = "Workspace Write";   Options = @("on", "off"); Value = if ($savedSettings["workspace_write"]) { $savedSettings["workspace_write"] } else { "on" }; Desc = "Permiso para crear, editar y guardar archivos directamente en el proyecto" }
-        "agent_mode"      = @{ Label = "Agent Mode";        Options = @("programar", "planear", "profe"); Value = if ($savedSettings["agent_mode"]) { $savedSettings["agent_mode"] } elseif ($global:VorkAgentMode) { $global:VorkAgentMode } else { "programar" }; Desc = "Modo: programar (edicion completa), planear (solo lectura), profe (tutor)" }
-        "color_scheme"    = @{ Label = "Color Scheme";      Options = @("dark", "light", "system"); Value = if ($savedSettings["color_scheme"]) { $savedSettings["color_scheme"] } else { "dark" }; Desc = "Esquema de color y contraste visual de la interfaz de la consola" }
+        "auto_update"     = @{
+            Label = "Auto Update"
+            Options = @("silent", "prompt", "off")
+            Value = if ($savedSettings["auto_update"]) { $savedSettings["auto_update"] } else { "silent" }
+            Desc = @{
+                "silent" = "segundo plano silencioso"
+                "prompt" = "preguntar antes de actualizar"
+                "off"    = "desactivar actualizaciones"
+            }
+        }
+        "notifications"   = @{
+            Label = "Notifications"
+            Options = @("on", "off")
+            Value = if ($savedSettings["notifications"]) { $savedSettings["notifications"] } else { "on" }
+            Desc = @{
+                "on"  = "alertas toast de Windows activas"
+                "off" = "silenciar todas las alertas"
+            }
+        }
+        "cloud_ai"        = @{
+            Label = "Cloud AI Engine"
+            Options = @("on", "off")
+            Value = if ($savedSettings["cloud_ai"]) { $savedSettings["cloud_ai"] } else { "on" }
+            Desc = @{
+                "on"  = "inferencia remota con Vork Cloud IA"
+                "off" = "modo solo local / offline"
+            }
+        }
+        "media_download"  = @{
+            Label = "Media Download"
+            Options = @("on", "off")
+            Value = if ($savedSettings["media_download"]) { $savedSettings["media_download"] } else { "on" }
+            Desc = @{
+                "on"  = "descargas de TikTok, YouTube, Reels"
+                "off" = "bloquear descargas externas"
+            }
+        }
+        "workspace_write" = @{
+            Label = "Workspace Write"
+            Options = @("on", "off")
+            Value = if ($savedSettings["workspace_write"]) { $savedSettings["workspace_write"] } else { "on" }
+            Desc = @{
+                "on"  = "crear y modificar archivos en disco"
+                "off" = "solo lectura sin tocar archivos"
+            }
+        }
+        "agent_mode"      = @{
+            Label = "Agent Mode"
+            Options = @("programar", "planear", "profe")
+            Value = if ($savedSettings["agent_mode"]) { $savedSettings["agent_mode"] } elseif ($global:VorkAgentMode) { $global:VorkAgentMode } else { "programar" }
+            Desc = @{
+                "programar" = "edicion completa y ejecucion"
+                "planear"   = "solo lectura, propone plan sin cambiar archivos"
+                "profe"     = "tutor guiado sin modificar codigo"
+            }
+        }
+        "color_scheme"    = @{
+            Label = "Color Scheme"
+            Options = @("dark", "light", "system")
+            Value = if ($savedSettings["color_scheme"]) { $savedSettings["color_scheme"] } else { "dark" }
+            Desc = @{
+                "dark"   = "paleta oscura de alto contraste"
+                "light"  = "paleta clara para fondo blanco"
+                "system" = "sincronizar con el tema de Windows"
+            }
+        }
     }
 
     $keys = @($settingsData.Keys)
@@ -1719,7 +1793,8 @@ function Show-InteractiveSettings {
                 -not $query -or
                 $settingsData[$_].Label.ToLower().Contains($query.ToLower()) -or
                 $settingsData[$_].Value.ToLower().Contains($query.ToLower()) -or
-                $settingsData[$_].Desc.ToLower().Contains($query.ToLower())
+                ($settingsData[$_].Desc -is [hashtable] -and ($settingsData[$_].Desc.Values | Where-Object { [string]$_ -and ([string]$_).ToLower().Contains($query.ToLower()) })) -or
+                ($settingsData[$_].Desc -is [string] -and $settingsData[$_].Desc.ToLower().Contains($query.ToLower()))
             })
 
             if ($filteredKeys.Count -eq 0) {
