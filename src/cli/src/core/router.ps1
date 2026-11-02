@@ -50,9 +50,47 @@ function Dispatch-CLICommand {
         # ========================================================
         # CATEGORIA VORK AGENT: CAPACIDADES AVANZADAS (VORK ENGINE)
         # ========================================================
-        { $_ -in "undo", "redo", "diff", "todos", "connect", "disconnect", "login", "logout", "providers", "limites", "limits", "doctor", "bug", "skills", "mcp", "lsp", "sessions", "load", "delete", "export", "yolo", "models", "profe", "planear", "programar", "run", "auth", "tutorial", "trust", "tui", "version", "copiar", "interfaz", "init", "review", "reset-limits", "usage", "compact", "new" } {
-            Invoke-VorkAgentCommand -Command $Normalized -ArgsList $ArgsList
+        { $_ -in "connect", "login" } { Invoke-CmdConnect -ArgsList $ArgsList }
+        { $_ -in "disconnect", "logout" } { Invoke-CmdDisconnect -ArgsList $ArgsList }
+        "providers"    { Invoke-CmdProviders }
+        { $_ -in "limites", "limits" } { Invoke-CmdLimites }
+        "doctor"       { Invoke-CmdDoctor }
+        "bug"          { Invoke-CmdBug -ArgsList $ArgsList }
+        "models"       { Invoke-CmdModels -ArgsList $ArgsList }
+        "skills"       { Invoke-CmdSkills -ArgsList $ArgsList }
+        "sessions"     { Invoke-CmdSessions }
+        "export"       { Invoke-CmdExport -ArgsList $ArgsList }
+        "mcp"          { Invoke-CmdMcp }
+        "lsp"          { Invoke-CmdLsp }
+        "todos"        { Invoke-CmdTodos }
+        "usage"        { Invoke-CmdUsage }
+        "diff"         { Invoke-CmdDiff -ArgsList $ArgsList }
+        "undo"         { Invoke-CmdUndo }
+        "redo"         { Invoke-CmdRedo }
+        "yolo"         { Invoke-CmdYolo -ArgsList $ArgsList }
+        "copiar"       { Invoke-CmdCopiar -ArgsList $ArgsList }
+        "profe"        { Invoke-CmdProfe }
+        "planear"      { Invoke-CmdPlanear }
+        "programar"    { Invoke-CmdProgramar }
+        "run"          { Invoke-CmdRun -ArgsList $ArgsList }
+        "trust"        { Invoke-CmdTrust }
+        "init"         { Invoke-CmdInit }
+        "review"       { Invoke-CmdReview }
+        "reset-limits" { Invoke-CmdResetLimits }
+        "tutorial"     { Invoke-CmdTutorial }
+        "interfaz"     { Invoke-CmdInterfaz -ArgsList $ArgsList }
+        "compact"      { Invoke-CmdCompact }
+        "new"          { Invoke-CmdReset }
+        "boost"        { Invoke-CmdBoost }
+        "auth" {
+            $sub = if ($ArgsList -and $ArgsList.Count -gt 0) { $ArgsList[0].ToLower() } else { "list" }
+            $subArgs = if ($ArgsList -and $ArgsList.Count -gt 1) { $ArgsList[1..($ArgsList.Count - 1)] } else { @() }
+            if ($sub -eq "login") { Invoke-CmdConnect -ArgsList $subArgs }
+            elseif ($sub -eq "logout") { Invoke-CmdDisconnect -ArgsList $subArgs }
+            else { Invoke-CmdProviders }
         }
+        "tui"          { Invoke-VorkAgentCommand -Command "tui" -ArgsList $ArgsList }
+        "version"      { Invoke-PillarVersion }
 
 
 
@@ -100,10 +138,12 @@ function Dispatch-CLICommand {
             Show-SlashCommands
         }
         { $_ -in "update", "upgrade" } {
-            Write-Host ""
-            Write-Host "  $ESC[44;97;1m VORK CLI $Reset $Cyan Consultando actualizaciones en el backend ($ApiBase)...$Reset"
+            Write-VorkSectionHeader -Title "Actualización de Vork CLI" -Subtitle "verificación de versiones y binarios" -RightText "vork · update"
+            Write-VorkInfoRow -Label "Versión Actual" -Value "v$VorkVersion" -ValueColor $Cyan
+            Write-VorkInfoRow -Label "Servidor Backend" -Value $ApiBase -ValueColor $White
+            Write-VorkSectionRule
             Check-And-AutoUpdate -Force
-            Write-Host "  $($CSI)42;30;1m OK $Reset $Green El entorno de terminal esta en su version mas reciente ($VorkVersion).$Reset"
+            Write-VorkStatusLine -Kind ok -Text "El entorno de terminal está en su versión más reciente ($VorkVersion)."
             Write-Host ""
         }
         "health" { Invoke-CmdStatus }
@@ -135,8 +175,12 @@ function Dispatch-CLICommand {
             Write-Host ""
         }
         "docs" {
-            Write-Host "  ${Cyan}Abriendo documentacion oficial de Vork en el navegador...${Reset}"
+            Write-VorkSectionHeader -Title "Documentación Oficial" -Subtitle "guías de uso, APIs y especificaciones" -RightText "vork · docs"
+            Write-VorkInfoRow -Label "Enlace" -Value "$ApiBase/docs" -ValueColor $Cyan
+            Write-VorkSectionRule
             Start-Process "$ApiBase/docs"
+            Write-VorkStatusLine -Kind ok -Text "Abriendo portal de documentación en tu navegador predeterminado."
+            Write-Host ""
         }
         { $_ -in "version", "-v", "--version" } {
             Invoke-PillarVersion
@@ -149,7 +193,7 @@ function Dispatch-CLICommand {
             if ($Cmd.StartsWith("/")) {
                 Write-Host ""
                 Write-Host "  ${Coral}[!] Comando no reconocido:${Reset} $White`"$Cmd`"$Reset"
-                Write-Host "  ${Dim}Escribe '?' para atajos o 'slash' para ver los 40 comandos con barra.${Reset}"
+                Write-Host "  ${Dim}Escribe '?' para ayuda interactiva o escribe '/' para ver los 62 comandos disponibles.${Reset}"
                 Write-Host ""
             } else {
                 $fullChat = "$Cmd $($ArgsList -join ' ')".Trim()

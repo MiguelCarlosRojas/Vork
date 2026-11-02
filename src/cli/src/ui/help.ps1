@@ -21,7 +21,7 @@ function Show-Shortcuts {
     $width = [Math]::Max(20, $metrics.Width - 1)
 
     $items = @(
-        @{ Key = "/slash";       Desc = "Ver los 40 comandos con barra (/)" },
+        @{ Key = "/slash";       Desc = "Ver los 62 comandos con barra (/)" },
         @{ Key = "/model";       Desc = "Cambiar modelo IA y nivel de esfuerzo (Switch Model & Effort)" },
         @{ Key = "/help";        Desc = "Ver catalogo detallado de los 9 pilares" },
         @{ Key = "/clear, cls";  Desc = "Limpiar pantalla y refrescar banner" },
@@ -125,7 +125,7 @@ function Show-Help {
     Write-VorkHelpLine -Width $width -Text "    $Yellow /update$Reset     ${Dim}Sincroniza y actualiza Vork CLI al instante${Reset}"
     Write-VorkHelpLine -Width $width -Text "    $Yellow /status$Reset     ${Dim}Telemetria y estado operativo de los 9 pilares${Reset}"
     Write-VorkHelpLine -Width $width -Text "    $Yellow /version$Reset    ${Dim}Muestra detalles de arquitectura y version${Reset}"
-    Write-VorkHelpLine -Width $width -Text "    $Yellow /slash$Reset      ${Dim}Ver los 40 comandos con barra (/)${Reset}"
+    Write-VorkHelpLine -Width $width -Text "    $Yellow /slash$Reset      ${Dim}Ver los 62 comandos con barra (/)${Reset}"
     Write-Host ""
 }
 
@@ -135,11 +135,11 @@ function Show-SlashCommands {
     $width = [Math]::Max(20, $metrics.Width - 1)
     $rule = [string]::new([char]0x2500, [Math]::Max(10, $width - 4))
 
-    Write-VorkHelpLine -Width $width -Text "$White$Bold  CATALOGO COMPLETO DE LOS 40 COMANDOS CON BARRA (/):$Reset"
+    Write-VorkHelpLine -Width $width -Text "$White$Bold  CATALOGO COMPLETO DE LOS 62 COMANDOS CON BARRA (/):$Reset"
     Write-VorkHelpLine -Width $width -Text "  ${Dim}Uso: /<comando> o en la consola interactiva TUI${Reset}"
     Write-Host ""
 
-    $categories = @(
+        $categories = @(
         @{
             Title = "[CATEGORIA 1] Los 9 Pilares Operacionales (9)"
             Items = @(
@@ -150,54 +150,86 @@ function Show-SlashCommands {
                 @{ Cmd = "/separate";  Desc = "Aislamiento de Stems Acapella/Karaoke (Demucs v4)" },
                 @{ Cmd = "/image";     Desc = "Conversor universal PNG, JPG, WEBP, ICO, AVIF" },
                 @{ Cmd = "/remove-bg"; Desc = "Silueta inteligente y eliminacion de fondo IA" },
-                @{ Cmd = "/draw";      Desc = "Generador de imágenes IA con FLUX.1 (sin marca de agua)" },
+                @{ Cmd = "/draw";      Desc = "Generador y modelador de imagenes con IA (FLUX.1)" },
                 @{ Cmd = "/agents";    Desc = "Orquestacion de subagentes en terminal interactiva" }
             )
         },
         @{
-            Title = "[CATEGORIA 2] Agentes Autonomos & Planificacion IA (5)"
+            Title = "[CATEGORIA 2] Agentes Autonomos & Planificacion IA (7)"
             Items = @(
-                @{ Cmd = "/goal";       Desc = "Modo autonomo continuo para tareas exhaustivas" },
+                @{ Cmd = "/goal";       Desc = "Modo de objetivo continuo para tareas exhaustivas" },
                 @{ Cmd = "/plan";       Desc = "Planificacion guiada y desglose paso a paso" },
+                @{ Cmd = "/grill-me";   Desc = "Entrevista interactiva de diseno y arquitectura" },
                 @{ Cmd = "/teamwork";   Desc = "Coordinacion con multiples subagentes concurrentes" },
+                @{ Cmd = "/boost";      Desc = "Razonamiento profundo con auto-verificacion estricta" },
                 @{ Cmd = "/learn";      Desc = "Persistir reglas, correcciones y preferencias" },
                 @{ Cmd = "/automation"; Desc = "Disenar y programar tareas en segundo plano" }
             )
         },
         @{
-            Title = "[CATEGORIA 3] Contexto, Sesion & Memoria (6)"
+            Title = "[CATEGORIA 3] Contexto, Sesion & Memoria (10)"
             Items = @(
                 @{ Cmd = "/clear";   Desc = "Limpiar pantalla de terminal conservando la sesion" },
                 @{ Cmd = "/reset";   Desc = "Reiniciar variables y contexto de la sesion a cero" },
+                @{ Cmd = "/new";     Desc = "Empezar una sesion nueva y limpia" },
+                @{ Cmd = "/compact"; Desc = "Resumir conversacion para ahorrar tokens de contexto" },
                 @{ Cmd = "/history"; Desc = "Explorar historial cronologico de comandos ejecutados" },
                 @{ Cmd = "/save";    Desc = "Guardar estado de sesion, artefactos y contexto" },
                 @{ Cmd = "/resume";  Desc = "Reanudar una sesion previa o restaurar estado" },
-                @{ Cmd = "/undo";    Desc = "Deshacer la ultima accion o cambio de codigo" }
+                @{ Cmd = "/undo";    Desc = "Deshacer el ultimo turno y revertir cambios en ficheros" },
+                @{ Cmd = "/redo";    Desc = "Rehacer los cambios deshechos con /undo" },
+                @{ Cmd = "/diff";    Desc = "Ver cambios de codigo del ultimo turno o de la sesion" }
             )
         },
         @{
-            Title = "[CATEGORIA 4] Diagnostico & Estado del Sistema (1)"
+            Title = "[CATEGORIA 4] Ecosistema Soberano, Modelos & Herramientas (19)"
             Items = @(
-                @{ Cmd = "/status";   Desc = "Inspeccionar estado del entorno, archivos y tareas activas" }
+                @{ Cmd = "/run";          Desc = "Modo agente autonomo: resuelve tareas leyendo y editando codigo" },
+                @{ Cmd = "/models";       Desc = "Lista modelos disponibles en tiempo real (+20 proveedores)" },
+                @{ Cmd = "/model";        Desc = "Fijar modelo preferido o rotacion inteligente (auto)" },
+                @{ Cmd = "/doctor";       Desc = "Diagnostico de herramientas, Git y estado de LLMs gratis" },
+                @{ Cmd = "/limites";      Desc = "Cuota de tokens y peticiones restantes de cada plan gratis" },
+                @{ Cmd = "/connect";      Desc = "Guardar la clave de un proveedor gratuito o con cuenta" },
+                @{ Cmd = "/disconnect";   Desc = "Borrar la clave guardada de un proveedor" },
+                @{ Cmd = "/providers";    Desc = "Proveedores gratuitos compatibles y donde conseguir claves" },
+                @{ Cmd = "/skills";       Desc = "Gestion de Agent Skills e instrucciones modulares" },
+                @{ Cmd = "/trust";        Desc = "Confiar en la configuracion del proyecto actual" },
+                @{ Cmd = "/sessions";     Desc = "Historial de sesiones guardadas en esta carpeta" },
+                @{ Cmd = "/export";       Desc = "Exportar la conversacion activa a Markdown" },
+                @{ Cmd = "/tui";          Desc = "Abrir la interfaz visual interactiva Ink React" },
+                @{ Cmd = "/tutorial";     Desc = "Aprende lo basico en 5 pasos en carpeta de practicas" },
+                @{ Cmd = "/planear";      Desc = "Agente de solo lectura: investiga y propone un plan" },
+                @{ Cmd = "/programar";    Desc = "Agente activo que puede modificar archivos y programar" },
+                @{ Cmd = "/profe";        Desc = "Agente tutor que ensena paso a paso sin cambiar archivos" },
+                @{ Cmd = "/mcp";          Desc = "Estado y herramientas de servidores MCP conectados" },
+                @{ Cmd = "/lsp";          Desc = "Servidores de lenguaje (diagnosticos de codigo)" }
             )
         },
         @{
-            Title = "[CATEGORIA 5] Configuracion & Preferencias (4)"
+            Title = "[CATEGORIA 5] Auditoria, Seguridad & Control (6)"
             Items = @(
-                @{ Cmd = "/config";      Desc = "Panel interactivo de configuraciones y permisos" },
-                @{ Cmd = "/model";       Desc = "Cambiar modelo IA y nivel de esfuerzo" },
-                @{ Cmd = "/theme";       Desc = "Alternar temas visuales (Dark, Cyberpunk, Coral)" },
-                @{ Cmd = "/env";         Desc = "Consultar y gestionar variables de entorno activas" }
+                @{ Cmd = "/todos";        Desc = "Lista de tareas pendientes del agente" },
+                @{ Cmd = "/usage";        Desc = "Tokens gastados y coste estimado de la sesion" },
+                @{ Cmd = "/review";       Desc = "Revisar cambios sin confirmar en el workspace" },
+                @{ Cmd = "/init";         Desc = "Crear o mejorar la especificacion AGENTS.md" },
+                @{ Cmd = "/yolo";         Desc = "Aprobar todo sin preguntar en esta sesion" },
+                @{ Cmd = "/reset-limits"; Desc = "Reiniciar pausas temporales de los proveedores" }
             )
         },
         @{
-            Title = "[CATEGORIA 6] Sistema, Telemetria & Utilidades (6)"
+            Title = "[CATEGORIA 6] Configuracion, Sistema & Utilidades (11)"
             Items = @(
-                @{ Cmd = "/help";   Desc = "Manual interactivo de comandos y atajos de teclado" },
-                @{ Cmd = "/update"; Desc = "Sincronizar y actualizar Vork CLI a la ultima version" },
-                @{ Cmd = "/ping";   Desc = "Prueba de latencia ultrarrrapida hacia la nube" },
-                @{ Cmd = "/docs";   Desc = "Abrir la documentacion oficial de Vork en el navegador" },
-                @{ Cmd = "/exit";   Desc = "Cerrar la sesion de terminal de forma segura" }
+                @{ Cmd = "/status";     Desc = "Telemetria y estado operativo de los 9 pilares" },
+                @{ Cmd = "/config";     Desc = "Panel interactivo de configuraciones y permisos" },
+                @{ Cmd = "/theme";      Desc = "Alternar temas visuales (Dark, Cyberpunk, Coral)" },
+                @{ Cmd = "/env";        Desc = "Consultar y gestionar variables de entorno activas" },
+                @{ Cmd = "/interfaz";   Desc = "Elegir como se ve Vork CLI (completa, compacta, zen)" },
+                @{ Cmd = "/copiar";     Desc = "Copiar ultima respuesta o bloque de codigo al portapapeles" },
+                @{ Cmd = "/ping";       Desc = "Prueba de latencia ultrarrapida hacia la nube" },
+                @{ Cmd = "/docs";       Desc = "Abrir la documentacion oficial de Vork en el navegador" },
+                @{ Cmd = "/bug";        Desc = "Avisar de un fallo con informe de /doctor a GitHub" },
+                @{ Cmd = "/update";     Desc = "Sincronizar y actualizar Vork CLI a la ultima version" },
+                @{ Cmd = "/exit";       Desc = "Cerrar la sesion de terminal de forma segura" }
             )
         }
     )
@@ -236,9 +268,44 @@ function Show-InteractiveHelpModal {
         @{ Cmd = "/separate";    Desc = "Aislamiento de Stems Acapella/Karaoke (Demucs v4)" },
         @{ Cmd = "/image";       Desc = "Conversor universal PNG, JPG, WEBP, ICO, AVIF" },
         @{ Cmd = "/remove-bg";   Desc = "Silueta inteligente y eliminacion de fondo IA" },
+        @{ Cmd = "/draw";        Desc = "Generador y modelador de imagenes con IA" },
         @{ Cmd = "/agents";      Desc = "Orquestacion de subagentes en terminal interactiva" },
-        @{ Cmd = "/goal";        Desc = "Modo autonomo continuo para tareas exhaustivas" },
+        @{ Cmd = "/run";         Desc = "Modo agente autonomo: resuelve tareas leyendo y editando codigo" },
+        @{ Cmd = "/models";      Desc = "Lista modelos disponibles en tiempo real (+20 proveedores)" },
+        @{ Cmd = "/model";       Desc = "Fijar modelo preferido o rotacion inteligente (auto)" },
+        @{ Cmd = "/doctor";      Desc = "Diagnostico de herramientas, Git y estado de LLMs gratis" },
+        @{ Cmd = "/limites";     Desc = "Cuota de tokens y peticiones restantes de cada plan gratis" },
+        @{ Cmd = "/connect";     Desc = "Guardar la clave de un proveedor gratuito o con cuenta" },
+        @{ Cmd = "/disconnect";  Desc = "Borrar la clave guardada de un proveedor" },
+        @{ Cmd = "/providers";   Desc = "Proveedores gratuitos compatibles y donde conseguir claves" },
+        @{ Cmd = "/skills";      Desc = "Gestion de Agent Skills e instrucciones modulares" },
+        @{ Cmd = "/trust";       Desc = "Confiar en la configuracion del proyecto actual" },
+        @{ Cmd = "/sessions";    Desc = "Historial de sesiones guardadas en esta carpeta" },
+        @{ Cmd = "/export";      Desc = "Exportar la conversacion activa a Markdown" },
+        @{ Cmd = "/tui";         Desc = "Abrir la interfaz visual interactiva Ink React" },
+        @{ Cmd = "/tutorial";    Desc = "Aprende lo basico en 5 pasos en carpeta de practicas" },
+        @{ Cmd = "/bug";         Desc = "Avisar de un fallo con informe de /doctor a GitHub" },
+        @{ Cmd = "/planear";     Desc = "Agente de solo lectura: investiga y propone un plan" },
+        @{ Cmd = "/programar";   Desc = "Agente activo que puede modificar archivos y programar" },
+        @{ Cmd = "/profe";       Desc = "Agente tutor que ensena paso a paso sin cambiar archivos" },
+        @{ Cmd = "/undo";        Desc = "Deshacer el ultimo turno y revertir cambios en ficheros" },
+        @{ Cmd = "/redo";        Desc = "Rehacer los cambios deshechos con /undo" },
+        @{ Cmd = "/diff";        Desc = "Ver cambios de codigo del ultimo turno o de la sesion" },
+        @{ Cmd = "/todos";       Desc = "Lista de tareas pendientes del agente" },
+        @{ Cmd = "/compact";     Desc = "Resumir conversacion para ahorrar tokens de contexto" },
+        @{ Cmd = "/new";         Desc = "Empezar una sesion nueva y limpia" },
+        @{ Cmd = "/usage";       Desc = "Tokens gastados y coste estimado de la sesion" },
+        @{ Cmd = "/mcp";         Desc = "Estado y herramientas de servidores MCP conectados" },
+        @{ Cmd = "/lsp";         Desc = "Servidores de lenguaje (diagnosticos de codigo)" },
+        @{ Cmd = "/yolo";        Desc = "Aprobar todo sin preguntar en esta sesion" },
+        @{ Cmd = "/copiar";      Desc = "Copiar ultima respuesta o bloque de codigo al portapapeles" },
+        @{ Cmd = "/interfaz";    Desc = "Elegir como se ve Vork CLI (completa, compacta, zen)" },
+        @{ Cmd = "/init";        Desc = "Crear o mejorar la especificacion AGENTS.md" },
+        @{ Cmd = "/review";      Desc = "Revisar cambios sin confirmar en el workspace" },
+        @{ Cmd = "/reset-limits"; Desc = "Reiniciar pausas temporales de los proveedores" },
+        @{ Cmd = "/goal";        Desc = "Modo de objetivo continuo para tareas exhaustivas" },
         @{ Cmd = "/plan";        Desc = "Planificacion guiada y desglose paso a paso" },
+        @{ Cmd = "/grill-me";    Desc = "Entrevista interactiva de diseno y arquitectura" },
         @{ Cmd = "/teamwork";    Desc = "Coordinacion con multiples subagentes concurrentes" },
         @{ Cmd = "/learn";       Desc = "Persistir reglas, correcciones y preferencias" },
         @{ Cmd = "/automation";  Desc = "Disenar y programar tareas en segundo plano" },
@@ -247,18 +314,14 @@ function Show-InteractiveHelpModal {
         @{ Cmd = "/history";     Desc = "Explorar historial cronologico de comandos ejecutados" },
         @{ Cmd = "/save";        Desc = "Guardar estado de sesion, artefactos y contexto" },
         @{ Cmd = "/resume";      Desc = "Reanudar una sesion previa o restaurar estado" },
-        @{ Cmd = "/undo";        Desc = "Deshacer la ultima accion o cambio de codigo" },
-        @{ Cmd = "/status";      Desc = "Telemetria y estado operativo en vivo de los 9 pilares" },
+        @{ Cmd = "/status";      Desc = "Telemetria y estado operativo de los 9 pilares" },
         @{ Cmd = "/config";      Desc = "Panel interactivo de configuraciones y permisos" },
-        @{ Cmd = "/model";       Desc = "Configurar modelo Vork 3 y nivel de potencia (low/med/high/expert)" },
-        @{ Cmd = "/theme";       Desc = "Alternar entre los 10 temas visuales oficiales" },
         @{ Cmd = "/env";         Desc = "Consultar y gestionar variables de entorno activas" },
-        @{ Cmd = "/help";        Desc = "Manual interactivo de comandos y atajos de teclado" },
-        @{ Cmd = "/slash";       Desc = "Ver todos los comandos con barra clasificados" },
-        @{ Cmd = "/update";      Desc = "Sincronizar y actualizar Vork CLI a la ultima version" },
-        @{ Cmd = "/status"; Desc = "Telemetria en tiempo real de los 9 pilares" },
-        @{ Cmd = "/ping";        Desc = "Prueba de latencia ultrarrrapida hacia la nube" },
+        @{ Cmd = "/theme";       Desc = "Alternar temas visuales (Dark, Cyberpunk, Coral)" },
+        @{ Cmd = "/ping";        Desc = "Prueba de latencia ultrarrapida hacia la nube" },
         @{ Cmd = "/docs";        Desc = "Abrir la documentacion oficial de Vork en el navegador" },
+        @{ Cmd = "/update";      Desc = "Sincronizar y actualizar Vork CLI a la ultima version" },
+        @{ Cmd = "/help";        Desc = "Manual interactivo de comandos y atajos de teclado" },
         @{ Cmd = "/exit";        Desc = "Cerrar la sesion de terminal de forma segura" }
     )
 
