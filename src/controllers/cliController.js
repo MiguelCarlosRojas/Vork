@@ -233,10 +233,9 @@ exports.getCliInfo = (req, res) => {
       { name: "/draw", category: "Pilares", description: "Pilar 07: Generador fotorrealista FLUX.1 libre de marcas de agua" },
       { name: "/agents", category: "Pilares", description: "Pilar 08: Orquestación de subagentes en terminal interactiva" },
 
-      // 2. Agentes Autónomos & Planificación IA (8)
+      // 2. Agentes Autónomos & Planificación IA (7)
       { name: "/goal", category: "Agentes", description: "Modo autónomo continuo para resolución de tareas exhaustivas" },
       { name: "/plan", category: "Agentes", description: "Planificación guiada y desglose paso a paso de arquitectura" },
-      { name: "/grill-me", category: "Agentes", description: "Entrevista interactiva para resolver decisiones de diseño" },
       { name: "/teamwork", category: "Agentes", description: "Coordinación en equipo con múltiples subagentes concurrentes" },
       { name: "/boost", category: "Agentes", description: "Razonamiento profundo con verificación multifacética" },
       { name: "/learn", category: "Agentes", description: "Persistir preferencias, reglas y aprendizajes en el sistema" },

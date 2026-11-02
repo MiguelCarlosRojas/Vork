@@ -43,7 +43,6 @@ function Dispatch-CLICommand {
 
         "goal"       { Invoke-CmdGoal -ArgsList $ArgsList }
         "plan"       { Invoke-CmdPlan -ArgsList $ArgsList }
-        "grill-me"   { Invoke-CmdGrillMe }
         "teamwork"   { Invoke-CmdTeamwork -ArgsList $ArgsList }
         "learn"      { Invoke-CmdLearn -ArgsList $ArgsList }
         "automation" { Invoke-CmdAutomation }
@@ -656,7 +655,6 @@ function Read-InteractiveVorkLine {
         @{ Cmd = "/reset-limits"; Desc = "Reiniciar pausas temporales de los proveedores" },
         @{ Cmd = "/goal";        Desc = "Modo de objetivo continuo para tareas exhaustivas" },
         @{ Cmd = "/plan";        Desc = "Planificacion guiada y desglose paso a paso" },
-        @{ Cmd = "/grill-me";    Desc = "Entrevista interactiva de diseno y arquitectura" },
         @{ Cmd = "/teamwork";    Desc = "Coordinacion con multiples subagentes concurrentes" },
         @{ Cmd = "/learn";       Desc = "Persistir reglas, correcciones y preferencias" },
         @{ Cmd = "/automation";  Desc = "Disenar y programar tareas en segundo plano" },

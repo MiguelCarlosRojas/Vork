@@ -54,16 +54,6 @@ function Invoke-CmdPlan {
     Write-Host ""
 }
 
-function Invoke-CmdGrillMe {
-    Write-VorkSectionHeader -Title "Entrevista de Diseño de Arquitectura" -Subtitle "resolución interactiva de decisiones técnicas críticas" -RightText "vork · grill-me"
-    Write-VorkInfoRow -Label "Pregunta 1" -Value "¿Cuál es el requisito crítico de rendimiento o latencia?" -ValueColor $Cyan
-    Write-VorkInfoRow -Label "Pregunta 2" -Value "¿Existen restricciones de compatibilidad hacia atrás o dependencias externas?" -ValueColor $Cyan
-    Write-VorkInfoRow -Label "Pregunta 3" -Value "¿Qué contratos de datos o formatos de entrada/salida son prioritarios?" -ValueColor $Cyan
-    Write-VorkSectionRule
-    Write-VorkStatusLine -Kind info -Text "Responde a las preguntas en el prompt para refinar las directivas del agente."
-    Write-Host ""
-}
-
 function Invoke-CmdTeamwork {
     param([string[]]$ArgsList)
     Write-VorkSectionHeader -Title "Coordinación de Subagentes Concurrentes" -Subtitle "orquestación multi-agente en paralelo" -RightText "vork · teamwork"

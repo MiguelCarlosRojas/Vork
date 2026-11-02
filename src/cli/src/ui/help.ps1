@@ -148,11 +148,10 @@ function Show-SlashCommands {
             )
         },
         @{
-            Title = "[CATEGORIA 2] Agentes Autonomos & Planificacion IA (7)"
+            Title = "[CATEGORIA 2] Agentes Autonomos & Planificacion IA (6)"
             Items = @(
                 @{ Cmd = "/goal";       Desc = "Modo de objetivo continuo para tareas exhaustivas" },
                 @{ Cmd = "/plan";       Desc = "Planificacion guiada y desglose paso a paso" },
-                @{ Cmd = "/grill-me";   Desc = "Entrevista interactiva de diseno y arquitectura" },
                 @{ Cmd = "/teamwork";   Desc = "Coordinacion con multiples subagentes concurrentes" },
                 @{ Cmd = "/boost";      Desc = "Razonamiento profundo con auto-verificacion estricta" },
                 @{ Cmd = "/learn";      Desc = "Persistir reglas, correcciones y preferencias" },
@@ -289,7 +288,6 @@ function Show-InteractiveHelpModal {
         @{ Cmd = "/reset-limits"; Desc = "Reiniciar pausas temporales de los proveedores" },
         @{ Cmd = "/goal";        Desc = "Modo de objetivo continuo para tareas exhaustivas" },
         @{ Cmd = "/plan";        Desc = "Planificacion guiada y desglose paso a paso" },
-        @{ Cmd = "/grill-me";    Desc = "Entrevista interactiva de diseno y arquitectura" },
         @{ Cmd = "/teamwork";    Desc = "Coordinacion con multiples subagentes concurrentes" },
         @{ Cmd = "/learn";       Desc = "Persistir reglas, correcciones y preferencias" },
         @{ Cmd = "/automation";  Desc = "Disenar y programar tareas en segundo plano" },
