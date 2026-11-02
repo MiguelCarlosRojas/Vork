@@ -744,7 +744,7 @@ function Invoke-CmdDoctor {
     $rgVal = if ($rgCmd) { "ripgrep instalado y activo" } else { "ripgrep no instalado (opcional: winget install BurntSushi.ripgrep.MSVC)" }
     $rgCol = if ($rgCmd) { $Green } else { $LeadLight }
     Write-VorkInfoRow -Label "Búsqueda Rápida" -Value $rgVal -ValueColor $rgCol
-    Write-VorkInfoRow -Label "Portapapeles" -Value "PowerShell Clipboard API activo (/copiar)" -ValueColor $Green
+    Write-VorkInfoRow -Label "Portapapeles" -Value "PowerShell Clipboard API activo" -ValueColor $Green
 
     Write-VorkSectionRule -RightText "proveedores y modelos disponibles"
 
@@ -1216,19 +1216,6 @@ function Invoke-CmdYolo {
         Write-VorkStatusLine -Kind warn -Text "Modo YOLO ACTIVADO: El agente ejecutará herramientas y comandos sin preguntar."
     } else {
         Write-VorkStatusLine -Kind ok -Text "Modo YOLO DESACTIVADO: Se requerirá confirmación explícita para cada acción."
-    }
-    Write-Host ""
-}
-
-function Invoke-CmdCopiar {
-    param([string[]]$ArgsList)
-    Write-VorkSectionHeader -Title "Copiar al Portapapeles" -Subtitle "última respuesta o bloque de código" -RightText "vork · copiar"
-    $clipText = if ($global:VorkLastAIResponse) { $global:VorkLastAIResponse } else { "Vork CLI v$VorkVersion" }
-    try {
-        Set-Clipboard -Value $clipText
-        Write-VorkStatusLine -Kind ok -Text "Última respuesta copiada exitosamente al portapapeles de Windows."
-    } catch {
-        Write-VorkStatusLine -Kind warn -Text "No se pudo acceder al portapapeles del sistema."
     }
     Write-Host ""
 }

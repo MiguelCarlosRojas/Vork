@@ -115,7 +115,7 @@ export async function doctorReport(app: App): Promise<string> {
   const rg = findProgram("rg");
   lines.push(rg ? ok("ripgrep: búsquedas rápidas") : note(`ripgrep no está (opcional, busca más rápido): ${install({ darwin: "brew install ripgrep", linux: "sudo apt install ripgrep", win32: "winget install BurntSushi.ripgrep.MSVC" })}`));
   const copier = clipboardProgram();
-  lines.push(copier ? ok(`/copiar usa ${copier}`) : warn("No hay programa para copiar: /copiar se lo pedirá a la terminal. En Linux instala wl-clipboard (Wayland) o xclip"));
+  lines.push(copier ? ok(`portapapeles del sistema: usa ${copier}`) : note("portapapeles del sistema: usa la terminal"));
 
   // Tus datos: solo para tu usuario
   if (process.platform !== "win32") {

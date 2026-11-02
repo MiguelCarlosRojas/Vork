@@ -38,7 +38,7 @@ function copier(): string[] | null {
   return xsel ? [xsel, "--clipboard", "--input"] : null;
 }
 
-// Nombre del programa con el que copia /copiar (null si se lo tendría que pedir a la terminal)
+// Nombre del programa con el que copia al portapapeles (null si se lo tendría que pedir a la terminal)
 export function clipboardProgram(): string | null {
   const command = copier();
   if (!command) {

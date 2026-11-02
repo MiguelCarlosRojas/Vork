@@ -85,7 +85,6 @@ export const BUILTIN_COMMANDS: { name: string; args?: string; description: strin
   { name: "agents", description: "agentes disponibles (Tab cambia entre los principales)" },
   { name: "agent", args: "<nombre>", description: "cambiar de agente" },
   { name: "limites", description: "cuánto te queda hoy de cada plan gratis" },
-  { name: "copiar", args: "[código]", description: "copia la última respuesta (o su último bloque de código) al portapapeles" },
   { name: "doctor", description: "comprueba que todo funciona (programas, claves, proveedores) y dice cómo arreglar lo que falte" },
   { name: "bug", args: "[qué ha pasado]", description: "avisa de un fallo: abre un issue en GitHub con el informe de /doctor ya puesto (sin tus claves)" },
   { name: "interfaz", description: "elige cómo se ve Vork CLI: pantalla completa, compacta, zen o criaturas" },
@@ -608,13 +607,13 @@ export class App {
         row("Rueda · AvPág · RePág", "sube y baja por la conversación (al escribir vuelves abajo); también la barra de la derecha"),
         row("Ctrl+Inicio · Ctrl+Fin", "al principio o al final de la conversación"),
         row("Ctrl+F", "busca en la conversación (Enter o ↑ la anterior, ↓ la siguiente, Esc cierra)"),
-        row("Copiar", "arrastra con el ratón y se copia al soltar; doble clic, una palabra; triple, la línea · /copiar"),
+        row("Copiar", "arrastra con el ratón y se copia al soltar; doble clic, una palabra; triple, la línea"),
         row("Clic en una herramienta", "despliega su salida entera (otro clic la pliega)"),
         row("Clic en un enlace", "lo abre en el navegador; en un /comando, lo escribe en la caja"),
         row("Clic en «y más» · «↓ N líneas»", "despliega las novedades enteras · baja al final de la conversación"),
       );
     } else {
-      lines.push(row("Copiar", "selecciona con el ratón y Cmd+C (Mac), Ctrl+Shift+C (Linux) o Ctrl+C (Windows Terminal) · /copiar"));
+      lines.push(row("Copiar", "selecciona con el ratón y Cmd+C (Mac), Ctrl+Shift+C (Linux) o Ctrl+C (Windows Terminal)"));
     }
     lines.push("", pc.dim(LEGAL_NOTICE));
     return lines.join("\n");
@@ -1095,31 +1094,6 @@ export class App {
           ui.info("La conversación está vacía.");
         } else {
           ui.info(`Conversación guardada en ${saveExport(this.agent.session)} (además se guarda sola en ${sessionMarkdownPath(this.agent.session)})`);
-        }
-        return {};
-      }
-      case "/copiar":
-      case "/copy": {
-        const answers = this.agent.session.log.filter((entry) => entry.role === "assistant").map((entry) => entry.text);
-        if (answers.length === 0) {
-          ui.error("Todavía no hay ninguna respuesta que copiar.");
-          return {};
-        }
-        const code = /^(c[oó]digo|code)\b/i.test(arg.trim());
-        const text = code ? lastCodeBlock(answers) : answers[answers.length - 1];
-        if (text === null) {
-          ui.error("Las últimas respuestas no tienen ningún bloque de código. Usa /copiar para copiar la respuesta entera.");
-          return {};
-        }
-        const how = await copyToClipboard(text);
-        const what = code ? "el último bloque de código" : "la última respuesta";
-        const size = `${cleanForClipboard(text).length.toLocaleString("es-ES")} caracteres`;
-        if (how === "portapapeles") {
-          ui.info(`Copiado ${what} al portapapeles (${size}).`);
-        } else if (how === "terminal") {
-          ui.info(`Le he pedido a tu terminal que copie ${what} (${size}). Si no se ha copiado, tu terminal no lo permite: selecciónalo con el ratón.`);
-        } else {
-          ui.error("No he podido copiar: en Linux instala wl-clipboard (Wayland) o xclip, o pon en VORK_CLIPBOARD el programa que copie lo que le llega.");
         }
         return {};
       }

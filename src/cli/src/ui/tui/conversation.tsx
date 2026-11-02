@@ -121,7 +121,7 @@ export function useConversation(props: {
       // En fila: en un triple clic, la línea se copia después de la palabra del doble clic
       copies.current = copies.current
         .then(() => copyToClipboard(text))
-        .then((how) => showFlash(how ? "✓ copiado" : "No he podido copiarlo: prueba con /copiar"));
+        .then((how) => showFlash(how ? "✓ copiado" : "No he podido copiarlo al portapapeles"));
     }
   };
 

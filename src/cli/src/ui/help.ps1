@@ -205,14 +205,13 @@ function Show-SlashCommands {
             )
         },
         @{
-            Title = "[CATEGORIA 6] Configuracion, Sistema & Utilidades (11)"
+            Title = "[CATEGORIA 6] Configuracion, Sistema & Utilidades (10)"
             Items = @(
                 @{ Cmd = "/status";     Desc = "Telemetria y estado operativo de los 9 pilares" },
                 @{ Cmd = "/config";     Desc = "Panel interactivo de configuraciones y permisos" },
                 @{ Cmd = "/theme";      Desc = "Alternar temas visuales (Dark, Cyberpunk, Coral)" },
                 @{ Cmd = "/env";        Desc = "Consultar y gestionar variables de entorno activas" },
                 @{ Cmd = "/interfaz";   Desc = "Elegir como se ve Vork CLI (completa, compacta, zen)" },
-                @{ Cmd = "/copiar";     Desc = "Copiar ultima respuesta o bloque de codigo al portapapeles" },
                 @{ Cmd = "/ping";       Desc = "Prueba de latencia ultrarrapida hacia la nube" },
                 @{ Cmd = "/docs";       Desc = "Abrir la documentacion oficial de Vork en el navegador" },
                 @{ Cmd = "/bug";        Desc = "Avisar de un fallo con informe de /doctor a GitHub" },
@@ -281,7 +280,6 @@ function Show-InteractiveHelpModal {
         @{ Cmd = "/mcp";         Desc = "Estado y herramientas de servidores MCP conectados" },
         @{ Cmd = "/lsp";         Desc = "Servidores de lenguaje (diagnosticos de codigo)" },
         @{ Cmd = "/yolo";        Desc = "Aprobar todo sin preguntar en esta sesion" },
-        @{ Cmd = "/copiar";      Desc = "Copiar ultima respuesta o bloque de codigo al portapapeles" },
         @{ Cmd = "/interfaz";    Desc = "Elegir como se ve Vork CLI (completa, compacta, zen)" },
         @{ Cmd = "/init";        Desc = "Crear o mejorar la especificacion AGENTS.md" },
         @{ Cmd = "/review";      Desc = "Revisar cambios sin confirmar en el workspace" },
