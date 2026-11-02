@@ -1675,9 +1675,9 @@ function Show-InteractiveSettings {
             Options = @("silent", "prompt", "off")
             Value = if ($savedSettings["auto_update"]) { $savedSettings["auto_update"] } else { "silent" }
             Desc = @{
-                "silent" = "segundo plano silencioso"
-                "prompt" = "preguntar antes de actualizar"
-                "off"    = "desactivar actualizaciones"
+                "silent" = "actualiza en segundo plano sin interrumpir"
+                "prompt" = "avisa y pide confirmacion antes de actualizar"
+                "off"    = "desactivado, nunca busca actualizaciones"
             }
         }
         "notifications"   = @{
@@ -1685,8 +1685,8 @@ function Show-InteractiveSettings {
             Options = @("on", "off")
             Value = if ($savedSettings["notifications"]) { $savedSettings["notifications"] } else { "on" }
             Desc = @{
-                "on"  = "alertas toast de Windows activas"
-                "off" = "silenciar todas las alertas"
+                "on"  = "muestra avisos en Windows al terminar tareas"
+                "off" = "sin avisos ni alertas en el escritorio"
             }
         }
         "cloud_ai"        = @{
@@ -1694,8 +1694,8 @@ function Show-InteractiveSettings {
             Options = @("on", "off")
             Value = if ($savedSettings["cloud_ai"]) { $savedSettings["cloud_ai"] } else { "on" }
             Desc = @{
-                "on"  = "inferencia remota con Vork Cloud IA"
-                "off" = "modo solo local / offline"
+                "on"  = "usa IA en la nube para razonar y procesar"
+                "off" = "desactiva la IA remota (solo uso local)"
             }
         }
         "media_download"  = @{
@@ -1703,8 +1703,8 @@ function Show-InteractiveSettings {
             Options = @("on", "off")
             Value = if ($savedSettings["media_download"]) { $savedSettings["media_download"] } else { "on" }
             Desc = @{
-                "on"  = "descargas de TikTok, YouTube, Reels"
-                "off" = "bloquear descargas externas"
+                "on"  = "permite bajar videos y audios de redes"
+                "off" = "bloquea descargas de medios en el proyecto"
             }
         }
         "workspace_write" = @{
@@ -1712,8 +1712,8 @@ function Show-InteractiveSettings {
             Options = @("on", "off")
             Value = if ($savedSettings["workspace_write"]) { $savedSettings["workspace_write"] } else { "on" }
             Desc = @{
-                "on"  = "crear y modificar archivos en disco"
-                "off" = "solo lectura sin tocar archivos"
+                "on"  = "permite al agente crear y editar archivos"
+                "off" = "protege tu codigo: solo lectura en disco"
             }
         }
         "agent_mode"      = @{
@@ -1721,19 +1721,9 @@ function Show-InteractiveSettings {
             Options = @("programar", "planear", "profe")
             Value = if ($savedSettings["agent_mode"]) { $savedSettings["agent_mode"] } elseif ($global:VorkAgentMode) { $global:VorkAgentMode } else { "programar" }
             Desc = @{
-                "programar" = "edicion completa y ejecucion"
-                "planear"   = "solo lectura, propone plan sin cambiar archivos"
-                "profe"     = "tutor guiado sin modificar codigo"
-            }
-        }
-        "color_scheme"    = @{
-            Label = "Color Scheme"
-            Options = @("dark", "light", "system")
-            Value = if ($savedSettings["color_scheme"]) { $savedSettings["color_scheme"] } else { "dark" }
-            Desc = @{
-                "dark"   = "paleta oscura de alto contraste"
-                "light"  = "paleta clara para fondo blanco"
-                "system" = "sincronizar con el tema de Windows"
+                "programar" = "agente completo: escribe codigo y ejecuta"
+                "planear"   = "solo lectura: propone planes sin cambiar nada"
+                "profe"     = "modo tutor: te ensena y explica paso a paso"
             }
         }
     }
@@ -1858,7 +1848,6 @@ function Show-InteractiveSettings {
                 if ($nextIndex -lt 0) { $nextIndex = $options.Count - 1 }
                 $settingsData[$activeKey].Value = $options[$nextIndex]
                 & $saveAll
-                if ($activeKey -eq 'color_scheme') { try { Apply-VorkTheme -ThemeName $global:VorkThemeId } catch { } }
                 continue
             }
 
