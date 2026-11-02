@@ -689,7 +689,7 @@ function Read-InteractiveVorkLine {
 
     try {
         $metrics = Get-VorkConsoleMetrics
-        $menuRows = [Math]::Max(2, [Math]::Min(8, $metrics.Height - 7))
+        $menuRows = [Math]::Max(2, [Math]::Min(6, $metrics.Height - 7))
         Ensure-VorkRowsBelow -Rows (12 + $menuRows) | Out-Null
         $promptRow = try { [Console]::CursorTop } catch { 0 }
         $previousTotalRows = 3
@@ -712,7 +712,9 @@ function Read-InteractiveVorkLine {
             }
 
             $metrics = Get-VorkConsoleMetrics
-            $menuRows = [Math]::Max(2, [Math]::Min(8, $metrics.Height - 7))
+            $targetCount = if ($menuOpen -and $filtered.Count -gt 0) { $filtered.Count } else { 1 }
+            $maxVis = if ($targetCount -gt 5) { 5 } else { $targetCount }
+            $menuRows = [Math]::Max(2, [Math]::Min($maxVis + 1, $metrics.Height - 7))
             $menuVisible = [Math]::Max(1, $menuRows - 1)
             if ($menuOpen -and $filtered.Count -gt 0) {
                 if ($selected -lt $top) { $top = $selected }

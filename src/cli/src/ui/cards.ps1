@@ -195,10 +195,12 @@ function Get-VorkPickerVisibleRows {
     param(
         $Metrics,
         [int]$ItemCount,
-        [int]$ExtraRows = 0
+        [int]$ExtraRows = 0,
+        [int]$MaxVisible = 5
     )
     $available = [Math]::Max(1, $Metrics.Height - 5 - $ExtraRows)
-    return [Math]::Max(1, [Math]::Min([Math]::Max(1, $ItemCount), $available))
+    $cap = if ($ItemCount -gt 5 -and $MaxVisible -gt 0) { [Math]::Min($MaxVisible, $available) } else { [Math]::Min($ItemCount, $available) }
+    return [Math]::Max(1, $cap)
 }
 
 function Get-VorkOptionParts {
@@ -951,7 +953,8 @@ function Select-InteractiveTTSVoice {
     try {
         while ($true) {
             $metrics = Get-VorkConsoleMetrics
-            $visible = [Math]::Max(1, [Math]::Min($catalog.Count, $metrics.Height - 6))
+            $cap = if ($catalog.Count -gt 5) { 5 } else { $catalog.Count }
+            $visible = [Math]::Max(1, [Math]::Min($cap, $metrics.Height - 6))
             $panelRows = $visible + 4
             $panel = Update-VorkPanel -Panel $panel -Rows $panelRows
 
@@ -1108,7 +1111,8 @@ function Select-InteractivePermissions {
     try {
         while ($true) {
             $metrics = Get-VorkConsoleMetrics
-            $visible = [Math]::Max(1, [Math]::Min($totalItems, $metrics.Height - 6))
+            $cap = if ($totalItems -gt 5) { 5 } else { $totalItems }
+            $visible = [Math]::Max(1, [Math]::Min($cap, $metrics.Height - 6))
             $panelRows = $visible + 3
             $panel = Update-VorkPanel -Panel $panel -Rows $panelRows
 
@@ -1319,52 +1323,19 @@ function Write-VorkModelFrame {
         $leftRight = "$([char]0x2190)/$([char]0x2192)"
         Write-VorkPanelLine -Panel $Panel -Index $row -Text "${LeadDark}Keyboard: ${White}${Bold}$upDown${Reset} ${LeadLight}Navigate${Reset}  ${White}${Bold}$leftRight${Reset} ${LeadLight}Effort (low · med · high)${Reset}  ${White}${Bold}enter${Reset} ${LeadLight}Select${Reset}  ${White}${Bold}esc${Reset} ${LeadLight}Go Back${Reset}"
         $row++
-    } elseif ($focusedModel -and $focusedModel.Id -eq "Vork 3.2") {
-        # Vork 3.2 Expert
-        $bar12 = [string][char]0x2501 * 12
-        Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${White}Effort${Reset}          ${LeadDark}$bar12${Reset} ${Purple}${Bold}● expert${Reset} ${LeadDark}$bar12${Reset}"
-        $row++
-        Write-VorkPanelLine -Panel $Panel -Index $row -Text "                  ${Purple}${Bold}Vork 3.2 Expert Tier (Fijo)${Reset}"
-        $row++
-        Write-VorkPanelLine -Panel $Panel -Index $row -Text "            ${LeadLight}Nivel expert de alta capacidad (superior a Vork 3 y Vork 3.1)${Reset}"
-        $row++
-        Write-VorkPanelLine -Panel $Panel -Index $row -Text ""
-        $row++
+    } else {
+        # Modelos sin slider de esfuerzo (Vork 3.2, Auto y modelos externos)
         $upDown = "$([char]0x2191)/$([char]0x2193)"
         Write-VorkPanelLine -Panel $Panel -Index $row -Text "${LeadDark}Keyboard: ${White}${Bold}$upDown${Reset} ${LeadLight}Navigate${Reset}  ${White}${Bold}enter${Reset} ${LeadLight}Select${Reset}  ${White}${Bold}esc${Reset} ${LeadLight}Go Back${Reset}"
         $row++
-    } elseif ($focusedModel -and $focusedModel.Id -eq "auto") {
-        # Auto mode
-        $bar12 = [string][char]0x2501 * 12
-        Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${White}Modo${Reset}            ${LeadDark}$bar12${Reset} ${Cyan}${Bold}● auto${Reset} ${LeadDark}$bar12${Reset}"
-        $row++
-        Write-VorkPanelLine -Panel $Panel -Index $row -Text "                  ${Cyan}${Bold}Auto (Rotación Inteligente Soberana)${Reset}"
-        $row++
-        Write-VorkPanelLine -Panel $Panel -Index $row -Text "            ${LeadLight}Selecciona dinámicamente el mejor modelo disponible según la tarea${Reset}"
-        $row++
-        Write-VorkPanelLine -Panel $Panel -Index $row -Text ""
-        $row++
-        $upDown = "$([char]0x2191)/$([char]0x2193)"
-        Write-VorkPanelLine -Panel $Panel -Index $row -Text "${LeadDark}Keyboard: ${White}${Bold}$upDown${Reset} ${LeadLight}Navigate${Reset}  ${White}${Bold}enter${Reset} ${LeadLight}Select Auto${Reset}  ${White}${Bold}esc${Reset} ${LeadLight}Go Back${Reset}"
-        $row++
-    } else {
-        # Sovereign / Connected Free Models
-        $prov = if ($focusedModel) { $focusedModel.Provider } else { "" }
-        $ctx = if ($focusedModel -and $focusedModel.Ctx) { " · Ctx: $($focusedModel.Ctx)" } else { "" }
-        $desc = if ($focusedModel) { $focusedModel.Desc } else { "" }
 
-        $bar10 = [string][char]0x2501 * 10
-        $powerStr = if ($focusedModel -and $focusedModel.Power) { " · Potencia: $($focusedModel.Power)" } else { "" }
-        Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${White}Proveedor${Reset}       ${LeadDark}$bar10${Reset} ${Green}${Bold}● $prov$ctx${Reset} ${LeadDark}$bar10${Reset}"
-        $row++
-        Write-VorkPanelLine -Panel $Panel -Index $row -Text "                  ${White}${Bold}$($focusedModel.Name)${Reset}${Cyan}$powerStr${Reset}"
-        $row++
-        Write-VorkPanelLine -Panel $Panel -Index $row -Text "            ${LeadLight}$desc${Reset}"
+        Write-VorkPanelLine -Panel $Panel -Index $row -Text ""
         $row++
         Write-VorkPanelLine -Panel $Panel -Index $row -Text ""
         $row++
-        $upDown = "$([char]0x2191)/$([char]0x2193)"
-        Write-VorkPanelLine -Panel $Panel -Index $row -Text "${LeadDark}Keyboard: ${White}${Bold}$upDown${Reset} ${LeadLight}Navigate${Reset}  ${White}${Bold}enter${Reset} ${LeadLight}Pin Model${Reset}  ${White}${Bold}esc${Reset} ${LeadLight}Go Back${Reset}"
+        Write-VorkPanelLine -Panel $Panel -Index $row -Text ""
+        $row++
+        Write-VorkPanelLine -Panel $Panel -Index $row -Text ""
         $row++
     }
 
@@ -1776,7 +1747,8 @@ function Show-InteractiveSettings {
     }
 
     $metrics = Get-VorkConsoleMetrics
-    $visible = [Math]::Max(1, [Math]::Min([Math]::Max(1, $keys.Count), $metrics.Height - 8))
+    $cap = if ($keys.Count -gt 5) { 5 } else { [Math]::Max(1, $keys.Count) }
+    $visible = [Math]::Max(1, [Math]::Min($cap, $metrics.Height - 8))
     $panelRows = $visible + 4
     Ensure-VorkRowsBelow -Rows $panelRows | Out-Null
     $panelTop = try { [Console]::CursorTop } catch { 0 }
