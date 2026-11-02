@@ -14,15 +14,33 @@ function Show-Banner {
     $width = [Math]::Max(20, $metrics.Width - 1)
 
     $currPath = try { (Get-Location).Path.Replace($HOME, "~").Replace("\", "/") } catch { "~" }
-    $tierLabel = if ($global:VorkTier) { $global:VorkTier.Substring(0,1).ToUpper() + $global:VorkTier.Substring(1).ToLower() } else { "Medium" }
-    $tierColor = switch ($tierLabel.ToLower()) {
-        "low"    { $Green }
-        "medium" { $Yellow }
-        "high"   { $Coral }
-        "expert" { $Purple }
-        default  { $Cyan }
+    $activeInfo = if (Get-Command "Get-VorkActiveModelInfo" -ErrorAction SilentlyContinue) { Get-VorkActiveModelInfo } else { $null }
+    $modelName = if ($activeInfo) { $activeInfo.Name } elseif ($global:VorkModel) { $global:VorkModel } else { "Vork 3.1" }
+    $isVork = if ($activeInfo) { $activeInfo.IsVork } else { ($modelName -like "Vork*") }
+
+    $powerTag = ""
+    $tierColor = $Cyan
+
+    if ($isVork) {
+        $tierLabel = if ($modelName -like "*3.2*") { "Expert" } elseif ($global:VorkTier) { $global:VorkTier.Substring(0,1).ToUpper() + $global:VorkTier.Substring(1).ToLower() } else { "Medium" }
+        $powerTag = "($tierLabel)"
+        $tierColor = switch ($tierLabel.ToLower()) {
+            "low"    { $Green }
+            "medium" { $Yellow }
+            "high"   { $Coral }
+            "expert" { $Purple }
+            default  { $Cyan }
+        }
+    } elseif ($activeInfo -and $activeInfo.Power) {
+        $powerTag = "($($activeInfo.Power))"
+        $tierColor = $Cyan
+    } else {
+        $powerTag = ""
     }
-    $modelName = if ($global:VorkModel) { $global:VorkModel } else { "Vork 3" }
+
+    $line1Visual = if ($powerTag) { "$modelName $powerTag" } else { "$modelName" }
+    $left1 = if ($powerTag) { "${White}${Bold}$modelName${Reset} ${tierColor}$powerTag${Reset}" } else { "${White}${Bold}$modelName${Reset}" }
+
     $versionBadge = "v$VorkVersion"
 
     $devIdentity = if ($global:VorkDeviceName) { $global:VorkDeviceName } else { (Get-VorkDeviceIdentity) }
@@ -66,7 +84,7 @@ function Show-Banner {
 
     if ($width -ge 46) {
         $vis0 = ("VORK CLI $versionBadge").Length
-        $vis1 = ("$modelName ($tierLabel)").Length
+        $vis1 = $line1Visual.Length
         $vis2 = $userMachineLabel.Length
         $vis3 = 2 + $pathShown.Length
 
@@ -80,8 +98,7 @@ function Show-Banner {
         $pad0 = [Math]::Max(2, $targetLogoCol - $vis0)
         Write-Host "  $left0$([string]::new(' ', $pad0))${Coral}$($vRows[0])${Reset}"
 
-        # Fila 1: Vork 3.2 (Tier)  |  Logo Fila 1
-        $left1 = "${White}${Bold}$modelName${Reset} ${tierColor}($tierLabel)${Reset}"
+        # Fila 1: Modelo Activo  |  Logo Fila 1
         $pad1 = [Math]::Max(2, $targetLogoCol - $vis1)
         Write-Host "  $left1$([string]::new(' ', $pad1))${Coral}$($vRows[1])${Reset}"
 
@@ -97,7 +114,7 @@ function Show-Banner {
     } else {
         # Vista compacta para terminales estrechas
         Write-Host "  ${White}${Bold}VORK CLI${Reset} ${White}$versionBadge${Reset}"
-        Write-Host "  ${White}${Bold}$modelName${Reset} ${tierColor}($tierLabel)${Reset}"
+        Write-Host "  $left1"
         Write-Host "  ${White}$devIdentity${Reset} ${Cyan}(Vork AI)${Reset}"
         Write-Host "  ${Coral}${cChev}${Reset} ${White}$pathShown${Reset}"
     }

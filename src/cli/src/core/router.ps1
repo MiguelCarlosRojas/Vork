@@ -246,7 +246,8 @@ function Format-VorkPromptStatus {
         return "${tierColor}$([char]0x25CF)${Reset} ${White}${Bold}$model${Reset} ${White}$([char]0x00B7)${Reset} ${tierColor}${Bold}$tierLabel${Reset}"
     }
 
-    return "${LeadLight}$Status${Reset}"
+    if ($Width -lt 40) { return "" }
+    return "${Cyan}$([char]0x25CF)${Reset} ${White}${Bold}$Status${Reset}"
 }
 
 function Get-VorkPromptPlaceholder {
@@ -739,9 +740,18 @@ function Read-InteractiveVorkLine {
 
             $statusText = $Status
             if (-not $statusText) {
-                $modelName = if ($global:VorkModel) { $global:VorkModel } else { "Vork 3" }
-                $tierName = if ($global:VorkTier) { $global:VorkTier.ToLower() } else { "medium" }
-                $statusText = "$modelName · $tierName"
+                $activeInfo = if (Get-Command "Get-VorkActiveModelInfo" -ErrorAction SilentlyContinue) { Get-VorkActiveModelInfo } else { $null }
+                $mName = if ($activeInfo) { $activeInfo.Name } elseif ($global:VorkModel) { $global:VorkModel } else { "Vork 3.1" }
+                $isVork = if ($activeInfo) { $activeInfo.IsVork } else { ($mName -like "Vork*") }
+
+                if ($isVork) {
+                    $tName = if ($mName -like "*3.2*") { "expert" } elseif ($global:VorkTier) { $global:VorkTier.ToLower() } else { "medium" }
+                    $statusText = "$mName · $tName"
+                } elseif ($activeInfo -and $activeInfo.Power) {
+                    $statusText = "$mName · $($activeInfo.Power)"
+                } else {
+                    $statusText = "$mName"
+                }
             }
             if ($ctrlCWarning) { $statusText = "ctrl+c otra vez para salir" }
 
@@ -1128,8 +1138,15 @@ function Start-InteractiveREPL {
             $prevModel = $global:VorkModel
             $prevTier = $global:VorkTier
             Invoke-CmdModel -ArgsList $replArgs
+            $activeInfo = if (Get-Command "Get-VorkActiveModelInfo" -ErrorAction SilentlyContinue) { Get-VorkActiveModelInfo } else { $null }
             $outMsg = if ($global:VorkModel -ne $prevModel -or $global:VorkTier -ne $prevTier) {
-                "Switched model to $global:VorkModel ($global:VorkTier)"
+                if ($activeInfo -and $activeInfo.IsVork -and $global:VorkTier) {
+                    "Switched model to $global:VorkModel ($global:VorkTier)"
+                } elseif ($activeInfo -and $activeInfo.Power) {
+                    "Switched model to $global:VorkModel ($($activeInfo.Power))"
+                } else {
+                    "Switched model to $global:VorkModel"
+                }
             } else {
                 "Exited /model command"
             }

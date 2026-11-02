@@ -1244,10 +1244,12 @@ function Write-VorkModelFrame {
                         default  { $White }
                     }
                     $tierBadge = " ${LeadDark}[${tColor}$effLabel${LeadDark}]${Reset}"
-                } elseif ($m.Id -eq "Vork 3.2") {
+                } elseif ($m.Id -like "*3.2*") {
                     $tierBadge = " ${LeadDark}[${Purple}expert${LeadDark}]${Reset}"
                 } elseif ($m.Id -eq "auto") {
                     $tierBadge = " ${LeadDark}[${Cyan}auto${LeadDark}]${Reset}"
+                } elseif ($m.Power) {
+                    $tierBadge = " ${LeadDark}[${Cyan}$($m.Power)${LeadDark}]${Reset}"
                 }
 
                 $nameStr = $m.Name
@@ -1352,9 +1354,10 @@ function Write-VorkModelFrame {
         $desc = if ($focusedModel) { $focusedModel.Desc } else { "" }
 
         $bar10 = [string][char]0x2501 * 10
+        $powerStr = if ($focusedModel -and $focusedModel.Power) { " · Potencia: $($focusedModel.Power)" } else { "" }
         Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${White}Proveedor${Reset}       ${LeadDark}$bar10${Reset} ${Green}${Bold}● $prov$ctx${Reset} ${LeadDark}$bar10${Reset}"
         $row++
-        Write-VorkPanelLine -Panel $Panel -Index $row -Text "                  ${White}${Bold}$($focusedModel.Name)${Reset}"
+        Write-VorkPanelLine -Panel $Panel -Index $row -Text "                  ${White}${Bold}$($focusedModel.Name)${Reset}${Cyan}$powerStr${Reset}"
         $row++
         Write-VorkPanelLine -Panel $Panel -Index $row -Text "            ${LeadLight}$desc${Reset}"
         $row++
@@ -1370,20 +1373,34 @@ function Write-VorkModelFrame {
     $row++
 
     # Row 17: Right-aligned active status
-    $activeModelDisp = if ($global:VorkPinnedModel) { $global:VorkPinnedModel } elseif ($global:VorkModel) { $global:VorkModel } else { "Auto" }
-    $activeTierDisp = if ($global:VorkPinnedModel -and $global:VorkPinnedModel -ne "auto" -and $global:VorkPinnedModel -notin @("Vork 3", "Vork 3.1", "Vork 3.2")) { "soberano" } elseif ($activeModelDisp -eq "Vork 3.2") { "expert" } elseif ($global:VorkTier) { $global:VorkTier.ToLower() } else { "medium" }
-    $tierColor = switch ($activeTierDisp) {
-        "low"      { $Green }
-        "medium"   { $Yellow }
-        "high"     { $Coral }
-        "expert"   { $Purple }
-        "soberano" { $Green }
-        default    { $Cyan }
+    $activeInfo = if (Get-Command "Get-VorkActiveModelInfo" -ErrorAction SilentlyContinue) { Get-VorkActiveModelInfo } else { $null }
+    $activeModelDisp = if ($activeInfo) { $activeInfo.Name } elseif ($global:VorkModel) { $global:VorkModel } else { "Auto" }
+
+    $statusLine = ""
+    if ($activeInfo -and $activeInfo.IsVork) {
+        $activeTierDisp = if ($activeModelDisp -like "*3.2*") { "expert" } elseif ($global:VorkTier) { $global:VorkTier.ToLower() } else { "medium" }
+        $tierColor = switch ($activeTierDisp) {
+            "low"    { $Green }
+            "medium" { $Yellow }
+            "high"   { $Coral }
+            "expert" { $Purple }
+            default  { $Cyan }
+        }
+        $rawStatus = "$activeModelDisp · $activeTierDisp"
+        $rawWidth = Get-VorkDisplayWidth $rawStatus
+        $pad = [Math]::Max(0, $Panel.Width - $rawWidth - 2)
+        $statusLine = ([string]::new(' ', $pad)) + "${LeadLight}$activeModelDisp${Reset} ${Lead}·${Reset} ${tierColor}$activeTierDisp${Reset}"
+    } elseif ($activeInfo -and $activeInfo.Power) {
+        $rawStatus = "$activeModelDisp · $($activeInfo.Power)"
+        $rawWidth = Get-VorkDisplayWidth $rawStatus
+        $pad = [Math]::Max(0, $Panel.Width - $rawWidth - 2)
+        $statusLine = ([string]::new(' ', $pad)) + "${LeadLight}$activeModelDisp${Reset} ${Lead}·${Reset} ${Cyan}$($activeInfo.Power)${Reset}"
+    } else {
+        $rawStatus = "$activeModelDisp"
+        $rawWidth = Get-VorkDisplayWidth $rawStatus
+        $pad = [Math]::Max(0, $Panel.Width - $rawWidth - 2)
+        $statusLine = ([string]::new(' ', $pad)) + "${LeadLight}$activeModelDisp${Reset}"
     }
-    $rawStatus = "$activeModelDisp · $activeTierDisp"
-    $rawWidth = Get-VorkDisplayWidth $rawStatus
-    $pad = [Math]::Max(0, $Panel.Width - $rawWidth - 2)
-    $statusLine = ([string]::new(' ', $pad)) + "${LeadLight}$activeModelDisp${Reset} ${Lead}·${Reset} ${tierColor}$activeTierDisp${Reset}"
     Write-VorkPanelLine -Panel $Panel -Index $row -Text $statusLine
 
     try { [Console]::CursorVisible = $false } catch { }

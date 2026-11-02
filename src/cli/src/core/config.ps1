@@ -585,7 +585,483 @@ $cTriR = [char]0x25B6 # ▶
 $cTriL = [char]0x25C0 # ◀
 
 # ========================================================
-# MODELO ACTIVO & PERFIL DE ESFUERZO / TIER
+# CATÁLOGO DE MODELOS & GESTIÓN DE ESFUERZO / POTENCIA
+# ========================================================
+
+function Get-VorkAvailableModels {
+    $authFile = Join-Path $HOME ".vork\auth.json"
+    $authData = @{}
+    if (Test-Path $authFile) {
+        try { $authData = Get-Content -Path $authFile -Raw | ConvertFrom-Json } catch { }
+    }
+
+    $models = @(
+        # 1. Modo Automático (Rotación Inteligente)
+        @{
+            Id             = "auto"
+            Name           = "Auto (Rotación Inteligente)"
+            Provider       = "Vork Orchestrator"
+            Badge          = "Recomendado"
+            Power          = ""
+            Desc           = "Elige automáticamente la mejor IA gratis según la tarea y rota si hay pausas"
+            Ctx            = "Auto"
+            SupportsEffort = $false
+            IsVork         = $true
+        },
+
+        # 2. Perfiles Vork (únicos con niveles low / medium / high y expert)
+        @{
+            Id             = "Vork 3.2"
+            Name           = "Vork 3.2 (Expert)"
+            Provider       = "Vork Cloud IA"
+            Badge          = "Expert"
+            Power          = "Expert"
+            Desc           = "Nivel expert de alta capacidad (superior a Vork 3 y Vork 3.1)"
+            Ctx            = "128k"
+            SupportsEffort = $false
+            IsVork         = $true
+        },
+        @{
+            Id             = "Vork 3.1"
+            Name           = "Vork 3.1"
+            Provider       = "Vork Cloud IA"
+            Badge          = "Avanzado"
+            Power          = ""
+            Desc           = "Modelo intermedio avanzado (superior a Vork 3, configurable en low/medium/high)"
+            Ctx            = "64k"
+            SupportsEffort = $true
+            IsVork         = $true
+        },
+        @{
+            Id             = "Vork 3"
+            Name           = "Vork 3"
+            Provider       = "Vork Cloud IA"
+            Badge          = "Base"
+            Power          = ""
+            Desc           = "Modelo base ligero y ágil (configurable en low/medium/high)"
+            Ctx            = "32k"
+            SupportsEffort = $true
+            IsVork         = $true
+        },
+
+        # 3. Modelos Soberanos Gratuitos con su propia potencia técnica
+        # --- Google Gemini Series (Google AI Studio Free Tier) ---
+        @{
+            Id             = "google/gemini-2.0-flash"
+            Name           = "Gemini 2.0 Flash"
+            Provider       = if ($authData.gemini) { "Google AI Studio (Conectado)" } else { "Google AI Studio" }
+            Badge          = if ($authData.gemini) { "Conectado" } else { "Flash" }
+            Power          = "1M Multimodal"
+            Desc           = "Multimodal nativo, visión y ventana de 1 millón de tokens"
+            Ctx            = "1M"
+            SupportsEffort = $false
+            IsVork         = $false
+        },
+        @{
+            Id             = "google/gemini-2.0-flash-lite"
+            Name           = "Gemini 2.0 Flash-Lite"
+            Provider       = if ($authData.gemini) { "Google AI Studio (Conectado)" } else { "Google AI Studio" }
+            Badge          = if ($authData.gemini) { "Conectado" } else { "Lite" }
+            Power          = "Flash-Lite"
+            Desc           = "Inferencia ultrarrápida de baja latencia con 1M contexto y visión multimodal"
+            Ctx            = "1M"
+            SupportsEffort = $false
+            IsVork         = $false
+        },
+        @{
+            Id             = "google/gemini-2.0-flash-thinking-exp"
+            Name           = "Gemini Flash Thinking"
+            Provider       = if ($authData.gemini) { "Google AI Studio (Conectado)" } else { "Google AI Studio" }
+            Badge          = if ($authData.gemini) { "Conectado" } else { "Thinking" }
+            Power          = "Thinking 1M"
+            Desc           = "Razonamiento reflexivo paso a paso y resolución matemática con visión"
+            Ctx            = "1M"
+            SupportsEffort = $false
+            IsVork         = $false
+        },
+        @{
+            Id             = "google/gemini-1.5-pro"
+            Name           = "Gemini 1.5 Pro"
+            Provider       = if ($authData.gemini) { "Google AI Studio (Conectado)" } else { "Google AI Studio" }
+            Badge          = if ($authData.gemini) { "Conectado" } else { "Pro" }
+            Power          = "2M Pro"
+            Desc           = "Ventana colosal de 2 millones de tokens para análisis integral de repositorios"
+            Ctx            = "2M"
+            SupportsEffort = $false
+            IsVork         = $false
+        },
+
+        # --- DeepSeek & Modelos de Razonamiento ---
+        @{
+            Id             = "deepseek/deepseek-r1-distill"
+            Name           = "DeepSeek R1 Distill"
+            Provider       = "Kilo Gateway"
+            Badge          = "R1"
+            Power          = "Razonamiento R1"
+            Desc           = "Razonamiento matemático y lógica algorítmica compleja"
+            Ctx            = "128k"
+            SupportsEffort = $false
+            IsVork         = $false
+        },
+        @{
+            Id             = "deepseek/deepseek-r1-qwen-32b"
+            Name           = "DeepSeek R1 Qwen 32B"
+            Provider       = if ($authData.sambanova) { "SambaNova (Conectado)" } else { "Cloudflare / SambaNova" }
+            Badge          = "R1 32B"
+            Power          = "R1 Distill 32B"
+            Desc           = "Lógica matemática y algorítmica destilada sobre base Qwen 2.5"
+            Ctx            = "128k"
+            SupportsEffort = $false
+            IsVork         = $false
+        },
+        @{
+            Id             = "qwen/qwq-32b"
+            Name           = "Qwen QwQ 32B"
+            Provider       = if ($authData.sambanova) { "SambaNova (Conectado)" } else { "Cloudflare / SambaNova" }
+            Badge          = "QwQ"
+            Power          = "Razonamiento QwQ"
+            Desc           = "Modelo analítico avanzado con razonamiento profundo y planificación"
+            Ctx            = "128k"
+            SupportsEffort = $false
+            IsVork         = $false
+        },
+
+        # --- Meta Llama Series (Groq / Cerebras / Cloudflare) ---
+        @{
+            Id             = "meta-llama/llama-3.3-70b"
+            Name           = "Llama 3.3 70B"
+            Provider       = if ($authData.groq) { "Groq (Conectado)" } elseif ($authData.cerebras) { "Cerebras (Conectado)" } else { "Groq / Cerebras" }
+            Badge          = if ($authData.groq -or $authData.cerebras) { "Conectado" } else { "Llama" }
+            Power          = "70B Ultra"
+            Desc           = "Velocidad extrema y multitarea (800+ tokens/seg)"
+            Ctx            = "128k"
+            SupportsEffort = $false
+            IsVork         = $false
+        },
+        @{
+            Id             = "meta-llama/llama-3.1-8b"
+            Name           = "Llama 3.1 8B Instant"
+            Provider       = if ($authData.cerebras) { "Cerebras (Conectado)" } elseif ($authData.groq) { "Groq (Conectado)" } else { "Groq / Cerebras" }
+            Badge          = if ($authData.cerebras -or $authData.groq) { "Conectado" } else { "Turbo" }
+            Power          = "8B Turbo"
+            Desc           = "Inferencia a velocidad récord (hasta 2.100 tokens/s) para respuestas inmediatas"
+            Ctx            = "128k"
+            SupportsEffort = $false
+            IsVork         = $false
+        },
+        @{
+            Id             = "meta-llama/llama-3.2-11b-vision"
+            Name           = "Llama 3.2 11B Vision"
+            Provider       = if ($authData.groq) { "Groq (Conectado)" } else { "Groq / Cloudflare" }
+            Badge          = "Visión"
+            Power          = "11B Visión"
+            Desc           = "Comprensión visual de código, interfaces gráficas y diagramas de arquitectura"
+            Ctx            = "128k"
+            SupportsEffort = $false
+            IsVork         = $false
+        },
+        @{
+            Id             = "meta-llama/llama-3.2-3b"
+            Name           = "Llama 3.2 3B"
+            Provider       = "Cloudflare / Groq"
+            Badge          = "Edge"
+            Power          = "3B Edge"
+            Desc           = "Modelo ultraligero de inferencia instantánea sin fricción"
+            Ctx            = "128k"
+            SupportsEffort = $false
+            IsVork         = $false
+        },
+
+        # --- Qwen & Ingeniería de Software ---
+        @{
+            Id             = "qwen/qwen-2.5-coder-32b"
+            Name           = "Qwen 2.5 Coder 32B"
+            Provider       = if ($authData.sambanova) { "SambaNova (Conectado)" } else { "Hetzner / SambaNova" }
+            Badge          = "Qwen"
+            Power          = "32B Coder"
+            Desc           = "Arquitectura de software y generación de pruebas unitarias"
+            Ctx            = "128k"
+            SupportsEffort = $false
+            IsVork         = $false
+        },
+
+        # --- Mistral AI Series (La Plateforme Experiment / Free) ---
+        @{
+            Id             = "mistralai/codestral-2501"
+            Name           = "Codestral 2501"
+            Provider       = if ($authData.mistral) { "Mistral AI (Conectado)" } else { "Mistral AI" }
+            Badge          = if ($authData.mistral) { "Conectado" } else { "Code" }
+            Power          = "Code 256k"
+            Desc           = "Especialista en desarrollo de software, pruebas y refactor"
+            Ctx            = "256k"
+            SupportsEffort = $false
+            IsVork         = $false
+        },
+        @{
+            Id             = "mistralai/mistral-small-latest"
+            Name           = "Mistral Small 24B"
+            Provider       = if ($authData.mistral) { "Mistral AI (Conectado)" } else { "Mistral AI" }
+            Badge          = if ($authData.mistral) { "Conectado" } else { "Small" }
+            Power          = "Small 24B"
+            Desc           = "Razonamiento eficiente, fluidez multilingüe nativa y síntesis de ideas"
+            Ctx            = "128k"
+            SupportsEffort = $false
+            IsVork         = $false
+        },
+        @{
+            Id             = "mistralai/pixtral-12b"
+            Name           = "Pixtral 12B Vision"
+            Provider       = if ($authData.mistral) { "Mistral AI (Conectado)" } else { "Mistral AI" }
+            Badge          = if ($authData.mistral) { "Conectado" } else { "Visión" }
+            Power          = "12B Visión"
+            Desc           = "Extracción visual de código, análisis de diagramas y comprensión gráfica"
+            Ctx            = "128k"
+            SupportsEffort = $false
+            IsVork         = $false
+        },
+
+        # --- NVIDIA NIM & Soberanos ---
+        @{
+            Id             = "nvidia/nemotron-3-ultra-550b"
+            Name           = "Nemotron 3 Ultra 550B"
+            Provider       = "Kilo Gateway"
+            Badge          = "Ultra"
+            Power          = "550B Ultra"
+            Desc           = "Razonamiento profundo, código y soberanía de datos"
+            Ctx            = "128k"
+            SupportsEffort = $false
+            IsVork         = $false
+        },
+        @{
+            Id             = "nvidia/llama-3.1-nemotron-70b-instruct"
+            Name           = "Nemotron 70B Instruct"
+            Provider       = if ($authData.nvidia) { "NVIDIA NIM (Conectado)" } else { "NVIDIA NIM" }
+            Badge          = if ($authData.nvidia) { "Conectado" } else { "NIM" }
+            Power          = "70B NIM"
+            Desc           = "Aceleración por hardware NVIDIA para desarrollo y generación de código"
+            Ctx            = "128k"
+            SupportsEffort = $false
+            IsVork         = $false
+        },
+
+        # --- Z.ai BigModel Flash Series ---
+        @{
+            Id             = "zhipu/glm-4.7-flash"
+            Name           = "GLM 4.7 Flash"
+            Provider       = if ($authData.zai) { "Z.ai (Conectado)" } else { "Z.ai" }
+            Badge          = if ($authData.zai) { "Conectado" } else { "Free" }
+            Power          = "Flash"
+            Desc           = "Inferencia ultraligera sin coste para tareas rápidas"
+            Ctx            = "128k"
+            SupportsEffort = $false
+            IsVork         = $false
+        },
+        @{
+            Id             = "zhipu/glm-4.6v-flash"
+            Name           = "GLM 4.6V Flash Visión"
+            Provider       = if ($authData.zai) { "Z.ai (Conectado)" } else { "Z.ai" }
+            Badge          = if ($authData.zai) { "Conectado" } else { "Visión" }
+            Power          = "Flash Visión"
+            Desc           = "Visión artificial ultraligera y reconocimiento visual OCR sin coste"
+            Ctx            = "128k"
+            SupportsEffort = $false
+            IsVork         = $false
+        },
+
+        # --- OpenRouter Free Tier ---
+        @{
+            Id             = "openrouter/free"
+            Name           = "OpenRouter Auto Free"
+            Provider       = if ($authData.openrouter) { "OpenRouter (Conectado)" } else { "OpenRouter" }
+            Badge          = if ($authData.openrouter) { "Conectado" } else { "Free" }
+            Power          = "Multi-IA Free"
+            Desc           = "Enrutador soberano que rota automáticamente entre todos los modelos :free"
+            Ctx            = "128k"
+            SupportsEffort = $false
+            IsVork         = $false
+        },
+        @{
+            Id             = "google/gemma-2-9b-it:free"
+            Name           = "Google Gemma 2 9B"
+            Provider       = "OpenRouter"
+            Badge          = "Gemma"
+            Power          = "9B Gemma"
+            Desc           = "Modelo de arquitectura abierta optimizado por Google en cluster gratis"
+            Ctx            = "8k"
+            SupportsEffort = $false
+            IsVork         = $false
+        },
+
+        # --- Pollinations (Abierto sin registro ni API key) ---
+        @{
+            Id             = "gpt-oss-20b"
+            Name           = "GPT-OSS 20B"
+            Provider       = "Pollinations"
+            Badge          = "Free"
+            Power          = "20B"
+            Desc           = "Conversación abierta sin registro con límites por IP"
+            Ctx            = "32k"
+            SupportsEffort = $false
+            IsVork         = $false
+        },
+        @{
+            Id             = "pollinations/gpt-4o-mini"
+            Name           = "GPT-4o Mini Free"
+            Provider       = "Pollinations"
+            Badge          = "Free"
+            Power          = "Mini Open"
+            Desc           = "Acceso comunitario a GPT-4o Mini sin registro ni límites de cuenta"
+            Ctx            = "128k"
+            SupportsEffort = $false
+            IsVork         = $false
+        },
+
+        # --- Repositorios Open-Source: Microsoft Phi Family ---
+        @{
+            Id             = "microsoft/phi-4"
+            Name           = "Phi-4 Reasoning"
+            Provider       = "Hugging Face / Azure"
+            Badge          = "Phi"
+            Power          = "14B Reasoner"
+            Desc           = "Modelo compacto líder en benchmarks matemáticos, lógica y código"
+            Ctx            = "16k"
+            SupportsEffort = $false
+            IsVork         = $false
+        },
+        @{
+            Id             = "microsoft/phi-3.5-mini"
+            Name           = "Phi-3.5 Mini"
+            Provider       = "Hugging Face Serverless"
+            Badge          = "Phi"
+            Power          = "3.8B Mini"
+            Desc           = "Ventana de 128k tokens y alta capacidad analítica en tamaño ultra ligero"
+            Ctx            = "128k"
+            SupportsEffort = $false
+            IsVork         = $false
+        },
+
+        # --- Repositorios Enterprise: Cohere Trial Free Tier ---
+        @{
+            Id             = "cohere/command-r-plus"
+            Name           = "Command R+"
+            Provider       = if ($authData.cohere) { "Cohere (Conectado)" } else { "Cohere API" }
+            Badge          = if ($authData.cohere) { "Conectado" } else { "Cohere" }
+            Power          = "Enterprise RAG"
+            Desc           = "Especializado en recuperación RAG, llamadas a herramientas y síntesis formal"
+            Ctx            = "128k"
+            SupportsEffort = $false
+            IsVork         = $false
+        },
+        @{
+            Id             = "cohere/command-r7b"
+            Name           = "Command R7B"
+            Provider       = if ($authData.cohere) { "Cohere (Conectado)" } else { "Cohere API" }
+            Badge          = if ($authData.cohere) { "Conectado" } else { "7B" }
+            Power          = "7B MultiLing"
+            Desc           = "Motor multilingüe optimizado para flujos de trabajo rápidos y 23 idiomas"
+            Ctx            = "128k"
+            SupportsEffort = $false
+            IsVork         = $false
+        },
+        @{
+            Id             = "cohere/aya-expanse-32b"
+            Name           = "Aya Expanse 32B"
+            Provider       = if ($authData.cohere) { "Cohere (Conectado)" } else { "Cohere For AI" }
+            Badge          = "Aya"
+            Power          = "32B Global"
+            Desc           = "Poderoso modelo multilingüe global entrenado en +70 lenguas del mundo"
+            Ctx            = "8k"
+            SupportsEffort = $false
+            IsVork         = $false
+        },
+
+        # --- Repositorios y Clusters de Inferencia: SiliconFlow & DeepSeek Frontier ---
+        @{
+            Id             = "deepseek/deepseek-v3"
+            Name           = "DeepSeek V3 671B"
+            Provider       = if ($authData.siliconflow) { "SiliconFlow (Conectado)" } else { "SiliconFlow / Samba" }
+            Badge          = "V3 MoE"
+            Power          = "671B MoE"
+            Desc           = "Arquitectura Mixture-of-Experts de 671B parámetros líder en generación de software"
+            Ctx            = "128k"
+            SupportsEffort = $false
+            IsVork         = $false
+        },
+        @{
+            Id             = "deepseek/deepseek-r1-distill-qwen-7b"
+            Name           = "DeepSeek R1 Distill 7B"
+            Provider       = if ($authData.siliconflow) { "SiliconFlow (Conectado)" } else { "SiliconFlow" }
+            Badge          = "R1 7B"
+            Power          = "R1 Distill 7B"
+            Desc           = "Inferencia de razonamiento R1 ultra veloz optimizada para baja latencia"
+            Ctx            = "32k"
+            SupportsEffort = $false
+            IsVork         = $false
+        },
+        @{
+            Id             = "qwen/qwen-2.5-7b"
+            Name           = "Qwen 2.5 7B Instruct"
+            Provider       = if ($authData.siliconflow) { "SiliconFlow (Conectado)" } else { "SiliconFlow / Hetzner" }
+            Badge          = "7B"
+            Power          = "7B Instruct"
+            Desc           = "Inferencia instantánea con soporte multilingüe y resolución directa de dudas"
+            Ctx            = "32k"
+            SupportsEffort = $false
+            IsVork         = $false
+        },
+
+        # --- Repositorios Open Weights Clásicos & Nano ---
+        @{
+            Id             = "mistralai/mistral-7b-v0.3"
+            Name           = "Mistral 7B v0.3"
+            Provider       = if ($authData.huggingface) { "Hugging Face (Conectado)" } else { "Hugging Face Serverless" }
+            Badge          = "7B Open"
+            Power          = "7B Open"
+            Desc           = "El referente open-source de Mistral con soporte de llamada a funciones nativo"
+            Ctx            = "32k"
+            SupportsEffort = $false
+            IsVork         = $false
+        },
+        @{
+            Id             = "meta-llama/llama-3.2-1b"
+            Name           = "Llama 3.2 1B Nano"
+            Provider       = "Cloudflare / Hugging Face"
+            Badge          = "1B Nano"
+            Power          = "1B Nano"
+            Desc           = "El modelo Llama más ligero y rápido jamás creado para asistencia inmediata"
+            Ctx            = "128k"
+            SupportsEffort = $false
+            IsVork         = $false
+        }
+    )
+
+    return $models
+}
+
+function Get-VorkActiveModelInfo {
+    $models = Get-VorkAvailableModels
+    $targetId = if ($global:VorkPinnedModel) { $global:VorkPinnedModel } elseif ($global:VorkModel) { $global:VorkModel } else { "auto" }
+
+    $found = $models | Where-Object { $_.Id -eq $targetId -or $_.Name -eq $targetId } | Select-Object -First 1
+    if (-not $found) {
+        $isV = ($targetId -like "Vork*")
+        $found = @{
+            Id             = $targetId
+            Name           = $targetId
+            Provider       = "IA Externa"
+            Badge          = ""
+            Power          = ""
+            Desc           = "Modelo configurado por el usuario"
+            Ctx            = ""
+            SupportsEffort = $false
+            IsVork         = $isV
+        }
+    }
+    return $found
+}
+
+# ========================================================
+# MODELO ACTIVO & PERFIL DE ESFUERZO / POTENCIA
 # ========================================================
 $pinnedFile = Join-Path $HOME ".vork\.pinned_model"
 if (Test-Path $pinnedFile) {
@@ -610,6 +1086,11 @@ if (-not $global:VorkModel) {
     }
 }
 
+$activeInfo = Get-VorkActiveModelInfo
+if ($activeInfo -and $activeInfo.Name) {
+    $global:VorkModel = $activeInfo.Name
+}
+
 $tierFile = Join-Path $HOME ".vork\.tier"
 if (-not $global:VorkTier) {
     if (Test-Path $tierFile) {
@@ -622,14 +1103,16 @@ if (-not $global:VorkTier) {
         $global:VorkTier = if ($env:VORK_TIER) { $env:VORK_TIER.ToLower() } else { "medium" }
     }
 }
-if ($global:VorkModel -eq "Vork 3.2") {
-    $global:VorkTier = "expert"
-} elseif ($global:VorkModel -in @("Vork 3", "Vork 3.1")) {
-    if ($global:VorkTier -notin @("low", "medium", "high")) {
-        $global:VorkTier = "medium"
+
+if ($activeInfo -and $activeInfo.IsVork) {
+    if ($global:VorkModel -eq "Vork 3.2 (Expert)" -or $global:VorkModel -eq "Vork 3.2") {
+        $global:VorkTier = "expert"
+    } elseif ($global:VorkTier -notin @("low", "medium", "high")) {
+        $global:VorkTier = if ($global:VorkModel -eq "Vork 3") { "low" } else { "medium" }
     }
-} elseif (-not $global:VorkTier) {
-    $global:VorkTier = "expert"
+} else {
+    # Los modelos externos no usan tiers de Vork (se elimina el tier)
+    $global:VorkTier = ""
 }
 
 # ========================================================

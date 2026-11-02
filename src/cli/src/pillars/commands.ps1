@@ -564,6 +564,13 @@ function Invoke-CmdTheme {
                 Set-Content -Path (Join-Path $tDir ".theme") -Value $matched -Force -Encoding UTF8
             } catch { }
 
+            if (-not [Console]::IsOutputRedirected -and -not [Console]::IsInputRedirected) {
+                try {
+                    Clear-Host
+                    if (Get-Command "Show-Banner" -ErrorAction SilentlyContinue) { Show-Banner }
+                } catch { }
+            }
+
             Write-VorkSectionHeader -Title "Tema Visual Actualizado" -Subtitle "preferencia de estilo de interfaz" -RightText "vork · theme"
             Write-VorkStatusLine -Kind ok -Text "Tema visual cambiado exitosamente a: $($global:VorkThemeName)"
             Write-VorkInfoRow -Label "Preferencia" -Value "Guardada en ~/.vork/.theme" -ValueColor $LeadLight
@@ -580,6 +587,13 @@ function Invoke-CmdTheme {
             if (-not (Test-Path $tDir)) { New-Item -ItemType Directory -Path $tDir -Force | Out-Null }
             Set-Content -Path (Join-Path $tDir ".theme") -Value $chosenThemeId -Force -Encoding UTF8
         } catch { }
+
+        if (-not [Console]::IsOutputRedirected -and -not [Console]::IsInputRedirected) {
+            try {
+                Clear-Host
+                if (Get-Command "Show-Banner" -ErrorAction SilentlyContinue) { Show-Banner }
+            } catch { }
+        }
 
         Write-VorkSectionHeader -Title "Tema Visual Aplicado" -Subtitle "preferencia de estilo de interfaz" -RightText "vork · theme"
         Write-VorkStatusLine -Kind ok -Text "Ahora usando: $($global:VorkThemeName)"
@@ -626,6 +640,7 @@ function Invoke-CmdConnect {
         @{ Label = "Hetzner Inference";              Value = "hetzner";      Badge = "Beta";     Description = "Beta europea gratuita con modelos Qwen 2.5 de código y razonamiento" },
         @{ Label = "Vercel AI Gateway";              Value = "vercel";       Badge = "5 USD";    Description = "5 $ de crédito gratis al mes; los modelos etiquetados -free no consumen" },
         @{ Label = "Cloudflare Workers AI";          Value = "cloudflare";   Badge = "Edge";     Description = "10.000 neuronas gratis por día en red edge global (requiere Account ID)" },
+        @{ Label = "SiliconFlow";                    Value = "siliconflow";  Badge = "Gratis";   Description = "Modelos DeepSeek-V3, Qwen 2.5 y GLM con inferencia gratuita en api.siliconflow.cn" },
         @{ Label = "Hugging Face Inference";         Value = "huggingface";  Badge = "0.10 USD"; Description = "0,10 $ de crédito gratis al mes; GLM-4.7-Flash y Llama no consumen cuota" },
         @{ Label = "ModelScope";                     Value = "modelscope";   Badge = "Alibaba";  Description = "2.000 llamadas gratuitas al día vinculando cuenta de Alibaba Cloud" },
         @{ Label = "Ollama Cloud";                   Value = "ollama";       Badge = "Local/Cloud"; Description = "Plan de nube gratuito sincronizado con tu cliente Ollama local" },
@@ -805,146 +820,6 @@ function Invoke-CmdLimites {
 # GESTIÓN UNIFICADA DE MODELOS (VORK + PROVEEDORES SOBERANOS)
 # ========================================================
 
-function Get-VorkAvailableModels {
-    $authFile = Join-Path $HOME ".vork\auth.json"
-    $authData = @{}
-    if (Test-Path $authFile) {
-        try { $authData = Get-Content -Path $authFile -Raw | ConvertFrom-Json } catch { }
-    }
-
-    $models = @(
-        # 1. Modo Automático (Rotación Inteligente)
-        @{
-            Id             = "auto"
-            Name           = "Auto (Rotación Inteligente Soberana)"
-            Provider       = "Vork Orchestrator"
-            Badge          = "Recomendado"
-            Desc           = "Elige automáticamente la mejor IA gratis según la tarea y rota si hay pausas"
-            Ctx            = "Auto"
-            SupportsEffort = $false
-        },
-
-        # 2. Perfiles Vork
-        @{
-            Id             = "Vork 3.2"
-            Name           = "Vork 3.2 (Expert)"
-            Provider       = "Vork Cloud IA"
-            Badge          = "Expert"
-            Desc           = "Nivel expert de alta capacidad (superior a Vork 3 y Vork 3.1)"
-            Ctx            = "128k"
-            SupportsEffort = $false
-        },
-        @{
-            Id             = "Vork 3.1"
-            Name           = "Vork 3.1"
-            Provider       = "Vork Cloud IA"
-            Badge          = "Avanzado"
-            Desc           = "Modelo intermedio avanzado (superior a Vork 3, configurable en low/medium/high)"
-            Ctx            = "64k"
-            SupportsEffort = $true
-        },
-        @{
-            Id             = "Vork 3"
-            Name           = "Vork 3"
-            Provider       = "Vork Cloud IA"
-            Badge          = "Base"
-            Desc           = "Modelo base ligero y ágil (configurable en low/medium/high)"
-            Ctx            = "32k"
-            SupportsEffort = $true
-        },
-
-        # 3. Modelos Soberanos Gratuitos (Sin clave / Free)
-        @{
-            Id       = "nvidia/nemotron-3-ultra-550b"
-            Name     = "nvidia/nemotron-3-ultra-550b"
-            Provider = "Kilo Gateway"
-            Badge    = "Ultra"
-            Desc     = "Razonamiento profundo, código y soberanía de datos"
-            Ctx      = "128k"
-        },
-        @{
-            Id       = "deepseek/deepseek-r1-distill"
-            Name     = "deepseek/deepseek-r1-distill"
-            Provider = "Kilo Gateway"
-            Badge    = "R1"
-            Desc     = "Razonamiento matemático y lógica algorítmica compleja"
-            Ctx      = "128k"
-        },
-        @{
-            Id       = "meta-llama/llama-3.3-70b"
-            Name     = "meta-llama/llama-3.3-70b"
-            Provider = if ($authData.groq) { "Groq (Conectado)" } elseif ($authData.cerebras) { "Cerebras (Conectado)" } else { "Groq / Cerebras" }
-            Badge    = if ($authData.groq -or $authData.cerebras) { "Conectado" } else { "Llama" }
-            Desc     = "Velocidad extrema y multitarea (800+ tokens/seg)"
-            Ctx      = "128k"
-        },
-        @{
-            Id       = "google/gemini-2.0-flash"
-            Name     = "google/gemini-2.0-flash"
-            Provider = if ($authData.gemini) { "Google AI Studio (Conectado)" } else { "Google AI Studio" }
-            Badge    = if ($authData.gemini) { "Conectado" } else { "Flash" }
-            Desc     = "Multimodal nativo, visión y ventana de 1 millón de tokens"
-            Ctx      = "1M"
-        },
-        @{
-            Id       = "mistralai/codestral-2501"
-            Name     = "mistralai/codestral-2501"
-            Provider = if ($authData.mistral) { "Mistral AI (Conectado)" } else { "Mistral AI" }
-            Badge    = if ($authData.mistral) { "Conectado" } else { "Code" }
-            Desc     = "Especialista en desarrollo de software, pruebas y refactor"
-            Ctx      = "256k"
-        },
-        @{
-            Id       = "qwen/qwen-2.5-coder-32b"
-            Name     = "qwen/qwen-2.5-coder-32b"
-            Provider = "Hetzner / SambaNova"
-            Badge    = "Qwen"
-            Desc     = "Arquitectura de software y generación de pruebas unitarias"
-            Ctx      = "128k"
-        },
-        @{
-            Id       = "zhipu/glm-4.7-flash"
-            Name     = "zhipu/glm-4.7-flash"
-            Provider = if ($authData.zai) { "Z.ai (Conectado)" } else { "Z.ai" }
-            Badge    = if ($authData.zai) { "Conectado" } else { "Free" }
-            Desc     = "Inferencia ultraligera sin coste para tareas rápidas"
-            Ctx      = "128k"
-        },
-        @{
-            Id       = "gpt-oss-20b"
-            Name     = "gpt-oss-20b"
-            Provider = "Pollinations"
-            Badge    = "Free"
-            Desc     = "Conversación abierta sin registro con límites por IP"
-            Ctx      = "32k"
-        }
-    )
-
-    # Proveedores adicionales conectados dinámicamente
-    if ($authData.openrouter) {
-        $models += @{
-            Id       = "openrouter/auto:free"
-            Name     = "openrouter/auto:free"
-            Provider = "OpenRouter (Conectado)"
-            Badge    = "Conectado"
-            Desc     = "Rotación multi-proveedor entre todos los modelos :free de OpenRouter"
-            Ctx      = "128k"
-        }
-    }
-    if ($authData.nvidia) {
-        $models += @{
-            Id       = "nvidia/llama-3.1-nemotron-70b-instruct"
-            Name     = "nvidia/llama-3.1-nemotron-70b-instruct"
-            Provider = "NVIDIA NIM (Conectado)"
-            Badge    = "Conectado"
-            Desc     = "Aceleración por hardware NVIDIA para desarrollo y código"
-            Ctx      = "128k"
-        }
-    }
-
-    return $models
-}
-
 function Apply-VorkModelSelection {
     param(
         $Model,
@@ -964,6 +839,13 @@ function Apply-VorkModelSelection {
             Set-Content -Path (Join-Path $vorkDir ".tier") -Value "expert" -Force -Encoding UTF8
         } catch { }
 
+        if (-not [Console]::IsOutputRedirected -and -not [Console]::IsInputRedirected) {
+            try {
+                Clear-Host
+                if (Get-Command "Show-Banner" -ErrorAction SilentlyContinue) { Show-Banner }
+            } catch { }
+        }
+
         Write-VorkSectionHeader -Title "Rotación Inteligente Activada" -Subtitle "motor de inferencia en modo automático" -RightText "vork · model"
         Write-VorkInfoRow -Label "Modo" -Value "Auto (Rotación Inteligente Soberana)" -ValueColor $Green
         Write-VorkInfoRow -Label "Estrategia" -Value "Vork seleccionará dinámicamente la mejor IA gratis según la tarea" -ValueColor $Cyan
@@ -971,10 +853,10 @@ function Apply-VorkModelSelection {
         Write-VorkSectionRule
         Write-VorkStatusLine -Kind ok -Text "Rotación automática activa. El agente tiene acceso a todos los modelos del catálogo."
         Write-Host ""
-    } else {
+    } elseif ($Model.IsVork -or $Model.Id -like "Vork*") {
         $global:VorkPinnedModel = $Model.Id
         $global:VorkModel = $Model.Name
-        if ($Model.Id -eq "Vork 3.2") {
+        if ($Model.Id -like "*3.2*") {
             $global:VorkTier = "expert"
         } elseif ($Tier -and $Tier -in @("low", "medium", "high")) {
             $global:VorkTier = $Tier.ToLower()
@@ -991,6 +873,13 @@ function Apply-VorkModelSelection {
             Set-Content -Path (Join-Path $vorkDir ".model") -Value $Model.Id -Force -Encoding UTF8
             Set-Content -Path (Join-Path $vorkDir ".tier") -Value $global:VorkTier -Force -Encoding UTF8
         } catch { }
+
+        if (-not [Console]::IsOutputRedirected -and -not [Console]::IsInputRedirected) {
+            try {
+                Clear-Host
+                if (Get-Command "Show-Banner" -ErrorAction SilentlyContinue) { Show-Banner }
+            } catch { }
+        }
 
         Write-VorkSectionHeader -Title "Modelo Fijado Exitosamente" -Subtitle "preferencia guardada para la sesión activa y futuras" -RightText "vork · model"
         Write-VorkInfoRow -Label "Modelo Activo" -Value $Model.Name -ValueColor $Green
@@ -1017,6 +906,43 @@ function Apply-VorkModelSelection {
         Write-VorkStatusLine -Kind ok -Text "Todas las próximas consultas y tareas del agente usarán exclusivamente '$($Model.Name)' en nivel '$($global:VorkTier)'."
         Write-VorkInfoRow -Label "Tip" -Value "Para volver a la rotación automática en cualquier momento, escribe /model auto" -ValueColor $LeadLight
         Write-Host ""
+    } else {
+        # MODELO EXTERNO / SOBERANO (no usa potencia de Vork; usa su propia potencia o se omite)
+        $global:VorkPinnedModel = $Model.Id
+        $global:VorkModel = $Model.Name
+        $global:VorkTier = ""
+
+        try {
+            Set-Content -Path (Join-Path $vorkDir ".pinned_model") -Value $Model.Id -Force -Encoding UTF8
+            Set-Content -Path (Join-Path $vorkDir ".model") -Value $Model.Id -Force -Encoding UTF8
+            Remove-Item -Path (Join-Path $vorkDir ".tier") -Force -ErrorAction SilentlyContinue
+        } catch { }
+
+        if (-not [Console]::IsOutputRedirected -and -not [Console]::IsInputRedirected) {
+            try {
+                Clear-Host
+                if (Get-Command "Show-Banner" -ErrorAction SilentlyContinue) { Show-Banner }
+            } catch { }
+        }
+
+        Write-VorkSectionHeader -Title "Modelo Fijado Exitosamente" -Subtitle "preferencia guardada para la sesión activa y futuras" -RightText "vork · model"
+        Write-VorkInfoRow -Label "Modelo Activo" -Value $Model.Name -ValueColor $Green
+        if ($Model.Power) {
+            Write-VorkInfoRow -Label "Potencia"       -Value $Model.Power -ValueColor $Cyan
+        }
+        if ($Model.Ctx) {
+            Write-VorkInfoRow -Label "Contexto"       -Value $Model.Ctx -ValueColor $White
+        }
+        Write-VorkInfoRow -Label "Proveedor"      -Value $Model.Provider -ValueColor $Cyan
+        Write-VorkInfoRow -Label "Identificador"  -Value $Model.Id -ValueColor $LeadLight
+        if ($Model.Desc) {
+            Write-VorkInfoRow -Label "Especialidad"   -Value $Model.Desc -ValueColor $LeadLight
+        }
+        Write-VorkInfoRow -Label "Persistencia"   -Value "Fijado en ~/.vork/.pinned_model" -ValueColor $Yellow
+        Write-VorkSectionRule
+        Write-VorkStatusLine -Kind ok -Text "Todas las próximas consultas y tareas del agente usarán exclusivamente '$($Model.Name)'."
+        Write-VorkInfoRow -Label "Tip" -Value "Para volver a la rotación automática en cualquier momento, escribe /model auto" -ValueColor $LeadLight
+        Write-Host ""
     }
 }
 
@@ -1038,31 +964,45 @@ function Invoke-CmdModel {
         $matched = $null
         $tierArg = ""
         $tokens = $userArg -split '\s+'
-        $mainArg = $tokens[0]
+        $searchBase = $userArg
+
         if ($tokens.Count -gt 1) {
-            if ($tokens[1] -in @("low", "medium", "high", "expert")) {
-                $tierArg = $tokens[1]
+            $lastToken = $tokens[$tokens.Count - 1]
+            if ($lastToken -in @("low", "medium", "high", "expert")) {
+                $tierArg = $lastToken
+                $searchBase = ($tokens[0..($tokens.Count - 2)] -join " ").Trim()
             }
         }
 
-        if ($mainArg -in @("auto", "rotacion", "inteligente")) {
+        if ($searchBase -in @("auto", "rotacion", "inteligente")) {
             $matched = $allModels | Where-Object { $_.Id -eq "auto" } | Select-Object -First 1
-        } elseif ($mainArg -in @("3", "vork 3", "vork3")) {
+        } elseif ($searchBase -in @("3", "vork 3", "vork3")) {
             $matched = $allModels | Where-Object { $_.Id -eq "Vork 3" } | Select-Object -First 1
-        } elseif ($mainArg -in @("3.1", "vork 3.1", "vork3.1")) {
+        } elseif ($searchBase -in @("3.1", "vork 3.1", "vork3.1")) {
             $matched = $allModels | Where-Object { $_.Id -eq "Vork 3.1" } | Select-Object -First 1
-        } elseif ($mainArg -in @("3.2", "vork 3.2", "vork3.2", "expert")) {
+        } elseif ($searchBase -in @("3.2", "vork 3.2", "vork3.2", "expert")) {
             $matched = $allModels | Where-Object { $_.Id -eq "Vork 3.2" } | Select-Object -First 1
         } else {
+            # Búsqueda exacta primero
             $matched = $allModels | Where-Object {
-                $_.Id.ToLower() -eq $mainArg -or
-                $_.Name.ToLower() -eq $mainArg
+                $_.Id.ToLower() -eq $searchBase -or
+                $_.Name.ToLower() -eq $searchBase
             } | Select-Object -First 1
 
+            # Búsqueda por subcadena completa
             if (-not $matched) {
                 $matched = $allModels | Where-Object {
-                    $_.Id.ToLower().Contains($mainArg) -or
-                    $_.Name.ToLower().Contains($mainArg)
+                    $_.Id.ToLower().Contains($searchBase) -or
+                    $_.Name.ToLower().Contains($searchBase)
+                } | Select-Object -First 1
+            }
+
+            # Búsqueda con el primer token si hay múltiples palabras
+            if (-not $matched -and $tokens.Count -gt 1) {
+                $firstTok = $tokens[0]
+                $matched = $allModels | Where-Object {
+                    $_.Id.ToLower().Contains($firstTok) -or
+                    $_.Name.ToLower().Contains($firstTok)
                 } | Select-Object -First 1
             }
         }
@@ -1117,12 +1057,21 @@ function Invoke-CmdModels {
         $isCurrent = ($m.Id -eq $activeId -or $m.Name -eq $activeId)
         $statusBadge = if ($isCurrent) { "${Green}${Bold}● EN USO${Reset}" } else { "${LeadLight}○ DISPONIBLE${Reset}" }
         $ctxStr = if ($m.Ctx) { "Ctx: $($m.Ctx) · " } else { "" }
-        Write-VorkInfoRow -Label $m.Name -Value "$statusBadge  ·  $($m.Provider)  ·  $ctxStr$($m.Desc)" -ValueColor $(if ($isCurrent) { $White } else { $LeadLight })
+        $pwrStr = if ($m.Power -and -not $m.IsVork) { "Potencia: $($m.Power) · " } else { "" }
+        Write-VorkInfoRow -Label $m.Name -Value "$statusBadge  ·  $($m.Provider)  ·  $ctxStr$pwrStr$($m.Desc)" -ValueColor $(if ($isCurrent) { $White } else { $LeadLight })
     }
 
     Write-VorkSectionRule
-    $activeName = if ($global:VorkPinnedModel) { $global:VorkPinnedModel } else { "Auto (Rotación Inteligente)" }
-    Write-VorkStatusLine -Kind ok -Text "Modelo activo actual: $activeName"
+    $activeInfo = Get-VorkActiveModelInfo
+    $activeName = if ($activeInfo) { $activeInfo.Name } else { "Auto (Rotación Inteligente)" }
+    $activePower = if ($activeInfo -and $activeInfo.IsVork -and $global:VorkTier) {
+        " ($($global:VorkTier.ToUpper()))"
+    } elseif ($activeInfo -and $activeInfo.Power) {
+        " ($($activeInfo.Power))"
+    } else {
+        ""
+    }
+    Write-VorkStatusLine -Kind ok -Text "Modelo activo actual: $activeName$activePower"
     Write-VorkInfoRow -Label "Comando" -Value "Usa /model para fijar cualquier modelo o activar /model auto" -ValueColor $Cyan
     Write-Host ""
 }
@@ -1144,6 +1093,10 @@ function Invoke-CmdProviders {
         @{ Name = "Cerebras";                 Key = "cerebras";   Type = "Gratis (API Key)" },
         @{ Name = "OpenRouter";               Key = "openrouter"; Type = "Gratis (OAuth/Key)" },
         @{ Name = "Groq";                     Key = "groq";       Type = "Gratis (API Key)" },
+        @{ Name = "Cohere API";               Key = "cohere";     Type = "Gratis (Trial Key)" },
+        @{ Name = "SiliconFlow";              Key = "siliconflow"; Type = "Gratis (API Key)" },
+        @{ Name = "Cloudflare Workers AI";    Key = "cloudflare"; Type = "Gratis (10k Neuronas/día)" },
+        @{ Name = "Hugging Face";             Key = "huggingface"; Type = "Gratis (Serverless)" },
         @{ Name = "Z.ai (GLM Flash)";         Key = "zai";        Type = "Gratis (API Key)" },
         @{ Name = "Kilo Gateway";             Key = "kilo";       Type = "Sin clave (Activo)" },
         @{ Name = "OVHcloud AI Endpoints";    Key = "ovhcloud";   Type = "Sin clave (Activo)" },
