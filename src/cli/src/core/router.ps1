@@ -240,7 +240,8 @@ function Format-VorkPromptStatus {
     }
 
     if ($Width -lt 40) { return "" }
-    return "${Cyan}$([char]0x25CF)${Reset} ${White}${Bold}$Status${Reset}"
+    $dotColor = if ($Status -like "*Auto*") { $Green } else { $Cyan }
+    return "${dotColor}$([char]0x25CF)${Reset} ${White}${Bold}$Status${Reset}"
 }
 
 function Get-VorkPromptPlaceholder {
@@ -729,12 +730,14 @@ function Read-InteractiveVorkLine {
             $statusText = $Status
             if (-not $statusText) {
                 $activeInfo = if (Get-Command "Get-VorkActiveModelInfo" -ErrorAction SilentlyContinue) { Get-VorkActiveModelInfo } else { $null }
-                $mName = if ($activeInfo) { $activeInfo.Name } elseif ($global:VorkModel) { $global:VorkModel } else { "Vork 3.1" }
-                $isVork = if ($activeInfo) { $activeInfo.IsVork } else { ($mName -like "Vork*") }
+                $mName = if ($activeInfo) { $activeInfo.Name } elseif ($global:VorkModel) { $global:VorkModel } else { "Auto (Rotación)" }
 
-                if ($isVork) {
+                if ($activeInfo -and $activeInfo.Id -eq "auto") {
+                    $statusText = "Auto (Rotación)"
+                } elseif ($activeInfo -and $activeInfo.IsVork) {
+                    $cleanName = [regex]::Replace($mName, '\s*\((Expert|Low|Medium|High)\)', '').Trim()
                     $tName = if ($mName -like "*3.2*") { "expert" } elseif ($global:VorkTier) { $global:VorkTier.ToLower() } else { "medium" }
-                    $statusText = "$mName · $tName"
+                    $statusText = "$cleanName · $tName"
                 } elseif ($activeInfo -and $activeInfo.Power) {
                     $statusText = "$mName · $($activeInfo.Power)"
                 } else {
@@ -1127,9 +1130,12 @@ function Start-InteractiveREPL {
             $prevTier = $global:VorkTier
             Invoke-CmdModel -ArgsList $replArgs
             $activeInfo = if (Get-Command "Get-VorkActiveModelInfo" -ErrorAction SilentlyContinue) { Get-VorkActiveModelInfo } else { $null }
-            $outMsg = if ($global:VorkModel -ne $prevModel -or $global:VorkTier -ne $prevTier) {
+            $outMsg = if ($activeInfo -and $activeInfo.Id -eq "auto") {
+                "Switched model to Auto (rotación inteligente)"
+            } elseif ($global:VorkModel -ne $prevModel -or $global:VorkTier -ne $prevTier) {
                 if ($activeInfo -and $activeInfo.IsVork -and $global:VorkTier) {
-                    "Switched model to $global:VorkModel ($global:VorkTier)"
+                    $cleanName = [regex]::Replace($global:VorkModel, '\s*\((Expert|Low|Medium|High)\)', '').Trim()
+                    "Switched model to $cleanName ($global:VorkTier)"
                 } elseif ($activeInfo -and $activeInfo.Power) {
                     "Switched model to $global:VorkModel ($($activeInfo.Power))"
                 } else {

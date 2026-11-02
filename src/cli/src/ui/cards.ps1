@@ -1394,7 +1394,7 @@ function Show-InteractiveModelSwitcher {
     $currModel = if ($global:VorkPinnedModel) { $global:VorkPinnedModel } elseif ($global:VorkModel) { $global:VorkModel } else { "auto" }
     $selectedIndex = 0
     for ($i = 0; $i -lt $catalog.Count; $i++) {
-        if ($catalog[$i].Id -eq $currModel -or $catalog[$i].Name -eq $currModel) {
+        if ($catalog[$i].Id -eq $currModel -or $catalog[$i].Name -eq $currModel -or ($currModel -eq "auto" -and $catalog[$i].Id -eq "auto")) {
             $selectedIndex = $i
             break
         }
@@ -1408,7 +1408,7 @@ function Show-InteractiveModelSwitcher {
 
     if ([Console]::IsInputRedirected -or [Console]::IsOutputRedirected) {
         $chosenModel = $catalog[$selectedIndex]
-        $eff = if ($chosenModel.SupportsEffort) { $efforts[$effortIndex] } elseif ($chosenModel.Id -eq "Vork 3.2") { "expert" } else { "medium" }
+        $eff = if ($chosenModel.Id -eq "auto") { "" } elseif ($chosenModel.SupportsEffort) { $efforts[$effortIndex] } elseif ($chosenModel.Id -eq "Vork 3.2") { "expert" } else { "medium" }
         return @{ Action = "selected"; Model = $chosenModel; Tier = $eff }
     }
 
@@ -1503,9 +1503,9 @@ function Show-InteractiveModelSwitcher {
             if ($key.Key -eq [ConsoleKey]::Enter) {
                 if ($filtered.Count -gt 0) {
                     $chosenModel = $filtered[$selectedIndex]
-                    $chosenEffort = if ($chosenModel.SupportsEffort) { $efforts[$effortIndex] } elseif ($chosenModel.Id -eq "Vork 3.2") { "expert" } else { "medium" }
+                    $chosenEffort = if ($chosenModel.Id -eq "auto") { "" } elseif ($chosenModel.SupportsEffort) { $efforts[$effortIndex] } elseif ($chosenModel.Id -eq "Vork 3.2") { "expert" } else { "medium" }
 
-                    $global:VorkModel = $chosenModel.Id
+                    $global:VorkModel = if ($chosenModel.Id -eq "auto") { "auto" } else { $chosenModel.Id }
                     $global:VorkTier = $chosenEffort
 
                     try { [Console]::CursorVisible = $false } catch { }

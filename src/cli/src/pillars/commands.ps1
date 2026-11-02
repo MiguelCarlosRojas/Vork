@@ -821,12 +821,12 @@ function Apply-VorkModelSelection {
 
     if ($Model.Id -eq "auto") {
         $global:VorkPinnedModel = $null
-        $global:VorkModel = "Vork 3.2"
-        $global:VorkTier = "expert"
+        $global:VorkModel = "auto"
+        $global:VorkTier = ""
         try {
             Remove-Item -Path (Join-Path $vorkDir ".pinned_model") -Force -ErrorAction SilentlyContinue
             Set-Content -Path (Join-Path $vorkDir ".model") -Value "auto" -Force -Encoding UTF8
-            Set-Content -Path (Join-Path $vorkDir ".tier") -Value "expert" -Force -Encoding UTF8
+            Remove-Item -Path (Join-Path $vorkDir ".tier") -Force -ErrorAction SilentlyContinue
         } catch { }
 
         if (-not [Console]::IsOutputRedirected -and -not [Console]::IsInputRedirected) {

@@ -577,7 +577,7 @@ function Get-VorkAvailableModels {
             Desc           = "Elige automáticamente la mejor IA gratis según la tarea y rota si hay pausas"
             Ctx            = "Auto"
             SupportsEffort = $false
-            IsVork         = $true
+            IsVork         = $false
         },
 
         # 2. Perfiles Vork (únicos con niveles low / medium / high y expert)
@@ -1039,7 +1039,11 @@ if (Test-Path $pinnedFile) {
     $savedPinned = try { (Get-Content -Path $pinnedFile -Raw).Trim() } catch { "" }
     if ($savedPinned -and $savedPinned -ne "auto") {
         $global:VorkPinnedModel = $savedPinned
+    } else {
+        $global:VorkPinnedModel = $null
     }
+} else {
+    $global:VorkPinnedModel = $null
 }
 
 $modelFile = Join-Path $HOME ".vork\.model"
@@ -1047,46 +1051,45 @@ if (-not $global:VorkModel) {
     if ($global:VorkPinnedModel) {
         $global:VorkModel = $global:VorkPinnedModel
     } elseif (Test-Path $modelFile) {
-        $savedModel = try { (Get-Content -Path $modelFile -Raw).Trim() } catch { "Vork 3.1" }
-        if ($savedModel -and $savedModel -ne "auto") {
+        $savedModel = try { (Get-Content -Path $modelFile -Raw).Trim() } catch { "auto" }
+        if ($savedModel) {
             $global:VorkModel = $savedModel
         }
     }
     if (-not $global:VorkModel) {
-        $global:VorkModel = if ($env:VORK_MODEL) { $env:VORK_MODEL } else { "Vork 3.1" }
+        $global:VorkModel = if ($env:VORK_MODEL) { $env:VORK_MODEL } else { "auto" }
     }
 }
 
 $activeInfo = Get-VorkActiveModelInfo
-if ($activeInfo -and $activeInfo.Name) {
+if ($activeInfo -and $activeInfo.Name -and $global:VorkModel -ne "auto" -and $activeInfo.Id -ne "auto") {
     $global:VorkModel = $activeInfo.Name
 }
 
 $tierFile = Join-Path $HOME ".vork\.tier"
 if (-not $global:VorkTier) {
     if (Test-Path $tierFile) {
-        $savedTier = try { (Get-Content -Path $tierFile -Raw).Trim().ToLower() } catch { "medium" }
+        $savedTier = try { (Get-Content -Path $tierFile -Raw).Trim().ToLower() } catch { "" }
         if ($savedTier -in @("low", "medium", "high", "expert")) {
             $global:VorkTier = $savedTier
         }
     }
     if (-not $global:VorkTier) {
-        $global:VorkTier = if ($env:VORK_TIER) { $env:VORK_TIER.ToLower() } else { "medium" }
+        $global:VorkTier = if ($env:VORK_TIER) { $env:VORK_TIER.ToLower() } else { "" }
     }
 }
 
-if ($activeInfo -and $activeInfo.IsVork) {
-    if ($global:VorkModel -eq "Vork 3.2 (Expert)" -or $global:VorkModel -eq "Vork 3.2") {
+if ($activeInfo -and $activeInfo.Id -ne "auto" -and $activeInfo.IsVork) {
+    if ($global:VorkModel -like "*3.2*") {
         $global:VorkTier = "expert"
     } elseif ($global:VorkTier -notin @("low", "medium", "high")) {
         $global:VorkTier = if ($global:VorkModel -eq "Vork 3") { "low" } else { "medium" }
     }
 } else {
-    # Los modelos externos no usan tiers de Vork (se elimina el tier)
+    # Auto y modelos externos no usan niveles fijos de esfuerzo
     $global:VorkTier = ""
 }
 
-# ========================================================
 # MODO DE PERMISOS DEL AGENTE (programar, planear, profe) & YOLO
 # ========================================================
 $settingsFile = Join-Path $HOME ".vork\settings.json"

@@ -15,15 +15,23 @@ function Show-Banner {
 
     $currPath = try { (Get-Location).Path.Replace($HOME, "~").Replace("\", "/") } catch { "~" }
     $activeInfo = if (Get-Command "Get-VorkActiveModelInfo" -ErrorAction SilentlyContinue) { Get-VorkActiveModelInfo } else { $null }
-    $modelName = if ($activeInfo) { $activeInfo.Name } elseif ($global:VorkModel) { $global:VorkModel } else { "Vork 3.1" }
+    $modelName = if ($activeInfo) { $activeInfo.Name } elseif ($global:VorkModel) { $global:VorkModel } else { "Auto (Rotación Inteligente)" }
     $isVork = if ($activeInfo) { $activeInfo.IsVork } else { ($modelName -like "Vork*") }
 
     $powerTag = ""
     $tierColor = $Cyan
 
-    if ($isVork) {
+    if ($activeInfo -and $activeInfo.Id -eq "auto") {
+        $modelName = "Auto (Rotación Inteligente)"
+        $powerTag = ""
+        $tierColor = $Green
+    } elseif ($isVork) {
         $tierLabel = if ($modelName -like "*3.2*") { "Expert" } elseif ($global:VorkTier) { $global:VorkTier.Substring(0,1).ToUpper() + $global:VorkTier.Substring(1).ToLower() } else { "Medium" }
-        $powerTag = "($tierLabel)"
+        if ($modelName -match '\((Expert|Low|Medium|High)\)') {
+            $powerTag = ""
+        } else {
+            $powerTag = "($tierLabel)"
+        }
         $tierColor = switch ($tierLabel.ToLower()) {
             "low"    { $Green }
             "medium" { $Yellow }
