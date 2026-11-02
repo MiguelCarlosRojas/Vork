@@ -51,7 +51,7 @@ function Show-Help {
     $rule = [string]::new([char]0x2500, [Math]::Max(10, $width - 4))
 
     Write-VorkHelpLine -Width $width -Text "$White$Bold  SINTAXIS:$Reset"
-    Write-VorkHelpLine -Width $width -Text "    $Yellow$Bold vork$Reset $Cyan<comando>$Reset $White [argumentos]$Reset   ${Dim}(Alias: vk, vork-cli, ct)${Reset}"
+    Write-VorkHelpLine -Width $width -Text "    $Cyan$Bold/<comando>$Reset $White [argumentos]$Reset   ${Dim}(Ej: /help, /translate, /doctor, /run)${Reset}"
     Write-Host ""
 
     Write-VorkHelpLine -Width $width -Text "$White$Bold  LOS 9 PILARES OPERACIONALES:$Reset"
@@ -60,55 +60,55 @@ function Show-Help {
         @{
             Title = "[01] Vork Traductor en la Nube"
             Tag = "+200 idiomas por lotes"
-            Usage = "vork translate <texto> -To <iso>"
-            Example = "vork translate 'Hola mundo' -To en"
+            Usage = "/translate <texto> -To <iso>"
+            Example = "/translate 'Hola mundo' -To en"
         },
         @{
             Title = "[02] Vork Texto a Voz Neuronal (TTS)"
             Tag = "24 voces humanas"
-            Usage = "vork tts <texto> -Voice <id> -Out <archivo>"
-            Example = "vork tts 'Bienvenido a Vork' -Voice es-ES-AlvaroNeural -Out voz.mp3"
+            Usage = "/tts <texto> -Voice <id> -Out <archivo>"
+            Example = "/tts 'Bienvenido a Vork' -Voice es-ES-AlvaroNeural -Out voz.mp3"
         },
         @{
             Title = "[03] Vork Clonacion de Voz IA"
             Tag = "Modelado timbrico F0"
-            Usage = "vork clone -Audio <muestra> -Text <guion>"
-            Example = "vork clone -Audio muestra.wav -Text 'Texto sintetizado'"
+            Usage = "/clone -Audio <muestra> -Text <guion>"
+            Example = "/clone -Audio muestra.wav -Text 'Texto sintetizado'"
         },
         @{
             Title = "[04] Vork Conversor Multimedia"
             Tag = "YouTube, TikTok, IG a MP3/MP4"
-            Usage = "vork media <url> -Format <mp3|mp4> -Quality 320"
-            Example = "vork media 'https://youtube.com/watch?v=...' -Format mp3"
+            Usage = "/media <url> -Format <mp3|mp4> -Quality 320"
+            Example = "/media 'https://youtube.com/watch?v=...' -Format mp3"
         },
         @{
             Title = "[05] Vork Separador de Stems"
             Tag = "Acapella / Karaoke con Demucs v4"
-            Usage = "vork separate <url_o_archivo>"
-            Example = "vork separate cancion.mp3"
+            Usage = "/separate <url_o_archivo>"
+            Example = "/separate cancion.mp3"
         },
         @{
             Title = "[06] Vork Procesador de Imágenes"
             Tag = "PNG, JPG, WEBP, ICO, AVIF"
-            Usage = "vork image <archivo> -Format <formato>"
-            Example = "vork image logo.png -Format webp -Quality 90"
+            Usage = "/image <archivo> -Format <formato>"
+            Example = "/image logo.png -Format webp -Quality 90"
         },
         @{
             Title = "[07] Vork Estudio y Fondo IA"
             Tag = "U2-Net silueta y transparente"
-            Usage = "vork remove-bg <archivo> -Out <archivo.png>"
-            Example = "vork remove-bg foto.jpg -Out limpia.png"
+            Usage = "/remove-bg <archivo> -Out <archivo.png>"
+            Example = "/remove-bg foto.jpg -Out limpia.png"
         },
         @{
             Title = "[08] Vork Generador de Imágenes IA"
             Tag = "FLUX.1 Neural sin marca de agua"
-            Usage = "vork /draw <prompt>"
-            Example = "vork /draw 'ciudad cyberpunk al atardecer 8k'"
+            Usage = "/draw <prompt>"
+            Example = "/draw 'ciudad cyberpunk al atardecer 8k'"
         },
         @{
             Title = "[09] Vork CLI & Agentes Autónomos"
             Tag = "Modo orquestador de terminal"
-            Usage = "vork agents / vork tui"
+            Usage = "/agents / /tui"
             Example = "vk  (alias ultracorto para ejecutar Vork CLI)"
         }
     )
@@ -122,10 +122,10 @@ function Show-Help {
 
     Write-Host ""
     Write-VorkHelpLine -Width $width -Text "$White$Bold  MANTENIMIENTO & ESTADO:$Reset"
-    Write-VorkHelpLine -Width $width -Text "    $Yellow vork update$Reset     ${Dim}Sincroniza y actualiza Vork CLI al instante${Reset}"
-    Write-VorkHelpLine -Width $width -Text "    $Yellow vork status$Reset     ${Dim}Telemetria y estado operativo de los 9 pilares${Reset}"
-    Write-VorkHelpLine -Width $width -Text "    $Yellow vork version$Reset    ${Dim}Muestra detalles de arquitectura y version${Reset}"
-    Write-VorkHelpLine -Width $width -Text "    $Yellow vork slash$Reset      ${Dim}Ver los 40 comandos con barra (/)${Reset}"
+    Write-VorkHelpLine -Width $width -Text "    $Yellow /update$Reset     ${Dim}Sincroniza y actualiza Vork CLI al instante${Reset}"
+    Write-VorkHelpLine -Width $width -Text "    $Yellow /status$Reset     ${Dim}Telemetria y estado operativo de los 9 pilares${Reset}"
+    Write-VorkHelpLine -Width $width -Text "    $Yellow /version$Reset    ${Dim}Muestra detalles de arquitectura y version${Reset}"
+    Write-VorkHelpLine -Width $width -Text "    $Yellow /slash$Reset      ${Dim}Ver los 40 comandos con barra (/)${Reset}"
     Write-Host ""
 }
 
@@ -136,7 +136,7 @@ function Show-SlashCommands {
     $rule = [string]::new([char]0x2500, [Math]::Max(10, $width - 4))
 
     Write-VorkHelpLine -Width $width -Text "$White$Bold  CATALOGO COMPLETO DE LOS 40 COMANDOS CON BARRA (/):$Reset"
-    Write-VorkHelpLine -Width $width -Text "  ${Dim}Uso: vork /<comando> o en la consola interactiva TUI${Reset}"
+    Write-VorkHelpLine -Width $width -Text "  ${Dim}Uso: /<comando> o en la consola interactiva TUI${Reset}"
     Write-Host ""
 
     $categories = @(

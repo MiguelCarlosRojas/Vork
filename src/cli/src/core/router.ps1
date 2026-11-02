@@ -22,7 +22,7 @@ function Dispatch-CLICommand {
         "separate"  { Invoke-PillarSeparate -ArgsList $ArgsList }
         "image"     { Invoke-PillarImage -ArgsList $ArgsList }
         "remove-bg" { Invoke-PillarRemoveBg -ArgsList $ArgsList }
-        "draw"      { Invoke-PillarGenerateImage -ArgsList $ArgsList }
+        { $_ -in "draw", "generate-image" } { Invoke-PillarGenerateImage -ArgsList $ArgsList }
         "agents"    { Invoke-PillarAgents -ArgsList $ArgsList }
 
         # ========================================================
@@ -31,6 +31,7 @@ function Dispatch-CLICommand {
 
         "goal"       { Invoke-CmdGoal -ArgsList $ArgsList }
         "plan"       { Invoke-CmdPlan -ArgsList $ArgsList }
+        "grill-me"   { Invoke-CmdGrillMe }
         "teamwork"   { Invoke-CmdTeamwork -ArgsList $ArgsList }
         "learn"      { Invoke-CmdLearn -ArgsList $ArgsList }
         "automation" { Invoke-CmdAutomation }
@@ -49,11 +50,11 @@ function Dispatch-CLICommand {
         # ========================================================
         # CATEGORIA VORK AGENT: CAPACIDADES AVANZADAS (VORK ENGINE)
         # ========================================================
-        { $_ -in "undo", "redo", "diff", "todos", "connect", "disconnect", "providers", "limites", "limits", "doctor", "bug", "skills", "mcp", "lsp", "sessions", "export", "yolo", "models", "profe", "planear", "programar", "run", "auth", "tutorial", "trust", "tui", "version" } {
+        { $_ -in "undo", "redo", "diff", "todos", "connect", "disconnect", "login", "logout", "providers", "limites", "limits", "doctor", "bug", "skills", "mcp", "lsp", "sessions", "load", "delete", "export", "yolo", "models", "profe", "planear", "programar", "run", "auth", "tutorial", "trust", "tui", "version", "copiar", "interfaz", "init", "review", "reset-limits", "usage", "compact", "new" } {
             Invoke-VorkAgentCommand -Command $Normalized -ArgsList $ArgsList
         }
 
-        "undo"    { Invoke-CmdUndo }
+
 
         # ========================================================
         # CATEGORIA 4: CODIGO, AUDITORIA & FLUJO (4)
