@@ -951,6 +951,16 @@ function Invoke-CmdModel {
     $userArg = if ($ArgsList -and $ArgsList.Count -gt 0) { ($ArgsList -join " ").Trim().ToLower() } else { "" }
 
     if ($userArg) {
+        if ($userArg -in @("low", "medium", "high", "expert")) {
+            $currentId = if ($global:VorkPinnedModel) { $global:VorkPinnedModel } elseif ($global:VorkModel) { $global:VorkModel } else { "Vork 3" }
+            $matched = $allModels | Where-Object { $_.Id -eq $currentId -or $_.Name -eq $currentId } | Select-Object -First 1
+            if (-not $matched) {
+                $matched = $allModels | Where-Object { $_.Id -eq "Vork 3" } | Select-Object -First 1
+            }
+            Apply-VorkModelSelection -Model $matched -Tier $userArg
+            return
+        }
+
         $matched = $null
         $tierArg = ""
         $tokens = $userArg -split '\s+'
@@ -1444,22 +1454,26 @@ function Invoke-VorkAIChat {
         default  { $Cyan }
     }
 
-    $vorkEnginePath = Get-VorkCliEnginePath
-    $nodeCmd = Get-Command "node" -ErrorAction SilentlyContinue
-    if ($vorkEnginePath -and $nodeCmd) {
-        Write-Host ""
-        $runArgs = @("$vorkEnginePath", "run")
-        if ($global:VorkPinnedModel) {
-            $runArgs += @("-m", $global:VorkPinnedModel)
+    $isVorkModel = ($activeModel -eq "Vork 3" -or $activeModel -eq "Vork 3.1" -or $activeModel -eq "Vork 3.2" -or $activeModel -like "Vork 3*" -or $activeModel -eq "expert")
+
+    if (-not $isVorkModel) {
+        $vorkEnginePath = Get-VorkCliEnginePath
+        $nodeCmd = Get-Command "node" -ErrorAction SilentlyContinue
+        if ($vorkEnginePath -and $nodeCmd) {
+            Write-Host ""
+            $runArgs = @("$vorkEnginePath", "run")
+            if ($global:VorkPinnedModel -and $global:VorkPinnedModel -ne "auto") {
+                $runArgs += @("-m", $global:VorkPinnedModel)
+            }
+            $runArgs += $fullPrompt
+            $env:VORK_MODEL = $activeModel
+            $env:VORK_TIER = $activeTier
+            $env:VORK_REPL = "1"
+            & $nodeCmd.Source @runArgs
+            Write-Host ""
+            Save-VorkConversationRecord -Cmd $fullPrompt -Output "Tarea completada por Vork AI Agent."
+            return
         }
-        $runArgs += $fullPrompt
-        $env:VORK_MODEL = $activeModel
-        $env:VORK_TIER = $activeTier
-        $env:VORK_REPL = "1"
-        & $nodeCmd.Source @runArgs
-        Write-Host ""
-        Save-VorkConversationRecord -Cmd $fullPrompt -Output "Tarea completada por Vork AI Agent."
-        return
     }
 
     Write-Host ""
@@ -1490,11 +1504,27 @@ function Invoke-VorkAIChat {
         if ($nodeCmd) {
             try {
                 $jsPrompt = $fullPrompt | ConvertTo-Json
-                $jsCode = 'const { processAIChat } = require("./src/utils/aiEngine"); processAIChat({ message: ' + $jsPrompt + ', model: "' + $activeModel + '", effort: "' + $activeTier + '" }).then(r => console.log(JSON.stringify(r))).catch(e => console.error(JSON.stringify({ status: "error", error: e.message })));'
-                $localOut = & $nodeCmd.Source -e $jsCode 2>&1
-                $parsed = ($localOut | Out-String).Trim() | ConvertFrom-Json
-                if ($parsed -and $parsed.response) {
-                    $answer = $parsed.response
+                $engineJsCandidates = @(
+                    (Join-Path $PSScriptRoot "../../../src/utils/aiEngine.js"),
+                    (Join-Path $PSScriptRoot "../../utils/aiEngine.js"),
+                    (Join-Path $HOME ".vork/engine/src/utils/aiEngine.js"),
+                    (Join-Path $HOME ".vork/utils/aiEngine.js"),
+                    "C:/Users/isaki/Videos/Visual Studio Code/CloudTranslator/src/utils/aiEngine.js"
+                )
+                $engineJsPath = ""
+                foreach ($candidate in $engineJsCandidates) {
+                    if (Test-Path $candidate) {
+                        $engineJsPath = (Resolve-Path $candidate).Path.Replace('\', '/')
+                        break
+                    }
+                }
+                if ($engineJsPath) {
+                    $jsCode = "const { processAIChat } = require('$engineJsPath'); processAIChat({ message: $jsPrompt, model: '$activeModel', effort: '$activeTier' }).then(r => console.log(JSON.stringify(r))).catch(e => console.error(JSON.stringify({ status: 'error', error: e.message })));"
+                    $localOut = & $nodeCmd.Source -e $jsCode 2>&1
+                    $parsed = ($localOut | Out-String).Trim() | ConvertFrom-Json
+                    if ($parsed -and $parsed.response) {
+                        $answer = $parsed.response
+                    }
                 }
             } catch { }
         }

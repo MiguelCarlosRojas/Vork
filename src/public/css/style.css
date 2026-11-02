@@ -3644,6 +3644,110 @@ body.is-dark .platform-chip {
 .platform-chip:hover .platform-icon {
   transform: scale(1.1);
 }
+
+/* Colores de Iconos e Identidad por Plataforma */
+.platform-chip[data-platform="youtube"] .platform-icon,
+.platform-chip[data-platform="youtube"] svg {
+  color: #ff0000 !important;
+}
+.platform-chip[data-platform="youtube"]:not(.active) {
+  border-color: rgba(255, 0, 0, 0.32);
+}
+.platform-chip[data-platform="youtube"]:hover {
+  border-color: #ff0000 !important;
+  box-shadow: 0 4px 16px rgba(255, 0, 0, 0.35) !important;
+}
+
+.platform-chip[data-platform="tiktok"] .platform-icon,
+.platform-chip[data-platform="tiktok"] svg {
+  color: #00f2fe !important;
+  filter: drop-shadow(0 0 2px rgba(0, 242, 254, 0.5));
+}
+.platform-chip[data-platform="tiktok"]:not(.active) {
+  border-color: rgba(0, 242, 254, 0.32);
+}
+.platform-chip[data-platform="tiktok"]:hover {
+  border-color: #00f2fe !important;
+  box-shadow: 0 4px 16px rgba(0, 242, 254, 0.35) !important;
+}
+
+.platform-chip[data-platform="instagram"] .platform-icon,
+.platform-chip[data-platform="instagram"] svg {
+  color: #e1306c !important;
+  stroke: #e1306c !important;
+}
+.platform-chip[data-platform="instagram"]:not(.active) {
+  border-color: rgba(225, 48, 108, 0.32);
+}
+.platform-chip[data-platform="instagram"]:hover {
+  border-color: #e1306c !important;
+  box-shadow: 0 4px 16px rgba(225, 48, 108, 0.35) !important;
+}
+
+.platform-chip[data-platform="facebook"] .platform-icon,
+.platform-chip[data-platform="facebook"] svg {
+  color: #1877f2 !important;
+}
+.platform-chip[data-platform="facebook"]:not(.active) {
+  border-color: rgba(24, 119, 242, 0.32);
+}
+.platform-chip[data-platform="facebook"]:hover {
+  border-color: #1877f2 !important;
+  box-shadow: 0 4px 16px rgba(24, 119, 242, 0.35) !important;
+}
+
+.platform-chip[data-platform="twitter"] .platform-icon,
+.platform-chip[data-platform="twitter"] svg {
+  color: #ffffff !important;
+}
+.platform-chip[data-platform="twitter"]:not(.active) {
+  border-color: rgba(255, 255, 255, 0.28);
+}
+.platform-chip[data-platform="twitter"]:hover {
+  border-color: #ffffff !important;
+  box-shadow: 0 4px 16px rgba(255, 255, 255, 0.3) !important;
+}
+
+.platform-chip[data-platform="pinterest"] .platform-icon,
+.platform-chip[data-platform="pinterest"] svg {
+  color: #e60023 !important;
+}
+.platform-chip[data-platform="pinterest"]:not(.active) {
+  border-color: rgba(230, 0, 35, 0.32);
+}
+.platform-chip[data-platform="pinterest"]:hover {
+  border-color: #e60023 !important;
+  box-shadow: 0 4px 16px rgba(230, 0, 35, 0.35) !important;
+}
+
+.platform-chip[data-platform="direct"] .platform-icon,
+.platform-chip[data-platform="direct"] svg {
+  color: #00f0ff !important;
+  stroke: #00f0ff !important;
+}
+.platform-chip[data-platform="direct"]:not(.active) {
+  border-color: rgba(0, 240, 255, 0.32);
+}
+.platform-chip[data-platform="direct"]:hover {
+  border-color: #00f0ff !important;
+  box-shadow: 0 4px 16px rgba(0, 240, 255, 0.35) !important;
+}
+
+.platform-chip.active .platform-icon,
+.platform-chip.active svg {
+  color: #ffffff !important;
+  filter: none !important;
+}
+.platform-chip[data-platform="instagram"].active .platform-icon,
+.platform-chip[data-platform="instagram"].active svg {
+  stroke: #ffffff !important;
+}
+.platform-chip[data-platform="direct"].active .platform-icon,
+.platform-chip[data-platform="direct"].active svg {
+  color: #030712 !important;
+  stroke: #030712 !important;
+}
+
 .platform-chip.active {
   color: #ffffff;
   font-weight: 700;

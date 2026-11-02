@@ -46,6 +46,378 @@
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css">
 
+  <style>
+    /* Tooltip dinámico para botones de acción e iconos */
+    .btn-icon-tooltip {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 48px;
+      height: 44px;
+      padding: 0;
+      border-radius: var(--radius-sm);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1.5px solid rgba(255, 255, 255, 0.12);
+      color: var(--text-muted);
+      cursor: pointer;
+      user-select: none;
+      outline: none;
+    }
+    .btn-icon-tooltip:hover {
+      background: rgba(0, 240, 255, 0.12);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .btn-icon-tooltip[data-tooltip]::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: calc(100% + 9px);
+      left: 50%;
+      transform: translateX(-50%) translateY(4px);
+      background: #11141a;
+      color: #ffffff;
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 0.74rem;
+      font-family: var(--f-mono, monospace);
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+      transition: opacity 0.18s ease, transform 0.18s ease;
+      z-index: 10001;
+    }
+    .btn-icon-tooltip[data-tooltip]::before {
+      content: "";
+      position: absolute;
+      bottom: calc(100% + 3px);
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 5px 5px 0 5px;
+      border-style: solid;
+      border-color: #11141a transparent transparent transparent;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.18s ease;
+      z-index: 10001;
+    }
+    .btn-icon-tooltip:hover[data-tooltip]::after,
+    .btn-icon-tooltip:hover[data-tooltip]::before {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* Pestañas de Formato en modo Icono */
+    .btn-format-tab.active {
+      background: rgba(0, 240, 255, 0.18) !important;
+      border-color: var(--primary) !important;
+      color: #ffffff !important;
+      box-shadow: 0 0 16px rgba(0, 240, 255, 0.35) !important;
+    }
+    .btn-format-tab:not(.active) {
+      background: rgba(14, 18, 28, 0.85) !important;
+      border-color: rgba(255, 255, 255, 0.12) !important;
+      color: var(--text-secondary) !important;
+    }
+    .btn-format-tab:not(.active):hover {
+      background: rgba(0, 240, 255, 0.1) !important;
+      border-color: var(--primary) !important;
+      color: #ffffff !important;
+    }
+    /* Animación de clic al conmutar formato */
+    @keyframes formatTabClick {
+      0% { transform: scale(0.85); }
+      50% { transform: scale(1.18); }
+      100% { transform: scale(1); }
+    }
+    .format-tab-animated {
+      animation: formatTabClick 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards !important;
+    }
+
+    /* Selector de Calidad: Mismo estilo que IDIOMA ORIGEN e IDIOMA DESTINO de translator.html */
+    .lang-combo-container {
+      position: relative;
+      width: 100%;
+    }
+    body.is-dark .lang-combo-trigger,
+    .lang-combo-trigger {
+      position: relative !important;
+      display: flex !important;
+      align-items: center !important;
+      width: 100% !important;
+      height: 44px !important;
+      min-height: 44px !important;
+      padding: 0 42px 0 16px !important;
+      background: #ffffff !important;
+      background-image: none !important;
+      border: 1.5px solid #d1d5db !important;
+      border-radius: var(--radius-sm) !important;
+      color: #0f172a !important;
+      font-size: 0.91rem !important;
+      font-weight: 600 !important;
+      font-family: var(--f-sans, sans-serif) !important;
+      cursor: pointer !important;
+      user-select: none !important;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease !important;
+      box-sizing: border-box !important;
+      text-align: left !important;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+    }
+    body.is-dark .lang-combo-trigger:hover,
+    .lang-combo-trigger:hover {
+      background: #f8fafc !important;
+      border-color: var(--primary) !important;
+      box-shadow: 0 4px 14px rgba(0, 240, 255, 0.25) !important;
+    }
+    body.is-dark .lang-combo-trigger:focus,
+    .lang-combo-trigger:focus,
+    .lang-combo-container.is-open .lang-combo-trigger {
+      background: #ffffff !important;
+      border-color: var(--primary) !important;
+      box-shadow: 0 0 0 2.5px rgba(0, 240, 255, 0.35) !important;
+      outline: none !important;
+    }
+    .lang-combo-trigger-text {
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+      font-weight: 600 !important;
+      letter-spacing: -0.01em !important;
+      color: #0f172a !important;
+      flex: 1 !important;
+      line-height: 1.2 !important;
+    }
+    .lang-combo-arrow-btn {
+      position: absolute !important;
+      right: 14px !important;
+      top: 50% !important;
+      transform: translateY(-50%) !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      color: #334155 !important;
+      pointer-events: none !important;
+      transition: color 0.2s ease, transform 0.25s ease !important;
+      width: 18px !important;
+      height: 18px !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+    .lang-combo-arrow-btn svg {
+      width: 16px !important;
+      height: 16px !important;
+      stroke: #334155 !important;
+      stroke-width: 2.6 !important;
+      display: block !important;
+    }
+    .lang-combo-trigger:hover .lang-combo-arrow-btn svg {
+      stroke: var(--primary) !important;
+    }
+    .lang-combo-container.is-open .lang-combo-arrow-btn {
+      transform: translateY(-50%) rotate(180deg) !important;
+    }
+    .lang-combo-container.is-open .lang-combo-arrow-btn svg {
+      stroke: var(--primary) !important;
+    }
+    .lang-combo-menu {
+      position: absolute;
+      top: calc(100% + 5px);
+      left: 0;
+      right: 0;
+      background: #0f1218;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-top: 2px solid var(--primary);
+      border-radius: var(--radius-sm);
+      z-index: 9999;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.88);
+      display: none;
+      overflow: hidden;
+    }
+    .lang-combo-container.is-open .lang-combo-menu {
+      display: block;
+      animation: menuFadeIn 0.16s ease-out forwards;
+    }
+    @keyframes menuFadeIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .lang-combo-list {
+      max-height: 250px;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+    }
+    .combo-item {
+      height: 40px;
+      min-height: 40px;
+      padding: 0 14px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.86rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      transition: background-color 0.12s ease;
+      box-sizing: border-box;
+      color: #ffffff;
+    }
+    .combo-item:hover, .combo-item.is-selected {
+      background: rgba(0, 240, 255, 0.18);
+      color: var(--primary);
+    }
+    .combo-item-label {
+      color: #ffffff;
+      font-weight: 500;
+    }
+    .combo-item.is-selected .combo-item-label {
+      color: var(--primary);
+      font-weight: 700;
+    }
+    .combo-item-code {
+      color: var(--muted);
+      font-family: var(--f-mono, monospace);
+      font-size: 0.74rem;
+      background: rgba(255, 255, 255, 0.06);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    /* Animación del Botón CONVERTIR MULTIMEDIA (Igual a TRADUCIR TEXTO) */
+    #btn-convert {
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+    }
+    #btn-convert:hover .btn-action-icon {
+      transform: translateX(3px) scale(1.12);
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .btn-action-icon {
+      transition: transform 0.2s ease;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    @keyframes spinLoader {
+      to { transform: rotate(360deg); }
+    }
+    .spin-icon {
+      animation: spinLoader 0.75s linear infinite;
+    }
+    @keyframes checkmarkPop {
+      0% { transform: scale(0.5); opacity: 0; }
+      70% { transform: scale(1.2); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .check-pop-icon {
+      animation: checkmarkPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    /* Colores e Identidad Visual de las PLATAFORMAS COMPATIBLES */
+    .platform-chip[data-platform="youtube"] .platform-icon,
+    .platform-chip[data-platform="youtube"] svg {
+      color: #ff0000 !important;
+    }
+    .platform-chip[data-platform="youtube"]:not(.active) {
+      border-color: rgba(255, 0, 0, 0.32);
+    }
+    .platform-chip[data-platform="youtube"]:hover {
+      border-color: #ff0000 !important;
+      box-shadow: 0 4px 16px rgba(255, 0, 0, 0.35) !important;
+    }
+
+    .platform-chip[data-platform="tiktok"] .platform-icon,
+    .platform-chip[data-platform="tiktok"] svg {
+      color: #00f2fe !important;
+      filter: drop-shadow(0 0 2px rgba(0, 242, 254, 0.5));
+    }
+    .platform-chip[data-platform="tiktok"]:not(.active) {
+      border-color: rgba(0, 242, 254, 0.32);
+    }
+    .platform-chip[data-platform="tiktok"]:hover {
+      border-color: #00f2fe !important;
+      box-shadow: 0 4px 16px rgba(0, 242, 254, 0.35) !important;
+    }
+
+    .platform-chip[data-platform="instagram"] .platform-icon,
+    .platform-chip[data-platform="instagram"] svg {
+      color: #e1306c !important;
+      stroke: #e1306c !important;
+    }
+    .platform-chip[data-platform="instagram"]:not(.active) {
+      border-color: rgba(225, 48, 108, 0.32);
+    }
+    .platform-chip[data-platform="instagram"]:hover {
+      border-color: #e1306c !important;
+      box-shadow: 0 4px 16px rgba(225, 48, 108, 0.35) !important;
+    }
+
+    .platform-chip[data-platform="facebook"] .platform-icon,
+    .platform-chip[data-platform="facebook"] svg {
+      color: #1877f2 !important;
+    }
+    .platform-chip[data-platform="facebook"]:not(.active) {
+      border-color: rgba(24, 119, 242, 0.32);
+    }
+    .platform-chip[data-platform="facebook"]:hover {
+      border-color: #1877f2 !important;
+      box-shadow: 0 4px 16px rgba(24, 119, 242, 0.35) !important;
+    }
+
+    .platform-chip[data-platform="twitter"] .platform-icon,
+    .platform-chip[data-platform="twitter"] svg {
+      color: #ffffff !important;
+    }
+    .platform-chip[data-platform="twitter"]:not(.active) {
+      border-color: rgba(255, 255, 255, 0.28);
+    }
+    .platform-chip[data-platform="twitter"]:hover {
+      border-color: #ffffff !important;
+      box-shadow: 0 4px 16px rgba(255, 255, 255, 0.3) !important;
+    }
+
+    .platform-chip[data-platform="pinterest"] .platform-icon,
+    .platform-chip[data-platform="pinterest"] svg {
+      color: #e60023 !important;
+    }
+    .platform-chip[data-platform="pinterest"]:not(.active) {
+      border-color: rgba(230, 0, 35, 0.32);
+    }
+    .platform-chip[data-platform="pinterest"]:hover {
+      border-color: #e60023 !important;
+      box-shadow: 0 4px 16px rgba(230, 0, 35, 0.35) !important;
+    }
+
+    .platform-chip[data-platform="direct"] .platform-icon,
+    .platform-chip[data-platform="direct"] svg {
+      color: #00f0ff !important;
+      stroke: #00f0ff !important;
+    }
+    .platform-chip[data-platform="direct"]:not(.active) {
+      border-color: rgba(0, 240, 255, 0.32);
+    }
+    .platform-chip[data-platform="direct"]:hover {
+      border-color: #00f0ff !important;
+      box-shadow: 0 4px 16px rgba(0, 240, 255, 0.35) !important;
+    }
+
+    .platform-chip.active .platform-icon,
+    .platform-chip.active svg {
+      color: #ffffff !important;
+      filter: none !important;
+    }
+    .platform-chip[data-platform="instagram"].active .platform-icon,
+    .platform-chip[data-platform="instagram"].active svg {
+      stroke: #ffffff !important;
+    }
+    .platform-chip[data-platform="direct"].active .platform-icon,
+    .platform-chip[data-platform="direct"].active svg {
+      color: #030712 !important;
+      stroke: #030712 !important;
+    }
+  </style>
+
   <!-- Datos Estructurados JSON-LD -->
   <script type="application/ld+json">
   {
@@ -242,50 +614,64 @@
       </div>
 
       <!-- Configuración de Formato, Calidad y Acción de Conversión en una Sola Fila -->
-      <div class="studio-controls-row converter-actions-bar" style="display: grid; grid-template-columns: 1.1fr 1.1fr 1fr; gap: 16px; align-items: end; margin-bottom: 24px;">
-        <!-- Selector de Formato -->
+      <div class="studio-controls-row converter-actions-bar" style="display: grid; grid-template-columns: 140px 1.4fr 1.2fr; gap: 16px; align-items: end; margin-bottom: 24px;">
+        <!-- Selector de Formato (Solo Iconos con Tooltip Dinámico y Animación de Clic) -->
         <div class="studio-control-col">
-          <div class="studio-label" style="margin-bottom: 8px;">
+          <div class="studio-label" style="margin-bottom: 6px;">
             <span>FORMATO DE SALIDA</span>
-            <span style="color: var(--text-muted);">CODEC MULTIMEDIA</span>
+            <span style="color: var(--text-muted); font-size: 0.75rem;">CODEC</span>
           </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-            <button id="btn-format-mp3" class="btn btn-format-tab active" data-format="mp3" style="display: flex; align-items: center; justify-content: center; gap: 8px; height: 46px; padding: 0 12px; border: 1px solid var(--primary); background: rgba(0, 240, 255, 0.12); color: #ffffff; font-weight: 700; border-radius: var(--radius-md); cursor: pointer; transition: all 0.2s ease;">
-              <svg class="icon" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
-              <span>Audio MP3</span>
+          <div style="display: flex; gap: 8px; align-items: center; height: 44px;">
+            <button id="btn-format-mp3" type="button" class="btn-icon-tooltip btn-format-tab active" data-format="mp3" data-tooltip="Audio MP3" aria-label="Audio MP3" style="width: 56px; height: 44px; border-radius: var(--radius-sm); display: inline-flex; align-items: center; justify-content: center; cursor: pointer;">
+              <svg class="icon format-icon-svg" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+              </svg>
             </button>
-            <button id="btn-format-mp4" class="btn btn-format-tab" data-format="mp4" style="display: flex; align-items: center; justify-content: center; gap: 8px; height: 46px; padding: 0 12px; border: 1px solid var(--border-subtle); background: rgba(10, 12, 18, 0.95); color: var(--text-secondary); font-weight: 700; border-radius: var(--radius-md); cursor: pointer; transition: all 0.2s ease;">
-              <svg class="icon" viewBox="0 0 24 24"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2"/></svg>
-              <span>Video MP4</span>
+            <button id="btn-format-mp4" type="button" class="btn-icon-tooltip btn-format-tab" data-format="mp4" data-tooltip="Video MP4" aria-label="Video MP4" style="width: 56px; height: 44px; border-radius: var(--radius-sm); display: inline-flex; align-items: center; justify-content: center; cursor: pointer;">
+              <svg class="icon format-icon-svg" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="14" height="12" x="2" y="6" rx="2"/><path d="m22 8-6 4 6 4V8Z"/>
+              </svg>
             </button>
           </div>
         </div>
 
-        <!-- Selector de Calidad -->
+        <!-- Selector de Calidad (Idéntico a IDIOMA ORIGEN e IDIOMA DESTINO de translator.html) -->
         <div class="studio-control-col">
-          <div class="studio-label" style="margin-bottom: 8px;">
+          <div class="studio-label" style="margin-bottom: 6px;">
             <span>CALIDAD Y TASA DE BITS</span>
-            <span id="quality-badge" style="color: var(--primary);">STUDIO MASTER (320 kbps)</span>
+            <span id="quality-badge" style="color: var(--primary); font-family: var(--f-mono); font-size: 0.78rem; font-weight: 700;">STUDIO MASTER (320 kbps)</span>
           </div>
-          <div class="select-wrapper">
-            <select id="select-quality" class="form-select-custom select-md select-w-full" aria-label="Seleccionar Calidad">
-              <!-- Se puebla dinámicamente según el formato -->
-              <option value="320k">320 kbps (Alta Fidelidad / Studio Master)</option>
+          <div class="lang-combo-container" id="quality-combo-container">
+            <button type="button" class="lang-combo-trigger select-md select-w-full" id="quality-trigger" aria-haspopup="listbox" aria-expanded="false" aria-label="Seleccionar Calidad">
+              <span class="lang-combo-trigger-text" id="quality-current">320 kbps (Alta Fidelidad / Studio Master)</span>
+              <span class="lang-combo-arrow-btn" aria-hidden="true">
+                <svg class="icon" viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" fill="none" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              </span>
+            </button>
+            <select id="select-quality" style="display: none;" aria-label="Seleccionar Calidad">
+              <option value="320k" selected>320 kbps (Alta Fidelidad / Studio Master)</option>
               <option value="192k">192 kbps (Estándar Recomendado)</option>
               <option value="128k">128 kbps (Ahorro de Datos)</option>
             </select>
+            <div id="quality-menu" class="lang-combo-menu">
+              <div class="lang-combo-list" id="quality-list"></div>
+            </div>
           </div>
         </div>
 
-        <!-- Botón de Acción Convertir -->
+        <!-- Botón de Acción Convertir (Idéntico al botón TRADUCIR TEXTO) -->
         <div class="studio-control-col">
-          <div class="studio-label" style="margin-bottom: 8px;">
+          <div class="studio-label" style="margin-bottom: 6px;">
             <span>ACCIÓN MULTIMEDIA</span>
-            <span style="color: var(--primary);">PROCESAMIENTO</span>
+            <span style="color: var(--primary); font-size: 0.78rem; font-family: var(--f-mono);">PROCESAMIENTO</span>
           </div>
-          <button id="btn-convert" class="btn btn-primary" style="width: 100%; height: 46px; padding: 0 18px; font-weight: 700; font-size: 0.95rem; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; gap: 8px;">
-            <svg class="icon" style="width: 17px; height: 17px;" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-            <span id="btn-convert-text">Convertir</span>
+          <button id="btn-convert" type="button" class="btn btn-primary" style="width: 100%; padding: 13px 20px; font-weight: 700; height: 44px; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 0.95rem; border-radius: var(--radius-md);">
+            <svg id="btn-convert-icon" class="btn-action-icon" viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+              <polygon points="5 3 19 12 5 21 5 3"/>
+            </svg>
+            <span id="btn-convert-text">CONVERTIR MULTIMEDIA</span>
           </button>
         </div>
       </div>

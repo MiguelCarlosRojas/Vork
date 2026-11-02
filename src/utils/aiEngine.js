@@ -1410,11 +1410,11 @@ async function processAIChat({ message, messages, model = "Vork 3.1", effort = "
   if (/^(hola|buenas|buenos d[ií]as|buenas tardes|buenas noches|hey|saludos)\b/.test(q) && q.length < 25) {
     let answer = "";
     if (activeEffort === "low") {
-      answer = `Saludos. Vork ${activeModel} (${activeEffort}) listo. ¿En qué te asisto?`;
+      answer = `Saludos. ${activeModel} (${activeEffort}) listo. ¿En qué te asisto?`;
     } else if (activeEffort === "medium") {
       answer = `Saludos. Me encuentro operando en la nube con arquitectura **${activeModel}** (${activeEffort}). ¿En qué tarea técnica, búsqueda web o pilar puedo colaborarte hoy?`;
     } else if (activeEffort === "high") {
-      answer = `### Saludo del Sistema · Vork ${activeModel} (HIGH)\n\n` +
+      answer = `### Saludo del Sistema · ${activeModel} (HIGH)\n\n` +
         `Bienvenido. El motor cognitivo soberano se encuentra en ejecución con sus 9 pilares y navegador web activos en el cluster de Render.\n\n` +
         `Listo para procesar requerimientos de arquitectura, generación de código, traducción neuronal, búsqueda web en vivo o procesamiento multimedia. ¿En qué área deseas iniciar?`;
     } else {
