@@ -1243,27 +1243,6 @@ function Invoke-CmdCopiar {
     Write-Host ""
 }
 
-function Invoke-CmdProfe {
-    $global:VorkAgentMode = "profe"
-    Write-VorkSectionHeader -Title "Modo Tutor / Profe" -Subtitle "aprendizaje guiado sin aplicar cambios directos" -RightText "vork · profe"
-    Write-VorkStatusLine -Kind ok -Text "Modo Profe activo: El agente explicará el razonamiento paso a paso sin modificar archivos."
-    Write-Host ""
-}
-
-function Invoke-CmdPlanear {
-    $global:VorkAgentMode = "planear"
-    Write-VorkSectionHeader -Title "Modo Planear (Solo Lectura)" -Subtitle "investigación de código y propuesta de plan" -RightText "vork · planear"
-    Write-VorkStatusLine -Kind ok -Text "Modo Planear activo: Modo solo lectura sin modificar archivos en disco."
-    Write-Host ""
-}
-
-function Invoke-CmdProgramar {
-    $global:VorkAgentMode = "programar"
-    Write-VorkSectionHeader -Title "Modo Programar (Full Agent)" -Subtitle "permisos completos de edición y ejecución" -RightText "vork · programar"
-    Write-VorkStatusLine -Kind ok -Text "Modo Programar activo: Permisos completos de codificación y terminal habilitados."
-    Write-Host ""
-}
-
 function Invoke-CmdRun {
     param([string[]]$ArgsList)
     $task = if ($ArgsList) { $ArgsList -join " " } else { "" }

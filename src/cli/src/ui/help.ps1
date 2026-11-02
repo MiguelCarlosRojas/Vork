@@ -175,7 +175,7 @@ function Show-SlashCommands {
             )
         },
         @{
-            Title = "[CATEGORIA 4] Ecosistema Soberano, Modelos & Herramientas (18)"
+            Title = "[CATEGORIA 4] Ecosistema Soberano, Modelos & Herramientas (15)"
             Items = @(
                 @{ Cmd = "/run";          Desc = "Modo agente autonomo: resuelve tareas leyendo y editando codigo" },
                 @{ Cmd = "/models";       Desc = "Lista modelos disponibles en tiempo real (+20 proveedores)" },
@@ -190,9 +190,6 @@ function Show-SlashCommands {
                 @{ Cmd = "/sessions";     Desc = "Historial de sesiones guardadas en esta carpeta" },
                 @{ Cmd = "/export";       Desc = "Exportar la conversacion activa a Markdown" },
                 @{ Cmd = "/tui";          Desc = "Abrir la interfaz visual interactiva Ink React" },
-                @{ Cmd = "/planear";      Desc = "Agente de solo lectura: investiga y propone un plan" },
-                @{ Cmd = "/programar";    Desc = "Agente activo que puede modificar archivos y programar" },
-                @{ Cmd = "/profe";        Desc = "Agente tutor que ensena paso a paso sin cambiar archivos" },
                 @{ Cmd = "/mcp";          Desc = "Estado y herramientas de servidores MCP conectados" },
                 @{ Cmd = "/lsp";          Desc = "Servidores de lenguaje (diagnosticos de codigo)" }
             )
@@ -275,9 +272,6 @@ function Show-InteractiveHelpModal {
         @{ Cmd = "/export";      Desc = "Exportar la conversacion activa a Markdown" },
         @{ Cmd = "/tui";         Desc = "Abrir la interfaz visual interactiva Ink React" },
         @{ Cmd = "/bug";         Desc = "Avisar de un fallo con informe de /doctor a GitHub" },
-        @{ Cmd = "/planear";     Desc = "Agente de solo lectura: investiga y propone un plan" },
-        @{ Cmd = "/programar";   Desc = "Agente activo que puede modificar archivos y programar" },
-        @{ Cmd = "/profe";       Desc = "Agente tutor que ensena paso a paso sin cambiar archivos" },
         @{ Cmd = "/undo";        Desc = "Deshacer el ultimo turno y revertir cambios en ficheros" },
         @{ Cmd = "/redo";        Desc = "Rehacer los cambios deshechos con /undo" },
         @{ Cmd = "/diff";        Desc = "Ver cambios de codigo del ultimo turno o de la sesion" },

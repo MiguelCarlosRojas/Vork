@@ -81,9 +81,6 @@ function Dispatch-CLICommand {
         "redo"         { Invoke-CmdRedo }
         "yolo"         { Invoke-CmdYolo -ArgsList $ArgsList }
         "copiar"       { Invoke-CmdCopiar -ArgsList $ArgsList }
-        "profe"        { Invoke-CmdProfe }
-        "planear"      { Invoke-CmdPlanear }
-        "programar"    { Invoke-CmdProgramar }
         "run"          { Invoke-CmdRun -ArgsList $ArgsList }
         "trust"        { Invoke-CmdTrust }
         "init"         { Invoke-CmdInit }
@@ -642,9 +639,6 @@ function Read-InteractiveVorkLine {
         @{ Cmd = "/export";      Desc = "Exportar la conversacion activa a Markdown" },
         @{ Cmd = "/tui";         Desc = "Abrir la interfaz visual interactiva Ink React" },
         @{ Cmd = "/bug";         Desc = "Avisar de un fallo con informe de /doctor a GitHub" },
-        @{ Cmd = "/planear";     Desc = "Agente de solo lectura: investiga y propone un plan" },
-        @{ Cmd = "/programar";   Desc = "Agente activo que puede modificar archivos y programar" },
-        @{ Cmd = "/profe";       Desc = "Agente tutor que ensena paso a paso sin cambiar archivos" },
         @{ Cmd = "/undo";        Desc = "Deshacer el ultimo turno y revertir cambios en ficheros" },
         @{ Cmd = "/redo";        Desc = "Rehacer los cambios deshechos con /undo" },
         @{ Cmd = "/diff";        Desc = "Ver cambios de codigo del ultimo turno o de la sesion" },

@@ -1116,6 +1116,24 @@ if ($activeInfo -and $activeInfo.IsVork) {
 }
 
 # ========================================================
+# MODO DE PERMISOS DEL AGENTE (programar, planear, profe)
+# ========================================================
+$settingsFile = Join-Path $HOME ".vork\settings.json"
+if (-not $global:VorkAgentMode) {
+    if (Test-Path $settingsFile) {
+        try {
+            $savedSettings = Get-Content -Path $settingsFile -Raw | ConvertFrom-Json
+            if ($savedSettings.agent_mode -in @("programar", "planear", "profe")) {
+                $global:VorkAgentMode = [string]$savedSettings.agent_mode
+            }
+        } catch { }
+    }
+    if (-not $global:VorkAgentMode) {
+        $global:VorkAgentMode = "programar"
+    }
+}
+
+# ========================================================
 # HISTORIAL PERSISTENTE DE COMANDOS DE LA TERMINAL
 # ========================================================
 $histFile = Join-Path $HOME ".vork\history.txt"

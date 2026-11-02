@@ -1622,17 +1622,10 @@ function Write-VorkSettingsFrame {
         $row++
     }
 
-    $description = ""
-    if ($FilteredKeys.Count -gt 0 -and $Selected -lt $FilteredKeys.Count) {
-        $description = [string]$SettingsData[$FilteredKeys[$Selected]].Desc
-    }
-    $descriptionLines = Get-VorkWrappedLines -Text $description -Width ($inner - 2) -MaxLines 2
-    for ($d = 0; $d -lt 2; $d++) {
-        $line = if ($d -lt $descriptionLines.Count) { $descriptionLines[$d] } else { "" }
-        $descPad = [Math]::Max(0, $inner - (Get-VorkDisplayWidth $line))
-        Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${Lead}$([char]0x2502)${Reset} ${LeadLight}$line${Reset}$([string]::new(' ', $descPad)) ${Lead}$([char]0x2502)${Reset}"
-        $row++
-    }
+    # Linea en blanco limpia antes del borde inferior
+    $blankPad = [string]::new(' ', $inner)
+    Write-VorkPanelLine -Panel $Panel -Index $row -Text "  ${Lead}$([char]0x2502)${Reset} $blankPad ${Lead}$([char]0x2502)${Reset}"
+    $row++
 
     Write-VorkPanelLine -Panel $Panel -Index $row -Text (Format-VorkBorderBottom -LeftText "flechas mover/cambiar  ·  enter siguiente  ·  esc limpiar/salir" -Width $Panel.Width)
 }
@@ -1655,6 +1648,7 @@ function Show-InteractiveSettings {
         "cloud_ai"        = @{ Label = "Cloud AI Engine";   Options = @("on", "off"); Value = if ($savedSettings["cloud_ai"]) { $savedSettings["cloud_ai"] } else { "on" }; Desc = "Inferencia remota con Vork 3, 3.1 y 3.2 Expert Edition." }
         "media_download"  = @{ Label = "Media Download";    Options = @("on", "off"); Value = if ($savedSettings["media_download"]) { $savedSettings["media_download"] } else { "on" }; Desc = "Descargas y streams desde TikTok, YouTube, Reels y audio." }
         "workspace_write" = @{ Label = "Workspace Write";   Options = @("on", "off"); Value = if ($savedSettings["workspace_write"]) { $savedSettings["workspace_write"] } else { "on" }; Desc = "Guardado físico de archivos convertidos en el directorio local." }
+        "agent_mode"      = @{ Label = "Agent Mode";        Options = @("programar", "planear", "profe"); Value = if ($savedSettings["agent_mode"]) { $savedSettings["agent_mode"] } elseif ($global:VorkAgentMode) { $global:VorkAgentMode } else { "programar" }; Desc = "Modo de permisos: programar (edición y ejecución), planear (solo lectura), profe (tutor sin cambios)." }
         "color_scheme"    = @{ Label = "Color Scheme";      Options = @("dark", "light", "system"); Value = if ($savedSettings["color_scheme"]) { $savedSettings["color_scheme"] } else { "dark" }; Desc = "Paleta de color y contraste visual de la terminal." }
     }
 
@@ -1679,21 +1673,24 @@ function Show-InteractiveSettings {
             foreach ($key in $settingsData.Keys) { $toExport[$key] = $settingsData[$key].Value }
             $toExport | ConvertTo-Json | Set-Content -Path $settingsFile -Encoding UTF8
 
+            $global:VorkAgentMode = $toExport["agent_mode"]
+
             $permFile = Join-Path $vorkDir "permissions.json"
             $perms = @{
+                "agent_mode"      = $toExport["agent_mode"]
                 "auto_update"     = $toExport["auto_update"]
                 "notifications"   = ($toExport["notifications"] -ne "off")
                 "cloud_ai"        = ($toExport["cloud_ai"] -ne "off")
                 "media_download"  = ($toExport["media_download"] -ne "off")
-                "workspace_write" = ($toExport["workspace_write"] -ne "off")
+                "workspace_write" = if ($toExport["agent_mode"] -in "planear", "profe") { $false } else { ($toExport["workspace_write"] -ne "off") }
             }
             $perms | ConvertTo-Json | Set-Content -Path $permFile -Encoding UTF8
         } catch { }
     }
 
     $metrics = Get-VorkConsoleMetrics
-    $visible = [Math]::Max(1, [Math]::Min([Math]::Max(1, $keys.Count), $metrics.Height - 9))
-    $panelRows = $visible + 5
+    $visible = [Math]::Max(1, [Math]::Min([Math]::Max(1, $keys.Count), $metrics.Height - 8))
+    $panelRows = $visible + 4
     Ensure-VorkRowsBelow -Rows $panelRows | Out-Null
     $panelTop = try { [Console]::CursorTop } catch { 0 }
     $panel = [pscustomobject]@{
@@ -1709,7 +1706,8 @@ function Show-InteractiveSettings {
             $filteredKeys = @($keys | Where-Object {
                 -not $query -or
                 $settingsData[$_].Label.ToLower().Contains($query.ToLower()) -or
-                $settingsData[$_].Value.ToLower().Contains($query.ToLower())
+                $settingsData[$_].Value.ToLower().Contains($query.ToLower()) -or
+                $settingsData[$_].Desc.ToLower().Contains($query.ToLower())
             })
 
             if ($filteredKeys.Count -eq 0) {
