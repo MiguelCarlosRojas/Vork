@@ -10,7 +10,7 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "cli": "node src/cli/dist/index.js",
-    "build:cli": "node src/cli/src/core/build.js && npm --prefix src/cli run build",
+    "build:cli": "npm --prefix src/cli run build && node src/cli/src/core/build.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [

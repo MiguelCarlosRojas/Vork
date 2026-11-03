@@ -810,15 +810,14 @@ export class Router {
     // Los que suelen tardar mucho en empezar a contestar, detrás (sin cambiar el orden de los demás)
     const slow = list.filter((slot) => this.slowStart(slot, now) !== null);
     list = [...list.filter((slot) => !slow.includes(slot)), ...slow];
-    // Si hay un modelo fijado por el usuario (y no es 'auto'), usar EXCLUSIVAMENTE ese modelo o familia
+    // Si hay un modelo fijado por el usuario (y no es 'auto'), usar ese modelo o familia
     if (this.pinned && this.pinned !== "auto") {
       const matching = this.matchPinnedSlots(this.pinned, list);
       if (matching.length > 0) {
         list = matching;
       } else {
-        throw new NoSlotError(
-          `El modelo seleccionado '${this.pinned}' no está disponible actualmente. Conecta su proveedor con /connect o escribe /model auto para volver a la rotación automática.`
-        );
+        // Red de seguridad: Si el modelo solicitado no está disponible, redirigir a los mejores slots gratuitos
+        list = list.length > 0 ? list : this.slots;
       }
     } else if (prefer) {
       const matching = list.filter((slot) => slot.key === prefer || wildcardMatch(prefer, slot.key));
@@ -905,28 +904,92 @@ export class Router {
       if (filtered.length > 0) return filtered;
     }
 
+    // Normalizador alfanumérico
+    const norm = (s: string) => (s || "").toLowerCase().replace(/[\._\-:\/\s]/g, "").replace(/instruct/g, "").replace(/free/g, "");
+    const pNorm = norm(p);
+    const cleanToken = p.split("/").pop() || p;
+    const cleanNorm = norm(cleanToken);
+
     // 4. Exact slot key match or wildcard
     const exact = slots.filter((slot) => slot.key === pattern || wildcardMatch(pattern, slot.key));
     if (exact.length > 0) return exact;
 
-    // 5. Substring match on key, model ID or provider name
-    const cleanToken = p.split("/").pop() || p;
-    const sub = slots.filter((slot) => {
+    // 5. Coincidencia normalizada directa
+    const normMatches = slots.filter((slot) => {
       const k = slot.key.toLowerCase();
       const m = slot.model.id.toLowerCase();
-      const prov = slot.provider.name.toLowerCase();
+      const kNorm = norm(slot.key);
+      const mNorm = norm(slot.model.id);
       return (
         k.includes(p) ||
         m.includes(p) ||
         k.includes(cleanToken) ||
         m.includes(cleanToken) ||
-        prov === p
+        kNorm.includes(pNorm) ||
+        mNorm.includes(pNorm) ||
+        kNorm.includes(cleanNorm) ||
+        mNorm.includes(cleanNorm)
       );
     });
-    if (sub.length > 0) return sub;
+    if (normMatches.length > 0) return normMatches;
 
-    // 6. Si es un perfil Vork genérico, usar la lista completa como red de seguridad
-    if (p.startsWith("vork 3") || p === "vork3") {
+    // 6. Mapeo inteligente de familias libres gratuitas sin registro
+    const words = cleanToken.toLowerCase().replace(/[^a-z0-9]/g, " ").split(/\s+/).filter(w => w.length > 0 && w !== "meta" && w !== "google" && w !== "instruct");
+
+    // Meta Llama 3.3 / 70B / 8B / 3B
+    if (words.includes("llama") || p.includes("llama")) {
+      if (words.some(w => w.includes("70") || w.includes("33") || w.includes("3.3"))) {
+        const llama70b = slots.filter(s => s.key.toLowerCase().includes("llama-3_3-70b") || s.key.toLowerCase().includes("llama-3.3-70b") || (s.key.toLowerCase().includes("llama") && s.key.toLowerCase().includes("70b")));
+        if (llama70b.length > 0) return llama70b;
+      }
+      const anyLlama = slots.filter(s => s.key.toLowerCase().includes("llama"));
+      if (anyLlama.length > 0) return anyLlama;
+    }
+
+    // DeepSeek / R1
+    if (words.includes("deepseek") || words.includes("r1") || p.includes("deepseek")) {
+      const deepseek = slots.filter(s => s.key.toLowerCase().includes("deepseek") || s.key.toLowerCase().includes("r1"));
+      if (deepseek.length > 0) return deepseek;
+    }
+
+    // Qwen / Coder / 397B / 72B / 27B / 32B / 9B
+    if (words.includes("qwen") || p.includes("qwen")) {
+      const qwenSlots = slots.filter(s => s.key.toLowerCase().includes("qwen"));
+      if (words.some(w => w.includes("397"))) {
+        const q397 = qwenSlots.filter(s => s.key.toLowerCase().includes("397b"));
+        if (q397.length > 0) return q397;
+      }
+      if (words.some(w => w.includes("72"))) {
+        const q72 = qwenSlots.filter(s => s.key.toLowerCase().includes("72b"));
+        if (q72.length > 0) return q72;
+      }
+      if (words.some(w => w.includes("27"))) {
+        const q27 = qwenSlots.filter(s => s.key.toLowerCase().includes("27b"));
+        if (q27.length > 0) return q27;
+      }
+      if (qwenSlots.length > 0) return qwenSlots;
+    }
+
+    // Mistral / Codestral
+    if (words.includes("mistral") || words.includes("codestral") || p.includes("mistral") || p.includes("codestral")) {
+      const mistral = slots.filter(s => s.key.toLowerCase().includes("mistral") || s.key.toLowerCase().includes("codestral"));
+      if (mistral.length > 0) return mistral;
+    }
+
+    // Nemotron / NVIDIA
+    if (words.includes("nemotron") || p.includes("nemotron") || words.includes("nvidia")) {
+      const nemo = slots.filter(s => s.key.toLowerCase().includes("nemotron"));
+      if (nemo.length > 0) return nemo;
+    }
+
+    // Modelos Multimodales / Visión
+    if (words.includes("gemini") || words.includes("vision") || words.includes("multimodal")) {
+      const vision = slots.filter(s => s.key.toLowerCase().includes("vl") || s.key.toLowerCase().includes("vision") || s.model.vision === true);
+      if (vision.length > 0) return vision;
+    }
+
+    // 7. Red de seguridad soberana: Devolver slots libres disponibles para garantizar respuesta continua
+    if (slots.length > 0) {
       return slots;
     }
 

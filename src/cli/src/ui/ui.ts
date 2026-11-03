@@ -75,26 +75,61 @@ function indent(text: string, prefix: string): string {
     .join("\n");
 }
 
-// Eventos del agente pintados como texto normal
+// Eventos del agente pintados como texto normal con spinner animado
 export function plainEvents(options: { showReasoning: boolean }): AgentEvents {
   let reasoning = "";
   let reasoningShown = false;
+  let spinnerInterval: NodeJS.Timeout | null = null;
+  const spinnerFrames = ["⢿", "⣻", "⣽", "⣾", "⣷", "⣯", "⣟", "⡿"];
+  let spinnerIdx = 0;
+
+  const stopSpinner = () => {
+    if (spinnerInterval) {
+      clearInterval(spinnerInterval);
+      spinnerInterval = null;
+      if (process.stdout.isTTY) {
+        process.stdout.write("\r\x1b[K");
+      }
+    }
+  };
+
+  const startSpinner = (label = "Working...") => {
+    stopSpinner();
+    if (!process.stdout.isTTY) return;
+    spinnerIdx = 0;
+    spinnerInterval = setInterval(() => {
+      const frame = spinnerFrames[spinnerIdx % spinnerFrames.length];
+      spinnerIdx++;
+      process.stdout.write(`\r  \x1b[36m${frame}\x1b[0m \x1b[2m${label}\x1b[0m`);
+    }, 80);
+  };
+
   const flushReasoning = () => {
+    stopSpinner();
     if (reasoningShown) {
       process.stdout.write("\n");
     }
     reasoning = "";
     reasoningShown = false;
   };
+
+  // Iniciar el spinner de trabajo al arrancar la solicitud
+  startSpinner("Working...");
+
   return {
+    onModel: () => {
+      startSpinner("Working...");
+    },
     onText: (chunk, depth) => {
       if (depth > 0) {
         return;
       }
+      stopSpinner();
       flushReasoning();
       process.stdout.write(stripControl(chunk));
     },
     onTextEnd: (depth) => {
+      stopSpinner();
       if (depth === 0) {
         process.stdout.write("\n");
       }
@@ -103,6 +138,7 @@ export function plainEvents(options: { showReasoning: boolean }): AgentEvents {
       if (!options.showReasoning || depth > 0) {
         return;
       }
+      stopSpinner();
       // Solo el principio del razonamiento, en una línea atenuada
       if (reasoning.length < 240) {
         if (!reasoningShown) {
@@ -118,6 +154,7 @@ export function plainEvents(options: { showReasoning: boolean }): AgentEvents {
       }
     },
     onToolStart: (event) => {
+      stopSpinner();
       flushReasoning();
       ui.tool(event.name, event.summary, event.depth);
     },
@@ -130,11 +167,21 @@ export function plainEvents(options: { showReasoning: boolean }): AgentEvents {
       }
     },
     onNotice: (message) => {
+      stopSpinner();
       flushReasoning();
       ui.notice(message);
     },
-    onInfo: (message) => ui.info(message),
-    onTodos: (todos) => console.log(pc.dim(indent(formatTodos(todos), "    "))),
+    onInfo: (message) => {
+      stopSpinner();
+      ui.info(message);
+    },
+    onTodos: (todos) => {
+      stopSpinner();
+      console.log(pc.dim(indent(formatTodos(todos), "    ")));
+    },
+    onAnswer: () => {
+      stopSpinner();
+    },
   };
 }
 

@@ -701,8 +701,8 @@ function Get-VorkAvailableModels {
         @{
             Id             = "meta-llama/llama-3.3-70b"
             Name           = "Llama 3.3 70B"
-            Provider       = if ($authData.groq) { "Groq (Conectado)" } elseif ($authData.cerebras) { "Cerebras (Conectado)" } else { "Groq / Cerebras" }
-            Badge          = if ($authData.groq -or $authData.cerebras) { "Conectado" } else { "Llama" }
+            Provider       = if ($authData.groq) { "Groq (Conectado)" } elseif ($authData.cerebras) { "Cerebras (Conectado)" } else { "OVHcloud Free AI (Sin Registro)" }
+            Badge          = if ($authData.groq -or $authData.cerebras) { "Conectado" } else { "Gratis" }
             Power          = "70B Ultra"
             Desc           = "Velocidad extrema y multitarea (800+ tokens/seg)"
             Ctx            = "128k"

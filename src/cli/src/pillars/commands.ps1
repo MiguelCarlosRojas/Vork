@@ -1477,61 +1477,65 @@ function Invoke-VorkAIChat {
     }
 
     Write-Host ""
-    Write-Host "  ${tierColor}$([char]0x25CF)${Reset} ${LeadLight}Pensando con ${White}${Bold}$activeModel${Reset} ${LeadLight}(${tierColor}${Bold}$tierLabel${Reset}${LeadLight})...${Reset}"
-
     $sw = [System.Diagnostics.Stopwatch]::StartNew()
     $answer = ""
-    try {
-        $bodyJson = @{
-            message = $fullPrompt
-            model = $activeModel
-            effort = $activeTier
-        } | ConvertTo-Json -Compress
 
-        $timeoutSec = if ($activeTier -in "high", "expert") { 60 } else { 35 }
-        $res = Invoke-RestMethod -Uri "$ApiBase/api/ai/chat" -Method Post -Body $bodyJson -ContentType "application/json" -TimeoutSec $timeoutSec -ErrorAction Stop
-        if ($res -and $res.response) {
-            $answer = $res.response
-        } elseif ($res -and $res.message) {
-            $answer = $res.message
+    $bodyJson = @{
+        message = $fullPrompt
+        model = $activeModel
+        effort = $activeTier
+    } | ConvertTo-Json -Compress
+
+    $timeoutSec = if ($activeTier -in "high", "expert") { 60 } else { 35 }
+    $apiUrl = "$ApiBase/api/ai/chat"
+
+    $spinnerFrames = @("⢿", "⣻", "⣽", "⣾", "⣷", "⣯", "⣟", "⡿")
+    $spinIdx = 0
+    $isTty = -not [Console]::IsOutputRedirected -and -not [Console]::IsInputRedirected
+
+    $job = Start-Job -ScriptBlock {
+        param($url, $body, $timeout)
+        try {
+            return (Invoke-RestMethod -Uri $url -Method Post -Body $body -ContentType "application/json" -TimeoutSec $timeout -ErrorAction Stop)
+        } catch {
+            return $null
         }
-    } catch {
-        $answer = ""
+    } -ArgumentList $apiUrl, $bodyJson, $timeoutSec
+
+    while ($job.State -eq 'Running') {
+        if ($isTty) {
+            $frame = $spinnerFrames[$spinIdx % $spinnerFrames.Count]
+            $spinIdx++
+            Write-Host -NoNewline "`r  ${Cyan}${Bold}$frame${Reset} ${LeadLight}Pensando con ${White}${Bold}$activeModel${Reset} ${LeadLight}(${tierColor}${Bold}$tierLabel${Reset}${LeadLight})...${Reset}   "
+        }
+        Start-Sleep -Milliseconds 85
+    }
+
+    if ($isTty) {
+        Write-Host -NoNewline "`r$([string]::new(' ', 75))`r"
+    }
+
+    $res = Receive-Job -Job $job -AutoRemoveJob -Wait
+    if ($res -and $res.response) {
+        $answer = $res.response
+    } elseif ($res -and $res.message) {
+        $answer = $res.message
     }
 
     if (-not $answer) {
-        $nodeCmd = Get-Command "node" -ErrorAction SilentlyContinue
-        if ($nodeCmd) {
-            try {
-                $jsPrompt = $fullPrompt | ConvertTo-Json
-                $engineJsCandidates = @(
-                    (Join-Path $PSScriptRoot "../../../src/utils/aiEngine.js"),
-                    (Join-Path $PSScriptRoot "../../utils/aiEngine.js"),
-                    (Join-Path $HOME ".vork/engine/src/utils/aiEngine.js"),
-                    (Join-Path $HOME ".vork/utils/aiEngine.js"),
-                    "C:/Users/isaki/Videos/Visual Studio Code/CloudTranslator/src/utils/aiEngine.js"
-                )
-                $engineJsPath = ""
-                foreach ($candidate in $engineJsCandidates) {
-                    if (Test-Path $candidate) {
-                        $engineJsPath = (Resolve-Path $candidate).Path.Replace('\', '/')
-                        break
-                    }
-                }
-                if ($engineJsPath) {
-                    $jsCode = "const { processAIChat } = require('$engineJsPath'); processAIChat({ message: $jsPrompt, model: '$activeModel', effort: '$activeTier' }).then(r => console.log(JSON.stringify(r))).catch(e => console.error(JSON.stringify({ status: 'error', error: e.message })));"
-                    $localOut = & $nodeCmd.Source -e $jsCode 2>&1
-                    $parsed = ($localOut | Out-String).Trim() | ConvertFrom-Json
-                    if ($parsed -and $parsed.response) {
-                        $answer = $parsed.response
-                    }
-                }
-            } catch { }
-        }
+        # Intento sincrónico directo al cluster Render Cloud
+        try {
+            $res = Invoke-RestMethod -Uri $apiUrl -Method Post -Body $bodyJson -ContentType "application/json" -TimeoutSec 12 -ErrorAction Stop
+            if ($res -and $res.response) {
+                $answer = $res.response
+            } elseif ($res -and $res.message) {
+                $answer = $res.message
+            }
+        } catch { }
     }
 
     if (-not $answer) {
-        $answer = "No se pudo conectar con el motor en la nube de Vork ($ApiBase). Verifica tu conexión a internet o reintenta en unos instantes mientras el servidor en Render responde."
+        $answer = "No se pudo conectar con el motor en la nube de Vork en Render ($ApiBase). Verifica tu conexión a internet o reintenta en unos instantes mientras el cluster responde."
     }
 
     $sw.Stop()
@@ -1542,7 +1546,7 @@ function Invoke-VorkAIChat {
         Write-VorkAIResponse -Answer $answer -ActiveModel $activeModel -TierLabel $tierLabel -ElapsedSec $elapsedSec
         $global:VorkLastAIResponse = $answer
     } else {
-        Write-Host "  ${Coral}[Error]:${Reset} No se pudo obtener respuesta del motor de Vork AI."
+        Write-Host "  ${Coral}[Error]:${Reset} No se pudo obtener respuesta del motor en la nube de Vork AI."
         Write-Host ""
     }
 

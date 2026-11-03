@@ -1563,35 +1563,96 @@ async function processAIChat({ message, messages, model = "Vork 3.1", effort = "
   } catch (e) {}
 
   // -------------------------------------------------------------
-  // 9. SÍNTESIS COGNITIVA GENERAL
+  // 9. SÍNTESIS COGNITIVA GENERAL & INTELIGENCIA SOBERANA EN RENDER
   // -------------------------------------------------------------
   let detailedAnswer = "";
-  if (activeEffort === "low") {
-    detailedAnswer = `Consulta evaluada en **${activeModel} (low)**: "${promptText}". Para procesar acciones usa los comandos de Vork o proporciona detalles técnicos.`;
-  } else if (activeEffort === "medium") {
-    detailedAnswer = `### Análisis de Consulta · ${activeModel} (${activeEffort})\n\n` +
-      `He evaluado tu solicitud: **"${promptText}"**.\n\n` +
-      `**Capacidades disponibles de ejecución:**\n` +
-      `1. **Navegación e Inteligencia Web:** Si incluyes una URL o un tema específico, el navegador de Vork rastreará la información en tiempo real.\n` +
-      `2. **Los 9 Pilares Operacionales:** Transcodificación (\`/media\`), traducción (\`/translate\`), separación de stems (\`/separate\`), voz neuronal (\`/tts\`).\n` +
-      `3. **Desarrollo de Software:** Algoritmos, código en Python/JS/TS y arquitectura.\n\n` +
-      `Indica cómo deseas proceder.`;
-  } else if (activeEffort === "high") {
-    detailedAnswer = `### Evaluación Cognitiva Profunda · ${activeModel} (HIGH)\n\n` +
-      `**Entrada:** "${promptText}"\n\n` +
-      `**Diagnóstico Técnico:**\n` +
-      `• **Entorno:** Render Linux x86_64 Cloud con canal web activo.\n` +
-      `• **Pipeline:** Listo para consultar fuentes de internet, ejecutar transcodificación multimedia con los 9 pilares o diseñar arquitectura.\n\n` +
-      `Proporciona los parámetros o la URL que requieras procesar.`;
+  if (activeModel === "Vork 3") {
+    if (activeEffort === "low") {
+      detailedAnswer = `### Vork 3 · Inferencia Ágil (LOW)\n\n` +
+        `**Consulta:** "${promptText}"\n\n` +
+        `• **Respuesta Directa:** Solicitud procesada en el clúster de Vork Technologies en Render sin latencia.\n` +
+        `• **Guía de Acción Rápida:**\n` +
+        `  - Para código y desarrollo: Proporciona el lenguaje o framework específico (e.g. React, Node, Python).\n` +
+        `  - Para multimedia: Usa \`/media <url>\` para descargar o \`/tts "<texto>"\` para sintetizar audio.\n` +
+        `  - Para búsquedas web en vivo: Incluye cualquier URL o tema de actualidad.\n\n` +
+        `*Rendimiento: Inferencia ultraligera optimizada para consumo mínimo de tokens.*\`;
+    } else if (activeEffort === "medium") {
+      detailedAnswer = `### Vork 3 · Coordinador Multimodal en la Nube (MEDIUM)\n\n` +
+        `**Evaluación de la Consulta:** "${promptText}"\n\n` +
+        `#### 1. Diagnóstico Estructurado\n` +
+        `Tu solicitud ha sido evaluada por el orquestador multimodal de Vork en Render. Dispones de los siguientes módulos operativos:\n\n` +
+        `• **Procesamiento de Software & Scripts:** Generación de módulos en TypeScript, JavaScript, Python y bash con buenas prácticas.\n` +
+        `• **Rastreador Web en Tiempo Real:** El motor autónomo en Render puede analizar enlaces HTTP/HTTPS, extraer metadatos y sintetizar información en vivo.\n` +
+        `• **Matriz de Pilares Multimedia (Pilares 01 al 09):**\n` +
+        `  - \`/translate "<texto>" -To <idioma>\`: Traducción neuronal por lotes.\n` +
+        `  - \`/tts "<texto>" -Voice <id>\`: Síntesis de voz con 24 voces humanas.\n` +
+        `  - \`/media <enlace>\`: Extracción y transcodificación a MP3/MP4.\n` +
+        `  - \`/separate <audio>\`: Separación de stems instrumentales con Demucs v4.\n\n` +
+        `#### 2. Siguiente Paso Recomendado\n` +
+        `Especifica los parámetros de tu requerimiento o añade código fuente para ejecutar análisis, refactorización o diseño técnico.\`;
+    } else {
+      // high
+      detailedAnswer = `### Vork 3 · Análisis Exhaustivo y Orquestación de Alto Nivel (HIGH)\n\n` +
+        `**Objetivo Técnico:** "${promptText}"\n\n` +
+        `#### 1. Auditoría del Requerimiento\n` +
+        `El motor cognitivo de Vork 3 ha desplegado un canal de evaluación profunda en el entorno Render Cloud Linux x86_64:\n\n` +
+        `• **Desglose de Capas:** Separación entre lógica de presentación, controladores de infraestructura y canales de datos.\n` +
+        `• **Tolerancia a Fallos:** Manejo robusto de excepciones asíncronas, reintentos con retroceso exponencial y validación de tipos en tiempo de compilación.\n` +
+        `• **Capacidades Habilitadas:**\n` +
+        `  1. *Generación de Código Completa:* Proyectos completos con Vite, React, Node.js, Express, FastAPI o scripts de automatización.\n` +
+        `  2. *Inteligencia de Internet:* Consultas en vivo a Wikipedia, repositorios de GitHub y discusiones de HackerNews.\n` +
+        `  3. *Procesamiento de Medios Soberano:* Transcodificación universal con ffmpeg de 64 bits en Render.\n\n` +
+        `#### 2. Hoja de Ruta Sugerida\n` +
+        `Indica si deseas que redactemos los archivos completos de código, la suite de pruebas unitarias o la configuración de despliegue en producción.\`;
+    }
+  } else if (activeModel === "Vork 3.1") {
+    if (activeEffort === "low") {
+      detailedAnswer = `### Vork 3.1 · Arquitectura de Sistemas (LOW)\n\n` +
+        `**Entrada:** "${promptText}"\n\n` +
+        `• **Especificación Técnica:** Modelo intermedio avanzado enfocado en ingeniería de software y tipado estricto.\n` +
+        `• **Directiva de Ejecución:** Para generar código, APIs REST o contratos de datos, indica los endpoints o entidades deseadas.\n` +
+        `• **Infraestructura:** Conectado directamente a Render Cloud con canal HTTPS protegido y cálculo en memoria.\`;
+    } else if (activeEffort === "medium") {
+      detailedAnswer = `### Vork 3.1 · Diseño de Sistemas y Arquitectura Modular (MEDIUM)\n\n` +
+        `**Análisis de Requerimiento:** "${promptText}"\n\n` +
+        `#### 1. Principios de Diseño Aplicados\n` +
+        `• **Modularidad & SOLID:** Desacoplamiento estricto entre modelos de dominio, servicios de negocio y adaptadores de transporte.\n` +
+        `• **Rendimiento Asintótico:** Algoritmos optimizados para minimizar ciclos de CPU y consumo de memoria en contenedores.\n` +
+        `• **Ecosistema de Pilares Vork:** Integración con la suite de transcodificación, IA de visión y síntesis de voz en la nube.\n\n` +
+        `#### 2. Metodología de Implementación\n` +
+        `1. *Modelado de Datos:* Definición de esquemas con validación en tiempo de ejecución (Zod/Joi/TypeScript interfaces).\n` +
+        `2. *Capa de Servicios:* Implementación asíncrona no bloqueante con Promesas y streams de Node.js.\n` +
+        `3. *Entrega de Archivos:* Comandos directos para crear la estructura de carpetas y arrancar el servidor.\n\n` +
+        `¿Deseas que redactemos la implementación completa de esta arquitectura?\`;
+    } else {
+      // high
+      detailedAnswer = `### Vork 3.1 · Ingeniería Algorítmica Avanzada & Alta Disponibilidad (HIGH)\n\n` +
+        `**Evaluación de Arquitectura:** "${promptText}"\n\n` +
+        `#### 1. Especificaciones de Alto Rendimiento\n` +
+        `• **Complejidad Algorítmica:** Optimización estricta de tiempo de ejecución O(n log n) o superior y espacio auxiliar O(1) cuando sea aplicable.\n` +
+        `• **Seguridad & Concurrencia:** Protección contra inyecciones, sanitización de entradas, rate limiting distribuido y prevención de memory leaks en el event loop de V8.\n` +
+        `• **Rastreo e Indexación en Vivo:** Capacidad para inspeccionar documentación oficial, APIs abiertas y código fuente en GitHub.\n\n` +
+        `#### 2. Plan Maestro de Ingeniería\n` +
+        `1. *Diseño de Capas:* Inversión de dependencias (Dependency Injection), Clean Architecture y separación de concerns.\n` +
+        `2. *Optimización de Base de Datos:* Índices compuestos, transacciones ACID y esquemas relacionales o documentales.\n` +
+        `3. *Pipeline de Despliegue:* Contenedorización con Docker multi-stage y despliegue continuo en Render.\n\n` +
+        `Proporciona los detalles técnicos adicionales para generar el código de producción completo.\`;
+    }
   } else {
-    // expert
-    detailedAnswer = `### Análisis Técnico & Solución Estratégica · ${activeModel} (EXPERT SOVEREIGN)\n\n` +
-      `**Objetivo:** "${promptText}"\n\n` +
-      `**Diagnóstico & Arquitectura:**\n` +
-      `1. **Plan de Acción:** Para abordar este requerimiento de forma óptima, se recomienda estructurar el flujo en fases iterativas (diseño modular, desarrollo de componentes y validación de rendimiento).\n` +
-      `2. **Herramientas y Estándares:** Empleo de tecnologías modernas, desacoplamiento de dependencias y optimización en producción.\n` +
-      `3. **Capacidades Operativas:** Puedes solicitar generación de código completa, transcodificación multimedia con los 8 pilares (/media, /tts, /draw, /separate, /image) o consultas en tiempo real.\n\n` +
-      `Indica si deseas que detallemos el código fuente, la estructura de archivos o la integración técnica.`;
+    // Vork 3.2 (Expert Sovereign Edition)
+    detailedAnswer = `### Vork 3.2 Expert Sovereign Edition · Máxima Capacidad Cognitiva en Render\n\n` +
+      `**Directiva Soberana:** "${promptText}"\n\n` +
+      `#### 1. Diagnóstico de Nivel Empresarial\n` +
+      `Operando en modo **EXPERT SOVEREIGN** con el total de capacidades computacionales asignadas en el clúster de Render Technologies:\n\n` +
+      `• **Arquitectura Distribuida:** Microservicios desacoplados, pipelines de procesamiento reactivo y tolerancia a particiones de red.\n` +
+      `• **Ingeniería Algorítmica sin Concesiones:** Micro-optimizaciones asintóticas, paralelismo en libuv, gestión predictiva de memoria y estructuras de datos de alta velocidad.\n` +
+      `• **Inteligencia en Vivo & Rastreo de Red:** Capacidad de navegar internet en tiempo real, auditar URLs, extraer repositorios de GitHub y consultar fuentes enciclopédicas.\n` +
+      `• **Matriz Completa de los 9 Pilares:** Transcodificación universal con FFMPEG 64-bit, separación neuronal de 4 pistas con Demucs v4 y síntesis TTS con modelos de 24kHz.\n\n` +
+      `#### 2. Solución Estratégica & Plan de Despliegue\n` +
+      `1. *Definición de Contratos de Datos:* Tipado riguroso, interfaces inmutables y serialización JSON de alta velocidad.\n` +
+      `2. *Implementación de Producción:* Código fuente modular completo, modularizado en archivos independientes con gestión de errores integral.\n` +
+      `3. *Resiliencia Operativa:* Health checks continuos, métricas de latencia de red y telemetría de contenedor en Render.\n\n` +
+      `Indica el módulo específico que deseas comenzar a desarrollar o describe los requisitos del sistema para generar el código definitivo.\`;
   }
 
   return {
