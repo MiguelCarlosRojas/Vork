@@ -51,3 +51,7 @@ src/cli/scripts/
 src/cli/test/
 src/cli/docs/
 src/cli/dist/
+
+# Vork Desktop código y builds locales
+vork-desktop/
+*.zip

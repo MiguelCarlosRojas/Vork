@@ -31,6 +31,8 @@ const pageMap = [
   { path: "/background-remover", file: "background-remover.html" },
   { path: "/bg-remover", file: "background-remover.html" },
   { path: "/ai-background", file: "background-remover.html" },
+  { path: "/desktop", file: "desktop.html" },
+  { path: "/vork-desktop", file: "desktop.html" },
   { path: "/draw", file: "draw.html" },
   { path: "/image-generator", file: "draw.html" },
   { path: "/flux", file: "draw.html" },

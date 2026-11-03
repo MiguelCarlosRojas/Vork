@@ -42,9 +42,9 @@ El microservicio se ejecuta de forma continua y autónoma en **Render**:
 
 ---
 
-## Los 9 Pilares Funcionales del Ecosistema
+## Los 10 Pilares Funcionales del Ecosistema
 
-Vork integra 9 soluciones tecnológicas avanzadas en una arquitectura unificada con consolas interactivas dedicadas:
+Vork integra 10 soluciones tecnológicas avanzadas en una arquitectura unificada con consolas interactivas y clientes de escritorio dedicados:
 
 1. **[Traductor en la Nube](/translator):**  
    * Traducción por lotes de alta velocidad (+200 idiomas) con una sola petición HTTP consolidada.
@@ -82,7 +82,10 @@ Vork integra 9 soluciones tecnológicas avanzadas en una arquitectura unificada 
 9. **[Estudio y Eliminador de Fondo IA](/background-remover):**  
    * Segmentación neuronal de saliencia basada en **rembg U2-Net** para aislar sujetos sin pérdida de detalles sutiles.
    * Modos de fondo transparente (alfa puro en PNG), sustitución por color sólido HEX (ej. `#FFFFFF`) o composición creativa sobre fondo personalizado/generativo con IA.
-     ```
+10. **[Vork Desktop (Asistente de Voz Personal para Windows y Multiplataforma)](https://github.com/MiguelCarlosRojas/Vork/tags):**  
+   * Asistente residente superior (*always-on-top*), reconocimiento biométrico de huella vocal con Resemblyzer, STT con faster-whisper en español y síntesis neuronal con edge-tts.
+   * Conexión por voz con Google OAuth (Calendar y Gmail), control dual de Spotify (aplicación de escritorio nativa y web), creación y guardado dinámico de hojas Excel de 5 columnas, contexto de pantalla Win32 y entrenador personal.
+   * **Descarga del instalador `.exe` (Windows) y versiones oficiales:** [Descargar en GitHub Tags](https://github.com/MiguelCarlosRojas/Vork/tags)
 
 ---
 
@@ -473,6 +476,7 @@ Vork incluye un portal web interactivo responsive estructurado con páginas dedi
 * **[Vork CLI](https://vork-st1k.onrender.com/cli)**: Página dedicada al Pilar 7 para desarrollo centrado en la terminal con agentes autónomos y comandos con diagonal.
 * **[Conversor de Formatos de Imagen](https://vork-st1k.onrender.com/image-converter)**: Página dedicada al Pilar 8 para transcodificación y redimensionado multiformato (PNG, JPG, WebP, GIF, BMP, TIFF, ICO).
 * **[Estudio y Eliminador de Fondo IA](https://vork-st1k.onrender.com/background-remover)**: Página dedicada al Pilar 9 para recorte de fondos con rembg U2-Net, sustitución por color o prompts IA.
+* **[Vork Desktop (Asistente de Voz para Windows)](https://github.com/MiguelCarlosRojas/Vork/tags)**: Aplicación de escritorio del Pilar 10 con barra flotante superior, reconocimiento biométrico de voz, control total de Windows, Google Calendar, Spotify, Excel y entrenador personal. Disponible en GitHub Releases.
 * **[Donaciones](https://vork-st1k.onrender.com/donate)**: Página dedicada para apoyar el mantenimiento de servidores con PayPal y QR de Yape ampliable.
 * **[Documentación Técnica](https://vork-st1k.onrender.com/docs)**: Arquitectura, flujo por lotes del DOM, especificación de los 8 pilares y preguntas frecuentes.
 * **[Referencia de API REST](https://vork-st1k.onrender.com/api)**: Playground interactivo (`/api/translate`, `/api/tts`, `/api/media/convert`, `/api/separator/process`, `/api/image/convert`, `/api/image/remove-background`, `/api/cli/info`, `/api/health`, `/api/languages`, `/api/ping`).
