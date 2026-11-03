@@ -1575,7 +1575,7 @@ async function processAIChat({ message, messages, model = "Vork 3.1", effort = "
         `  - Para código y desarrollo: Proporciona el lenguaje o framework específico (e.g. React, Node, Python).\n` +
         `  - Para multimedia: Usa \`/media <url>\` para descargar o \`/tts "<texto>"\` para sintetizar audio.\n` +
         `  - Para búsquedas web en vivo: Incluye cualquier URL o tema de actualidad.\n\n` +
-        `*Rendimiento: Inferencia ultraligera optimizada para consumo mínimo de tokens.*\`;
+        `*Rendimiento: Inferencia ultraligera optimizada para consumo mínimo de tokens.*`;
     } else if (activeEffort === "medium") {
       detailedAnswer = `### Vork 3 · Coordinador Multimodal en la Nube (MEDIUM)\n\n` +
         `**Evaluación de la Consulta:** "${promptText}"\n\n` +
@@ -1589,7 +1589,7 @@ async function processAIChat({ message, messages, model = "Vork 3.1", effort = "
         `  - \`/media <enlace>\`: Extracción y transcodificación a MP3/MP4.\n` +
         `  - \`/separate <audio>\`: Separación de stems instrumentales con Demucs v4.\n\n` +
         `#### 2. Siguiente Paso Recomendado\n` +
-        `Especifica los parámetros de tu requerimiento o añade código fuente para ejecutar análisis, refactorización o diseño técnico.\`;
+        `Especifica los parámetros de tu requerimiento o añade código fuente para ejecutar análisis, refactorización o diseño técnico.`;
     } else {
       // high
       detailedAnswer = `### Vork 3 · Análisis Exhaustivo y Orquestación de Alto Nivel (HIGH)\n\n` +
@@ -1603,7 +1603,7 @@ async function processAIChat({ message, messages, model = "Vork 3.1", effort = "
         `  2. *Inteligencia de Internet:* Consultas en vivo a Wikipedia, repositorios de GitHub y discusiones de HackerNews.\n` +
         `  3. *Procesamiento de Medios Soberano:* Transcodificación universal con ffmpeg de 64 bits en Render.\n\n` +
         `#### 2. Hoja de Ruta Sugerida\n` +
-        `Indica si deseas que redactemos los archivos completos de código, la suite de pruebas unitarias o la configuración de despliegue en producción.\`;
+        `Indica si deseas que redactemos los archivos completos de código, la suite de pruebas unitarias o la configuración de despliegue en producción.`;
     }
   } else if (activeModel === "Vork 3.1") {
     if (activeEffort === "low") {
@@ -1611,7 +1611,7 @@ async function processAIChat({ message, messages, model = "Vork 3.1", effort = "
         `**Entrada:** "${promptText}"\n\n` +
         `• **Especificación Técnica:** Modelo intermedio avanzado enfocado en ingeniería de software y tipado estricto.\n` +
         `• **Directiva de Ejecución:** Para generar código, APIs REST o contratos de datos, indica los endpoints o entidades deseadas.\n` +
-        `• **Infraestructura:** Conectado directamente a Render Cloud con canal HTTPS protegido y cálculo en memoria.\`;
+        `• **Infraestructura:** Conectado directamente a Render Cloud con canal HTTPS protegido y cálculo en memoria.`;
     } else if (activeEffort === "medium") {
       detailedAnswer = `### Vork 3.1 · Diseño de Sistemas y Arquitectura Modular (MEDIUM)\n\n` +
         `**Análisis de Requerimiento:** "${promptText}"\n\n` +
@@ -1623,7 +1623,7 @@ async function processAIChat({ message, messages, model = "Vork 3.1", effort = "
         `1. *Modelado de Datos:* Definición de esquemas con validación en tiempo de ejecución (Zod/Joi/TypeScript interfaces).\n` +
         `2. *Capa de Servicios:* Implementación asíncrona no bloqueante con Promesas y streams de Node.js.\n` +
         `3. *Entrega de Archivos:* Comandos directos para crear la estructura de carpetas y arrancar el servidor.\n\n` +
-        `¿Deseas que redactemos la implementación completa de esta arquitectura?\`;
+        `¿Deseas que redactemos la implementación completa de esta arquitectura?`;
     } else {
       // high
       detailedAnswer = `### Vork 3.1 · Ingeniería Algorítmica Avanzada & Alta Disponibilidad (HIGH)\n\n` +
@@ -1636,7 +1636,7 @@ async function processAIChat({ message, messages, model = "Vork 3.1", effort = "
         `1. *Diseño de Capas:* Inversión de dependencias (Dependency Injection), Clean Architecture y separación de concerns.\n` +
         `2. *Optimización de Base de Datos:* Índices compuestos, transacciones ACID y esquemas relacionales o documentales.\n` +
         `3. *Pipeline de Despliegue:* Contenedorización con Docker multi-stage y despliegue continuo en Render.\n\n` +
-        `Proporciona los detalles técnicos adicionales para generar el código de producción completo.\`;
+        `Proporciona los detalles técnicos adicionales para generar el código de producción completo.`;
     }
   } else {
     // Vork 3.2 (Expert Sovereign Edition)
@@ -1652,7 +1652,7 @@ async function processAIChat({ message, messages, model = "Vork 3.1", effort = "
       `1. *Definición de Contratos de Datos:* Tipado riguroso, interfaces inmutables y serialización JSON de alta velocidad.\n` +
       `2. *Implementación de Producción:* Código fuente modular completo, modularizado en archivos independientes con gestión de errores integral.\n` +
       `3. *Resiliencia Operativa:* Health checks continuos, métricas de latencia de red y telemetría de contenedor en Render.\n\n` +
-      `Indica el módulo específico que deseas comenzar a desarrollar o describe los requisitos del sistema para generar el código definitivo.\`;
+      `Indica el módulo específico que deseas comenzar a desarrollar o describe los requisitos del sistema para generar el código definitivo.`;
   }
 
   return {

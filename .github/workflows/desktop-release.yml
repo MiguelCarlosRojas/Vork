@@ -14,31 +14,46 @@ jobs:
       - name: Checkout Código
         uses: actions/checkout@v4
 
+      - name: Verificar Presencia de Vork Desktop
+        id: check_desktop
+        shell: bash
+        run: |
+          if [ -d "vork-desktop" ] && [ -f "vork-desktop/requirements.txt" ]; then
+            echo "has_desktop=true" >> $GITHUB_OUTPUT
+            echo "vork-desktop detectado en el repositorio."
+          else
+            echo "has_desktop=false" >> $GITHUB_OUTPUT
+            echo "vork-desktop está ignorado en .gitignore o gestionado independientemente. Omitiendo compilación CI."
+          fi
+
       - name: Configurar Python 3.12
+        if: steps.check_desktop.outputs.has_desktop == 'true'
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-          cache: 'pip'
 
       - name: Instalar Dependencias
+        if: steps.check_desktop.outputs.has_desktop == 'true'
         run: |
           python -m pip install --upgrade pip
           pip install -r vork-desktop/requirements.txt
           pip install pyinstaller
 
       - name: Compilar Ejecutable Vork con PyInstaller
+        if: steps.check_desktop.outputs.has_desktop == 'true'
         run: |
           cd vork-desktop
           python -m PyInstaller --noconfirm --onedir --windowed --name="Vork-Desktop" --icon="assets/icons/vork.ico" --add-data="assets;assets" main.py
 
       - name: Empaquetar Distribución Portable en ZIP
+        if: steps.check_desktop.outputs.has_desktop == 'true'
         shell: powershell
         run: |
           Compress-Archive -Path "vork-desktop/dist/Vork-Desktop/*" -DestinationPath "vork-desktop/dist/Vork-Desktop-Windows-x64.zip"
 
       - name: Publicar Release Oficial en GitHub Tags
         uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
+        if: steps.check_desktop.outputs.has_desktop == 'true' && startsWith(github.ref, 'refs/tags/')
         with:
           name: "Vork Desktop ${{ github.ref_name }}"
           draft: false
