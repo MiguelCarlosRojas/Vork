@@ -6,6 +6,7 @@ yarn-error.log
 
 # Ignorar archivos de configuración local
 .env
+.env.example
 .env.local
 .env.development
 .env.production
