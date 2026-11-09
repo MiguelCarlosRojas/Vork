@@ -1,7 +1,7 @@
 /**
  * routes/index.js
  * Router central de la API de Vork
- * Consolida los 8 pilares de la plataforma bajo una arquitectura modular.
+ * Consolida los 9 pilares de la plataforma bajo una arquitectura modular.
  */
 const express = require("express");
 const router = express.Router();

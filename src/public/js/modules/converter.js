@@ -274,7 +274,7 @@
         selectedFormat = "mp3";
         btnFormatMp3.classList.add("active");
         btnFormatMp4.classList.remove("active");
-        updateQualityOptions("mp3");
+        const formatBadge = document.getElementById("format-badge"); if (formatBadge) formatBadge.textContent = "AUDIO MP3"; updateQualityOptions("mp3");
       });
     }
 
@@ -286,7 +286,7 @@
         selectedFormat = "mp4";
         btnFormatMp4.classList.add("active");
         btnFormatMp3.classList.remove("active");
-        updateQualityOptions("mp4");
+        const formatBadge = document.getElementById("format-badge"); if (formatBadge) formatBadge.textContent = "VIDEO MP4"; updateQualityOptions("mp4");
       });
     }
 
@@ -579,14 +579,18 @@
       }
       if (resPlatform) resPlatform.textContent = (item.platform || "multimedia").toUpperCase();
       if (resFormat) resFormat.textContent = `${item.format.toUpperCase()} ${item.quality.toUpperCase()}`;
-      if (resSize) resSize.textContent = item.size ? (item.size > 1024 * 1024 ? `${(item.size / (1024 * 1024)).toFixed(1)} MB` : `${Math.round(item.size / 1024)} KB`) : "Calculando...";
+      if (resSize) {
+        resSize.textContent = item.sizeFormatted || (item.sizeBytes ? (item.sizeBytes > 1024 * 1024 ? `${(item.sizeBytes / (1024 * 1024)).toFixed(1)} MB` : `${Math.round(item.sizeBytes / 1024)} KB`) : (item.size ? (item.size > 1024 * 1024 ? `${(item.size / (1024 * 1024)).toFixed(1)} MB` : `${Math.round(item.size / 1024)} KB`) : "Calculando..."));
+      }
+
+      const activeMediaUrl = item.format === "mp4" ? (item.videoUrl || item.streamUrl) : (item.audioUrl || item.streamUrl || item.videoUrl);
+      const downloadTarget = item.downloadUrl || `/api/media/download?id=${item.id}`;
 
       if (btnDownload) {
         btnDownload.onclick = () => {
-          const downloadUrl = `/api/media/download?url=${encodeURIComponent(item.streamUrl)}&title=${encodeURIComponent(item.title)}&format=${encodeURIComponent(item.format)}`;
           const a = document.createElement("a");
-          a.href = downloadUrl;
-          a.download = `${item.title.replace(/[^a-zA-Z0-9_\-\s]/g, "")}.${item.format}`;
+          a.href = downloadTarget;
+          a.download = item.filename || `${item.title.replace(/[^a-zA-Z0-9_\-\s]/g, "")}.${item.format}`;
           document.body.appendChild(a);
           a.click();
           a.remove();
@@ -600,7 +604,8 @@
 
       if (btnCopyStream) {
         btnCopyStream.onclick = () => {
-          navigator.clipboard.writeText(item.streamUrl);
+          const copyUrl = activeMediaUrl ? (activeMediaUrl.startsWith("http") ? activeMediaUrl : `${window.location.origin}${activeMediaUrl}`) : "";
+          navigator.clipboard.writeText(copyUrl);
           const ICON_DEFAULT = '<svg id="copy-stream-icon" class="icon" viewBox="0 0 24 24" width="17" height="17" stroke="currentColor" fill="none" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>';
           const ICON_SUCCESS = '<svg class="icon" viewBox="0 0 24 24" width="17" height="17" stroke="#10b981" fill="none" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>';
 
@@ -620,14 +625,14 @@
         if (audioWrapper) audioWrapper.style.display = "none";
         if (videoWrapper) videoWrapper.style.display = "block";
         if (videoPlayer) {
-          videoPlayer.src = item.streamUrl;
+          videoPlayer.src = item.videoUrl || activeMediaUrl;
           try { videoPlayer.load(); } catch {}
         }
       } else {
         if (videoWrapper) videoWrapper.style.display = "none";
         if (audioWrapper) audioWrapper.style.display = "block";
         if (audioPlayer) {
-          audioPlayer.src = item.streamUrl;
+          audioPlayer.src = item.audioUrl || activeMediaUrl;
           try { audioPlayer.load(); } catch {}
         }
       }

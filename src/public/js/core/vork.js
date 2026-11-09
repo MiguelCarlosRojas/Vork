@@ -1,10 +1,10 @@
 /**
- * Vork Client SDK v3.0.0
+ * Vork Client SDK v1.0.0
  * 
  * Librería de cliente para el ecosistema Vork:
  * - Persistencia de configuración en cookies (vork_lang).
  * - Traducción en lote en 1 sola consulta HTTP.
- * - Integración con los 8 pilares de Vork (Traductor, TTS, Conversor, Stems, DJ, Imágenes, Fondo IA, CLI).
+ * - Integración con los 9 pilares de Vork (Traductor, TTS, Conversor, Stems, Imágenes, Fondo IA, Draw, CLI, Desktop).
  */
 
 (function (root, factory) {

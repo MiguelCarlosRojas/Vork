@@ -1238,10 +1238,9 @@ async function processConversion(options = {}) {
   mediaBufferStore.set(jobId, itemRecord);
 
   const baseUrl = ""; // Rutas relativas para compatibilidad universal
-  const streamUrl = `${baseUrl}/api/media/stream?id=${jobId}`;
-  const videoStreamUrl = `${baseUrl}/api/media/stream?id=${jobId}&type=video`;
-  const audioStreamUrl = `${baseUrl}/api/media/stream?id=${jobId}&type=audio`;
   const downloadUrl = `${baseUrl}/api/media/download?id=${jobId}`;
+  const isMp4 = selectedFormat === "mp4";
+  const mediaStreamUrl = `${baseUrl}/api/media/stream?id=${jobId}&type=${isMp4 ? "video" : "audio"}`;
 
   return {
     status: "success",
@@ -1252,14 +1251,10 @@ async function processConversion(options = {}) {
     platformId: mediaInfo.platformId,
     format: selectedFormat,
     quality,
-    thumbnail: mediaInfo.thumbnail,
+    thumbnail: finalThumbnail || mediaInfo.thumbnail,
     duration: finalDuration,
     durationSeconds: finalDurationSeconds,
-    streamUrl,
-    videoStreamUrl,
-    audioStreamUrl,
-    directVideoUrl: mediaInfo.mp4Url || null,
-    directAudioUrl: mediaInfo.mp3Url || null,
+    ...(isMp4 ? { videoUrl: mediaStreamUrl } : { audioUrl: mediaStreamUrl }),
     downloadUrl,
     filename: downloadFilename,
     mimeType,

@@ -478,7 +478,7 @@ Vork incluye un portal web interactivo responsive estructurado con páginas dedi
 * **[Estudio y Eliminador de Fondo IA](https://vork-st1k.onrender.com/background-remover)**: Página dedicada al Pilar 9 para recorte de fondos con rembg U2-Net, sustitución por color o prompts IA.
 * **[Vork Desktop (Asistente de Voz para Windows)](https://github.com/MiguelCarlosRojas/Vork/tags)**: Aplicación de escritorio del Pilar 10 con barra flotante superior, reconocimiento biométrico de voz, control total de Windows, Google Calendar, Spotify, Excel y entrenador personal. Disponible en GitHub Releases.
 * **[Donaciones](https://vork-st1k.onrender.com/donate)**: Página dedicada para apoyar el mantenimiento de servidores con PayPal y QR de Yape ampliable.
-* **[Documentación Técnica](https://vork-st1k.onrender.com/docs)**: Arquitectura, flujo por lotes del DOM, especificación de los 8 pilares y preguntas frecuentes.
+* **[Documentación Técnica](https://vork-st1k.onrender.com/docs)**: Arquitectura, flujo por lotes del DOM, especificación de los 9 pilares y preguntas frecuentes.
 * **[Referencia de API REST](https://vork-st1k.onrender.com/api)**: Playground interactivo (`/api/translate`, `/api/tts`, `/api/media/convert`, `/api/separator/process`, `/api/image/convert`, `/api/image/remove-background`, `/api/cli/info`, `/api/health`, `/api/languages`, `/api/ping`).
 * **[Aprender (Guías de Integración)](https://vork-st1k.onrender.com/learn)**: Guías para React, Vue, Vanilla JS, microservicios y optimización de latencia.
 * **[Soporte Técnico](https://vork-st1k.onrender.com/support)**: Canales de contacto y asistencia directa.

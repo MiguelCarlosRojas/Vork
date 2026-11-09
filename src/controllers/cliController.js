@@ -220,7 +220,7 @@ exports.getCliInfo = (req, res) => {
       }
     ],
     commands: [
-      { command: "vork", description: "Comando principal para invocar cualquiera de los 8 pilares" },
+      { command: "vork", description: "Comando principal para invocar cualquiera de los 9 pilares" },
       { command: "vk", description: "Alias ultracorto del comando vork" },
       { command: "vork-cli", description: "Inicia la interfaz interactiva (TUI) con agentes y subagentes" }
     ],

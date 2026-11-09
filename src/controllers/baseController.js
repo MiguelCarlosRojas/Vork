@@ -30,7 +30,7 @@ exports.getHealth = (req, res) => {
     uptime: Math.floor(process.uptime()),
     pillars: PILLARS.length,
     platform: "Vork",
-    version: "3.0.0",
+    version: "1.0.0",
     services: {
       translator: { name: "Vork Traductor en la Nube", status: "online" },
       tts: { name: "Vork Voz Neuronal", status: "online" },
@@ -76,7 +76,7 @@ exports.getRootOverview = (req, res) => {
     platform: "Vork",
     service: "Vork API REST Multimodal",
     status: "online",
-    version: "3.0.0",
+    version: "1.0.0",
     pillars: PILLARS,
     documentation: "https://vork-st1k.onrender.com/docs",
     endpoints: API_ENDPOINTS
@@ -96,7 +96,7 @@ exports.getApiOverview = (req, res) => {
     platform: "Vork",
     service: "Vork API REST",
     status: "online",
-    version: "3.0.0",
+    version: "1.0.0",
     pillars: PILLARS,
     documentation: "https://vork-st1k.onrender.com/api",
     endpoints: API_ENDPOINTS

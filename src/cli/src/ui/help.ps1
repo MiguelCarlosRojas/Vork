@@ -54,7 +54,7 @@ function Show-Help {
     Write-VorkHelpLine -Width $width -Text "    $Cyan$Bold/<comando>$Reset $White [argumentos]$Reset   ${Dim}(Ej: /help, /translate, /doctor, /run)${Reset}"
     Write-Host ""
 
-    Write-VorkHelpLine -Width $width -Text "$White$Bold  LOS 8 PILARES OPERACIONALES:$Reset"
+    Write-VorkHelpLine -Width $width -Text "$White$Bold  LOS 9 PILARES OPERACIONALES:$Reset"
 
     $pillars = @(
         @{
@@ -117,7 +117,7 @@ function Show-Help {
     Write-Host ""
     Write-VorkHelpLine -Width $width -Text "$White$Bold  MANTENIMIENTO & ESTADO:$Reset"
     Write-VorkHelpLine -Width $width -Text "    $Yellow /update$Reset     ${Dim}Sincroniza y actualiza Vork CLI al instante${Reset}"
-    Write-VorkHelpLine -Width $width -Text "    $Yellow /status$Reset     ${Dim}Telemetria y estado operativo de los 8 pilares${Reset}"
+    Write-VorkHelpLine -Width $width -Text "    $Yellow /status$Reset     ${Dim}Telemetria y estado operativo de los 9 pilares${Reset}"
     Write-VorkHelpLine -Width $width -Text "    $Yellow /version$Reset    ${Dim}Muestra detalles de arquitectura y version${Reset}"
     Write-VorkHelpLine -Width $width -Text "    $Yellow /slash$Reset      ${Dim}Ver los 62 comandos con barra (/)${Reset}"
     Write-Host ""
@@ -135,7 +135,7 @@ function Show-SlashCommands {
 
         $categories = @(
         @{
-            Title = "[CATEGORIA 1] Los 8 Pilares Operacionales (8)"
+            Title = "[CATEGORIA 1] los 9 pilares Operacionales (8)"
             Items = @(
                 @{ Cmd = "/translate"; Desc = "Traduccion neuronal por lotes en +200 idiomas" },
                 @{ Cmd = "/tts";       Desc = "Sintesis de voz con 24 voces neuronales humanas" },

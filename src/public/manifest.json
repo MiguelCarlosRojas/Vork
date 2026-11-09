@@ -1,7 +1,7 @@
 {
   "name": "Vork — Plataforma Multimodal de Inteligencia Artificial",
   "short_name": "Vork",
-  "description": "Ecosistema cloud multimodal: Traducción (+200 idiomas), Voz Neuronal TTS, Conversor Multimedia, Stems Demucs v4, Generador FLUX.1, Procesador de Imágenes, Fondo IA y CLI.",
+  "description": "Ecosistema cloud multimodal de alto rendimiento: Traducción (+200 idiomas), Voz TTS, Conversor MP3/MP4, Separador Stems, Procesador de Imágenes, Fondo IA, Generador FLUX.1, Terminal CLI y Vork Desktop.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0a0c10",

@@ -296,7 +296,7 @@ function Invoke-CmdStatus {
     $uptimeStr = if ($res -and $res.uptime) { "$($res.uptime)s" } else { "N/A" }
     $rssStr = if ($res -and $res.memory -and $res.memory.rssMb) { "$($res.memory.rssMb) MB" } else { "N/A" }
 
-    Write-VorkSectionHeader -Title "Estado de los 8 pilares" -Subtitle "infraestructura y telemetría en tiempo real" -RightText "vork · status"
+    Write-VorkSectionHeader -Title "Estado de los 9 pilares" -Subtitle "infraestructura y telemetría en tiempo real" -RightText "vork · status"
 
     Write-VorkInfoRow -Label "Backend Cloud" -Value $ApiBase -ValueColor $Cyan
     if ($online) {
@@ -342,7 +342,7 @@ function Invoke-CmdStatus {
 
     $statusKind = if ($onlineCount -eq 8) { "ok" } elseif ($onlineCount -gt 0) { "warn" } else { "error" }
     $statusText = if ($onlineCount -eq 8) {
-        "Estado global: 8/8 pilares operativos y sincronizados en la nube."
+        "Estado global: 8/9 pilares operativos y sincronizados en la nube."
     } elseif ($onlineCount -gt 0) {
         "Estado global: $onlineCount/9 pilares operativos. Algunos servicios presentan degradación."
     } else {

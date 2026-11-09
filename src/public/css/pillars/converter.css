@@ -632,11 +632,20 @@ body.is-dark .platform-chip {
 }
 .platform-chip .platform-icon,
 .platform-chip svg {
-  width: 17px;
-  height: 17px;
+  width: 18px;
+  height: 18px;
   display: block;
   flex-shrink: 0;
   transition: transform 0.2s ease;
+}
+.platform-chip[data-platform="youtube"] svg {
+  width: 21px;
+  height: 17px;
+}
+.platform-chip[data-platform="facebook"] svg,
+.platform-chip[data-platform="pinterest"] svg {
+  width: 20px;
+  height: 20px;
 }
 .platform-chip:hover {
   transform: translateY(-2px);
