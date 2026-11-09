@@ -13,9 +13,16 @@ document.addEventListener("DOMContentLoaded", () => {
       const panelUrl = document.getElementById("panel-url");
       const panelFile = document.getElementById("panel-file");
       const platformsBox = document.getElementById("platforms-selector-box");
+      const platformsBoxTitle = document.getElementById("platforms-box-title");
+      const platformsChipsRow = document.getElementById("platforms-chips-row");
+      const formatsChipsRow = document.getElementById("formats-chips-row");
       const stemModeBadge = document.getElementById("stem-mode-badge");
 
+      const urlActionSlot = document.getElementById("url-action-slot");
+      const fileActionSlot = document.getElementById("file-action-slot");
+
       let currentMode = "url";
+      let selectedFormat = "mp3";
       let selectedFileBase64 = null;
       let selectedFileName = "";
 
@@ -23,18 +30,30 @@ document.addEventListener("DOMContentLoaded", () => {
       const inputUrl = document.getElementById("input-media-url");
       const btnClear = document.getElementById("btn-clear-url");
       const btnPaste = document.getElementById("btn-paste-clipboard");
-      const selectQuality = document.getElementById("select-quality");
-      const qualityBadge = document.getElementById("quality-badge");
 
       const btnProcess = document.getElementById("btn-process-split");
       const progressBox = document.getElementById("progress-box");
       const progressBar = document.getElementById("progress-bar");
       const progressPercent = document.getElementById("progress-percent");
       const progressStatus = document.getElementById("progress-status");
+      const progressSubInfo = document.getElementById("progress-sub-info");
       const resultBox = document.getElementById("result-box");
 
       const audioInst = document.getElementById("audio-inst");
       const audioVoc = document.getElementById("audio-voc");
+
+      // Iconos SVG para el botón de Separación (Idénticos al Conversor)
+      const ICON_SPLIT = '<svg id="btn-split-icon" class="btn-action-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>';
+      const ICON_LOADING = '<svg class="spin-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" stroke-opacity="0.25" stroke="currentColor"/><path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor"/></svg>';
+      const ICON_CHECK = '<svg class="check-pop-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#10b981" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
+
+      function animateTabClick(btn) {
+        if (!btn) return;
+        btn.classList.remove("format-tab-animated");
+        void btn.offsetWidth;
+        btn.classList.add("format-tab-animated");
+        setTimeout(() => btn.classList.remove("format-tab-animated"), 360);
+      }
 
       // Detener y limpiar reproductores de medios
       function stopMediaPlayback() {
@@ -62,26 +81,34 @@ document.addEventListener("DOMContentLoaded", () => {
       // Reinicia y oculta la barra de estado y progreso previo
       function resetProgressBox() {
         progressBox.style.display = "none";
-        progressStatus.innerHTML = "";
+        progressStatus.textContent = "";
+        if (progressSubInfo) progressSubInfo.textContent = "";
         progressPercent.textContent = "0%";
         progressBar.style.width = "0%";
       }
 
       // Deshabilitar / Habilitar todos los controles mientras se procesa (Igual a Conversor)
       function setFormDisabled(disabled) {
-        inputUrl.disabled = disabled;
-        btnClear.disabled = disabled;
+        if (inputUrl) {
+          inputUrl.disabled = disabled;
+          inputUrl.style.opacity = disabled ? "0.6" : "1";
+          inputUrl.style.cursor = disabled ? "not-allowed" : "text";
+        }
+        if (btnClear) btnClear.disabled = disabled;
         if (btnPaste) btnPaste.disabled = disabled;
-        tabUrl.disabled = disabled;
-        tabFile.disabled = disabled;
-        selectQuality.disabled = disabled;
-        btnProcess.disabled = disabled;
+        if (tabUrl) tabUrl.disabled = disabled;
+        if (tabFile) tabFile.disabled = disabled;
+
+        if (btnProcess) {
+          btnProcess.disabled = disabled;
+          btnProcess.style.cursor = disabled ? "not-allowed" : "pointer";
+          btnProcess.style.opacity = disabled ? "0.75" : "1";
+        }
 
         const interactiveEls = [
           btnProcess,
           tabUrl,
           tabFile,
-          selectQuality,
           btnClear,
           btnPaste
         ];
@@ -94,60 +121,193 @@ document.addEventListener("DOMContentLoaded", () => {
           }
         });
 
-        if (inputUrl) {
-          inputUrl.style.opacity = disabled ? "0.6" : "1";
-          inputUrl.style.cursor = disabled ? "not-allowed" : "text";
-        }
-
         if (disabled) {
-          btnProcess.innerHTML = `<span class="spinner" style="display:inline-block;width:15px;height:15px;border:2px solid #030712;border-top-color:transparent;border-radius:50%;animation:spin 0.8s linear infinite;"></span> <span id="btn-split-text">Separando Stems...</span>`;
+          btnProcess.innerHTML = ICON_LOADING + ' <span id="btn-split-text">Separando Stems...</span>';
         } else {
-          btnProcess.innerHTML = `<svg class="icon" style="width: 17px; height: 17px;" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg> <span id="btn-split-text">Separar Voz e Instrumental</span>`;
+          btnProcess.innerHTML = ICON_SPLIT + ' <span id="btn-split-text">SEPARAR VOZ E INSTRUMENTAL</span>';
         }
       }
 
-      // Conmutar Pestañas de Modo (Ocupa 100% de ancho con botones estilizados)
-      tabUrl.addEventListener("click", () => {
+      // Conmutar Pestañas de Modo (MÉTODO DE ENTRADA en Cabecera)
+      function switchMode(mode) {
         resetProgressBox();
         hidePreviousResult();
-        currentMode = "url";
-        tabUrl.classList.add("active");
-        tabFile.classList.remove("active");
+        currentMode = mode;
 
-        if (!tabUrl.querySelector(".active-indicator-dot")) {
-          const dot = document.createElement("span");
-          dot.className = "active-indicator-dot";
-          tabUrl.appendChild(dot);
+        if (mode === "url") {
+          animateTabClick(tabUrl);
+          if (tabUrl) tabUrl.classList.add("active");
+          if (tabFile) tabFile.classList.remove("active");
+          if (stemModeBadge) stemModeBadge.textContent = "ENLACE MULTIMEDIA";
+          if (platformsBoxTitle) platformsBoxTitle.textContent = "PLATAFORMAS COMPATIBLES (DETECCIÓN AUTOMÁTICA)";
+          if (platformsChipsRow) platformsChipsRow.style.display = "flex";
+          if (formatsChipsRow) formatsChipsRow.style.display = "none";
+
+          const metaPanel = document.getElementById("file-meta-panel");
+          if (metaPanel) metaPanel.style.display = "none";
+
+          if (panelUrl) panelUrl.style.display = "block";
+          if (panelFile) panelFile.style.display = "none";
+
+          if (urlActionSlot && btnProcess) {
+            urlActionSlot.appendChild(btnProcess);
+            btnProcess.style.display = "inline-flex";
+          }
+        } else {
+          animateTabClick(tabFile);
+          if (tabFile) tabFile.classList.add("active");
+          if (tabUrl) tabUrl.classList.remove("active");
+          if (stemModeBadge) stemModeBadge.textContent = "SUBIDA DE ARCHIVO";
+          if (platformsBoxTitle) platformsBoxTitle.textContent = "FORMATOS COMPATIBLES (DETECCIÓN AUTOMÁTICA)";
+          if (platformsChipsRow) platformsChipsRow.style.display = "none";
+          if (formatsChipsRow) formatsChipsRow.style.display = "flex";
+
+          if (panelFile) panelFile.style.display = "block";
+          if (panelUrl) panelUrl.style.display = "none";
+
+          if (fileActionSlot && btnProcess) {
+            fileActionSlot.appendChild(btnProcess);
+            btnProcess.style.display = selectedFileBase64 ? "inline-flex" : "none";
+          }
         }
-        const fileDot = tabFile.querySelector(".active-indicator-dot");
-        if (fileDot) fileDot.remove();
+      }
 
-        panelUrl.style.display = "block";
-        panelFile.style.display = "none";
-        if (platformsBox) platformsBox.style.display = "block";
-        if (stemModeBadge) stemModeBadge.textContent = "ENLACE MULTIMEDIA ACTIVO";
-      });
+      if (tabUrl) {
+        tabUrl.addEventListener("click", () => switchMode("url"));
+      }
 
-      tabFile.addEventListener("click", () => {
-        resetProgressBox();
-        hidePreviousResult();
-        currentMode = "file";
-        tabFile.classList.add("active");
-        tabUrl.classList.remove("active");
+      if (tabFile) {
+        tabFile.addEventListener("click", () => switchMode("file"));
+      }
 
-        if (!tabFile.querySelector(".active-indicator-dot")) {
-          const dot = document.createElement("span");
-          dot.className = "active-indicator-dot";
-          tabFile.appendChild(dot);
+      // Formateo de bytes para metadatos
+      function formatBytes(bytes) {
+        if (!bytes || bytes === 0) return "0 B";
+        const k = 1024;
+        const sizes = ["B", "KB", "MB", "GB"];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+      }
+
+      // Extractor y visor de metadatos de audio/video
+      async function extractAndDisplayMetadata(file) {
+        const metaPanel = document.getElementById("file-meta-panel");
+        if (!metaPanel) return;
+
+        const elDuration = document.getElementById("meta-val-duration");
+        const elSize = document.getElementById("meta-val-size");
+        const elFormat = document.getElementById("meta-val-format");
+        const elChannels = document.getElementById("meta-val-channels");
+        const elSampleRate = document.getElementById("meta-val-sample-rate");
+        const elBitrate = document.getElementById("meta-val-bitrate");
+        const elMime = document.getElementById("meta-val-mime");
+        const elModified = document.getElementById("meta-val-modified");
+
+        const ext = (file.name.split(".").pop() || "").toUpperCase();
+        if (elFormat) elFormat.textContent = ext || "AUDIO";
+        if (elSize) elSize.textContent = formatBytes(file.size);
+        if (elMime) {
+          const mimeStr = file.type || ("audio/" + ext.toLowerCase());
+          elMime.textContent = mimeStr;
+          elMime.title = mimeStr;
         }
-        const urlDot = tabUrl.querySelector(".active-indicator-dot");
-        if (urlDot) urlDot.remove();
+        if (elModified) {
+          const modDate = file.lastModified ? new Date(file.lastModified).toLocaleDateString() : "Hoy";
+          elModified.textContent = modDate;
+        }
 
-        panelFile.style.display = "block";
-        panelUrl.style.display = "none";
-        if (platformsBox) platformsBox.style.display = "none";
-        if (stemModeBadge) stemModeBadge.textContent = "SUBIDA DE ARCHIVO ACTIVA";
-      });
+        if (elDuration) elDuration.textContent = "Calculando...";
+        if (elBitrate) elBitrate.textContent = "Calculando...";
+        if (elChannels) elChannels.textContent = "Estéreo (2ch)";
+        if (elSampleRate) elSampleRate.textContent = "44.1 kHz";
+
+        // 1. Obtener duración y bitrate estimado mediante objeto multimedia
+        try {
+          const objectUrl = URL.createObjectURL(file);
+          const isVideo = (file.type && file.type.startsWith("video")) || ext === "MP4" || ext === "MKV";
+          const media = isVideo ? document.createElement("video") : new Audio();
+          media.preload = "metadata";
+          media.src = objectUrl;
+
+          await new Promise((resolve) => {
+            media.onloadedmetadata = () => resolve();
+            media.onerror = () => resolve();
+            setTimeout(resolve, 2200);
+          });
+
+          if (media.duration && !isNaN(media.duration) && isFinite(media.duration)) {
+            const totalSec = Math.round(media.duration);
+            const mins = Math.floor(totalSec / 60);
+            const secs = totalSec % 60;
+            const formattedDur = `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+            if (elDuration) elDuration.textContent = formattedDur;
+
+            if (totalSec > 0) {
+              const kbps = Math.round((file.size * 8) / totalSec / 1000);
+              if (elBitrate) elBitrate.textContent = `~${kbps} kbps`;
+            }
+          } else {
+            if (elDuration) elDuration.textContent = "N/D";
+            if (elBitrate) elBitrate.textContent = "~320 kbps";
+          }
+          URL.revokeObjectURL(objectUrl);
+        } catch (e) {
+          if (elDuration) elDuration.textContent = "N/D";
+          if (elBitrate) elBitrate.textContent = "~320 kbps";
+        }
+
+        // 2. Extraer Sample Rate y Canales reales con Web Audio API
+        try {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          if (AudioContextClass && file.size <= 25 * 1024 * 1024) {
+            const ctx = new AudioContextClass();
+            const arrayBuf = await file.arrayBuffer();
+            const audioBuf = await ctx.decodeAudioData(arrayBuf);
+            if (audioBuf) {
+              if (elSampleRate) {
+                const khz = (audioBuf.sampleRate / 1000).toFixed(1);
+                elSampleRate.textContent = `${khz} kHz`;
+              }
+              if (elChannels) {
+                elChannels.textContent = audioBuf.numberOfChannels === 1 ? "Mono (1ch)" : audioBuf.numberOfChannels === 2 ? "Estéreo (2ch)" : `${audioBuf.numberOfChannels} Canales`;
+              }
+            }
+            try { ctx.close(); } catch {}
+          }
+        } catch (e) {
+          // Fallback seguro ya presente
+        }
+      }
+
+      // Detección automática de formato de archivo seleccionado
+      function detectFormatFromFileName(name) {
+        if (!name) return null;
+        const ext = name.split(".").pop().toLowerCase().trim();
+        const map = {
+          mp3: "mp3",
+          wav: "wav",
+          flac: "flac",
+          m4a: "m4a",
+          aac: "aac",
+          ogg: "ogg",
+          mp4: "mp4",
+          mkv: "mp4",
+          mov: "mp4",
+          webm: "ogg"
+        };
+        return map[ext] || null;
+      }
+
+      function syncDetectedFormat(fileName) {
+        const detected = detectFormatFromFileName(fileName);
+        document.querySelectorAll("#formats-chips-row .format-chip").forEach(c => {
+          if (detected && c.getAttribute("data-format") === detected) {
+            c.classList.add("active");
+          } else {
+            c.classList.remove("active");
+          }
+        });
+      }
 
       // Manejo de archivo local
       const dropZone = document.getElementById("drop-zone");
@@ -155,28 +315,109 @@ document.addEventListener("DOMContentLoaded", () => {
       const fileInfo = document.getElementById("file-info-badge");
       const fileNameEl = document.getElementById("file-info-name");
       const btnRemoveFile = document.getElementById("btn-remove-file");
+      const fileAnalyzingCard = document.getElementById("file-analyzing-card");
+      const metaTagVerified = document.getElementById("meta-tag-verified");
 
-      dropZone.addEventListener("click", () => fileInput.click());
-      dropZone.addEventListener("dragover", (e) => { e.preventDefault(); dropZone.classList.add("dragover"); });
-      dropZone.addEventListener("dragleave", () => dropZone.classList.remove("dragover"));
-      dropZone.addEventListener("drop", (e) => {
-        e.preventDefault();
-        dropZone.classList.remove("dragover");
-        if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
-      });
+      if (dropZone && fileInput) {
+        dropZone.addEventListener("click", () => {
+          dropZone.classList.remove("clicking");
+          void dropZone.offsetWidth;
+          dropZone.classList.add("clicking");
+          fileInput.click();
+        });
+        fileInput.addEventListener("click", (e) => {
+          e.stopPropagation();
+        });
 
-      fileInput.addEventListener("change", () => {
-        if (fileInput.files.length) handleFile(fileInput.files[0]);
-      });
+        dropZone.addEventListener("dragover", (e) => {
+          e.preventDefault();
+          dropZone.classList.add("dragover");
+          const dropTitle = document.getElementById("drop-zone-title");
+          if (dropTitle) dropTitle.textContent = "¡Suelta tu archivo aquí para analizarlo!";
+        });
+        dropZone.addEventListener("dragleave", () => {
+          dropZone.classList.remove("dragover");
+          const dropTitle = document.getElementById("drop-zone-title");
+          if (dropTitle) dropTitle.textContent = "Arrastra y suelta tu archivo aquí";
+        });
+        dropZone.addEventListener("drop", (e) => {
+          e.preventDefault();
+          dropZone.classList.remove("dragover");
+          const dropTitle = document.getElementById("drop-zone-title");
+          if (dropTitle) dropTitle.textContent = "Arrastra y suelta tu archivo aquí";
+          if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) {
+            handleFile(e.dataTransfer.files[0]);
+          }
+        });
 
-      function handleFile(file) {
+        fileInput.addEventListener("change", () => {
+          if (fileInput.files && fileInput.files.length) {
+            handleFile(fileInput.files[0]);
+          }
+        });
+      }
+
+      async function handleFile(file) {
         if (!file) return;
         resetProgressBox();
         hidePreviousResult();
         selectedFileName = file.name;
-        fileNameEl.textContent = file.name;
-        fileInfo.style.display = "flex";
-        dropZone.style.display = "none";
+
+        const metaPanel = document.getElementById("file-meta-panel");
+
+        // Fase 1: Iniciar animación visual de análisis en vivo (Metadatos permanecen 100% ocultos)
+        if (metaPanel) metaPanel.style.display = "none";
+        if (dropZone) dropZone.style.display = "none";
+        if (fileInfo) fileInfo.style.display = "none";
+        if (btnProcess) btnProcess.style.display = "none";
+        if (fileAnalyzingCard) fileAnalyzingCard.style.display = "flex";
+
+        if (metaTagVerified) {
+          metaTagVerified.style.color = "#ff6600";
+          metaTagVerified.innerHTML = '<span class="analyzing-pulse-spinner" style="width: 12px; height: 12px; border-width: 2px;"></span> ANALIZANDO...';
+        }
+
+        // Resaltar inmediatamente el formato del archivo subido en naranja
+        syncDetectedFormat(file.name);
+
+        // Disparar extracción de metadatos y esperar animación fluida (~580ms)
+        const metaPromise = extractAndDisplayMetadata(file);
+        await Promise.all([
+          metaPromise,
+          new Promise(r => setTimeout(r, 580))
+        ]);
+
+        // Fase 2: Revelar archivo listo y telemetría analizada (SOLO al finalizar el análisis)
+        if (fileAnalyzingCard) fileAnalyzingCard.style.display = "none";
+        if (fileNameEl) fileNameEl.textContent = file.name;
+        if (fileInfo) {
+          fileInfo.style.display = "flex";
+          fileInfo.classList.remove("file-badge-pop");
+          void fileInfo.offsetWidth;
+          fileInfo.classList.add("file-badge-pop");
+        }
+        if (btnProcess) {
+          btnProcess.style.display = "inline-flex";
+          btnProcess.classList.remove("file-badge-pop");
+          void btnProcess.offsetWidth;
+          btnProcess.classList.add("file-badge-pop");
+        }
+
+        // AHORA SÍ: Revelar el panel de metadatos con animación suave
+        if (metaPanel) {
+          metaPanel.style.display = "block";
+          metaPanel.classList.remove("file-badge-pop");
+          void metaPanel.offsetWidth;
+          metaPanel.classList.add("file-badge-pop");
+        }
+
+        if (metaTagVerified) {
+          metaTagVerified.style.color = "#10b981";
+          metaTagVerified.innerHTML = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#10b981" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> ARCHIVO ANALIZADO';
+          metaTagVerified.classList.remove("meta-check-pop");
+          void metaTagVerified.offsetWidth;
+          metaTagVerified.classList.add("meta-check-pop");
+        }
 
         const reader = new FileReader();
         reader.onload = (e) => {
@@ -185,15 +426,25 @@ document.addEventListener("DOMContentLoaded", () => {
         reader.readAsDataURL(file);
       }
 
-      btnRemoveFile.addEventListener("click", () => {
-        resetProgressBox();
-        hidePreviousResult();
-        selectedFileBase64 = null;
-        selectedFileName = "";
-        fileInput.value = "";
-        fileInfo.style.display = "none";
-        dropZone.style.display = "block";
-      });
+      if (btnRemoveFile) {
+        btnRemoveFile.addEventListener("click", (e) => {
+          e.stopPropagation();
+          resetProgressBox();
+          hidePreviousResult();
+          selectedFileBase64 = null;
+          selectedFileName = "";
+          if (fileInput) fileInput.value = "";
+          if (fileInfo) fileInfo.style.display = "none";
+          if (fileAnalyzingCard) fileAnalyzingCard.style.display = "none";
+          if (dropZone) dropZone.style.display = "flex";
+          if (btnProcess && currentMode === "file") btnProcess.style.display = "none";
+
+          const metaPanel = document.getElementById("file-meta-panel");
+          if (metaPanel) metaPanel.style.display = "none";
+
+          syncDetectedFormat(null);
+        });
+      }
 
       // Detección automática de plataformas
       const platformHoverLabel = document.getElementById("platform-hover-label");
@@ -231,14 +482,6 @@ document.addEventListener("DOMContentLoaded", () => {
             c.classList.remove("active");
           }
         });
-
-        if (detected && platformNames[detected]) {
-          if (detectedPlatformBadge) detectedPlatformBadge.textContent = `${platformNames[detected]} DETECTADO`;
-          if (platformHoverLabel) platformHoverLabel.textContent = platformNames[detected];
-        } else {
-          if (detectedPlatformBadge) detectedPlatformBadge.textContent = "DETECCIÓN AUTOMÁTICA";
-          if (platformHoverLabel) platformHoverLabel.textContent = "7 PLATAFORMAS";
-        }
       }
 
       inputUrl.addEventListener("input", () => {
@@ -275,16 +518,8 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       }
 
-      // Selector de Calidad
-      selectQuality.addEventListener("change", () => {
-        resetProgressBox();
-        if (qualityBadge && selectQuality.selectedOptions.length > 0) {
-          qualityBadge.textContent = selectQuality.selectedOptions[0].textContent.split("(")[0].trim().toUpperCase();
-        }
-      });
-
       // Clic en chips de plataforma solo enfoca el campo de texto (sin rellenar URL por defecto)
-      document.querySelectorAll(".platform-chip").forEach(chip => {
+      document.querySelectorAll("#platforms-chips-row .platform-chip").forEach(chip => {
         chip.addEventListener("click", () => {
           inputUrl.focus();
         });
@@ -337,9 +572,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // Función: Separar Voz e Instrumental (Comportamiento Idéntico a Convertir)
       btnProcess.addEventListener("click", async () => {
-        const quality = selectQuality.value;
-
-        let payload = { quality };
+        let payload = { format: selectedFormat };
         if (currentMode === "url") {
           const u = inputUrl.value.trim();
           if (!u) {
@@ -362,7 +595,8 @@ document.addEventListener("DOMContentLoaded", () => {
         progressBox.style.display = "block";
         progressBar.style.width = "25%";
         progressPercent.textContent = "25%";
-        progressStatus.innerHTML = `<span class="spinner" style="display: inline-block; width: 14px; height: 14px;"></span> Analizando enlace y extrayendo audio maestro...`;
+        progressStatus.textContent = "Analizando entrada y extrayendo audio maestro...";
+        if (progressSubInfo) progressSubInfo.textContent = "Validando canales estéreo y tasa de muestreo...";
 
         let t1 = null;
         let t2 = null;
@@ -372,7 +606,8 @@ document.addEventListener("DOMContentLoaded", () => {
             if (progressBar.style.width === "25%") {
               progressBar.style.width = "60%";
               progressPercent.textContent = "60%";
-              progressStatus.innerHTML = `<span class="spinner" style="display: inline-block; width: 14px; height: 14px;"></span> Conectando con red neuronal Demucs v4 (Meta AI)...`;
+              progressStatus.textContent = "Conectando con red neuronal Demucs v4 (Meta AI)...";
+              if (progressSubInfo) progressSubInfo.textContent = "Descomponiendo espectrograma en tensores en memoria RAM...";
             }
           }, 800);
 
@@ -380,7 +615,8 @@ document.addEventListener("DOMContentLoaded", () => {
             if (progressBar.style.width === "60%") {
               progressBar.style.width = "85%";
               progressPercent.textContent = "85%";
-              progressStatus.innerHTML = `<span class="spinner" style="display: inline-block; width: 14px; height: 14px;"></span> Desacoplando Acapella e Instrumental Puro (-48 dB cero filtración)...`;
+              progressStatus.textContent = "Desacoplando Acapella e Instrumental Puro...";
+              if (progressSubInfo) progressSubInfo.textContent = "Aislamiento acústico a -48 dB sin diafonía armónica...";
             }
           }, 2400);
 
@@ -400,24 +636,27 @@ document.addEventListener("DOMContentLoaded", () => {
 
           if (data.status === "success") {
             progressStatus.textContent = "¡Separación neuronal completada con éxito!";
+            if (progressSubInfo) progressSubInfo.textContent = "Stems de alta fidelidad listos para preescucha y descarga.";
             displaySeparationResult(data);
             if (btnProcess) {
-              btnProcess.classList.add("btn-copied");
-              btnProcess.innerHTML = '<svg class="icon" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg> <span>¡Listo!</span>';
+              btnProcess.innerHTML = ICON_CHECK + ' <span id="btn-split-text">¡Stems Listos!</span>';
               setTimeout(() => {
-                btnProcess.classList.remove("btn-copied");
-                btnProcess.innerHTML = '<svg class="icon" style="width: 17px; height: 17px;" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg> <span id="btn-split-text">Separar Voz e Instrumental</span>';
+                btnProcess.innerHTML = ICON_SPLIT + ' <span id="btn-split-text">SEPARAR VOZ E INSTRUMENTAL</span>';
+                setFormDisabled(false);
               }, 1800);
             }
           } else {
             alert(data.error || "No se pudo procesar la separación.");
+            btnProcess.innerHTML = ICON_SPLIT + ' <span id="btn-split-text">SEPARAR VOZ E INSTRUMENTAL</span>';
+            setFormDisabled(false);
           }
         } catch (err) {
           alert("Error de red: " + err.message);
+          btnProcess.innerHTML = ICON_SPLIT + ' <span id="btn-split-text">SEPARAR VOZ E INSTRUMENTAL</span>';
+          setFormDisabled(false);
         } finally {
           if (t1) clearTimeout(t1);
           if (t2) clearTimeout(t2);
-          setFormDisabled(false);
         }
       });
 

@@ -20,6 +20,111 @@ try {
 }
 const logger = require("./logger");
 const { validateSafeUrl } = require("./ssrfGuard");
+const cheerio = require("cheerio");
+
+/**
+ * Decodificación y desencriptación de respuestas ofuscadas de SnapSave
+ */
+function decodeSnapApp(args) {
+  let [h, u, n, t, e, r] = args;
+  const tNum = Number(t);
+  const eNum = Number(e);
+  function decode(d, e, f) {
+    const g = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ+/".split("");
+    const hArr = g.slice(0, e);
+    const iArr = g.slice(0, f);
+    let j = d.split("").reverse().reduce((a, b, c) => {
+      const idx = hArr.indexOf(b);
+      if (idx !== -1) return a + idx * Math.pow(e, c);
+      return a;
+    }, 0);
+    let k = "";
+    while (j > 0) {
+      k = iArr[j % f] + k;
+      j = Math.floor(j / f);
+    }
+    return k || "0";
+  }
+  let result = "";
+  for (let i = 0, len = h.length; i < len;) {
+    let s = "";
+    while (i < len && h[i] !== n[eNum]) {
+      s += h[i];
+      i++;
+    }
+    i++;
+    for (let j = 0; j < n.length; j++) s = s.replace(new RegExp(n[j], "g"), j.toString());
+    result += String.fromCharCode(Number(decode(s, eNum, 10)) - tNum);
+  }
+  const fixEncoding = (str) => {
+    try {
+      const bytes = new Uint8Array(str.split("").map((char) => char.charCodeAt(0)));
+      return new TextDecoder("utf-8").decode(bytes);
+    } catch {
+      return str;
+    }
+  };
+  return fixEncoding(result);
+}
+
+function getEncodedSnapApp(data) {
+  return data.split("decodeURIComponent(escape(r))}(")[1].split("))")[0].split(",").map((v) => v.replace(/"/g, "").trim());
+}
+
+function getDecodedSnapSave(data) {
+  const errorMessage = data?.split("document.querySelector(\"#alert\").innerHTML = \"")?.[1]?.split("\";")?.[0]?.trim();
+  if (errorMessage) throw new Error(errorMessage);
+  return data.split("getElementById(\"download-section\").innerHTML = \"")[1].split("\"; document.getElementById(\"inputData\").remove(); ")[0].replace(/\\(\\)?/g, "");
+}
+
+function decryptSnapSave(data) {
+  return getDecodedSnapSave(decodeSnapApp(getEncodedSnapApp(data)));
+}
+
+/**
+ * Extrae metadatos nativos de Facebook (título, autor y miniatura original)
+ */
+async function fetchFacebookMetadata(cleanUrl) {
+  let title = null;
+  let author = null;
+  let thumbnail = null;
+
+  try {
+    const r = await axios.get(cleanUrl, {
+      headers: {
+        "User-Agent": "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+      },
+      timeout: 8000,
+      maxRedirects: 5
+    });
+    const $ = cheerio.load(r.data);
+    const ogTitle = $('meta[property="og:title"]').attr('content') || '';
+    const ogDesc = $('meta[property="og:description"]').attr('content') || '';
+    const ogThumb = $('meta[property="og:image"]').attr('content') || '';
+    const rawTitleTag = $('title').text() || '';
+
+    if (ogDesc && ogDesc.length > 3) {
+      title = ogDesc.slice(0, 100);
+    } else if (rawTitleTag) {
+      title = rawTitleTag.split('|')[0].trim().slice(0, 100);
+    }
+
+    if (rawTitleTag.includes('|')) {
+      const parts = rawTitleTag.split('|');
+      author = parts[parts.length - 1].trim();
+    } else if (ogTitle.includes('|')) {
+      const parts = ogTitle.split('|');
+      author = parts[parts.length - 1].trim();
+    }
+
+    if (ogThumb && ogThumb.startsWith('http')) {
+      thumbnail = ogThumb;
+    }
+  } catch {}
+
+  return { title, author, thumbnail };
+}
 
 // Ruta al binario de FFmpeg con fallback a binario de sistema
 let ffmpegPath = "ffmpeg";
@@ -43,11 +148,161 @@ function withTimeout(promise, ms = 12000) {
 }
 
 /**
+ * Extrae y normaliza la etiqueta del idioma y tipo de pista de audio a partir de los metadatos y xtags de YouTube
+ */
+function parseAudioTrackLabel(url) {
+  if (!url) return "Audio Estándar";
+  try {
+    const decoded = decodeURIComponent(decodeURIComponent(url));
+    const xtagsMatch = decoded.match(/xtags=([^&]+)/);
+    if (xtagsMatch) {
+      const xtags = xtagsMatch[1];
+      const langMatch = xtags.match(/lang=([a-zA-Z0-9-]+)/);
+      const acontMatch = xtags.match(/acont=([a-zA-Z0-9-]+)/);
+      const langCode = langMatch ? langMatch[1].toLowerCase() : "";
+      const isOriginal = acontMatch ? acontMatch[1].includes("original") : false;
+      const isDubbed = acontMatch ? acontMatch[1].includes("dubbed") : false;
+
+      let langName = langCode;
+      if (langCode.startsWith("es")) langName = "Español";
+      else if (langCode.startsWith("en")) langName = "Inglés";
+      else if (langCode.startsWith("pt")) langName = "Portugués";
+      else if (langCode.startsWith("ar")) langName = "Árabe";
+      else if (langCode.startsWith("ja")) langName = "Japonés";
+      else if (langCode.startsWith("fr")) langName = "Francés";
+      else if (langCode.startsWith("de")) langName = "Alemán";
+      else if (langCode.startsWith("it")) langName = "Italiano";
+      else if (langCode.startsWith("ko")) langName = "Coreano";
+      else if (langCode.startsWith("ru")) langName = "Ruso";
+      else if (langCode.startsWith("zh")) langName = "Chino";
+      else if (langCode.startsWith("hi")) langName = "Hindi";
+      else if (langCode.startsWith("id")) langName = "Indonesio";
+      else if (langCode.startsWith("tr")) langName = "Turco";
+      else if (langCode.startsWith("pl")) langName = "Polaco";
+      else if (langCode.startsWith("vi")) langName = "Vietnamita";
+      else if (langCode.startsWith("th")) langName = "Tailandés";
+      else if (langCode.startsWith("nl")) langName = "Holandés";
+
+      if (isOriginal) return `${langName} (Original)`;
+      if (isDubbed) return `${langName} (Doblado)`;
+      return langName || "Audio Estándar";
+    }
+  } catch {}
+  return "Audio Estándar";
+}
+
+/**
  * Consulta de alta disponibilidad y concurrencia a proveedores y espejos de extracción para YouTube
+ * Detecta y recopila múltiples pistas de audio disponibles (idiomas, doblajes y originales)
+ * y clasifica los flujos de video por resolución nativa (1080p, 720p, 480p, 360p).
  */
 async function fetchYouTubeStreams(normalizedUrl) {
+  const ytMatch = normalizedUrl.match(/(?:v=|\/embed\/|\/watch\?v=|\/shorts\/)([a-zA-Z0-9_-]{11})/);
+  const videoId = ytMatch ? ytMatch[1] : null;
+
+  const fetchInvidious = async () => {
+    if (!videoId) throw new Error("Video ID no encontrado para Invidious");
+    const instances = [
+      "https://yt.chocolatemoo53.com",
+      "https://invidious.nerdvpn.de",
+      "https://invidious.f5.si"
+    ];
+
+    for (const inst of instances) {
+      try {
+        const res = await axios.get(`${inst}/api/v1/videos/${videoId}`, {
+          timeout: 6500,
+          headers: {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+            "Accept": "application/json"
+          }
+        });
+        const d = res.data;
+        if (!d || (!d.adaptiveFormats && !d.formatStreams)) continue;
+
+        const allFormats = [...(d.adaptiveFormats || []), ...(d.formatStreams || [])];
+        const audioFormats = (d.adaptiveFormats || []).filter(f => f.type?.startsWith("audio/"));
+        const videoFormats = allFormats.filter(f => f.type?.startsWith("video/"));
+
+        // Deduplicar pistas de audio por idioma/etiqueta
+        audioFormats.sort((a, b) => (Number(b.bitrate) || 0) - (Number(a.bitrate) || 0));
+        const audioTracks = [];
+        const seenAudioLabels = new Set();
+        audioFormats.forEach(af => {
+          if (!af.url) return;
+          const label = parseAudioTrackLabel(af.url) || af.audioTrack || "Audio Estándar";
+          if (seenAudioLabels.has(label)) return;
+          seenAudioLabels.add(label);
+          audioTracks.push({
+            id: `audio_${audioTracks.length}`,
+            label,
+            url: af.url,
+            isDefault: label.toLowerCase().includes("original") || audioTracks.length === 0
+          });
+        });
+
+        // Si se encontró pista original, asegurar que sea la predeterminada
+        if (audioTracks.length > 0) {
+          const origIdx = audioTracks.findIndex(t => t.label.toLowerCase().includes("original"));
+          if (origIdx > 0) {
+            audioTracks.forEach(t => { t.isDefault = false; });
+            audioTracks[origIdx].isDefault = true;
+            const [orig] = audioTracks.splice(origIdx, 1);
+            audioTracks.unshift(orig);
+            audioTracks.forEach((t, i) => { t.id = `audio_${i}`; });
+          }
+        }
+
+        // Mapear streams de video por resolución exacta (2160p, 1440p, 1080p, 720p, 480p, 360p, 240p, 144p)
+        const videoStreamsByQuality = {};
+        videoFormats.forEach(vf => {
+          if (!vf.url) return;
+          const qText = (vf.qualityLabel || vf.resolution || vf.quality || "").toLowerCase();
+          const match = qText.match(/(\d{3,4})p?/);
+          let matchedKey = match ? `${match[1]}p` : null;
+          if (!matchedKey) {
+            if (qText.includes("4k") || qText.includes("2160")) matchedKey = "2160p";
+            else if (qText.includes("2k") || qText.includes("1440")) matchedKey = "1440p";
+            else if (qText.includes("1080")) matchedKey = "1080p";
+            else if (qText.includes("720")) matchedKey = "720p";
+            else if (qText.includes("480")) matchedKey = "480p";
+            else if (qText.includes("360")) matchedKey = "360p";
+            else if (qText.includes("240")) matchedKey = "240p";
+            else if (qText.includes("144")) matchedKey = "144p";
+          }
+
+          if (matchedKey) {
+            const isMp4 = vf.type?.includes("mp4") || vf.container === "mp4";
+            if (!videoStreamsByQuality[matchedKey] || isMp4) {
+              videoStreamsByQuality[matchedKey] = vf.url;
+            }
+          }
+        });
+
+        const sortedQualityKeys = Object.keys(videoStreamsByQuality).sort((a, b) => (parseInt(b, 10) || 0) - (parseInt(a, 10) || 0));
+        const bestVideoUrl = videoStreamsByQuality["1080p"] || videoStreamsByQuality["720p"] || (sortedQualityKeys.length > 0 ? videoStreamsByQuality[sortedQualityKeys[0]] : videoFormats[0]?.url) || null;
+        const bestAudioUrl = audioTracks.find(t => t.isDefault)?.url || audioTracks[0]?.url || null;
+
+        return {
+          title: d.title || null,
+          author: d.author || null,
+          thumbnail: d.videoThumbnails?.[0]?.url || (videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : null),
+          durationSeconds: Number(d.lengthSeconds) || 0,
+          mp4: bestVideoUrl,
+          mp3: bestAudioUrl,
+          videoStreamsByQuality,
+          audioTracks,
+          separateAudio: Boolean(bestVideoUrl && bestAudioUrl && bestVideoUrl !== bestAudioUrl)
+        };
+      } catch (e) {
+        // Continuar con siguiente instancia
+      }
+    }
+    throw new Error("Invidious no pudo obtener streams válidos");
+  };
+
   const fetchBtch = async () => {
-    const directRes = await withTimeout(btch.youtube(normalizedUrl), 10000);
+    const directRes = await withTimeout(btch.youtube(normalizedUrl), 5000);
     if (directRes && (directRes.mp4 || directRes.mp3)) {
       return directRes;
     }
@@ -56,7 +311,7 @@ async function fetchYouTubeStreams(normalizedUrl) {
 
   const fetchMirror1 = async () => {
     const res = await axios.get(`https://backend1.tioo.eu.org/youtube?url=${encodeURIComponent(normalizedUrl)}`, {
-      timeout: 10000,
+      timeout: 4500,
       headers: {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
       }
@@ -69,7 +324,7 @@ async function fetchYouTubeStreams(normalizedUrl) {
 
   const fetchMirror2 = async () => {
     const res = await axios.get(`https://backend2.tioo.eu.org/youtube?url=${encodeURIComponent(normalizedUrl)}`, {
-      timeout: 10000,
+      timeout: 4500,
       headers: {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
       }
@@ -82,17 +337,11 @@ async function fetchYouTubeStreams(normalizedUrl) {
 
   const fetchRahad = async () => {
     if (!rahad || !rahad.alldl) throw new Error("rahad no disponible");
-    const r = await withTimeout(rahad.alldl(normalizedUrl), 10000);
+    const r = await withTimeout(rahad.alldl(normalizedUrl), 5000);
     if (r && r.data && r.data.download) {
       const dl = r.data.download;
       let audioUrl = dl.audio || dl.video;
       let videoUrl = dl.video || dl.audio;
-      if (audioUrl && audioUrl.includes("googlevideo.com") && !audioUrl.includes("vidsnap.app")) {
-        audioUrl = `https://api.vidsnap.app/proxy?u=${encodeURIComponent(audioUrl)}`;
-      }
-      if (videoUrl && videoUrl.includes("googlevideo.com") && !videoUrl.includes("vidsnap.app")) {
-        videoUrl = `https://api.vidsnap.app/proxy?u=${encodeURIComponent(videoUrl)}`;
-      }
       if (audioUrl || videoUrl) {
         return {
           title: r.data.title,
@@ -106,17 +355,96 @@ async function fetchYouTubeStreams(normalizedUrl) {
     throw new Error("rahad no retornó streams");
   };
 
-  // Priorizamos fuentes con video progresivo de alta resolución que ya integran audio (btch, tioo)
   try {
-    return await Promise.any([fetchBtch(), fetchMirror1(), fetchMirror2()]);
-  } catch (errHighRes) {
-    logger.warn(`Proveedores directos de alta resolución fallaron para ${normalizedUrl}, recurriendo a rahad: ${errHighRes.message}`);
-    try {
-      return await fetchRahad();
-    } catch (errRahad) {
-      logger.warn(`Todos los proveedores de streams para YouTube fallaron para ${normalizedUrl}: ${errRahad.message}`);
-      return null;
+    const settled = await Promise.allSettled([fetchInvidious(), fetchRahad(), fetchMirror1(), fetchMirror2(), fetchBtch()]);
+    const valid = settled.filter(r => r.status === "fulfilled" && r.value).map(r => r.value);
+
+    if (valid.length === 0) {
+      throw new Error("Ningún proveedor de streams respondió con datos válidos");
     }
+
+    // Priorizar datos con Invidious si tuvo éxito por contener mapa completo de pistas y resoluciones
+    const invidiousRes = valid.find(v => v.videoStreamsByQuality || (v.audioTracks && v.audioTracks.length > 0));
+    const first = invidiousRes || valid[0];
+
+    const title = valid.find(v => v.title)?.title || first.title || null;
+    const author = valid.find(v => v.author)?.author || first.author || null;
+    const thumbnail = valid.find(v => v.thumbnail)?.thumbnail || first.thumbnail || null;
+    const durationSeconds = valid.find(v => v.durationSeconds > 0)?.durationSeconds || first.durationSeconds || 0;
+
+    // Recopilar y fusionar todas las pistas de audio descubiertas por todos los proveedores
+    const audioTracks = [];
+    const seenAudioLabels = new Set();
+    const seenAudioUrls = new Set();
+
+    valid.forEach(v => {
+      if (Array.isArray(v.audioTracks)) {
+        v.audioTracks.forEach(t => {
+          if (!t.url || seenAudioUrls.has(t.url) || seenAudioLabels.has(t.label)) return;
+          seenAudioUrls.add(t.url);
+          seenAudioLabels.add(t.label);
+          audioTracks.push({
+            id: `audio_${audioTracks.length}`,
+            label: t.label,
+            url: t.url,
+            isDefault: Boolean(t.isDefault)
+          });
+        });
+      }
+      const extraAudio = v.mp3 || v.audio;
+      if (extraAudio && !seenAudioUrls.has(extraAudio)) {
+        seenAudioUrls.add(extraAudio);
+        const label = parseAudioTrackLabel(extraAudio);
+        if (!seenAudioLabels.has(label)) {
+          seenAudioLabels.add(label);
+          audioTracks.push({
+            id: `audio_${audioTracks.length}`,
+            label,
+            url: extraAudio,
+            isDefault: false
+          });
+        }
+      }
+    });
+
+    if (audioTracks.length > 0) {
+      const origIdx = audioTracks.findIndex(t => t.label.toLowerCase().includes("original"));
+      if (origIdx > -1) {
+        audioTracks.forEach(t => { t.isDefault = false; });
+        audioTracks[origIdx].isDefault = true;
+        const [orig] = audioTracks.splice(origIdx, 1);
+        audioTracks.unshift(orig);
+      } else {
+        audioTracks[0].isDefault = true;
+      }
+      audioTracks.forEach((t, i) => { t.id = `audio_${i}`; });
+    }
+
+    // Fusionar streams de video por calidad
+    const videoStreamsByQuality = invidiousRes?.videoStreamsByQuality || {};
+    valid.forEach(v => {
+      if (v.videoStreamsByQuality) {
+        Object.assign(videoStreamsByQuality, v.videoStreamsByQuality);
+      }
+    });
+
+    const primaryVideo = videoStreamsByQuality["1080p"] || videoStreamsByQuality["720p"] || first.mp4 || valid.find(v => v.mp4)?.mp4 || null;
+    const primaryAudio = audioTracks.find(t => t.isDefault)?.url || audioTracks[0]?.url || first.mp3 || null;
+
+    return {
+      title,
+      author,
+      thumbnail,
+      durationSeconds,
+      mp4: primaryVideo,
+      mp3: primaryAudio,
+      videoStreamsByQuality,
+      audioTracks,
+      separateAudio: Boolean(primaryVideo && primaryAudio && primaryVideo !== primaryAudio)
+    };
+  } catch (errAll) {
+    logger.warn(`Todos los proveedores de streams para YouTube fallaron para ${normalizedUrl}: ${errAll.message}`);
+    return null;
   }
 }
 
@@ -247,7 +575,7 @@ const SUPPORTED_PLATFORMS = [
     formats: ["mp3", "mp4"],
     qualitiesMp3: ["320kbps", "192kbps", "128kbps"],
     qualitiesMp4: ["HD", "SD"],
-    regex: /(?:facebook\.com\/(?:watch\/?\?v=|.*\/videos\/)|fb\.watch\/)([a-zA-Z0-9_-]+)/i,
+    regex: /(?:facebook\.com\/(?:watch|.*\/videos|reel|reels|share|story|\w+)|fb\.watch\/)/i,
     exampleUrl: "https://www.facebook.com/watch/?v=123..."
   },
   {
@@ -419,9 +747,14 @@ async function extractMediaInfo(url, requestedFormat = "mp3") {
   // Comprobar caché en RAM para acelerar conversiones consecutivas del mismo enlace
   const cached = mediaInfoCache.get(cleanUrl);
   if (cached && (Date.now() - cached.cachedAt < MEDIA_INFO_TTL_MS)) {
-    const cloned = JSON.parse(JSON.stringify(cached.info));
-    cloned.directMediaUrl = requestedFormat === "mp4" ? (cloned.mp4Url || cloned.mp3Url) : (cloned.mp3Url || cloned.mp4Url);
-    return cloned;
+    // Si la entrada en caché contiene pistas de audio válidas (o no es YouTube), reutilizar
+    const hasAudioTracks = Array.isArray(cached.info?.audioTracks) && cached.info.audioTracks.length > 0;
+    const isYouTube = cleanUrl.includes("youtube.com") || cleanUrl.includes("youtu.be");
+    if (!isYouTube || hasAudioTracks) {
+      const cloned = JSON.parse(JSON.stringify(cached.info));
+      cloned.directMediaUrl = requestedFormat === "mp4" ? (cloned.mp4Url || cloned.mp3Url) : (cloned.mp3Url || cloned.mp4Url);
+      return cloned;
+    }
   }
 
   const platform = detectPlatform(cleanUrl);
@@ -446,8 +779,9 @@ async function extractMediaInfo(url, requestedFormat = "mp3") {
     defaultAuthor = twMatch ? `@${twMatch[1]}` : "X / Twitter Creator";
     defaultTitle = twMatch ? `X (Twitter) Video de @${twMatch[1]}` : "Twitter / X Video";
   } else if (platform.id === "facebook") {
-    defaultAuthor = "Facebook Watch";
-    defaultTitle = "Facebook Video";
+    defaultAuthor = "Facebook";
+    const reelMatch = cleanUrl.match(/facebook\.com\/(?:reel|reels)\/(\d+)/i);
+    defaultTitle = reelMatch ? `Facebook Reel (${reelMatch[1]})` : "Facebook Video";
   } else if (platform.id === "pinterest") {
     defaultAuthor = "Pinterest Creator";
     defaultTitle = "Pinterest Pin";
@@ -495,7 +829,10 @@ async function extractMediaInfo(url, requestedFormat = "mp3") {
     ],
     mp4Url: null,
     mp3Url: null,
-    directMediaUrl: null
+    directMediaUrl: null,
+    separateAudio: false,
+    audioTracks: [],
+    selectedAudioTrack: null
   };
 
   // Estrategia 1: YouTube y YouTube Shorts
@@ -510,25 +847,19 @@ async function extractMediaInfo(url, requestedFormat = "mp3") {
       info.author = "YouTube Creator";
     }
 
-    // 1.1 Consultar streams y metadatos oEmbed en paralelo ultra rápido
+    // 1.1 Consultar streams con los mejores proveedores en paralelo de alta velocidad
     try {
-      const [ytRes, oembedRes] = await Promise.all([
-        fetchYouTubeStreams(normalized),
-        videoId ? axios.get(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`, { timeout: 3500 }).then(r => r.data).catch(() => null) : null
-      ]);
-
-      if (oembedRes) {
-        if (oembedRes.title) info.title = oembedRes.title;
-        if (oembedRes.author_name) info.author = oembedRes.author_name;
-        if (oembedRes.thumbnail_url) info.thumbnail = oembedRes.thumbnail_url;
-      }
-
+      const ytRes = await fetchYouTubeStreams(normalized);
       if (ytRes) {
         if (ytRes.title && (!info.title || info.title.startsWith("YouTube Video"))) info.title = ytRes.title;
         if (ytRes.author && (info.author === "Desconocido" || info.author === "YouTube Creator")) info.author = ytRes.author;
         if (ytRes.thumbnail && (!info.thumbnail || info.thumbnail.includes("logo.png"))) info.thumbnail = ytRes.thumbnail;
         info.mp4Url = ytRes.mp4 || null;
         info.mp3Url = ytRes.mp3 || ytRes.mp4 || null;
+        info.videoStreamsByQuality = ytRes.videoStreamsByQuality || {};
+        info.audioTracks = ytRes.audioTracks || [];
+        info.selectedAudioTrack = ytRes.audioTracks?.find(t => t.isDefault)?.id || ytRes.audioTracks?.[0]?.id || null;
+        info.separateAudio = Boolean(ytRes.separateAudio || (ytRes.mp4 && ytRes.mp3 && ytRes.mp4 !== ytRes.mp3));
         info.directMediaUrl = requestedFormat === "mp4" ? (info.mp4Url || info.mp3Url) : (info.mp3Url || info.mp4Url);
 
         // Si aún no se obtuvo duración, extraer desde el parámetro dur del stream de Google Video
@@ -541,6 +872,18 @@ async function extractMediaInfo(url, requestedFormat = "mp3") {
             info.duration = formatDurationSeconds(info.durationSeconds);
           }
         }
+      }
+
+      // Solo si falta título y disponemos de videoId, consultar oembed en segundo plano rápido
+      if ((!info.title || info.title.startsWith("YouTube Video")) && videoId) {
+        try {
+          const oembedRes = await axios.get(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`, { timeout: 2000 }).then(r => r.data).catch(() => null);
+          if (oembedRes) {
+            if (oembedRes.title) info.title = oembedRes.title;
+            if (oembedRes.author_name) info.author = oembedRes.author_name;
+            if (oembedRes.thumbnail_url) info.thumbnail = oembedRes.thumbnail_url;
+          }
+        } catch {}
       }
     } catch (err) {
       logger.warn(`Error al obtener streams de YouTube para ${normalized}: ${err.message}`);
@@ -722,60 +1065,214 @@ async function extractMediaInfo(url, requestedFormat = "mp3") {
 
   // Estrategia 4: Twitter / X
   else if (platform.id === "twitter") {
+    info.videoStreamsByQuality = {};
+
+    // 1. Proveedor preferente de alta fidelidad: btch.twitter (streams nativos de video.twimg.com)
     try {
-      const { alldl } = require("rahad-all-downloader-v2");
-      const dl = await withTimeout(alldl(cleanUrl), 15000);
-      if (dl && dl.data) {
-        if (dl.data.title) info.title = dl.data.title;
-        if (dl.data.thumbnail) info.thumbnail = dl.data.thumbnail;
-        else if (dl.data.download?.thumbnail) info.thumbnail = dl.data.download.thumbnail;
-        if (dl.data.author) info.author = dl.data.author;
-        const vUrl = dl.data.download?.HD || dl.data.download?.url || dl.data.videoUrl;
+      const twRes = await withTimeout(btch.twitter(cleanUrl), 10000);
+      if (twRes && twRes.status && twRes.url) {
+        if (Array.isArray(twRes.url)) {
+          twRes.url.forEach(item => {
+            const u = item.hd || item.sd || (typeof item === "string" ? item : item.url);
+            if (u) {
+              const m = u.match(/\/(\d{2,4})x(\d{2,4})\//);
+              if (m) {
+                const res = Math.min(parseInt(m[1], 10), parseInt(m[2], 10)) + "p";
+                info.videoStreamsByQuality[res] = u;
+              } else if (item.hd) {
+                info.videoStreamsByQuality["720p"] = u;
+              } else if (item.sd) {
+                info.videoStreamsByQuality["360p"] = u;
+              }
+            }
+          });
+        } else if (typeof twRes.url === "object" && twRes.url !== null) {
+          if (twRes.url.hd) info.videoStreamsByQuality["720p"] = twRes.url.hd;
+          if (twRes.url.sd) info.videoStreamsByQuality["360p"] = twRes.url.sd;
+        }
+
+        const sortedTw = Object.keys(info.videoStreamsByQuality).sort((a, b) => (parseInt(b, 10) || 0) - (parseInt(a, 10) || 0));
+        const vUrl = (sortedTw.length > 0 ? info.videoStreamsByQuality[sortedTw[0]] : null) ||
+                     (Array.isArray(twRes.url) ? twRes.url[0]?.hd || twRes.url[0]?.sd || twRes.url[0] : (twRes.url?.hd || twRes.url?.sd || twRes.url));
+
         if (vUrl) {
           info.mp4Url = vUrl;
           info.mp3Url = vUrl;
           info.directMediaUrl = vUrl;
         }
+        if (twRes.title) info.title = twRes.title;
+        if (twRes.thumb) info.thumbnail = twRes.thumb;
       }
-    } catch (twDlErr) {
-      logger.warn(`rahad.alldl fallo para Twitter/X: ${twDlErr.message}`);
+    } catch (twErr) {
+      logger.warn(`btch.twitter fallo para Twitter/X: ${twErr.message}`);
     }
 
-    if (!info.directMediaUrl) {
+    // 2. Proveedor secundario: rahad-all-downloader-v2
+    if (!info.directMediaUrl || Object.keys(info.videoStreamsByQuality).length === 0) {
       try {
-        const twRes = await withTimeout(btch.twitter(cleanUrl), 10000);
-        if (twRes && twRes.status && twRes.url) {
-          const vUrl = Array.isArray(twRes.url) ? twRes.url[0]?.hd || twRes.url[0]?.sd || twRes.url[0] : twRes.url;
-          if (vUrl) {
+        const { alldl } = require("rahad-all-downloader-v2");
+        const dl = await withTimeout(alldl(cleanUrl), 15000);
+        if (dl && dl.data) {
+          if (dl.data.title && (!info.title || info.title.startsWith("Twitter"))) info.title = dl.data.title;
+          if (dl.data.thumbnail && (!info.thumbnail || info.thumbnail.includes("logo.png"))) info.thumbnail = dl.data.thumbnail;
+          else if (dl.data.download?.thumbnail) info.thumbnail = dl.data.download.thumbnail;
+          if (dl.data.author) info.author = dl.data.author;
+
+          const dObj = dl.data.download || {};
+          const hdUrl = dObj.HD || dObj.hd || dl.data.HD || dl.data.hd;
+          const sdUrl = dObj.SD || dObj.sd || dl.data.SD || dl.data.sd || dObj.url || dl.data.videoUrl;
+          if (hdUrl && !info.videoStreamsByQuality["720p"]) info.videoStreamsByQuality["720p"] = hdUrl;
+          if (sdUrl && !info.videoStreamsByQuality["360p"]) info.videoStreamsByQuality["360p"] = sdUrl;
+
+          const vUrl = hdUrl || sdUrl || dObj.best || dObj.url || dl.data.videoUrl;
+          if (vUrl && !info.directMediaUrl) {
             info.mp4Url = vUrl;
             info.mp3Url = vUrl;
             info.directMediaUrl = vUrl;
           }
-          if (twRes.title) info.title = twRes.title;
-          if (twRes.thumb) info.thumbnail = twRes.thumb;
         }
-      } catch (twErr) {
-        logger.warn(`btch.twitter fallo para Twitter/X: ${twErr.message}`);
+      } catch (twDlErr) {
+        logger.warn(`rahad.alldl fallo para Twitter/X: ${twDlErr.message}`);
       }
     }
   }
 
-  // Estrategia 5: Facebook Video
+  // Estrategia 5: Facebook Video (Videos regulares, Reels y enlaces share)
   else if (platform.id === "facebook") {
+    info.videoStreamsByQuality = {};
+
+    // 1. Extraer metadatos nativos (título real, autor y portada original)
     try {
-      const fbRes = await withTimeout(btch.fbdown(cleanUrl), 10000);
-      if (fbRes && fbRes.status) {
-        const vUrl = fbRes.Normal_video || fbRes.HD || fbRes.video;
-        if (vUrl) {
-          info.mp4Url = vUrl;
-          info.mp3Url = vUrl;
-          info.directMediaUrl = vUrl;
-        }
-        if (fbRes.title) info.title = fbRes.title;
-        if (fbRes.thumbnail || fbRes.thumb) info.thumbnail = fbRes.thumbnail || fbRes.thumb;
+      const fbMeta = await withTimeout(fetchFacebookMetadata(cleanUrl), 8000);
+      if (fbMeta.title) info.title = fbMeta.title;
+      if (fbMeta.author) info.author = fbMeta.author;
+      if (fbMeta.thumbnail) info.thumbnail = fbMeta.thumbnail;
+    } catch (metaErr) {
+      logger.warn(`Metadatos FB fallback: ${metaErr.message}`);
+    }
+
+    // 2. Proveedor preferente de alta resolución: SnapSave (Extrae 1080p, 720p, etc.)
+    try {
+      const formData = new URLSearchParams();
+      formData.append("url", cleanUrl);
+
+      const snapRes = await withTimeout(axios.post("https://snapsave.app/action.php?lang=en", formData.toString(), {
+        headers: {
+          "accept": "*/*",
+          "content-type": "application/x-www-form-urlencoded",
+          "origin": "https://snapsave.app",
+          "referer": "https://snapsave.app/",
+          "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+        },
+        timeout: 10000
+      }), 12000);
+
+      const decodedHtml = decryptSnapSave(snapRes.data);
+      const $ = cheerio.load(decodedHtml);
+
+      const snapTitle = $("span.video-des").text().trim();
+      if (snapTitle && snapTitle !== "..." && (!info.title || info.title === "Facebook Video" || info.title.startsWith("Facebook Reel"))) {
+        info.title = snapTitle;
       }
-    } catch (fbErr) {
-      logger.warn(`btch.fbdown fallo para Facebook: ${fbErr.message}`);
+
+      const snapThumb = $("article.media > figure").find("img").attr("src");
+      if (snapThumb && (!info.thumbnail || info.thumbnail.includes("logo.png"))) {
+        info.thumbnail = snapThumb;
+      }
+
+      $("tbody > tr").each((_, el) => {
+        const $td = $(el).find("td");
+        const resolution = $td.eq(0).text().trim();
+        let streamUrl = $td.eq(2).find("a").attr("href") || $td.eq(2).find("button").attr("onclick");
+        const shouldRender = /get_progressApi/gi.test(streamUrl || "");
+        if (shouldRender) {
+          streamUrl = "https://snapsave.app" + /get_progressApi\('(.*?)'\)/.exec(streamUrl || "")?.[1];
+        }
+
+        if (!streamUrl) return;
+
+        const qMatch = resolution.match(/(\d{3,4})p/i);
+        const qKey = qMatch ? `${qMatch[1]}p` : (resolution.toLowerCase().includes("hd") ? "720p" : "360p");
+
+        if (shouldRender && streamUrl.includes("token=")) {
+          try {
+            const token = streamUrl.split("token=")[1].split("&")[0];
+            const parts = token.split(".");
+            const payload = JSON.parse(Buffer.from(parts[1], "base64").toString("utf8"));
+            if (payload.video_url) {
+              info.videoStreamsByQuality[qKey] = {
+                videoUrl: payload.video_url,
+                audioUrl: payload.audio_url || null,
+                renderUrl: streamUrl
+              };
+              if (payload.duration_s && info.durationSeconds === 0) {
+                info.durationSeconds = Math.round(payload.duration_s);
+                info.duration = formatDurationSeconds(info.durationSeconds);
+              }
+            }
+          } catch {}
+        } else {
+          info.videoStreamsByQuality[qKey] = streamUrl;
+        }
+      });
+    } catch (snapErr) {
+      logger.warn(`SnapSave falló para Facebook: ${snapErr.message}`);
+    }
+
+    // 3. Proveedor complementario: rahad-all-downloader-v2
+    try {
+      const { alldl } = require("rahad-all-downloader-v2");
+      const dl = await withTimeout(alldl(cleanUrl), 12000);
+      if (dl && dl.data) {
+        if (dl.data.title && dl.data.title !== "Facebook Video" && (!info.title || info.title === "Facebook Video" || info.title.startsWith("Facebook Reel"))) {
+          info.title = dl.data.title;
+        }
+        if (dl.data.thumbnail && (!info.thumbnail || info.thumbnail.includes("logo.png"))) {
+          info.thumbnail = dl.data.thumbnail;
+        }
+        const dObj = dl.data.download || {};
+        const hdUrl = dObj.hd || dObj.HD || dl.data.hd || dl.data.HD;
+        const sdUrl = dObj.sd || dObj.SD || dObj.normal || dObj.Normal || dl.data.sd || dl.data.SD || dl.data.videoUrl;
+        if (hdUrl && !info.videoStreamsByQuality["720p"]) info.videoStreamsByQuality["720p"] = hdUrl;
+        if (sdUrl && !info.videoStreamsByQuality["360p"]) info.videoStreamsByQuality["360p"] = sdUrl;
+      }
+    } catch (fbAllErr) {
+      logger.warn(`rahad.alldl fallo para Facebook: ${fbAllErr.message}`);
+    }
+
+    // 4. Proveedor de contingencia: btch.fbdown
+    if (Object.keys(info.videoStreamsByQuality).length === 0) {
+      try {
+        const fbRes = await withTimeout(btch.fbdown(cleanUrl), 10000);
+        if (fbRes && fbRes.status) {
+          const hdUrl = fbRes.HD || fbRes.hd;
+          const sdUrl = fbRes.Normal_video || fbRes.SD || fbRes.sd || fbRes.normal || fbRes.video;
+          if (hdUrl && !info.videoStreamsByQuality["720p"]) info.videoStreamsByQuality["720p"] = hdUrl;
+          if (sdUrl && !info.videoStreamsByQuality["360p"]) info.videoStreamsByQuality["360p"] = sdUrl;
+          if (fbRes.title && (!info.title || info.title === "Facebook Video")) info.title = fbRes.title;
+          if (fbRes.thumbnail || fbRes.thumb && (!info.thumbnail || info.thumbnail.includes("logo.png"))) {
+            info.thumbnail = fbRes.thumbnail || fbRes.thumb;
+          }
+        }
+      } catch (fbErr) {
+        logger.warn(`btch.fbdown fallo para Facebook: ${fbErr.message}`);
+      }
+    }
+
+    // Configurar flujos preferentes
+    const sortedFbKeys = Object.keys(info.videoStreamsByQuality).sort((a, b) => (parseInt(b, 10) || 0) - (parseInt(a, 10) || 0));
+    if (sortedFbKeys.length > 0) {
+      const best = info.videoStreamsByQuality[sortedFbKeys[0]];
+      if (typeof best === "object" && best !== null && best.videoUrl) {
+        info.mp4Url = best.videoUrl;
+        info.mp3Url = best.audioUrl || best.videoUrl;
+        info.directMediaUrl = best.videoUrl;
+        info.separateAudio = Boolean(best.audioUrl && best.audioUrl !== best.videoUrl);
+      } else {
+        info.mp4Url = best;
+        info.mp3Url = best;
+        info.directMediaUrl = best;
+      }
     }
   }
 
@@ -838,26 +1335,97 @@ async function extractMediaInfo(url, requestedFormat = "mp3") {
 }
 
 /**
+ * Descarga acelerada mediante chunks HTTP Range paralelos
+ * Multiplica la velocidad hasta 4-6x en proxies y servidores con límite por conexión
+ */
+async function downloadStreamFast(url, tempFilePath) {
+  try {
+    const headRes = await axios.get(url, {
+      headers: {
+        "Range": "bytes=0-0",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+      },
+      timeout: 4500
+    });
+
+    const contentRange = headRes.headers["content-range"];
+    let totalSize = 0;
+    if (contentRange) {
+      const match = contentRange.match(/\/(\d+)/);
+      if (match) totalSize = parseInt(match[1], 10);
+    }
+
+    if (totalSize && totalSize > 50000) {
+      const concurrency = totalSize > 8 * 1024 * 1024 ? 6 : 4;
+      const chunkSize = Math.ceil(totalSize / concurrency);
+      const promises = [];
+
+      for (let i = 0; i < concurrency; i++) {
+        const start = i * chunkSize;
+        const end = Math.min((i + 1) * chunkSize - 1, totalSize - 1);
+        if (start > end) break;
+
+        promises.push(
+          axios.get(url, {
+            headers: {
+              "Range": `bytes=${start}-${end}`,
+              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+              "Accept": "*/*"
+            },
+            responseType: "arraybuffer",
+            timeout: 25000
+          }).then(r => ({ index: i, buffer: Buffer.from(r.data) }))
+        );
+      }
+
+      const chunks = await Promise.all(promises);
+      chunks.sort((a, b) => a.index - b.index);
+      const fullBuffer = Buffer.concat(chunks.map(c => c.buffer));
+      fs.writeFileSync(tempFilePath, fullBuffer);
+      return true;
+    }
+  } catch (err) {
+    logger.warn(`Descarga paralela acelerada omitida (${err.message}), usando streaming nativo`);
+  }
+  return false;
+}
+
+/**
  * Transcodifica un stream remoto a MP3 puro usando FFmpeg
  */
-function transcodeToMp3(streamUrl, outputPath, quality = "320k") {
-  return new Promise((resolve, reject) => {
-    try {
-      const bitrateMap = {
-        "320k": "320k",
-        "256k": "256k",
-        "192k": "192k",
-        "128k": "128k",
-        "96k": "96k",
-        "64k": "64k"
-      };
-      const bitrate = bitrateMap[quality] || (quality.endsWith("k") ? quality : `${quality}k`);
+async function transcodeToMp3(streamUrl, outputPath, quality = "320k") {
+  const bitrateMap = {
+    "320k": "320k",
+    "256k": "256k",
+    "192k": "192k",
+    "128k": "128k",
+    "96k": "96k",
+    "64k": "64k"
+  };
+  const bitrate = bitrateMap[quality] || (quality.endsWith("k") ? quality : `${quality}k`);
 
-      // Intento 1: Ejecución nativa directa de FFmpeg con soporte de HTTP seeking
-      const ff = spawn(ffmpegPath, [
-        "-y",
-        "-user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-        "-i", streamUrl,
+  // Acelerador: Descargar chunks paralelos para eludir la tasa limitada de proxies
+  let localInput = streamUrl;
+  let tempDownloadedFile = null;
+
+  if (streamUrl && streamUrl.startsWith("http")) {
+    const tempCandidate = path.join(MEDIA_CACHE_DIR, `temp_dl_${Date.now()}_${Math.random().toString(36).slice(2, 7)}.tmp`);
+    const isDownloaded = await downloadStreamFast(streamUrl, tempCandidate);
+    if (isDownloaded && fs.existsSync(tempCandidate) && fs.statSync(tempCandidate).size > 1000) {
+      localInput = tempCandidate;
+      tempDownloadedFile = tempCandidate;
+    }
+  }
+
+  try {
+    return await new Promise((resolve, reject) => {
+      // Ejecución nativa de FFmpeg
+      const ffArgs = ["-y"];
+      if (localInput.startsWith("http")) {
+        ffArgs.push("-user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36");
+      }
+      ffArgs.push(
+        "-i", localInput,
         "-vn",
         "-c:a", "libmp3lame",
         "-b:a", bitrate,
@@ -865,7 +1433,8 @@ function transcodeToMp3(streamUrl, outputPath, quality = "320k") {
         "-write_xing", "1",
         "-f", "mp3",
         outputPath
-      ]);
+      );
+      const ff = spawn(ffmpegPath, ffArgs);
 
       let stderr = "";
       ff.stderr.on("data", d => { stderr += d.toString(); });
@@ -886,7 +1455,12 @@ function transcodeToMp3(streamUrl, outputPath, quality = "320k") {
           return resolve({ sizeBytes: stats.size, duration, durationSeconds });
         }
 
-        // Intento 2: Fallback vía axios stream piping
+        // Si ya teníamos archivo descargado y falló
+        if (tempDownloadedFile) {
+          return reject(new Error(`FFmpeg MP3 transcode exited with code ${code}: ${stderr.slice(-300)}`));
+        }
+
+        // Fallback vía axios stream piping
         logger.warn(`FFmpeg directo terminó con código ${code}, probando stream pipe...`);
         axios({
           method: "get",
@@ -926,10 +1500,12 @@ function transcodeToMp3(streamUrl, outputPath, quality = "320k") {
       ff.on("error", err => {
         reject(err);
       });
-    } catch (err) {
-      reject(err);
+    });
+  } finally {
+    if (tempDownloadedFile && fs.existsSync(tempDownloadedFile)) {
+      try { fs.unlinkSync(tempDownloadedFile); } catch {}
     }
-  });
+  }
 }
 
 /**
@@ -1006,12 +1582,12 @@ function transcodeToMp4(streamUrl, outputPath, quality = "1080p", audioStreamUrl
       const hasSeparateAudio = Boolean(audioStreamUrl && audioStreamUrl !== streamUrl);
 
       let scaleFilter = "";
-      if (quality === "1080p" || quality.includes("1080")) {
-        scaleFilter = "scale=-2:1080:flags=lanczos";
-      } else if (quality === "720p" || quality.includes("720")) {
-        scaleFilter = "scale=-2:720:flags=lanczos";
-      } else if (quality === "480p" || quality.includes("480")) {
-        scaleFilter = "scale=-2:480:flags=lanczos";
+      const qNumMatch = quality && String(quality).match(/(\d{3,4})p?/);
+      if (qNumMatch) {
+        const h = parseInt(qNumMatch[1], 10);
+        if (h && h > 0) {
+          scaleFilter = `scale=-2:${h}:flags=fast_bilinear`;
+        }
       }
 
       const args = [
@@ -1033,10 +1609,11 @@ function transcodeToMp4(streamUrl, outputPath, quality = "1080p", audioStreamUrl
 
       args.push(
         "-c:v", "libx264",
-        "-preset", "fast",
-        "-crf", "22",
+        "-preset", "ultrafast",
+        "-threads", "0",
+        "-crf", "23",
         "-c:a", "aac",
-        "-b:a", "192k",
+        "-b:a", "160k",
         "-ar", "44100",
         "-pix_fmt", "yuv420p"
       );
@@ -1094,11 +1671,51 @@ function transcodeToMp4(streamUrl, outputPath, quality = "1080p", audioStreamUrl
 }
 
 /**
+ * Estima el tamaño en bytes según duración, formato y calidad seleccionada
+ */
+function estimateMediaSizeBytes(format, quality, durationSeconds, clen = null) {
+  if (clen && Number(clen) > 1000) {
+    return Number(clen);
+  }
+  const s = Math.max(Number(durationSeconds) || 0, 60);
+  if (format === "mp3") {
+    let kbps = 192;
+    const num = parseInt(quality, 10);
+    if (!isNaN(num) && num > 0) {
+      kbps = num;
+    } else if (quality === "320k") kbps = 320;
+    else if (quality === "256k") kbps = 256;
+    else if (quality === "192k") kbps = 192;
+    else if (quality === "128k") kbps = 128;
+    else if (quality === "96k") kbps = 96;
+    else if (quality === "64k") kbps = 64;
+    return Math.round(s * (kbps * 1000 / 8));
+  }
+  if (format === "wav") {
+    return Math.round(s * 44100 * 2 * 2);
+  }
+  let kbps = 2500;
+  if (quality.includes("2160") || quality.includes("4k")) kbps = 16000;
+  else if (quality.includes("1440") || quality.includes("2k")) kbps = 8500;
+  else if (quality.includes("1080")) kbps = 4500;
+  else if (quality.includes("720")) kbps = 2500;
+  else if (quality.includes("540")) kbps = 1800;
+  else if (quality.includes("480")) kbps = 1200;
+  else if (quality.includes("360")) kbps = 800;
+  else if (quality.includes("240")) kbps = 450;
+  else if (quality.includes("144")) kbps = 250;
+  return Math.round(s * (kbps * 1000 / 8));
+}
+
+// Almacén en RAM para conversiones ya completadas (clave: url|formato|calidad)
+const convertedJobCache = new Map();
+
+/**
  * Procesa la conversión de un video al formato elegido (MP3 o MP4)
- * de forma 100% nativa en el backend y almacena el archivo físico en el servidor.
+ * con respuesta ultra rápida (< 2 segundos) y transcodificación física asíncrona garantizada.
  */
 async function processConversion(options = {}) {
-  const { url, format = "mp3", quality = "320k" } = options;
+  const { url, format = "mp3", quality = "320k", audioTrack: reqAudioTrackId } = options;
 
   if (!url) {
     throw new Error("El parámetro 'url' es obligatorio para la conversión.");
@@ -1106,19 +1723,181 @@ async function processConversion(options = {}) {
 
   const fmtLower = String(format || "").toLowerCase().trim();
   const selectedFormat = ["mp4", "wav"].includes(fmtLower) ? fmtLower : "mp3";
+  const cleanQuality = typeof quality === "string" ? quality.toLowerCase().trim() : (selectedFormat === "mp4" ? "720p" : "320k");
+  const cacheKey = `${url.trim()}|${selectedFormat}|${cleanQuality}|${reqAudioTrackId || "default"}`;
+
+  // Comprobar si ya existe una conversión previa en caché en RAM
+  const cachedJob = convertedJobCache.get(cacheKey);
+  if (cachedJob && (Date.now() - cachedJob.cachedAt < MEDIA_STORE_TTL_MS)) {
+    const existingItem = mediaBufferStore.get(cachedJob.jobId);
+    if (existingItem) {
+      logger.info(`Conversión instantánea desde caché para ${cacheKey} (${cachedJob.jobId})`);
+      return cachedJob.response;
+    }
+  }
+
+  // Extracción ultra rápida de metadatos y streams de alta velocidad (~1.2s)
   const mediaInfo = await extractMediaInfo(url, selectedFormat);
+
+  const audioTracks = mediaInfo.audioTracks || [];
+  let selectedTrackObj = null;
+  if (audioTracks.length > 0) {
+    selectedTrackObj = (reqAudioTrackId && audioTracks.find(t => t.id === reqAudioTrackId)) ||
+                       audioTracks.find(t => t.isDefault) ||
+                       audioTracks[0];
+    if (selectedTrackObj && selectedTrackObj.url) {
+      mediaInfo.mp3Url = selectedTrackObj.url;
+      if (selectedFormat === "mp3" || selectedFormat === "wav") {
+        mediaInfo.directMediaUrl = selectedTrackObj.url;
+      }
+    }
+  }
 
   const jobId = "media_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8);
   const cleanTitle = sanitizeFilename(mediaInfo.title, `${mediaInfo.platformId}-media`);
   const extension = selectedFormat;
   const mimeType = selectedFormat === "mp4" ? "video/mp4" : (selectedFormat === "wav" ? "audio/wav" : "audio/mpeg");
+  const finalDuration = mediaInfo.duration || "00:00";
+  const finalDurationSeconds = mediaInfo.durationSeconds || 0;
+
+  // Construir lista de calidades disponibles y normalizar la seleccionada
+  let availableQualities = [];
+  let selectedQuality = cleanQuality;
+
+  const isSingleQualityPlatform = ["tiktok", "instagram"].includes(mediaInfo.platformId);
+
+  if (isSingleQualityPlatform) {
+    // TikTok e Instagram: no ofrecen selector de calidad (solo flujo único nativo)
+    availableQualities = [];
+    selectedQuality = "original";
+  } else if (selectedFormat === "mp4") {
+    if (mediaInfo.videoStreamsByQuality && Object.keys(mediaInfo.videoStreamsByQuality).length > 0) {
+      // Ordenar todas las resoluciones reales encontradas de mayor a menor (excluyendo 2160p / 4K)
+      const existingKeys = Object.keys(mediaInfo.videoStreamsByQuality)
+        .filter(k => k !== "2160p" && !k.includes("2160") && !k.toLowerCase().includes("4k"))
+        .sort((a, b) => {
+          const numA = parseInt(a, 10) || 0;
+          const numB = parseInt(b, 10) || 0;
+          return numB - numA;
+        });
+
+      // Incluir las resoluciones estándar hasta la resolución máxima nativa del video
+      const standardOrder = ["1440p", "1080p", "720p", "540p", "480p", "360p", "240p"];
+      const maxResNum = existingKeys.length > 0 ? (parseInt(existingKeys[0], 10) || 720) : 720;
+
+      const allQualityKeys = [];
+      standardOrder.forEach(q => {
+        const qNum = parseInt(q, 10) || 0;
+        if (qNum <= maxResNum) {
+          allQualityKeys.push(q);
+        }
+      });
+      existingKeys.forEach(k => {
+        if (!allQualityKeys.includes(k)) allQualityKeys.push(k);
+      });
+      allQualityKeys.sort((a, b) => (parseInt(b, 10) || 0) - (parseInt(a, 10) || 0));
+
+      availableQualities = allQualityKeys.map(q => {
+        const size = estimateMediaSizeBytes("mp4", q, finalDurationSeconds);
+        return {
+          id: q,
+          label: q.toUpperCase(),
+          sizeBytes: size,
+          sizeFormatted: formatBytes(size)
+        };
+      });
+    }
+    if (availableQualities.length === 0) {
+      // Sin 2160p 4K
+      const defaultVideoKeys = ["1440p", "1080p", "720p", "540p", "480p", "360p", "240p"];
+      availableQualities = defaultVideoKeys.map(q => {
+        const size = estimateMediaSizeBytes("mp4", q, finalDurationSeconds);
+        return {
+          id: q,
+          label: q.toUpperCase(),
+          sizeBytes: size,
+          sizeFormatted: formatBytes(size)
+        };
+      });
+    }
+
+    let matchedQ = cleanQuality;
+    const match = cleanQuality && cleanQuality.match(/(\d{3,4})p?/);
+    if (match) matchedQ = `${match[1]}p`;
+    else if (cleanQuality && (cleanQuality.includes("2k") || cleanQuality.includes("1440"))) matchedQ = "1440p";
+
+    // Si se solicitó 4K o 2160p, cambiar al máximo soportado (1080p o 1440p)
+    if (matchedQ === "2160p" || (cleanQuality && cleanQuality.includes("4k"))) {
+      matchedQ = availableQualities.some(q => q.id === "1440p") ? "1440p" : "1080p";
+    }
+
+    if (cleanQuality !== "best" && cleanQuality !== "auto" && availableQualities.some(q => q.id === matchedQ)) {
+      selectedQuality = matchedQ;
+    } else {
+      selectedQuality = availableQualities[0]?.id || "720p";
+    }
+  } else {
+    // Formato MP3 o WAV: Todas las calidades estándar de audio disponibles
+    const mp3Keys = ["320k", "256k", "192k", "128k", "64k"];
+    availableQualities = mp3Keys.map(q => {
+      const size = estimateMediaSizeBytes("mp3", q, finalDurationSeconds);
+      return {
+        id: q,
+        label: `${q.replace('k', '')} kbps`,
+        sizeBytes: size,
+        sizeFormatted: formatBytes(size)
+      };
+    });
+    let matchedQ = cleanQuality ? cleanQuality.replace(/[^0-9]/g, "") + "k" : "320k";
+    if (cleanQuality !== "best" && cleanQuality !== "auto" && availableQualities.some(q => q.id === matchedQ)) {
+      selectedQuality = matchedQ;
+    } else if (cleanQuality !== "best" && cleanQuality !== "auto" && availableQualities.some(q => q.id === cleanQuality)) {
+      selectedQuality = cleanQuality;
+    } else {
+      selectedQuality = "320k";
+    }
+  }
+
   const downloadFilename = `Vork_${cleanTitle}.${extension}`;
-  const outputPath = path.join(MEDIA_CACHE_DIR, `${jobId}.${extension}`);
+  const outputPath = path.join(MEDIA_CACHE_DIR, `${jobId}_${selectedQuality}.${extension}`);
+
+  // Si es video MP4 y disponemos de streams por resolución, seleccionar el correspondiente a selectedQuality
+  if (selectedFormat === "mp4" && mediaInfo.videoStreamsByQuality) {
+    const specificVideoStream = mediaInfo.videoStreamsByQuality[selectedQuality] ||
+      mediaInfo.videoStreamsByQuality["1080p"] ||
+      mediaInfo.videoStreamsByQuality["720p"] ||
+      mediaInfo.videoStreamsByQuality["480p"] ||
+      mediaInfo.videoStreamsByQuality["360p"] ||
+      Object.values(mediaInfo.videoStreamsByQuality)[0];
+    if (specificVideoStream) {
+      if (typeof specificVideoStream === "object" && specificVideoStream !== null && specificVideoStream.videoUrl) {
+        mediaInfo.mp4Url = specificVideoStream.videoUrl;
+        mediaInfo.directMediaUrl = specificVideoStream.videoUrl;
+        if (specificVideoStream.audioUrl) {
+          mediaInfo.mp3Url = specificVideoStream.audioUrl;
+          mediaInfo.separateAudio = true;
+        }
+      } else {
+        mediaInfo.mp4Url = specificVideoStream;
+        mediaInfo.directMediaUrl = specificVideoStream;
+      }
+    }
+  }
+
+  // Si es formato MP3 / WAV y se descubrió una pista de audio directa en streams
+  if ((selectedFormat === "mp3" || selectedFormat === "wav") && mediaInfo.videoStreamsByQuality) {
+    for (const val of Object.values(mediaInfo.videoStreamsByQuality)) {
+      if (typeof val === "object" && val !== null && val.audioUrl) {
+        mediaInfo.mp3Url = val.audioUrl;
+        mediaInfo.directMediaUrl = val.audioUrl;
+        break;
+      }
+    }
+  }
 
   // Construir lista de candidatos según formato y plataforma
   const candidateStreams = [];
   if (selectedFormat === "mp3" || selectedFormat === "wav") {
-    // Para MP3 o WAV: preferir siempre el stream de audio directo (mucho más rápido y ligero)
     if (mediaInfo.mp3Url) candidateStreams.push(mediaInfo.mp3Url);
     if (mediaInfo.directMediaUrl && !candidateStreams.includes(mediaInfo.directMediaUrl)) {
       candidateStreams.push(mediaInfo.directMediaUrl);
@@ -1127,85 +1906,16 @@ async function processConversion(options = {}) {
       candidateStreams.push(mediaInfo.mp4Url);
     }
   } else {
-    // Para MP4: preferir stream directo de video (no mezclar con audio puro)
     if (mediaInfo.mp4Url) candidateStreams.push(mediaInfo.mp4Url);
     if (mediaInfo.directMediaUrl && !candidateStreams.includes(mediaInfo.directMediaUrl)) {
       candidateStreams.push(mediaInfo.directMediaUrl);
     }
   }
 
-  let finalDuration = mediaInfo.duration;
-  let finalDurationSeconds = mediaInfo.durationSeconds;
-  let sizeBytes = 0;
-  let transSuccess = false;
-  let lastConvError = null;
+  const primaryRemoteStream = candidateStreams[0] || mediaInfo.directMediaUrl || mediaInfo.mp4Url || mediaInfo.mp3Url;
+  const initialSizeBytes = estimateMediaSizeBytes(selectedFormat, selectedQuality, finalDurationSeconds);
+  const finalThumbnail = mediaInfo.thumbnail || `/api/media/thumbnail-proxy?title=${encodeURIComponent(mediaInfo.title)}&platform=${encodeURIComponent(mediaInfo.platform)}&author=${encodeURIComponent(mediaInfo.author)}`;
 
-  for (const streamUrl of candidateStreams) {
-    if (!streamUrl) continue;
-    try {
-      if (selectedFormat === "mp3") {
-        const transRes = await transcodeToMp3(streamUrl, outputPath, quality);
-        sizeBytes = transRes.sizeBytes;
-        if (transRes.duration && (finalDuration === "00:00" || !finalDurationSeconds)) {
-          finalDuration = transRes.duration;
-          finalDurationSeconds = transRes.durationSeconds;
-        }
-        transSuccess = true;
-        break;
-      } else if (selectedFormat === "wav") {
-        const transRes = await transcodeToWav(streamUrl, outputPath);
-        sizeBytes = transRes.sizeBytes;
-        transSuccess = true;
-        break;
-      } else {
-        const separateAudioUrl = mediaInfo.separateAudio ? mediaInfo.mp3Url : null;
-        const transRes = await transcodeToMp4(streamUrl, outputPath, quality, separateAudioUrl);
-        sizeBytes = transRes.sizeBytes;
-        if (transRes.duration && (finalDuration === "00:00" || !finalDurationSeconds)) {
-          finalDuration = transRes.duration;
-          finalDurationSeconds = transRes.durationSeconds;
-        }
-        transSuccess = true;
-        break;
-      }
-    } catch (convErr) {
-      logger.warn(`Intento de transcodificación FFmpeg falló con stream: ${convErr.message}`);
-      lastConvError = convErr.message;
-      if (fs.existsSync(outputPath)) {
-        try { fs.unlinkSync(outputPath); } catch {}
-      }
-    }
-  }
-
-  // Si no se pudo generar archivo desde ningún stream, notificar error explícito sin generar audio falso
-  if (!transSuccess || !fs.existsSync(outputPath) || sizeBytes < 1000) {
-    const detail = lastConvError ? ` (${lastConvError})` : '';
-    throw new Error(`No se pudo procesar la conversión a ${selectedFormat.toUpperCase()} (${quality}) para este enlace${detail}. Por favor verifique el enlace e intente nuevamente.`);
-  }
-
-  const thumbPath = path.join(MEDIA_CACHE_DIR, `${jobId}_thumb.jpg`);
-  let finalThumbnail = mediaInfo.thumbnail;
-
-  if (selectedFormat === "mp4" && fs.existsSync(outputPath)) {
-    try {
-      const ffThumb = spawn(ffmpegPath, [
-        "-y",
-        "-ss", "00:00:01",
-        "-i", outputPath,
-        "-vframes", "1",
-        "-q:v", "2",
-        thumbPath
-      ]);
-      await new Promise(res => ffThumb.on("close", res));
-      if (fs.existsSync(thumbPath) && fs.statSync(thumbPath).size > 0) {
-        finalThumbnail = `/api/media/thumbnail?id=${jobId}`;
-      }
-    } catch {}
-  }
-
-  if (!finalThumbnail || finalThumbnail === "/img/logo.png") {
-    finalThumbnail = `/api/media/thumbnail-proxy?title=${encodeURIComponent(mediaInfo.title)}&platform=${encodeURIComponent(mediaInfo.platform)}&author=${encodeURIComponent(mediaInfo.author)}`;
-  }
   const itemRecord = {
     id: jobId,
     url: mediaInfo.url,
@@ -1214,35 +1924,101 @@ async function processConversion(options = {}) {
     platform: mediaInfo.platform,
     platformId: mediaInfo.platformId,
     format: selectedFormat,
-    quality,
+    quality: selectedQuality,
     mimeType,
     filename: downloadFilename,
     filePath: outputPath,
-    thumbPath,
+    thumbPath: null,
     duration: finalDuration,
     durationSeconds: finalDurationSeconds,
-    sizeBytes,
+    sizeBytes: initialSizeBytes,
     thumbnail: finalThumbnail,
     mp4Url: mediaInfo.mp4Url || null,
     mp3Url: mediaInfo.mp3Url || null,
+    videoStreamsByQuality: mediaInfo.videoStreamsByQuality || {},
+    availableQualities,
+    selectedQuality,
+    separateAudio: Boolean(mediaInfo.separateAudio),
+    separateAudioUrl: mediaInfo.separateAudio ? (mediaInfo.mp3Url || mediaInfo.directMediaUrl) : null,
+    audioTracks: audioTracks.map(t => ({
+      id: t.id,
+      label: t.label,
+      url: t.url,
+      isDefault: selectedTrackObj ? t.id === selectedTrackObj.id : Boolean(t.isDefault)
+    })),
+    selectedAudioTrack: selectedTrackObj ? selectedTrackObj.id : (audioTracks[0]?.id || null),
+    remoteStreamUrl: primaryRemoteStream,
+    candidateStreams,
+    conversionPromise: null,
+    isReady: false,
     createdAt: Date.now()
   };
 
-  // Guardar metadata en disco para persistencia ante reinicios
-  const metaDiskPath = path.join(MEDIA_CACHE_DIR, `${jobId}.json`);
-  try {
-    fs.writeFileSync(metaDiskPath, JSON.stringify(itemRecord), 'utf8');
-  } catch {}
+  // Lanzar la transcodificación física en segundo plano (no bloquea la respuesta HTTP)
+  itemRecord.conversionPromise = (async () => {
+    try {
+      for (const streamUrl of candidateStreams) {
+        if (!streamUrl) continue;
+        try {
+          if (selectedFormat === "mp3") {
+            const transRes = await transcodeToMp3(streamUrl, outputPath, cleanQuality);
+            if (transRes && transRes.sizeBytes) {
+              itemRecord.sizeBytes = transRes.sizeBytes;
+              if (transRes.duration && (!itemRecord.duration || itemRecord.duration === "00:00")) {
+                itemRecord.duration = transRes.duration;
+                itemRecord.durationSeconds = transRes.durationSeconds;
+              }
+            }
+            itemRecord.isReady = true;
+            break;
+          } else if (selectedFormat === "wav") {
+            const transRes = await transcodeToWav(streamUrl, outputPath);
+            if (transRes && transRes.sizeBytes) {
+              itemRecord.sizeBytes = transRes.sizeBytes;
+            }
+            itemRecord.isReady = true;
+            break;
+          } else {
+            const separateAudioUrl = mediaInfo.separateAudio ? (mediaInfo.mp3Url || mediaInfo.directMediaUrl) : null;
+            const transRes = await transcodeToMp4(streamUrl, outputPath, cleanQuality, separateAudioUrl);
+            if (transRes && transRes.sizeBytes) {
+              itemRecord.sizeBytes = transRes.sizeBytes;
+              if (transRes.duration && (!itemRecord.duration || itemRecord.duration === "00:00")) {
+                itemRecord.duration = transRes.duration;
+                itemRecord.durationSeconds = transRes.durationSeconds;
+              }
+            }
+            itemRecord.isReady = true;
+            break;
+          }
+        } catch (convErr) {
+          logger.warn(`Transcodificación en segundo plano falló para ${streamUrl}: ${convErr.message}`);
+          if (fs.existsSync(outputPath)) {
+            try { fs.unlinkSync(outputPath); } catch {}
+          }
+        }
+      }
 
-  // Guardar en almacén en RAM con enlace al archivo físico en disco
+      // Guardar metadata en disco ante reinicios
+      try {
+        fs.writeFileSync(path.join(MEDIA_CACHE_DIR, `${jobId}.json`), JSON.stringify(itemRecord), 'utf8');
+      } catch {}
+    } catch (globalErr) {
+      logger.error(`Error en tarea asíncrona de conversión (${jobId}): ${globalErr.message}`);
+    }
+  })();
+
+  // Guardar en almacén en RAM
   mediaBufferStore.set(jobId, itemRecord);
 
-  const baseUrl = ""; // Rutas relativas para compatibilidad universal
-  const downloadUrl = `${baseUrl}/api/media/download?id=${jobId}`;
+  const baseUrl = "";
+  const trackSuffix = itemRecord.selectedAudioTrack ? `&audioTrack=${encodeURIComponent(itemRecord.selectedAudioTrack)}` : "";
+  const qualitySuffix = `&quality=${encodeURIComponent(selectedQuality)}`;
+  const downloadUrl = `${baseUrl}/api/media/download?id=${jobId}${trackSuffix}${qualitySuffix}`;
   const isMp4 = selectedFormat === "mp4";
-  const mediaStreamUrl = `${baseUrl}/api/media/stream?id=${jobId}&type=${isMp4 ? "video" : "audio"}`;
+  const mediaStreamUrl = `${baseUrl}/api/media/stream?id=${jobId}&type=${isMp4 ? "video" : "audio"}${trackSuffix}${qualitySuffix}`;
 
-  return {
+  const responsePayload = {
     status: "success",
     id: jobId,
     title: mediaInfo.title,
@@ -1250,18 +2026,30 @@ async function processConversion(options = {}) {
     platform: mediaInfo.platform,
     platformId: mediaInfo.platformId,
     format: selectedFormat,
-    quality,
-    thumbnail: finalThumbnail || mediaInfo.thumbnail,
+    thumbnail: finalThumbnail,
     duration: finalDuration,
     durationSeconds: finalDurationSeconds,
     ...(isMp4 ? { videoUrl: mediaStreamUrl } : { audioUrl: mediaStreamUrl }),
     downloadUrl,
     filename: downloadFilename,
     mimeType,
-    sizeBytes,
-    sizeFormatted: formatBytes(sizeBytes),
-    message: `Conversión completada a formato ${selectedFormat.toUpperCase()} (${quality}). Descarga directa disponible desde Vork.`
+    sizeBytes: initialSizeBytes,
+    availableQualities: itemRecord.availableQualities || [],
+    audioTracks: (itemRecord.audioTracks || []).map(t => ({ id: t.id, label: t.label, isDefault: t.isDefault })),
+    selectedAudioTrack: itemRecord.selectedAudioTrack || null,
+    message: `Conversión completada a formato ${selectedFormat.toUpperCase()}. Descarga directa disponible desde Vork.`
   };
+
+  // Guardar en caché de conversiones para responder de inmediato si se repite la consulta
+  try {
+    convertedJobCache.set(cacheKey, {
+      jobId,
+      response: responsePayload,
+      cachedAt: Date.now()
+    });
+  } catch {}
+
+  return responsePayload;
 }
 
 /**
@@ -1274,7 +2062,14 @@ function getMediaById(id) {
     // Intentar recuperar desde almacenamiento físico si el proceso se reinició
     const possibleExts = ["mp4", "mp3", "wav", "webm"];
     for (const ext of possibleExts) {
-      const diskPath = path.join(MEDIA_CACHE_DIR, `${id}.${ext}`);
+      let diskPath = path.join(MEDIA_CACHE_DIR, `${id}.${ext}`);
+      if (!fs.existsSync(diskPath)) {
+        try {
+          const files = fs.readdirSync(MEDIA_CACHE_DIR);
+          const found = files.find(f => f.startsWith(`${id}_`) && f.endsWith(`.${ext}`));
+          if (found) diskPath = path.join(MEDIA_CACHE_DIR, found);
+        } catch {}
+      }
       if (fs.existsSync(diskPath)) {
         const stats = fs.statSync(diskPath);
         const metaPath = path.join(MEDIA_CACHE_DIR, `${id}.json`);

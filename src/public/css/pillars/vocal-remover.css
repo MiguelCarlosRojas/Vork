@@ -201,3 +201,305 @@ body.is-dark .mode-listen-btn {
   transform: scale(1.06);
   background: var(--accent-hover);
 }
+
+/* Badge de archivo seleccionado y botón de eliminación */
+#file-info-badge {
+  background: #ffffff !important;
+  border: 1.5px solid #22c55e !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+}
+
+#file-info-name {
+  color: #000000 !important;
+  font-weight: 700 !important;
+}
+
+#btn-remove-file {
+  width: 34px !important;
+  height: 34px !important;
+  min-width: 34px !important;
+  border-radius: var(--radius-sm) !important;
+  background: #ef4444 !important;
+  border: 1px solid #dc2626 !important;
+  color: #ffffff !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+#btn-remove-file:hover {
+  background: #dc2626 !important;
+  border-color: #b91c1c !important;
+  transform: translateY(-1px) scale(1.05) !important;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4) !important;
+}
+
+#btn-remove-file svg {
+  stroke: #ffffff !important;
+  color: #ffffff !important;
+  fill: none !important;
+}
+
+/* Chips de Formatos Compatibles (Modo Archivo Local - Indicadores con animación de hover y detección activa) */
+.format-chip {
+  background: var(--card-solid);
+  border: 1px solid var(--line);
+  color: var(--muted);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  font-family: var(--f-mono);
+  font-size: 0.82rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.format-chip svg,
+.format-chip .brand-platform-icon {
+  stroke: var(--muted);
+  color: var(--muted);
+  transition: all 0.22s ease;
+}
+
+/* Animación idéntica a PLATAFORMAS COMPATIBLES al pasar el mouse */
+.format-chip:hover {
+  transform: translateY(-2px) !important;
+  color: var(--ink) !important;
+  border-color: var(--accent, #ff6600) !important;
+  background: var(--card-hover) !important;
+  box-shadow: 0 4px 14px rgba(255, 102, 0, 0.18) !important;
+}
+
+.format-chip:hover svg,
+.format-chip:hover .brand-platform-icon {
+  transform: scale(1.12);
+  stroke: var(--accent, #ff6600) !important;
+  color: var(--accent, #ff6600) !important;
+}
+
+/* Detección automática activa: Fondo suave, borde naranja, texto naranja e ICONO NARANJA */
+.format-chip.active {
+  background: rgba(255, 102, 0, 0.12) !important;
+  border-color: #ff6600 !important;
+  color: #ff6600 !important;
+  font-weight: 800 !important;
+  box-shadow: 0 0 16px rgba(255, 102, 0, 0.35) !important;
+  transform: translateY(-1px);
+}
+
+.format-chip.active svg,
+.format-chip.active .brand-platform-icon {
+  stroke: #ff6600 !important;
+  color: #ff6600 !important;
+  transform: scale(1.08);
+}
+
+.format-chip.active svg polygon,
+.format-chip.active svg circle,
+.format-chip.active svg rect,
+.format-chip.active svg path {
+  stroke: #ff6600 !important;
+}
+
+.format-chip.active svg circle[fill]:not([fill="none"]),
+.format-chip.active svg polygon[fill]:not([fill="none"]),
+.format-chip.active svg path[fill]:not([fill="none"]) {
+  fill: #ff6600 !important;
+}
+
+.format-chip.active span {
+  color: #ff6600 !important;
+  font-weight: 800 !important;
+}
+
+.format-chip.active:hover {
+  transform: translateY(-3px) !important;
+  box-shadow: 0 6px 18px rgba(255, 102, 0, 0.45) !important;
+}
+
+/* Animación de arrastre de archivo (Drag & Drop Pulse & Bounce) */
+@keyframes dropPulseGlow {
+  0% {
+    box-shadow: 0 0 14px rgba(255, 102, 0, 0.3), inset 0 0 10px rgba(255, 102, 0, 0.1);
+    border-color: #ff6600;
+  }
+  50% {
+    box-shadow: 0 0 28px rgba(255, 102, 0, 0.65), inset 0 0 16px rgba(255, 102, 0, 0.25);
+    border-color: #ff8533;
+  }
+  100% {
+    box-shadow: 0 0 14px rgba(255, 102, 0, 0.3), inset 0 0 10px rgba(255, 102, 0, 0.1);
+    border-color: #ff6600;
+  }
+}
+
+@keyframes dropIconBounce {
+  0%, 100% {
+    transform: translateY(0) scale(1.1);
+  }
+  50% {
+    transform: translateY(-5px) scale(1.25);
+  }
+}
+
+.drop-zone.dragover {
+  border: 2px dashed #ff6600 !important;
+  background: rgba(255, 102, 0, 0.12) !important;
+  transform: scale(1.02);
+  animation: dropPulseGlow 1.4s ease-in-out infinite;
+}
+
+.drop-zone.dragover svg {
+  stroke: #ff6600 !important;
+  animation: dropIconBounce 0.75s ease-in-out infinite;
+}
+
+.drop-zone.dragover #drop-zone-title {
+  color: #ff6600 !important;
+  font-weight: 700 !important;
+}
+
+/* Animación de clic al subir archivo (Tactile Press & Glow) */
+@keyframes dropZoneClickPulse {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(0.985);
+    border-color: #ff6600 !important;
+    background: rgba(255, 102, 0, 0.08) !important;
+    box-shadow: 0 0 16px rgba(255, 102, 0, 0.3);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.drop-zone.clicking {
+  animation: dropZoneClickPulse 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Animación de escaneo láser en fase de análisis */
+@keyframes scanBeam {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.analyzing-scan-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 102, 0, 0.22), transparent);
+  pointer-events: none;
+  animation: scanBeam 1.3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.analyzing-pulse-spinner {
+  display: inline-block;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 102, 0, 0.25);
+  border-top-color: #ff6600;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes fileBadgePop {
+  0% {
+    opacity: 0;
+    transform: scale(0.96) translateY(2px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.file-badge-pop {
+  animation: fileBadgePop 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes metaCheckPop {
+  0% {
+    transform: scale(0.85);
+  }
+  50% {
+    transform: scale(1.15);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.meta-check-pop {
+  animation: metaCheckPop 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+#file-meta-panel {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Tira de metadatos de audio maestro legible y estilizada */
+.file-meta-strip {
+  display: flex !important;
+  align-items: center !important;
+  gap: 13px !important;
+  overflow-x: auto !important;
+  white-space: nowrap !important;
+  padding: 10px 16px !important;
+  background: var(--card-solid) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: var(--radius-sm) !important;
+  font-size: 0.79rem !important;
+  font-family: var(--f-mono) !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03) !important;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 102, 0, 0.3) transparent;
+}
+
+.file-meta-strip::-webkit-scrollbar {
+  height: 4px;
+}
+
+.file-meta-strip::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.file-meta-strip::-webkit-scrollbar-thumb {
+  background: rgba(255, 102, 0, 0.3);
+  border-radius: 4px;
+}
+
+.file-meta-strip::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 102, 0, 0.6);
+}
+
+.file-meta-strip .meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.file-meta-strip .meta-item span {
+  font-size: 0.73rem !important;
+  color: var(--text-muted) !important;
+  font-weight: 600 !important;
+}
+
+.file-meta-strip .meta-item strong {
+  font-size: 0.79rem !important;
+  font-weight: 700 !important;
+  color: var(--ink) !important;
+}

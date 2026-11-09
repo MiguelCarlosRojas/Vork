@@ -164,11 +164,30 @@
         </div>
       </div>
 
-      <!-- Selector de Plataformas con Iconos y Tooltip Dinámico al Pasar el Mouse -->
+      <!-- Selector de Plataformas con Selector de Formato en Cabecera -->
       <div style="margin-bottom: 20px;">
-        <div class="studio-label" style="margin-bottom: 10px;">
-          <span>PLATAFORMAS COMPATIBLES (DETECCIÓN AUTOMÁTICA)</span>
-          <span id="platform-hover-label" style="color: var(--primary); font-weight: 700; transition: color 0.2s ease;">6 PLATAFORMAS</span>
+        <div class="platforms-header-bar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 12px; flex-wrap: wrap;">
+          <div class="studio-label" style="margin-bottom: 0;">
+            <span>PLATAFORMAS COMPATIBLES (DETECCIÓN AUTOMÁTICA)</span>
+          </div>
+
+          <!-- Selector de Formato Integrado en Cabecera -->
+          <div class="converter-format-inline" style="display: inline-flex; align-items: center; gap: 8px;">
+            <span style="font-size: 0.78rem; font-family: var(--f-mono); color: var(--text-muted); text-transform: uppercase; font-weight: 600;">FORMATO:</span>
+            <div style="display: flex; gap: 6px; align-items: center;">
+              <button id="btn-format-mp3" type="button" class="btn-icon-tooltip btn-format-tab active" data-format="mp3" data-tooltip="Audio MP3" aria-label="Audio MP3" style="width: 44px; height: 34px; border-radius: var(--radius-sm); display: inline-flex; align-items: center; justify-content: center; cursor: pointer;">
+                <svg class="icon format-icon-svg" viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+                </svg>
+              </button>
+              <button id="btn-format-mp4" type="button" class="btn-icon-tooltip btn-format-tab" data-format="mp4" data-tooltip="Video MP4" aria-label="Video MP4" style="width: 44px; height: 34px; border-radius: var(--radius-sm); display: inline-flex; align-items: center; justify-content: center; cursor: pointer;">
+                <svg class="icon format-icon-svg" viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect width="14" height="12" x="2" y="6" rx="2"/><path d="m22 8-6 4 6 4V8Z"/>
+                </svg>
+              </button>
+            </div>
+            <span id="format-badge" style="color: var(--primary); font-family: var(--f-mono); font-size: 0.75rem; font-weight: 700; text-transform: uppercase;">AUDIO MP3</span>
+          </div>
         </div>
         <div class="platform-chips-container">
           <!-- 1. YouTube -->
@@ -229,158 +248,157 @@
         </div>
       </div>
 
-      <!-- Entrada de Enlace Único -->
-      <div id="single-link-box" style="margin-bottom: 20px;">
+      <!-- Entrada de Enlace Único con Botón Convertir Integrado a su Lado -->
+      <div id="single-link-box" style="margin-bottom: 24px;">
         <div class="studio-label" style="margin-bottom: 8px;">
           <span>ENLACE DEL VIDEO O CONTENIDO MULTIMEDIA</span>
-          <span id="detected-platform-badge" style="color: var(--primary);">DETECCIÓN AUTOMÁTICA</span>
         </div>
-        <div style="position: relative;">
-          <input type="url" id="input-video-url" class="studio-textarea" placeholder="Pega el enlace aquí (YouTube, TikTok, Instagram, Facebook, X, Pinterest...)" value="" style="min-height: 48px; height: 48px; padding: 12px 44px 12px 16px; font-size: 0.95rem; resize: none;">
-          <button id="btn-clear-url" title="Limpiar enlace" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: transparent; border: none; color: var(--text-muted); cursor: pointer; padding: 4px; display: flex; align-items: center;">
-            <svg class="icon" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
+        <div class="converter-input-action-group">
+          <div class="converter-input-wrapper">
+            <input type="url" id="input-video-url" class="studio-textarea" placeholder="Pega el enlace aquí (YouTube, TikTok, Instagram, Facebook, X, Pinterest...)" value="" style="min-height: 48px; height: 48px; padding: 12px 44px 12px 16px; font-size: 0.95rem; resize: none; width: 100%;">
+            <button id="btn-clear-url" type="button" title="Limpiar enlace" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: transparent; border: none; color: var(--text-muted); cursor: pointer; padding: 4px; display: flex; align-items: center;">
+              <svg class="icon" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          <div id="single-action-slot" class="converter-btn-slot">
+            <button id="btn-convert" type="button" class="btn btn-primary btn-convert-main" style="height: 48px; padding: 0 28px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 10px; font-size: 0.95rem; border-radius: var(--radius-md); white-space: nowrap; background-color: #ff6600; color: #ffffff;">
+              <svg id="btn-convert-icon" class="btn-action-icon" viewBox="0 0 24 24" width="18" height="18" fill="#ffffff">
+                <polygon points="5 3 19 12 5 21 5 3"/>
+              </svg>
+              <span id="btn-convert-text">CONVERTIR MULTIMEDIA</span>
+            </button>
+          </div>
         </div>
       </div>
 
       <!-- Entrada en Modo Lote (Oculta por defecto) -->
-      <div id="batch-link-box" style="display: none; margin-bottom: 20px;">
+      <div id="batch-link-box" style="display: none; margin-bottom: 24px;">
         <div class="studio-label" style="margin-bottom: 8px;">
           <span>LISTA DE ENLACES (UNO POR LÍNEA, HASTA 10 ENLACES)</span>
           <span style="color: var(--secondary);">MODO LOTE</span>
         </div>
-        <textarea id="input-batch-urls" class="studio-textarea" rows="4" placeholder="https://www.youtube.com/watch?v=...&#10;https://www.tiktok.com/@...&#10;https://www.instagram.com/reel/..." style="font-family: var(--font-mono);"></textarea>
-      </div>
-
-      <!-- Configuración de Formato, Calidad y Acción de Conversión en una Sola Fila -->
-      <div class="studio-controls-row converter-actions-bar">
-        <!-- Selector de Formato (Solo Iconos con Tooltip Dinámico y Animación de Clic) -->
-        <div class="studio-control-col col-format">
-          <div class="studio-label" style="margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; gap: 6px;">
-            <span style="font-size: 0.78rem; font-family: var(--f-mono); color: var(--text-muted); text-transform: uppercase; white-space: nowrap;">FORMATO</span>
-            <span id="format-badge" style="color: var(--primary); font-family: var(--f-mono); font-size: 0.75rem; font-weight: 700; white-space: nowrap;">AUDIO MP3</span>
+        <div class="converter-input-action-group" style="align-items: flex-end;">
+          <div class="converter-input-wrapper" style="flex: 1;">
+            <textarea id="input-batch-urls" class="studio-textarea" rows="4" placeholder="https://www.youtube.com/watch?v=...&#10;https://www.tiktok.com/@...&#10;https://www.instagram.com/reel/..." style="font-family: var(--font-mono); width: 100%;"></textarea>
           </div>
-          <div style="display: flex; gap: 8px; align-items: center; height: 44px;">
-            <button id="btn-format-mp3" type="button" class="btn-icon-tooltip btn-format-tab active" data-format="mp3" data-tooltip="Audio MP3" aria-label="Audio MP3" style="width: 52px; height: 44px; border-radius: var(--radius-sm); display: inline-flex; align-items: center; justify-content: center; cursor: pointer;">
-              <svg class="icon format-icon-svg" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
-              </svg>
-            </button>
-            <button id="btn-format-mp4" type="button" class="btn-icon-tooltip btn-format-tab" data-format="mp4" data-tooltip="Video MP4" aria-label="Video MP4" style="width: 52px; height: 44px; border-radius: var(--radius-sm); display: inline-flex; align-items: center; justify-content: center; cursor: pointer;">
-              <svg class="icon format-icon-svg" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <rect width="14" height="12" x="2" y="6" rx="2"/><path d="m22 8-6 4 6 4V8Z"/>
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        <!-- Selector de Calidad (Idéntico a IDIOMA ORIGEN e IDIOMA DESTINO de translator.html) -->
-        <div class="studio-control-col col-quality">
-          <div class="studio-label" style="margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; gap: 6px;">
-            <span style="font-size: 0.78rem; font-family: var(--f-mono); color: var(--text-muted); text-transform: uppercase; white-space: nowrap;">CALIDAD</span>
-            <span id="quality-badge" style="color: var(--primary); font-family: var(--f-mono); font-size: 0.75rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">320 kbps</span>
-          </div>
-          <div class="lang-combo-container" id="quality-combo-container">
-            <button type="button" class="lang-combo-trigger select-md select-w-full" id="quality-trigger" aria-haspopup="listbox" aria-expanded="false" aria-label="Seleccionar Calidad">
-              <span class="lang-combo-trigger-text" id="quality-current">320 kbps (Alta Fidelidad / Studio Master)</span>
-              <span class="lang-combo-arrow-btn" aria-hidden="true">
-                <svg class="icon" viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" fill="none" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="6 9 12 15 18 9"/>
-                </svg>
-              </span>
-            </button>
-            <select id="select-quality" style="display: none;" aria-label="Seleccionar Calidad">
-              <option value="320k" selected>320 kbps (Alta Fidelidad / Studio Master)</option>
-              <option value="192k">192 kbps (Estándar Recomendado)</option>
-              <option value="128k">128 kbps (Ahorro de Datos)</option>
-            </select>
-            <div id="quality-menu" class="lang-combo-menu">
-              <div class="lang-combo-list" id="quality-list"></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Botón de Acción Convertir (Idéntico al botón TRADUCIR TEXTO) -->
-        <div class="studio-control-col col-action">
-          <div class="studio-label" style="margin-bottom: 6px; visibility: hidden;" aria-hidden="true">
-            <span style="font-size: 0.78rem; font-family: var(--f-mono);">ACCIÓN</span>
-          </div>
-          <button id="btn-convert" type="button" class="btn btn-primary" style="height: 44px; padding: 0 24px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 10px; font-size: 0.95rem; border-radius: var(--radius-md); white-space: nowrap;">
-            <svg id="btn-convert-icon" class="btn-action-icon" viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-              <polygon points="5 3 19 12 5 21 5 3"/>
-            </svg>
-            <span id="btn-convert-text">CONVERTIR MULTIMEDIA</span>
-          </button>
+          <div id="batch-action-slot" class="converter-btn-slot"></div>
         </div>
       </div>
 
-      <!-- Barra de Progreso y Estado de Conversión -->
-      <div id="conversion-progress-box" style="display: none; margin-bottom: 20px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 0.85rem;">
-          <span id="progress-status-text" style="color: var(--accent); font-weight: 600; display: flex; align-items: center; gap: 8px;">
-            <span class="spinner" style="display: inline-block; width: 14px; height: 14px;"></span>
-            Procesando conversión multimedia...
-          </span>
-          <span id="progress-percent" style="font-family: var(--f-mono); color: var(--ink); font-weight: 700;">0%</span>
+      <!-- Barra de Progreso y Estado de Conversión Estilizada -->
+      <div id="conversion-progress-box" class="converter-progress-card" style="display: none;">
+        <div class="progress-card-top">
+          <div class="progress-card-status">
+            <span id="progress-status-text" class="progress-status-title">Convirtiendo archivo multimedia...</span>
+          </div>
+          <span id="progress-percent" class="progress-live-percent">0%</span>
         </div>
-        <div style="width: 100%; height: 8px; background: var(--line); border-radius: var(--radius-full); overflow: hidden;">
-          <div id="progress-bar-fill" style="width: 0%; height: 100%; background: var(--accent); transition: width 0.3s ease;"></div>
+        <div class="progress-card-track">
+          <div id="progress-bar-fill" class="progress-card-fill" style="width: 0%;"></div>
+        </div>
+        <div class="progress-card-bottom">
+          <span id="progress-sub-info" class="progress-sub-info">Procesando flujo en alta velocidad...</span>
+          <span class="progress-engine-badge">VORK MEDIA ENGINE</span>
         </div>
       </div>
 
       <!-- Tarjeta de Resultado con Vista Previa y Reproductor Integrado -->
-      <div id="result-card" style="display: none;">
-        <div style="display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start;">
-          <!-- Miniatura del Video -->
-          <div style="position: relative; width: 220px; max-width: 100%; aspect-ratio: 16/9; background: #000; border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--border-card); flex-shrink: 0;">
-            <img id="res-thumbnail" src="/img/brand/logo.png" alt="Miniatura de Video" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src='/img/brand/logo.png';" style="width: 100%; height: 100%; object-fit: cover;">
-            <span id="res-platform-badge" style="position: absolute; top: 8px; left: 8px; background: rgba(0, 0, 0, 0.75); color: #ffffff; padding: 3px 8px; border-radius: var(--radius-xs); font-size: 0.7rem; font-weight: 700; text-transform: uppercase;">YOUTUBE</span>
-            <span id="res-duration-badge" style="position: absolute; bottom: 8px; right: 8px; background: rgba(0, 0, 0, 0.85); color: #ffffff; padding: 2px 6px; border-radius: var(--radius-xs); font-size: 0.7rem; font-family: var(--font-mono);">00:00</span>
+      <div id="result-card" class="result-showcase-card" style="display: none;">
+        <div class="result-card-inner">
+          <!-- Miniatura del Video con Overlays Cinematográficos -->
+          <div class="res-thumb-container">
+            <div class="res-thumb-frame">
+              <img id="res-thumbnail" src="/img/brand/logo.png" alt="Miniatura de Video" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src='/img/brand/logo.png';">
+              <div class="res-thumb-gradient"></div>
+              <span id="res-platform-badge" class="res-platform-tag">YOUTUBE</span>
+              <span id="res-duration-badge" class="res-duration-tag">00:00</span>
+            </div>
           </div>
 
-          <!-- Información y Detalles -->
-          <div style="flex: 1; min-width: 250px;">
-            <div id="res-format-badge" class="format-result-pill pill-mp3">
-              <svg class="pill-media-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
-              <span class="pill-tag">MP3</span>
-              <span class="pill-quality">320 KBPS MASTER</span>
+          <!-- Información Principal, Metadatos y Controles -->
+          <div class="res-details-container">
+            <!-- Header con Pill de Formato y Calidad -->
+            <div class="res-header-bar">
+              <div id="res-format-badge" class="format-result-pill pill-mp4">
+                <span class="pill-media-icon-box">
+                  <svg class="pill-media-icon icon-video" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="14" x="2" y="5" rx="2"/><polyline points="17 9 22 6 22 18 17 15"/></svg>
+                </span>
+                <span class="pill-tag-text" id="res-format-tag">MP4</span>
+                <span class="pill-divider">·</span>
+                <span class="pill-quality-text" id="res-quality-tag">360P</span>
+              </div>
             </div>
-            <h3 id="res-title" style="margin: 0 0 6px; font-size: 1.15rem; line-height: 1.4; color: var(--ink);">Título del Video</h3>
-            <p id="res-author" style="margin: 0 0 8px; font-size: 0.85rem; color: var(--muted);">Canal / Autor</p>
 
-            <div style="display: flex; gap: 14px; flex-wrap: wrap; font-size: 0.8rem; font-family: var(--f-mono); color: var(--muted); margin-bottom: 16px;">
+            <!-- Título y Canal -->
+            <h3 id="res-title" class="res-media-title">Título del Video</h3>
+            <p id="res-author" class="res-author-name">Canal / Autor</p>
+
+            <!-- Metadatos Clásicos en Línea (Sin Marco) -->
+            <div class="res-meta-inline">
               <span>DURACIÓN: <strong id="res-duration-text" style="color: var(--accent);">00:00</strong></span>
               <span>TAMAÑO: <strong id="res-size" style="color: var(--ink);">0 MB</strong></span>
               <span>ESTADO: <strong style="color: #10b981;">COMPLETADO</strong></span>
               <span>TTL EN CACHÉ: <strong style="color: var(--accent);">30 MIN</strong></span>
             </div>
 
+            <!-- Selector de Calidad Dinámica (Visible si el video o audio tiene múltiples calidades disponibles) -->
+            <div id="res-qualities-row" class="res-qualities-row" style="display: none;">
+              <span class="res-tracks-label">
+                <svg class="icon" viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" fill="none" stroke-width="2.2"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+                CALIDAD:
+              </span>
+              <div id="res-qualities-list" class="res-tracks-list"></div>
+            </div>
+
+            <!-- Selector de Pistas de Audio (Visible si el video tiene múltiples pistas disponibles) -->
+            <div id="res-audio-tracks-row" class="res-audio-tracks-row" style="display: none;">
+              <span class="res-tracks-label">
+                <svg class="icon" viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" fill="none" stroke-width="2.2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+                PISTA DE AUDIO:
+              </span>
+              <div id="res-audio-tracks-list" class="res-tracks-list"></div>
+            </div>
+
             <!-- Reproductor Integrado para Audio MP3 -->
-            <div id="audio-player-wrapper" style="margin-bottom: 6px;">
-              <audio id="html5-audio-player" controls style="width: 100%; border-radius: var(--radius-md); outline: none;"></audio>
+            <div id="audio-player-wrapper" class="media-player-wrapper audio-frame">
+              <audio id="html5-audio-player" controls preload="metadata"></audio>
             </div>
 
             <!-- Reproductor Integrado para Video MP4 -->
-            <div id="video-player-wrapper" style="display: none; margin-bottom: 6px; border-radius: var(--radius-md); overflow: hidden; max-height: 320px; background: #000;">
-              <video id="html5-video-player" controls style="width: 100%; height: auto; max-height: 320px; outline: none;"></video>
+            <div id="video-player-wrapper" class="media-player-wrapper video-frame" style="display: none;">
+              <video id="html5-video-player" controls preload="metadata"></video>
             </div>
 
-            <!-- Acciones de Descarga y Compartir (Alineadas a la derecha con tooltip como en Pilar 1) -->
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px; padding-top: 6px; gap: 10px; flex-wrap: wrap; border-top: 1px solid rgba(255, 255, 255, 0.08);">
-              <span style="font-size: 0.8rem; color: var(--muted); font-family: var(--f-mono);">Motor Multimedia Vork · Pilar 03</span>
+            <!-- Acciones de Descarga y Compartir (Solo Iconos con Tooltip) -->
+            <div class="res-actions-footer" style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px; padding-top: 10px; border-top: 1px solid var(--line);">
+              <span style="font-size: 0.78rem; color: var(--muted); font-family: var(--f-mono);">Motor Multimedia Vork · Pilar 03</span>
               <div style="display: flex; gap: 8px; margin-left: auto;">
-                <!-- Botón Descargar (Solo icono con tooltip dinámico al pasar el mouse) -->
-                <button id="btn-download-file" type="button" class="btn-icon-tooltip" aria-label="Descargar" data-tooltip="Descargar" style="width: 42px; height: 42px;">
-                  <svg id="download-icon" class="icon" viewBox="0 0 24 24" width="17" height="17" stroke="currentColor" fill="none" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                <!-- Botón Descargar (Naranja con icono blanco y tooltip al pasar el mouse) -->
+                <button id="btn-download-file" type="button" class="btn-icon-tooltip btn-download-accent" aria-label="Descargar" data-tooltip="Descargar" style="width: 42px; height: 42px;">
+                  <svg id="download-icon" class="icon" viewBox="0 0 24 24" width="17" height="17" stroke="#ffffff" fill="none" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
                 </button>
-                <!-- Botón Copiar Enlace Directo (Solo icono con tooltip dinámico al pasar el mouse) -->
-                <button id="btn-copy-stream" type="button" class="btn-icon-tooltip" aria-label="Copiar Enlace Directo" data-tooltip="Copiar Enlace Directo" style="width: 42px; height: 42px;">
+                <!-- Botón Copiar Enlace (Solo icono con tooltip dinámico al pasar el mouse) -->
+                <button id="btn-copy-stream" type="button" class="btn-icon-tooltip" aria-label="Copiar Enlace" data-tooltip="Copiar Enlace" style="width: 42px; height: 42px;">
                   <svg id="copy-stream-icon" class="icon" viewBox="0 0 24 24" width="17" height="17" stroke="currentColor" fill="none" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
                 </button>
               </div>
             </div>
           </div>
         </div>
+      </div>
+
+      <!-- Contenedor de Resultados para Modo Lote (Múltiples Enlaces) -->
+      <div id="batch-results-container" style="display: none; margin-top: 24px;">
+        <div class="batch-results-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+          <div class="studio-label" style="margin-bottom: 0;">
+            <span id="batch-results-counter">ENLACES CONVERTIDOS (0)</span>
+          </div>
+          <button id="btn-download-all-batch" type="button" class="btn btn-sm" style="background-color: #ff6600; color: #ffffff; font-weight: 700; border-radius: var(--radius-sm); padding: 8px 18px; display: inline-flex; align-items: center; gap: 8px; border: none; cursor: pointer; transition: background-color 0.2s ease;">
+            <svg class="icon" viewBox="0 0 24 24" width="16" height="16" stroke="#ffffff" fill="none" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+            <span>DESCARGAR TODOS</span>
+          </button>
+        </div>
+        <div id="batch-results-list" style="display: flex; flex-direction: column; gap: 20px;"></div>
       </div>
     </section>
 

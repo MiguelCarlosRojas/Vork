@@ -26,8 +26,8 @@ async function getMediaMetadata(url) {
 /**
  * Convierte un enlace multimedia al formato y bitrate solicitados
  */
-async function convertSingleMedia({ url, format = "mp3", quality = "320k" }) {
-  return processConversion({ url, format, quality });
+async function convertSingleMedia({ url, format = "mp3", quality = "320k", audioTrack = null }) {
+  return processConversion({ url, format, quality, audioTrack });
 }
 
 /**
