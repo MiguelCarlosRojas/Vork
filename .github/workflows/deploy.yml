@@ -1,9 +1,11 @@
 name: Render Deploy Status
 
 on:
-  push:
-    branches: [main]
+  # Desactivado trigger automatico en push para evitar bloqueos de facturacion en GitHub Actions
+  # Render despliega automaticamente de forma nativa mediante su propio Webhook
   workflow_dispatch:
+  # push:
+  #   branches: [main]
 
 permissions:
   contents: read
