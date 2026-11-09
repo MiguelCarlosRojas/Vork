@@ -1,12 +1,12 @@
 /**
- * Vork SPA Router v1.0.0
+ * Vork SPA Router v1.1.0
  * 
  * Navegación fluida y sin recargas de página completas:
- * - Intercepta clics en enlaces internos de la misma procedencia.
- * - Muestra una barra de progreso sutil y elegante en la parte superior.
- * - Carga el contenido dinámicamente preservando la sesión y estado.
- * - Ejecuta scripts de página limpiamente sin duplicación de listeners.
- * - Maneja historial (pushState/popstate) y desplazamiento suave a anclas.
+ * - Sincroniza dinámicamente assets (<link rel="stylesheet"> y bloques <style>) en <head>.
+ * - Carga y ejecuta scripts externos e inline en el ámbito global real de window.
+ * - Soporta pre-traducción en memoria y persistencia de cookies de idioma.
+ * - Mantiene clases y atributos de <body> sin desconfiguración de diseño.
+ * - Maneja historial (pushState/popstate), enlaces activos y desplazamiento suave a anclas.
  */
 
 (function () {
@@ -89,7 +89,7 @@
       const parser = new DOMParser();
       const doc = parser.parseFromString(html, "text/html");
 
-      // Actualizar título de la página y pre-traducción fluida en memoria
+      // 1. Pre-traducción en memoria fluida si existe traductor activo
       const rawTitle = doc.title;
       try {
         const savedLang = window.translator ? window.translator.getSavedLanguage() : null;
@@ -103,20 +103,80 @@
         console.warn("[SPA Router] Advertencia en pre-traducción:", transErr);
       }
 
+      // 2. Sincronizar Título, Idioma y Metadatos
       document.title = doc.title;
+      if (doc.documentElement.lang) {
+        document.documentElement.lang = doc.documentElement.lang;
+      }
 
-      // Actualizar favicon si está definido en el nuevo documento
+      // Favicons
       const currentFavicon = document.querySelector("link[rel*='icon']");
       const newFavicon = doc.querySelector("link[rel*='icon']");
       if (currentFavicon && newFavicon) {
         currentFavicon.href = newFavicon.href;
       }
 
-      // Reemplazar contenido de la página ya con el idioma correspondiente
+      // Meta descriptions y OpenGraph
+      const currentMetaDesc = document.querySelector('meta[name="description"]');
+      const newMetaDesc = doc.querySelector('meta[name="description"]');
+      if (currentMetaDesc && newMetaDesc) {
+        currentMetaDesc.setAttribute("content", newMetaDesc.getAttribute("content") || "");
+      }
+      const currentOgDesc = document.querySelector('meta[property="og:description"]');
+      const newOgDesc = doc.querySelector('meta[property="og:description"]');
+      if (currentOgDesc && newOgDesc) {
+        currentOgDesc.setAttribute("content", newOgDesc.getAttribute("content") || "");
+      }
+      const currentOgTitle = document.querySelector('meta[property="og:title"]');
+      const newOgTitle = doc.querySelector('meta[property="og:title"]');
+      if (currentOgTitle && newOgTitle) {
+        currentOgTitle.setAttribute("content", newOgTitle.getAttribute("content") || "");
+      }
+
+      // 3. SINCRONIZAR HOJAS DE ESTILO Y BLOQUES <style> EN <head>
+      // Limpiar estilos dinámicos de páginas anteriores
+      document.head.querySelectorAll("[data-spa-injected]").forEach(el => el.remove());
+
+      // Hojas de estilo externas (<link rel="stylesheet">)
+      const existingLinks = Array.from(document.head.querySelectorAll("link[rel='stylesheet']"));
+      const existingHrefs = new Set(existingLinks.map(l => {
+        try { return new URL(l.getAttribute("href"), window.location.href).href; } catch { return l.getAttribute("href"); }
+      }));
+
+      const docLinks = Array.from(doc.head.querySelectorAll("link[rel='stylesheet']"));
+      for (const link of docLinks) {
+        try {
+          const rawHref = link.getAttribute("href");
+          if (!rawHref) continue;
+          const resolvedHref = new URL(rawHref, window.location.href).href;
+          if (!existingHrefs.has(resolvedHref)) {
+            const newLink = document.createElement("link");
+            Array.from(link.attributes).forEach(attr => newLink.setAttribute(attr.name, attr.value));
+            newLink.setAttribute("data-spa-injected", "true");
+            document.head.appendChild(newLink);
+            existingHrefs.add(resolvedHref);
+          }
+        } catch (errLink) {
+          console.warn("[SPA Router] Error al sincronizar hoja de estilo:", errLink);
+        }
+      }
+
+      // Bloques de estilo <style> de la nueva página (por ej. CloudDJ, Separador de Voz)
+      const docStyles = Array.from(doc.querySelectorAll("style"));
+      docStyles.forEach(style => {
+        const newStyle = document.createElement("style");
+        Array.from(style.attributes).forEach(attr => newStyle.setAttribute(attr.name, attr.value));
+        newStyle.setAttribute("data-spa-injected", "true");
+        newStyle.textContent = style.textContent;
+        document.head.appendChild(newStyle);
+      });
+
+      // 4. Sincronizar contenido y clases de <body>
+      document.body.className = doc.body.className || "";
       document.body.innerHTML = doc.body.innerHTML;
       document.body.classList.remove("spa-transitioning");
 
-      // Renderizar componentes modulares (Encabezado / Pie de Página) en la nueva página
+      // 5. Renderizar componentes modulares (Encabezado / Pie de Página / Modales)
       if (window.CloudComponents && typeof window.CloudComponents.init === "function") {
         try {
           window.CloudComponents.init();
@@ -125,34 +185,60 @@
         }
       }
 
-      // Actualizar historial del navegador
+      // 6. Actualizar historial del navegador
       if (push) {
         window.history.pushState({ spa: true, url: url }, doc.title, url);
       }
 
-      // Re-ejecutar scripts de la nueva página con bandera isNavigatingSpa activa
+      // 7. Sincronizar y ejecutar scripts de la nueva página en orden secuencial
       isNavigatingSpa = true;
       try {
         const scripts = Array.from(document.body.querySelectorAll("script"));
-        scripts.forEach(script => {
+        // Remover elementos originales del body para evitar residuos inactivos
+        scripts.forEach(s => s.remove());
+
+        for (const script of scripts) {
           try {
-            if (script.src) {
-              const newScript = document.createElement("script");
-              Array.from(script.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
-              document.body.appendChild(newScript);
+            const src = script.getAttribute("src");
+            if (src) {
+              const resolvedSrc = new URL(src, window.location.href).href;
+              const isCoreScript = resolvedSrc.includes("spa-router.js") || resolvedSrc.includes("components.js");
+              if (isCoreScript) {
+                continue;
+              }
+
+              // Si es el SDK estático de traducción y ya está activo, no recargarlo
+              if (resolvedSrc.includes("vork.js") && window.Vork) {
+                continue;
+              }
+
+              // Scripts de módulos y utilidades de la página: cargar y ejecutar
+              await new Promise((resolve) => {
+                const newScript = document.createElement("script");
+                Array.from(script.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+                newScript.onload = () => resolve();
+                newScript.onerror = () => {
+                  console.warn("[SPA Router] No se pudo cargar script externo:", src);
+                  resolve();
+                };
+                document.body.appendChild(newScript);
+              });
             } else {
-              const runFn = new Function(script.textContent);
-              runFn();
+              // Script inline: creamos elemento <script> real para ejecutar en ámbito window global
+              const inlineScript = document.createElement("script");
+              Array.from(script.attributes).forEach(attr => inlineScript.setAttribute(attr.name, attr.value));
+              inlineScript.textContent = script.textContent;
+              document.body.appendChild(inlineScript);
             }
           } catch (scriptErr) {
             console.warn("[SPA Router] Error al ejecutar script de página:", scriptErr);
           }
-        });
+        }
       } finally {
         isNavigatingSpa = false;
       }
 
-      // Asegurar que si hay un idioma activo en cookie, la nueva página complete su traducción y título
+      // 8. Asegurar persistencia de traducción si hay idioma activo en cookie
       try {
         const activeLang = window.translator ? window.translator.getSavedLanguage() : null;
         if (window.translator && activeLang && activeLang !== "original" && activeLang !== "es") {
@@ -160,7 +246,7 @@
         }
       } catch (postTransErr) {}
 
-      // Manejar scroll a ancla o al inicio
+      // 9. Manejar desplazamiento a ancla o al inicio
       const parsedUrl = new URL(url, window.location.href);
       if (parsedUrl.hash) {
         const targetElement = document.querySelector(parsedUrl.hash);
@@ -175,22 +261,10 @@
         window.scrollTo(0, 0);
       }
 
-      // Actualizar meta description y etiquetas OpenGraph
-      const currentMetaDesc = document.querySelector('meta[name="description"]');
-      const newMetaDesc = doc.querySelector('meta[name="description"]');
-      if (currentMetaDesc && newMetaDesc) {
-        currentMetaDesc.setAttribute("content", newMetaDesc.getAttribute("content") || "");
-      }
-      const currentOgDesc = document.querySelector('meta[property="og:description"]');
-      const newOgDesc = doc.querySelector('meta[property="og:description"]');
-      if (currentOgDesc && newOgDesc) {
-        currentOgDesc.setAttribute("content", newOgDesc.getAttribute("content") || "");
-      }
-
-      // Actualizar clase active en todos los enlaces de navegación (cabecera, menú lateral y pie de página)
+      // 10. Actualizar clase active en navegación
       updateActiveLinks(parsedUrl.pathname);
 
-      // Cerrar drawer lateral si estaba abierto y desbloquear desplazamiento
+      // 11. Cerrar drawer lateral si estaba abierto
       const activeDrawer = document.getElementById("mobile-drawer");
       const activeBackdrop = document.getElementById("drawer-backdrop");
       const activeToggle = document.getElementById("menu-toggle-btn");
@@ -199,7 +273,7 @@
       if (activeToggle) activeToggle.classList.remove("active");
       document.body.classList.remove("drawer-open");
 
-      // Cerrar modal QR si estaba abierto al cambiar de ruta
+      // 12. Cerrar modal QR si estaba abierto
       if (window.closeQrModal) {
         window.closeQrModal();
       }
@@ -330,7 +404,7 @@
     updateActiveLinks(window.location.pathname);
   }
 
-  // Exponer API opcional
+  // Exponer API
   window.SPARouter = {
     navigate: navigate,
     updateActiveLinks: updateActiveLinks

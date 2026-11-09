@@ -1,126 +1,159 @@
-/* ==========================================================================
-   Componente Reutilizable: Botón de Peligro / Eliminar con Tooltip
-   ========================================================================== */
-.btn-icon-danger {
-  position: relative;
-  background: rgba(239, 68, 68, 0.12);
-  border: 1px solid rgba(239, 68, 68, 0.35);
-  color: #f87171;
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-sm);
+/* ===== 6. BUTTONS & PILLS (HUELLA STYLE) ===== */
+.btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
+  font-family: var(--f-body);
+  font-weight: 600;
+  font-size: 0.94rem;
+  border-radius: var(--radius-sm);
+  padding: 10px 22px;
+  height: 46px;
+  min-height: 46px;
+  box-sizing: border-box;
+  transition: all 0.25s var(--ease);
   cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.btn-icon-danger:hover {
-  background: #ef4444;
-  border-color: #ef4444;
-  color: #ffffff;
-  transform: scale(1.05);
-  box-shadow: 0 0 14px rgba(239, 68, 68, 0.5);
-}
-
-.btn-icon-danger .tooltip-text {
-  visibility: hidden;
-  opacity: 0;
-  position: absolute;
-  bottom: calc(100% + 8px);
-  left: 50%;
-  transform: translateX(-50%) translateY(4px);
-  background: rgba(15, 23, 42, 0.95);
-  color: #ffffff;
-  font-size: 0.72rem;
-  padding: 4px 8px;
-  border-radius: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  text-decoration: none;
+  border: 1.5px solid transparent;
   white-space: nowrap;
-  pointer-events: none;
-  transition: all 0.2s ease;
-  z-index: 100;
-  font-family: var(--font-sans);
+  vertical-align: middle;
+}
+.btn.btn-pill, .hero-ctas .btn, .btn-hero-primary, .btn-hero-secondary {
+  border-radius: var(--radius-pill);
+}
+.btn-sm {
+  height: 34px !important;
+  min-height: 34px !important;
+  padding: 4px 14px !important;
+  font-size: 0.82rem !important;
+  border-radius: var(--radius-xs, 6px) !important;
+}
+.btn-lg {
+  height: 52px !important;
+  min-height: 52px !important;
+  padding: 14px 28px !important;
+  font-size: 1.05rem !important;
+  border-radius: var(--radius-md) !important;
 }
 
-.btn-icon-danger:hover .tooltip-text {
-  visibility: visible;
-  opacity: 1;
-  transform: translateX(-50%) translateY(0);
+.icon, svg.icon {
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  display: inline-block;
+  vertical-align: middle;
+}
+svg.icon:not([width]) {
+  width: 1.15em;
+  height: 1.15em;
 }
 
-.audio-visualizer-bar {
-  display: flex;
+.btn-primary {
+  background: var(--ink);
+  color: #ffffff;
+  border-color: var(--ink);
+}
+.btn-primary .icon,
+.btn-primary svg,
+.btn-primary svg * {
+  stroke: #ffffff !important;
+  color: #ffffff !important;
+}
+.btn-primary:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(255, 122, 61, 0.35);
+}
+.btn-primary:hover .icon,
+.btn-primary:hover svg,
+.btn-primary:hover svg * {
+  stroke: #ffffff !important;
+  color: #ffffff !important;
+}
+body.is-dark .btn-primary {
+  background: var(--ink);
+  color: #ffffff;
+  border-color: var(--ink);
+}
+body.is-dark .btn-primary .icon,
+body.is-dark .btn-primary svg,
+body.is-dark .btn-primary svg * {
+  stroke: #ffffff !important;
+  color: #ffffff !important;
+}
+
+.btn-accent {
+  background: var(--accent);
+  color: #ffffff;
+  border-color: var(--accent);
+}
+.btn-accent:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(255, 122, 61, 0.4);
+}
+
+.btn-outline {
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--line-strong);
+}
+.btn-outline:hover {
+  background: rgba(255, 255, 255, 0.85);
+  border-color: var(--ink);
+  transform: translateY(-2px);
+}
+
+.btn-ghost {
+  background: rgba(28, 24, 20, 0.05);
+  color: var(--ink);
+  border-color: transparent;
+}
+.btn-ghost:hover {
+  background: rgba(28, 24, 20, 0.1);
+  transform: translateY(-2px);
+}
+
+.btn-urgent {
+  background: var(--red);
+  color: #ffffff;
+}
+.btn-urgent:hover {
+  background: #ff383e;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(255, 90, 95, 0.35);
+}
+
+.btn-sm {
+  padding: 7px 16px;
+  font-size: 0.84rem;
+}
+.btn-lg {
+  padding: 15px 32px;
+  font-size: 1.05rem;
+}
+
+/* Pill Badges */
+.pill, .hero-pill {
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 3px;
-  height: 48px;
-  background: rgba(4, 6, 12, 0.85);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  padding: 0 16px;
+  gap: 8px;
+  padding: 8px 20px;
+  background: rgba(255, 252, 247, 0.95);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  font-size: 0.86rem;
+  font-weight: 500;
+  color: var(--muted);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 16px;
 }
-
-.wave-bar {
-  width: 4px;
-  height: 8px;
-  background: var(--primary);
-  border-radius: 2px;
-  transition: height 0.15s ease;
-}
-
-.audio-visualizer-bar.playing .wave-bar {
-  animation: wavePulse 0.8s ease-in-out infinite alternate;
-}
-
-.audio-visualizer-bar.playing .wave-bar:nth-child(2) { animation-delay: 0.1s; }
-.audio-visualizer-bar.playing .wave-bar:nth-child(3) { animation-delay: 0.2s; }
-.audio-visualizer-bar.playing .wave-bar:nth-child(4) { animation-delay: 0.3s; }
-.audio-visualizer-bar.playing .wave-bar:nth-child(5) { animation-delay: 0.15s; }
-.audio-visualizer-bar.playing .wave-bar:nth-child(6) { animation-delay: 0.25s; }
-.audio-visualizer-bar.playing .wave-bar:nth-child(7) { animation-delay: 0.35s; }
-.audio-visualizer-bar.playing .wave-bar:nth-child(8) { animation-delay: 0.05s; }
-
-@keyframes wavePulse {
-  0% { height: 6px; }
-  100% { height: 38px; }
-}
-
-/* Zona de Carga de Audio para Clonación de Voz */
-.audio-dropzone {
-  border: 2px dashed var(--border-subtle);
-  border-radius: var(--radius-lg);
-  padding: 24px;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  background: rgba(255, 255, 255, 0.01);
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.audio-dropzone:hover,
-.audio-dropzone.dragover {
-  border-color: var(--primary);
-  background: rgba(0, 240, 255, 0.04);
-}
-
-.audio-dropzone input[type="file"] {
-  display: none;
-}
-
-.audio-sample-preview {
-  display: none;
-  width: 100%;
-  background: rgba(4, 6, 12, 0.85);
-  border: 1px solid rgba(0, 240, 255, 0.3);
-  border-radius: var(--radius-md);
-  padding: 12px 16px;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 0.85rem;
-  color: var(--text-white);
+body.is-dark .pill, body.is-dark .hero-pill {
+  background: rgba(36, 31, 26, 0.9);
 }

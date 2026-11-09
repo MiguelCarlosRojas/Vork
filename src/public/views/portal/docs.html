@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+  <meta name="theme-color" content="#11141a">
+  <title>Documentación Técnica | Vork — SDK, Micro-lotes y Arquitectura de 9 Pilares</title>
+  <meta name="description" content="Documentación técnica de Vork: arquitectura de micro-lotes para páginas web, especificación de 9 pilares multimodales y SDK oficial.">
+  <link rel="canonical" href="https://vork-st1k.onrender.com/docs">
+
+  <!-- Open Graph -->
+  <meta property="og:site_name" content="Vork">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://vork-st1k.onrender.com/docs">
+  <meta property="og:title" content="Documentación Técnica | Vork — Manual de Ingeniería y SDK">
+  <meta property="og:description" content="Especificación de arquitectura, algoritmos acústicos, flujo DOM y manual de integración de Vork.">
+  <meta property="og:image" content="https://vork-st1k.onrender.com/img/brand/logo.png">
+  <meta property="og:locale" content="es_ES">
+
+  <!-- Twitter Cards -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Documentación Técnica | Vork">
+  <meta name="twitter:description" content="Manual de desarrollo e ingeniería para los 9 pilares de inteligencia multimodal de Vork.">
+  <meta name="twitter:image" content="https://vork-st1k.onrender.com/img/brand/logo.png">
+
+  <!-- Favicons y Manifest -->
+  <link rel="icon" type="image/png" sizes="192x192" href="/img/brand/logo.png">
+  <link rel="icon" type="image/png" sizes="64x64" href="/img/brand/logo.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/img/brand/logo.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/img/brand/logo.png">
+  <link rel="manifest" href="/manifest.json">
+  <!-- Compatibilidad Universal de Navegadores (Chrome, Safari, Edge, Firefox, Opera GX, Brave) -->
+  <meta name="application-name" content="Vork">
+  <meta name="apple-mobile-web-app-title" content="Vork">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="msapplication-TileColor" content="#11141a">
+  <meta name="msapplication-TileImage" content="/img/brand/logo.png">
+  <link rel="search" type="application/opensearchdescription+xml" title="Vork" href="/opensearch.xml">
+
+  <!-- Fuentes y Estilos -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/portal/docs-api.css">
+
+  <!-- Datos Estructurados JSON-LD -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "TechArticle",
+        "@id": "https://vork-st1k.onrender.com/docs#article",
+        "headline": "Documentación Técnica y Arquitectura de Vork",
+        "url": "https://vork-st1k.onrender.com/docs",
+        "description": "Especificación arquitectónica completa, manual de micro-lotes para páginas web, transcodificación de audio/video y SDK de integración.",
+        "inLanguage": "es",
+        "publisher": {
+          "@type": "Organization",
+          "name": "Vork",
+          "url": "https://vork-st1k.onrender.com"
+        }
+      },
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Inicio",
+            "item": "https://vork-st1k.onrender.com/"
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Documentación Técnica",
+            "item": "https://vork-st1k.onrender.com/docs"
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+
+  <script>
+    (function(){try{var m=document.cookie.match(/(?:^|; )vork_lang=([^;]*)/);var l=m?decodeURIComponent(m[1]):null;if(l&&l!=="original"&&l!=="es"){document.documentElement.classList.add("ct-pending");setTimeout(function(){document.documentElement.classList.remove("ct-pending");},800);}}catch(e){}})();
+  </script>
+  <script src="/js/spa-router.js" defer></script>
+  <script src="/js/ui.js" defer></script>
+</head>
+<body>
+
+  <!-- Textura de grano sutil Huella -->
+  <div class="grain" aria-hidden="true"></div>
+
+
+  <!-- Barra Superior -->
+  <header id="header-placeholder" data-component="header" data-active="docs"></header>
+
+  <!-- CONTENEDOR DE DOS COLUMNAS (SIDEBAR FIJO + PANEL DE CONTENIDO FIJO CON SCROLL INDEPENDIENTE) -->
+  <div class="docs-layout-container">
+
+    <!-- BARRA LATERAL FIJA DE NAVEGACIÓN -->
+    <aside class="docs-sidebar" id="docs-sidebar" aria-label="Navegación lateral de documentación">
+      <div class="docs-sidebar-header">
+        <span class="docs-sidebar-tag">[ ARCHITECTURE &amp; SPECS ]</span>
+        <h3 class="docs-sidebar-title">Índice Técnico</h3>
+      </div>
+
+      <nav class="docs-sidebar-nav">
+        
+        <!-- Sesión 01 -->
+        <div class="docs-sidebar-group">
+          <span class="docs-group-label">01 / Arquitectura Global</span>
+          <a href="#session-architecture" class="docs-sidebar-session active" data-target="session-architecture">
+            <span class="session-badge">S.01</span> Visión General &amp; Filosofía
+          </a>
+          <div class="docs-sidebar-subsessions">
+            <a href="#sub-consolidated-query" class="docs-sidebar-sublink" data-target="sub-consolidated-query">
+              <span class="sub-num">1.1</span> Principio de 1 Sola Consulta
+            </a>
+            <a href="#sub-cookie-persistence" class="docs-sidebar-sublink" data-target="sub-cookie-persistence">
+              <span class="sub-num">1.2</span> Persistencia en Cookies 365D
+            </a>
+            <a href="#sub-lru-cache" class="docs-sidebar-sublink" data-target="sub-lru-cache">
+              <span class="sub-num">1.3</span> Doble Caché LRU (0ms RAM)
+            </a>
+          </div>
+        </div>
+
+        <!-- Sesión 02 -->
+        <div class="docs-sidebar-group">
+          <span class="docs-group-label">02 / Pilar 1: Traductor en la Nube</span>
+          <a href="#session-pilar-1" class="docs-sidebar-session" data-target="session-pilar-1">
+            <span class="session-badge">S.02</span> DOM Tree &amp; Batching
+          </a>
+          <div class="docs-sidebar-subsessions">
+            <a href="#sub-p1-dom-traversal" class="docs-sidebar-sublink" data-target="sub-p1-dom-traversal">
+              <span class="sub-num">2.1</span> Extracción Recursiva de Nodos
+            </a>
+            <a href="#sub-p1-exclusion" class="docs-sidebar-sublink" data-target="sub-p1-exclusion">
+              <span class="sub-num">2.2</span> Protección data-no-translate
+            </a>
+            <a href="#sub-p1-reinsertion" class="docs-sidebar-sublink" data-target="sub-p1-reinsertion">
+              <span class="sub-num">2.3</span> Re-inyección Segura del DOM
+            </a>
+          </div>
+        </div>
+
+        <!-- Sesión 03 -->
+        <div class="docs-sidebar-group">
+          <span class="docs-group-label">03 / Pilar 2: Texto a Voz (TTS)</span>
+          <a href="#session-pilar-2" class="docs-sidebar-session" data-target="session-pilar-2">
+            <span class="session-badge">S.03</span> Prosodia &amp; Audio Streaming
+          </a>
+          <div class="docs-sidebar-subsessions">
+            <a href="#sub-p2-hybrid-engine" class="docs-sidebar-sublink" data-target="sub-p2-hybrid-engine">
+              <span class="sub-num">3.1</span> Arquitectura Híbrida Web/Backend
+            </a>
+            <a href="#sub-p2-prosody-model" class="docs-sidebar-sublink" data-target="sub-p2-prosody-model">
+              <span class="sub-num">3.2</span> Modulación F0 y Formantes F1-F4
+            </a>
+            <a href="#sub-p2-voices-catalog" class="docs-sidebar-sublink" data-target="sub-p2-voices-catalog">
+              <span class="sub-num">3.3</span> Catálogo de 24 Voces Acústicas
+            </a>
+            <a href="#sub-p2-http206" class="docs-sidebar-sublink" data-target="sub-p2-http206">
+              <span class="sub-num">3.4</span> Streaming HTTP 206 Chunks
+            </a>
+          </div>
+        </div>
+
+        
+
+        <!-- Sesión 05 -->
+        <div class="docs-sidebar-group">
+          <span class="docs-group-label">05 / Pilar 4: Conversor Multimedia</span>
+          <a href="#session-pilar-4" class="docs-sidebar-session" data-target="session-pilar-4">
+            <span class="session-badge">S.05</span> Transcoder &amp; Streams
+          </a>
+          <div class="docs-sidebar-subsessions">
+            <a href="#sub-p4-ingest-pipeline" class="docs-sidebar-sublink" data-target="sub-p4-ingest-pipeline">
+              <span class="sub-num">5.1</span> Normalización Multiplataforma
+            </a>
+            <a href="#sub-p4-transcode-engine" class="docs-sidebar-sublink" data-target="sub-p4-transcode-engine">
+              <span class="sub-num">5.2</span> Transcodificación MP3/MP4
+            </a>
+            <a href="#sub-p4-ttl-proxy" class="docs-sidebar-sublink" data-target="sub-p4-ttl-proxy">
+              <span class="sub-num">5.3</span> Proxy de Miniaturas &amp; TTL 30m
+            </a>
+          </div>
+        </div>
+
+        <!-- Sesión 06 -->
+        <div class="docs-sidebar-group">
+          <span class="docs-group-label">06 / Pilar 5: Separador de Voz</span>
+          <a href="#session-pilar-6" class="docs-sidebar-session" data-target="session-pilar-6">
+            <span class="session-badge">S.06</span> Demucs v4 AI Stems
+          </a>
+          <div class="docs-sidebar-subsessions">
+            <a href="#sub-p5-neural-demucs" class="docs-sidebar-sublink" data-target="sub-p5-neural-demucs">
+              <span class="sub-num">6.1</span> Red Neuronal U-Net &amp; -48dB
+            </a>
+            <a href="#sub-p5-dual-stem-player" class="docs-sidebar-sublink" data-target="sub-p5-dual-stem-player">
+              <span class="sub-num">6.2</span> Reproductor Dual en Fase
+            </a>
+          </div>
+        </div>
+
+        <!-- Sesión 08: Pilar 7: Vork CLI -->
+        <div class="docs-sidebar-group">
+          <span class="docs-group-label">07 / Pilar 7: Vork CLI</span>
+          <a href="#session-pilar-8" class="docs-sidebar-session" data-target="session-pilar-8">
+            <span class="session-badge">S.08</span> Terminal CLI &amp; Agentes
+          </a>
+          <div class="docs-sidebar-subsessions">
+            <a href="#sub-p7-terminal-arch" class="docs-sidebar-sublink" data-target="sub-p7-terminal-arch">
+              <span class="sub-num">8.1</span> Arquitectura TUI &amp; Subagentes
+            </a>
+            <a href="#sub-p7-install" class="docs-sidebar-sublink" data-target="sub-p7-install">
+              <span class="sub-num">8.2</span> Instalación PowerShell &amp; CMD
+            </a>
+          </div>
+        </div>
+
+        <!-- Sesión 09: Pilar 8: Conversor de Imágenes -->
+        <div class="docs-sidebar-group">
+          <span class="docs-group-label">09 / Pilar 8: Conversor de Imágenes</span>
+          <a href="#session-pilar-img" class="docs-sidebar-session" data-target="session-pilar-img">
+            <span class="session-badge">S.09</span> Image Studio &amp; Formatos
+          </a>
+          <div class="docs-sidebar-subsessions">
+            <a href="#sub-p8-image-engine" class="docs-sidebar-sublink" data-target="sub-p8-image-engine">
+              <span class="sub-num">9.1</span> Motor Pillow &amp; LANCZOS
+            </a>
+            <a href="#sub-p8-formats" class="docs-sidebar-sublink" data-target="sub-p8-formats">
+              <span class="sub-num">9.2</span> Formatos PNG, WebP, JPG, ICO
+            </a>
+          </div>
+        </div>
+
+        <!-- Sesión 10: Pilar 9: Estudio de Fondo IA -->
+        <div class="docs-sidebar-group">
+          <span class="docs-group-label">10 / Pilar 9: Estudio de Fondo IA</span>
+          <a href="#session-pilar-bg" class="docs-sidebar-session" data-target="session-pilar-bg">
+            <span class="session-badge">S.10</span> Segmentación rembg U2-Net
+          </a>
+          <div class="docs-sidebar-subsessions">
+            <a href="#sub-p9-neural-bg" class="docs-sidebar-sublink" data-target="sub-p9-neural-bg">
+              <span class="sub-num">10.1</span> Red U2-Net y Canal Alfa
+            </a>
+            <a href="#sub-p9-replacement" class="docs-sidebar-sublink" data-target="sub-p9-replacement">
+              <span class="sub-num">10.2</span> Reemplazo Color y Fondos IA
+            </a>
+          </div>
+        </div>
+
+        <!-- Sesión 08 -->
+        <div class="docs-sidebar-group">
+          <span class="docs-group-label">08 / SDK Frontend</span>
+          <a href="#session-sdk" class="docs-sidebar-session" data-target="session-sdk">
+            <span class="session-badge">S.08</span> Integración en Aplicaciones
+          </a>
+          <div class="docs-sidebar-subsessions">
+            <a href="#sub-sdk-vanilla" class="docs-sidebar-sublink" data-target="sub-sdk-vanilla">
+              <span class="sub-num">8.1</span> HTML / Vanilla JS
+            </a>
+            <a href="#sub-sdk-frameworks" class="docs-sidebar-sublink" data-target="sub-sdk-frameworks">
+              <span class="sub-num">8.2</span> React, Vue &amp; Next.js
+            </a>
+          </div>
+        </div>
+
+        <!-- Enlace a Referencia de API -->
+        <div class="docs-sidebar-group" style="margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--border-line);">
+          <span class="docs-group-label">Contratos REST</span>
+          <a href="/api" class="docs-sidebar-session" style="color: #ffffff;">
+            <span class="session-badge" style="background: var(--primary); color: #000000; font-weight: 800;">API</span> Ver Referencia API REST &rarr;
+          </a>
+        </div>
+
+      </nav>
+    </aside>
+
+    <!-- ÁREA PRINCIPAL FIJA CON SCROLL INDEPENDIENTE -->
+    <main class="docs-main-content">
+    
+      <!-- Encabezado de la Documentación Técnica -->
+      <section class="docs-section" style="padding-top: 10px;">
+        <span class="hero-tag-glow">[ ARCHITECTURE MANUAL // 9 PILARES DE VORK ]</span>
+        <h1 style="font-size: clamp(1.8rem, 3.2vw, 2.5rem); margin: 12px 0 16px 0; color: #ffffff;">
+          Manual de Ingeniería y Arquitectura de Sistemas
+        </h1>
+        <p class="lead">
+          Guía técnica exhaustiva sobre los <strong>9 pilares tecnológicos</strong> de Vork v2.5.0: principios algorítmicos, procesamiento acústico en tiempo real, manipulación recursiva del DOM, transcodificación multimedia y grafos Web Audio API.
+        </p>
+        <div style="background: rgba(255, 122, 61, 0.06); border: 1px solid rgba(255, 122, 61, 0.25); border-radius: var(--radius-md); padding: 14px 18px; margin-top: 18px; font-size: 0.88rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+          <span>¿Buscas los parámetros exactos JSON, cabeceras HTTP y consolas de prueba cURL de los endpoints?</span>
+          <a href="/api" class="btn btn-primary" style="padding: 6px 14px; font-size: 0.8rem;">Ir a API REST &rarr;</a>
+        </div>
+      </section>
+
+      <!-- Índice Rápido Móvil -->
+      <div class="docs-mobile-toc-bar">
+        <button id="btn-toggle-docs-toc" class="btn btn-outline docs-toc-toggle-btn" aria-label="Abrir Índice de Temas">
+          <span><svg class="icon" viewBox="0 0 24 24"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10M6 10h10"/></svg> [ ÍNDICE RÁPIDO ] Temas de Ingeniería</span>
+          <span class="toc-badge">S.01 — S.08</span>
+        </button>
+        <div id="docs-mobile-toc-content" class="docs-toc-dropdown" style="display: none; margin-top: 10px; background: rgba(15, 17, 24, 0.98); border: 1px solid var(--border-card); border-radius: var(--radius-md); padding: 16px;">
+          <ul style="list-style: none; display: flex; flex-direction: column; gap: 8px;">
+            <li><a href="#session-architecture" style="font-weight: 700; color: #fff;">S.01 // Arquitectura Global &amp; Filosofía</a></li>
+            <li><a href="#session-pilar-1" style="font-weight: 700; color: #fff;">S.02 // Pilar 1: Traductor en la Nube</a></li>
+            <li><a href="#session-pilar-2" style="font-weight: 700; color: #fff;">S.03 // Pilar 2: Texto a Voz (TTS)</a></li>
+                        <li><a href="#session-pilar-4" style="font-weight: 700; color: #fff;">S.05 // Pilar 4: Conversor Multimedia</a></li>
+            <li><a href="#session-pilar-6" style="font-weight: 700; color: #fff;">S.06 // Pilar 5: Separador de Voz e Instrumental</a></li>
+            <li><a href="#session-sdk" style="font-weight: 700; color: #fff;">S.08 // Integración Frontend SDK</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- ========================================================================= -->
+      <!-- SESIÓN 01: ARQUITECTURA GLOBAL & FILOSOFÍA                               -->
+      <!-- ========================================================================= -->
+      <section class="docs-section" id="session-architecture">
+        <div class="section-full-title">
+          <span class="session-badge">SESIÓN 01</span>
+          <h2>Arquitectura Global y Filosofía de Diseño</h2>
+          <p>Principios fundamentales de Vork v2.5.0 como microservicio unificado de alto rendimiento.</p>
+        </div>
+
+        <article class="docs-subsection" id="sub-consolidated-query">
+          <h3>1.1 El Principio de 1 Sola Consulta Consolidada</h3>
+          <p>
+            Los traductores tradicionales envían cientos de peticiones HTTP individuales (una por cada párrafo o etiqueta <code>&lt;span&gt;</code>), colapsando el pool de conexiones del navegador, activando límites de tasa (rate limiting) y provocando bloqueos de interfaz o saltos visuales desagradables (layout shift).
+          </p>
+          <p>
+            Vork implementa el <strong>Algoritmo de Consolidación Atómica</strong>: el SDK frontend escanea la totalidad del DOM en una sola pasada sincrónica, recopila todos los segmentos de texto en un array ordenado, y despacha <strong>una única petición HTTP POST</strong> al microservicio. El servidor traduce el lote en paralelo y devuelve el array simétrico, reinyectándose en el DOM en un único ciclo de renderizado.
+          </p>
+        </article>
+
+        <article class="docs-subsection" id="sub-cookie-persistence">
+          <h3>1.2 Persistencia de Estado Técnica en Cookies HTTP (365 Días)</h3>
+          <p>
+            A diferencia de Google Translate o widgets invasivos que insertan frames de terceros y pierden el estado al recargar, Vork almacena la selección del usuario en una cookie HTTP de primer nivel:
+          </p>
+
+<!-- ========================================================================= -->
+      <!-- SESIÓN 08: PILAR 7 - VORK CLI & AGENTES AUTÓNOMOS              -->
+      <!-- ========================================================================= -->
+      <section class="docs-section" id="session-pilar-8">
+        <div class="section-full-title">
+          <span class="session-badge">SESIÓN 08</span>
+          <h2>Pilar 7: Vork CLI (Entorno Centrado en la Terminal)</h2>
+          <p>Orquestación de agentes autónomos, concurrencia de subagentes y comandos con diagonal en tu base de código.</p>
+        </div>
+
+        <article class="docs-subsection" id="sub-p7-terminal-arch">
+          <h3>8.1 Arquitectura del CLI y Modelo de Agentes</h3>
+          <p>
+            Vork CLI es un entorno ligero enfocado en la terminal para interactuar con agentes de inteligencia artificial directamente sobre tus archivos de código. Describe lo que necesitas en lenguaje natural y los agentes ejecutan, depuran y coordinan herramientas manteniendo la trazabilidad completa.
+          </p>
+          <div class="callout" style="margin: 16px 0;">
+            <strong>Control Concurrente con Subagentes:</strong> Permite delegar tareas pesadas en segundo plano a sesiones paralelas. Escribe <code>/agents</code> para abrir el panel de control y pulsa <code>ctrl+k</code> para autorizar comandos de terminal de forma instantánea.
+          </div>
+        </article>
+
+        <article class="docs-subsection" id="sub-p7-install">
+          <h3>8.2 Métodos Oficiales de Instalación en Windows</h3>
+          <p>Puedes instalar y activar Vork CLI ejecutando una sola instrucción:</p>
+
+          <div class="vork-terminal-box" style="margin-bottom: 20px;">
+            <div class="vork-terminal-bar">
+              <div class="vork-terminal-bar-left">
+                <div class="vork-terminal-dots">
+                  <span class="dot dot-red"></span>
+                  <span class="dot dot-yellow"></span>
+                  <span class="dot dot-green"></span>
+                </div>
+                <div class="vork-terminal-title">
+                  <svg class="icon" viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" fill="none" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+                  <span>powershell (automatizado)</span>
+                </div>
+              </div>
+              <button class="btn btn-sm btn-terminal-copy" aria-label="Copiar comando PowerShell" onclick="copiarAlPortapapeles(this, 'code-doc-cli-ps')">
+                <svg class="icon" viewBox="0 0 24 24" width="14" height="14"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                <span>Copiar</span>
+              </button>
+            </div>
+            <div class="vork-terminal-body">
+              <span class="vork-terminal-prompt">PS &gt;</span>
+              <div class="vork-terminal-code-scroll">
+                <code id="code-doc-cli-ps">irm https://vork-st1k.onrender.com/cli/install.ps1 | iex</code>
+              </div>
+            </div>
+          </div>
+
+          <div class="vork-terminal-box">
+            <div class="vork-terminal-bar">
+              <div class="vork-terminal-bar-left">
+                <div class="vork-terminal-dots">
+                  <span class="dot dot-red"></span>
+                  <span class="dot dot-yellow"></span>
+                  <span class="dot dot-green"></span>
+                </div>
+                <div class="vork-terminal-title">
+                  <svg class="icon" viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" fill="none" stroke-width="2"><rect width="18" height="14" x="3" y="5" rx="2"/><path d="M7 15h10M7 9l3 3-3 3"/></svg>
+                  <span>cmd.exe (símbolo del sistema)</span>
+                </div>
+              </div>
+              <button class="btn btn-sm btn-terminal-copy" aria-label="Copiar comando CMD" onclick="copiarAlPortapapeles(this, 'code-doc-cli-cmd')">
+                <svg class="icon" viewBox="0 0 24 24" width="14" height="14"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                <span>Copiar</span>
+              </button>
+            </div>
+            <div class="vork-terminal-body">
+              <span class="vork-terminal-prompt">C:\&gt;</span>
+              <div class="vork-terminal-code-scroll">
+                <code id="code-doc-cli-cmd">curl -fsSL https://vork-st1k.onrender.com/cli/install.cmd -o install.cmd &amp;&amp; install.cmd &amp;&amp; del install.cmd</code>
+              </div>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <!-- ========================================================================= -->
+      <!-- SESIÓN 09: PILAR 8 - CONVERSOR Y PROCESADOR DE IMÁGENES UNIVERSAL         -->
+      <!-- ========================================================================= -->
+      <section class="docs-section" id="session-pilar-img">
+        <div class="section-full-title">
+          <span class="session-badge">SESIÓN 09</span>
+          <h2>Pilar 8: Conversor y Procesador de Imágenes Universal</h2>
+          <p>Motor de transcodificación, optimización y redimensionamiento LANCZOS multiformato con soporte de canal alfa.</p>
+        </div>
+
+        <article class="docs-subsection" id="sub-p8-image-engine">
+          <h3>9.1 Motor de Procesamiento Pillow y Resampling LANCZOS</h3>
+          <p>
+            El subsistema de imagen de Vork opera mediante un worker nativo en Python optimizado con la biblioteca Pillow (PIL). Procesa imágenes de hasta 50 MB con corrección automática de orientación basada en metadatos EXIF (<code>ImageOps.exif_transpose</code>) y filtrado antialiasing de 8 coeficientes <code>Image.Resampling.LANCZOS</code>.
+          </p>
+          <div class="table-responsive">
+            <table class="docs-table">
+              <thead>
+                <tr>
+                  <th>Formato</th>
+                  <th>Canal Alfa (RGBA)</th>
+                  <th>Compresión y Optimización</th>
+                  <th>Casos de Uso Recomendados</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>PNG</code></td>
+                  <td>Sí (Transparencia Completa)</td>
+                  <td>Compresión DEFLATE sin pérdida</td>
+                  <td>Iconos, logotipos, gráficos con fondos transparentes y capturas</td>
+                </tr>
+                <tr>
+                  <td><code>JPEG / JPG</code></td>
+                  <td>No (Composición sobre fondo blanco)</td>
+                  <td>Cuantización DCT ajustable (1 - 100)</td>
+                  <td>Fotografías de alta compresión y miniaturas de catálogo</td>
+                </tr>
+                <tr>
+                  <td><code>WEBP</code></td>
+                  <td>Sí (Con o sin pérdida)</td>
+                  <td>Compresión Google VP8X (method=6)</td>
+                  <td>Publicación web moderna de máximo rendimiento y menor peso</td>
+                </tr>
+                <tr>
+                  <td><code>GIF</code></td>
+                  <td>Sí (Paleta indexada de 256 colores)</td>
+                  <td>Adaptativa con dithering</td>
+                  <td>Animaciones cortas e imágenes gráficas simples</td>
+                </tr>
+                <tr>
+                  <td><code>ICO</code></td>
+                  <td>Sí (Multirresolución)</td>
+                  <td>16x16, 32x32, 48x48, 64x64, 128x128, 256x256</td>
+                  <td>Favicons para navegadores web y ejecutables Windows</td>
+                </tr>
+                <tr>
+                  <td><code>BMP / TIFF</code></td>
+                  <td>Sí (TIFF Deflate)</td>
+                  <td>Sin compresión / TIFF Deflate</td>
+                  <td>Impresión profesional y preservación fotográfica cruda</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="docs-subsection" id="sub-p8-formats">
+          <h3>9.2 Algoritmo de Conversión y Redimensionamiento Proporcional</h3>
+          <p>
+            El motor calcula automáticamente las proporciones originales si solo se especifica ancho (<code>width</code>) o alto (<code>height</code>), evitando deformaciones visuales:
+          </p>
+          <div class="code-box-wrapper">
+            <div class="code-box-header">
+              <span>// PYTHON - ALGORITMO DE ESCALADO Y GESTIÓN DE CANALES</span>
+              <button class="btn-copy" onclick="copiarAlPortapapeles(this, 'code-doc-img-convert')">Copiar Código</button>
+            </div>
+            <pre class="code-panel" id="code-doc-img-convert"><code># Si se solicita redimensionamiento proporcional manteniendo la relación de aspecto
+if width and not height:
+    new_w = int(width)
+    new_h = int((new_w / orig_w) * orig_h)
+    img = img.resize((new_w, new_h), Image.Resampling.LANCZOS)
+elif height and not width:
+    new_h = int(height)
+    new_w = int((new_h / orig_h) * orig_w)
+    img = img.resize((new_w, new_h), Image.Resampling.LANCZOS)</code></pre>
+          </div>
+        </article>
+      </section>
+
+      <!-- ========================================================================= -->
+      <!-- SESIÓN 10: PILAR 9 - ESTUDIO Y ELIMINADOR DE FONDO IA                     -->
+      <!-- ========================================================================= -->
+      <section class="docs-section" id="session-pilar-bg">
+        <div class="section-full-title">
+          <span class="session-badge">SESIÓN 10</span>
+          <h2>Pilar 9: Estudio y Eliminador de Fondo IA (rembg U2-Net)</h2>
+          <p>Aislamiento biométrico y de objetos con redes neuronales profundas U2-Net, generación de máscaras alfa y sustitución compositiva.</p>
+        </div>
+
+        <article class="docs-subsection" id="sub-p9-neural-bg">
+          <h3>10.1 Red Neuronal Profunda U2-Net y Detección de Saliencia</h3>
+          <p>
+            A diferencia de los métodos heurísticos basados en color (Chroma Keying simple) que degradan los bordes de cabellos o prendas, el Pilar 9 utiliza la arquitectura de red neuronal profunda <strong>U2-Net</strong> de dos niveles a través del motor <code>rembg</code>. La red genera una máscara de probabilidad continua entre 0.0 y 1.0 (canal alfa flotante) logrando transiciones suaves sin bordes dentados.
+          </p>
+          <div class="callout" style="margin: 16px 0;">
+            <strong>Procesamiento Local Libre de Costos:</strong> Inferencia ejecutada directamente en el cluster backend sin cuotas de proveedores externos ni marcas de agua impuestas.
+          </div>
+        </article>
+
+        <article class="docs-subsection" id="sub-p9-replacement">
+          <h3>10.2 Modos de Modificación y Composición de Fondo</h3>
+          <p>Vork ofrece 4 modos de modificación de fondo:</p>
+          <ul style="margin-left: 20px; line-height: 1.8; color: var(--text-secondary);">
+            <li><strong>transparent:</strong> Genera un archivo PNG RGBA con el fondo completamente transparente. Ideal para diseño gráfico y catálogos.</li>
+            <li><strong>color:</strong> Reemplaza el fondo por un color sólido arbitrario especificado en código HEX (ejemplo: <code>#FFFFFF</code> o <code>#00F0FF</code>).</li>
+            <li><strong>custom_bg:</strong> Compone el sujeto recortado sobre cualquier imagen de fondo provista por el usuario, ajustando la escala con <code>ImageOps.fit</code>.</li>
+            <li><strong>prompt:</strong> Genera un fondo completamente nuevo a partir de una descripción en lenguaje natural mediante el cluster de difusión generativa Pollinations.</li>
+          </ul>
+        </article>
+      </section>
+
+      <!-- ========================================================================= -->
+      <!-- SESIÓN 11: INTEGRACIÓN FRONTEND SDK                                      -->
+      <!-- ========================================================================= -->
+      <section class="docs-section" id="session-sdk">
+        <div class="section-full-title">
+          <span class="session-badge">SESIÓN 08</span>
+          <h2>Guía de Integración Frontend SDK</h2>
+          <p>Inicialización en Vanilla JS, frameworks SPA reactivos y aplicaciones server-side.</p>
+        </div>
+
+        <article class="docs-subsection" id="sub-sdk-vanilla">
+          <h3>8.1 Integración en Vanilla JavaScript</h3>
+          <p>Descarga o importa el script cliente <code>vork.js</code> e inicializa la clase:</p>
+          <div class="code-box-wrapper">
+            <div class="code-box-header">
+              <span>// HTML &amp; JAVASCRIPT VANILLA</span>
+              <button class="btn-copy" onclick="copiarAlPortapapeles(this, 'code-doc-sdk-vanilla')">Copiar Código</button>
+            </div>
+            <pre class="code-panel" id="code-doc-sdk-vanilla"><code>&lt;script src="https://vork-st1k.onrender.com/js/vork.js"&gt;&lt;/script&gt;
+&lt;script&gt;
+  // Inicialización del cliente con persistencia en Cookies
+  const translator = new Vork({
+    endpoint: "https://vork-st1k.onrender.com/api/translate",
+    useCookies: true,
+    batchSize: 500,
+    ignoreSelectors: [".no-translate", "[data-no-translate]"]
+  });
+
+  // Traducir a Francés
+  translator.translatePage("fr");
+
+  // Restaurar idioma original
+  // translator.restoreOriginal();
+&lt;/script&gt;</code></pre>
+          </div>
+
+          <div class="table-responsive">
+            <table class="docs-table">
+              <thead>
+                <tr>
+                  <th>Propiedad de Configuración</th>
+                  <th>Tipo de Dato</th>
+                  <th>Valor por Defecto</th>
+                  <th>Descripción del Comportamiento</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>endpoint</code></td>
+                  <td><code>string</code> (URL)</td>
+                  <td><code>"/api/translate"</code></td>
+                  <td>Ruta absoluta o remota del microservicio de traducción por lotes</td>
+                </tr>
+                <tr>
+                  <td><code>useCookies</code></td>
+                  <td><code>boolean</code></td>
+                  <td><code>true</code></td>
+                  <td>Persiste automáticamente la preferencia de idioma en la cookie técnica <code>vork_lang</code></td>
+                </tr>
+                <tr>
+                  <td><code>batchSize</code></td>
+                  <td><code>number</code></td>
+                  <td><code>500</code></td>
+                  <td>Límite máximo de nodos de texto empaquetados por cada consulta atómica</td>
+                </tr>
+                <tr>
+                  <td><code>ignoreSelectors</code></td>
+                  <td><code>Array&lt;string&gt;</code></td>
+                  <td><code>[".no-translate"]</code></td>
+                  <td>Lista de selectores CSS y atributos que serán excluidos del recorrido recursivo</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="docs-subsection" id="sub-sdk-frameworks">
+          <h3>8.2 Integración en React / Next.js / Vue</h3>
+          <p>
+            En aplicaciones React o Vue, inicializa la instancia dentro de un hook de ciclo de vida (<code>useEffect</code> o <code>onMounted</code>) para garantizar que el DOM cliente esté disponible:
+          </p>
+          <div class="code-box-wrapper">
+            <div class="code-box-header">
+              <span>// REACT / NEXT.JS INTEGRATION COMPONENT</span>
+              <button class="btn-copy" onclick="copiarAlPortapapeles(this, 'code-doc-sdk-react')">Copiar Código</button>
+            </div>
+            <pre class="code-panel" id="code-doc-sdk-react"><code>import { useEffect } from 'react';
+
+export default function Layout({ children }) {
+  useEffect(() => {
+    if (window.Vork) {
+      window.ctInstance = new window.Vork({
+        endpoint: "https://vork-st1k.onrender.com/api/translate",
+        useCookies: true,
+        batchSize: 500
+      });
+    }
+  }, []);
+
+  return &lt;div&gt;{children}&lt;/div&gt;;
+}</code></pre>
+          </div>
+        </article>
+      </section>
+
+      <footer id="footer-placeholder" data-component="footer" data-active="docs" class="docs-inline-footer"></footer>
+    </main>
+  </div>
+
+  <script src="/js/vork.js"></script>
+  <script src="/js/modules/docs.js" defer></script>
+</body>
+</html>

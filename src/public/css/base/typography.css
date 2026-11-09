@@ -1,0 +1,53 @@
+/* ===== 4. TYPOGRAPHY SYSTEM ===== */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--f-display);
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--ink);
+  letter-spacing: -0.035em;
+}
+
+/* Huella Signature Editorial Italic in Headers */
+h1 em, h2 em, h3 em, .h-display em, .h-section em, .hero-title em {
+  font-family: var(--f-serif);
+  font-style: italic;
+  font-weight: 400;
+  color: var(--accent);
+  padding: 0 4px;
+}
+
+.h-display, .hero-title {
+  font-size: clamp(2.5rem, 6.8vw, 5.2rem);
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: -0.045em;
+  margin-top: 12px;
+  margin-bottom: 26px;
+}
+
+.h-section, .section-title {
+  font-size: clamp(2rem, 4.2vw, 3.2rem);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  margin-bottom: 16px;
+}
+
+.lead, .hero-subtitle {
+  font-size: clamp(1.05rem, 1.8vw, 1.25rem);
+  line-height: 1.65;
+  color: var(--muted);
+  max-width: 1040px;
+  margin: 0 auto 32px auto;
+  text-align: center;
+}
+
+.label, .section-label {
+  display: inline-block;
+  font-family: var(--f-display);
+  font-weight: 700;
+  font-size: 0.88rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 12px;
+}

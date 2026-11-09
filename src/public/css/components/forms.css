@@ -1,89 +1,653 @@
+/* ===== 10. FORMS, INPUTS & WORKBENCH PANELS ===== */
+.main-container, .tool-container, .workbench-wrap {
+  max-width: 1240px;
+  margin: 30px auto;
+  padding: 0 20px;
+}
+
+.workbench-card, .tool-panel, .content-box {
+  background: var(--card);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: clamp(24px, 4vw, 44px);
+  box-shadow: var(--shadow-md);
+  margin-bottom: 40px;
+}
+
+.workbench-card .lead,
+.workbench-card p.lead {
+  text-align: left !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+/* Spinner animado para estado de carga */
+@keyframes vork-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+.icon.spin, svg.spin {
+  animation: vork-spin 0.85s linear infinite;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* Feedback visual para botones al copiar o completar */
+.btn.btn-copied,
+button.btn-copied {
+  background: #22b0a0 !important;
+  border-color: #22b0a0 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(34, 176, 160, 0.35) !important;
+  transform: scale(1.02);
+}
+.btn.btn-copied svg,
+button.btn-copied svg,
+.btn.btn-copied .icon,
+button.btn-copied .icon {
+  stroke: #ffffff !important;
+  color: #ffffff !important;
+}
+
+/* Sincronización exacta de diseño: Texto de Entrada e Idioma de Destino (Inactivo, Hover, Focus y Disabled) */
+#demo-input-text,
+#demo-target-lang,
+#btn-run-demo {
+  height: 46px !important;
+  min-height: 46px !important;
+  max-height: 46px !important;
+  box-sizing: border-box !important;
+  vertical-align: middle !important;
+}
+
+#demo-input-text {
+  font-family: var(--f-body) !important;
+  font-size: 0.94rem !important;
+  font-weight: 500 !important;
+  line-height: 1.4 !important;
+  color: var(--ink) !important;
+  background-color: rgba(255, 255, 255, 0.92) !important;
+  border: 1.5px solid var(--line-strong) !important;
+  border-radius: var(--radius-sm) !important;
+  padding: 10px 16px !important;
+  outline: none !important;
+  box-shadow: none !important;
+  transition: border-color 0.25s var(--ease), box-shadow 0.25s var(--ease), background-color 0.25s var(--ease), opacity 0.25s var(--ease) !important;
+}
+
+#demo-input-text:hover {
+  border-color: var(--ink) !important;
+  background-color: #ffffff !important;
+}
+
+#demo-input-text:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 4px var(--accent-soft) !important;
+  background-color: #ffffff !important;
+}
+
+#demo-input-text:disabled,
+#demo-target-lang:disabled {
+  opacity: 0.55 !important;
+  cursor: not-allowed !important;
+  background-color: rgba(28, 24, 20, 0.05) !important;
+  border-color: var(--line) !important;
+}
+
+body.is-dark #demo-input-text {
+  background-color: rgba(30, 25, 20, 0.92) !important;
+  color: var(--ink) !important;
+  border-color: var(--line-strong) !important;
+}
+
+body.is-dark #demo-input-text:hover {
+  background-color: rgba(40, 32, 26, 0.98) !important;
+  border-color: var(--muted) !important;
+}
+
+body.is-dark #demo-input-text:focus {
+  background-color: rgba(35, 28, 22, 1) !important;
+  border-color: var(--accent) !important;
+}
+
+body.is-dark #demo-input-text:disabled,
+body.is-dark #demo-target-lang:disabled {
+  background-color: rgba(244, 236, 225, 0.05) !important;
+  border-color: var(--line-strong) !important;
+  color: rgba(244, 236, 225, 0.5) !important;
+}
+
+#demo-target-lang {
+  padding: 10px 38px 10px 16px !important;
+}
+
+#btn-run-demo {
+  padding: 0 24px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Botón Copiar Terminal CLI: Fondo negro con texto e icono blanco, y en hover fondo blanco con texto e icono negro */
+#btn-copy-install, .btn-terminal-copy, .btn-copy {
+  background: #14110e !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  transition: all 0.25s var(--ease) !important;
+  cursor: pointer;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  border-radius: var(--radius-xs, 6px) !important;
+}
+
+#btn-copy-install .icon, .btn-terminal-copy .icon, .btn-copy .icon,
+#btn-copy-install svg, .btn-terminal-copy svg, .btn-copy svg,
+#btn-copy-install svg *, .btn-terminal-copy svg *, .btn-copy svg * {
+  stroke: #ffffff !important;
+  color: #ffffff !important;
+  transition: stroke 0.25s var(--ease) !important;
+}
+
+#btn-copy-install:hover, .btn-terminal-copy:hover, .btn-copy:hover {
+  background: #ffffff !important;
+  color: #14110e !important;
+  border-color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(255, 255, 255, 0.2) !important;
+}
+
+#btn-copy-install:hover .icon, .btn-terminal-copy:hover .icon, .btn-copy:hover .icon,
+#btn-copy-install:hover svg, .btn-terminal-copy:hover svg, .btn-copy:hover svg,
+#btn-copy-install:hover svg *, .btn-terminal-copy:hover svg *, .btn-copy:hover svg * {
+  stroke: #14110e !important;
+  color: #14110e !important;
+}
+
+#btn-copy-install.btn-copied, .btn-terminal-copy.btn-copied, .btn-copy.btn-copied {
+  background: #ffffff !important;
+  border-color: #ffffff !important;
+  color: #14110e !important;
+  box-shadow: 0 4px 14px rgba(255, 255, 255, 0.2) !important;
+}
+
+#btn-copy-install.btn-copied .icon, .btn-terminal-copy.btn-copied .icon, .btn-copy.btn-copied .icon,
+#btn-copy-install.btn-copied svg, .btn-terminal-copy.btn-copied svg, .btn-copy.btn-copied svg,
+#btn-copy-install.btn-copied svg *, .btn-terminal-copy.btn-copied svg *, .btn-copy.btn-copied svg * {
+  stroke: #14110e !important;
+  color: #14110e !important;
+}
+
+#btn-copy-install.btn-copied:hover, .btn-terminal-copy.btn-copied:hover, .btn-copy.btn-copied:hover {
+  background: #14110e !important;
+  border-color: rgba(255, 255, 255, 0.4) !important;
+  color: #ffffff !important;
+}
+
+#btn-copy-install.btn-copied:hover .icon, .btn-terminal-copy.btn-copied:hover .icon, .btn-copy.btn-copied:hover .icon,
+#btn-copy-install.btn-copied:hover svg, .btn-terminal-copy.btn-copied:hover svg, .btn-copy.btn-copied:hover svg,
+#btn-copy-install.btn-copied:hover svg *, .btn-terminal-copy.btn-copied:hover svg *, .btn-copy.btn-copied:hover svg * {
+  stroke: #ffffff !important;
+  color: #ffffff !important;
+}
+
 /* ==========================================================================
-   Componentes UI Reutilizables: Selectores y Dropdowns Estilizados
+   Terminal Shell Component (Vork CLI Quick Install)
    ========================================================================== */
-.studio-controls-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
-  margin-top: 12px;
+.vork-terminal-box {
+  background: #090706;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-sm, 10px);
+  overflow: hidden;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  transition: border-color 0.25s var(--ease), box-shadow 0.25s var(--ease);
+  width: 100%;
 }
 
-.studio-control-col {
-  position: relative;
+.vork-terminal-box:hover {
+  border-color: rgba(255, 122, 61, 0.35);
+  box-shadow: 0 20px 42px rgba(0, 0, 0, 0.6), 0 0 20px -8px rgba(255, 122, 61, 0.2);
+}
+
+.vork-terminal-bar {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: rgba(255, 255, 255, 0.035);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  gap: 12px;
 }
 
+.vork-terminal-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.vork-terminal-dots {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.vork-terminal-dots .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.vork-terminal-dots .dot-red { background: #ff5f56; }
+.vork-terminal-dots .dot-yellow { background: #ffbd2e; }
+.vork-terminal-dots .dot-green { background: #27c93f; }
+
+.vork-terminal-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--f-mono, monospace);
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #a59a8f;
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
+}
+
+.vork-terminal-body {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background: transparent;
+  position: relative;
+  overflow: hidden;
+}
+
+.vork-terminal-body::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 24px;
+  background: linear-gradient(to right, transparent, #090706);
+  pointer-events: none;
+  opacity: 0.85;
+}
+
+.vork-terminal-prompt {
+  color: var(--accent, #ff7a3d);
+  font-family: var(--f-mono, monospace);
+  font-weight: 700;
+  font-size: 0.94rem;
+  user-select: none;
+  -webkit-user-select: none;
+  flex-shrink: 0;
+}
+
+.vork-terminal-code-scroll {
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  padding-bottom: 2px;
+}
+
+.vork-terminal-code-scroll::-webkit-scrollbar {
+  height: 4px;
+}
+.vork-terminal-code-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.vork-terminal-code-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 4px;
+}
+
+#cli-install-cmd {
+  font-family: var(--f-mono, monospace);
+  font-size: clamp(0.84rem, 1.8vw, 0.94rem);
+  color: #ffaa7a;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  user-select: all;
+  -webkit-user-select: all;
+}
+
+/* Pestañas de Instalación de Terminal */
+.install-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 12px;
+  position: relative;
+  z-index: 10;
+}
+
+.install-tab-btn {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #a59a8f;
+  font-family: var(--f-body, var(--font-mono));
+  font-size: 0.88rem;
+  font-weight: 600;
+  padding: 8px 18px;
+  border-radius: var(--radius-sm, 8px);
+  cursor: pointer !important;
+  pointer-events: auto !important;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  z-index: 11;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.install-tab-btn * {
+  pointer-events: none;
+}
+
+.install-tab-btn .icon,
+.install-tab-btn svg {
+  width: 16px !important;
+  height: 16px !important;
+  max-width: 16px !important;
+  max-height: 16px !important;
+  flex-shrink: 0;
+}
+
+.install-tab-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.install-tab-btn.active {
+  color: #ffffff;
+  background: rgba(255, 122, 61, 0.16);
+  border-color: var(--accent);
+  font-weight: 700;
+}
+
+.install-panel {
+  display: none !important;
+}
+
+.install-panel.active {
+  display: block !important;
+}
+
+input[type="text"], input[type="url"], input[type="number"], input[type="password"] {
+  height: 46px !important;
+  min-height: 46px !important;
+  box-sizing: border-box !important;
+  font-family: var(--f-body);
+  font-size: 0.94rem;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.92);
+  border: 1.5px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  padding: 10px 16px;
+  width: 100%;
+  transition: all 0.25s var(--ease);
+  outline: none;
+  vertical-align: middle;
+}
+
+textarea {
+  font-family: var(--f-body);
+  font-size: 0.94rem;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.92);
+  border: 1.5px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  width: 100%;
+  transition: all 0.25s var(--ease);
+  outline: none;
+  box-sizing: border-box;
+}
+
+input[type="range"], .studio-slider {
+  accent-color: var(--accent);
+  width: 100%;
+  height: 6px;
+  background: rgba(28, 24, 20, 0.12);
+  border-radius: 4px;
+  cursor: pointer;
+  outline: none;
+}
+body.is-dark input[type="text"], body.is-dark input[type="url"], body.is-dark input[type="number"], body.is-dark textarea {
+  background: rgba(30, 25, 20, 0.9);
+  color: var(--ink);
+}
+
+input:focus, textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px var(--accent-soft);
+  background: #ffffff;
+}
+
+/* ===== 10.1 SISTEMA DE SELECTORES PERSONALIZADOS (FLECHA DE DISEÑO, TAMAÑOS Y ANCHOS) ===== */
 .select-wrapper {
   position: relative;
-  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  width: var(--select-w, var(--select-width, 100%));
+  max-width: 100%;
+  vertical-align: middle;
 }
 
-.select-wrapper::after {
-  content: "";
-  position: absolute;
-  right: 14px;
-  top: 50%;
-  width: 7px;
-  height: 7px;
-  border-right: 2px solid var(--text-muted);
-  border-bottom: 2px solid var(--text-muted);
-  transform: translateY(-50%) rotate(45deg);
-  pointer-events: none;
-  transition: all 0.2s ease;
-}
-
-.select-wrapper:hover::after,
-.select-wrapper:focus-within::after {
-  border-color: var(--primary);
-}
-
+/* Base Select: Se quita la flecha nativa por defecto y se inyecta la flecha personalizada Huella */
+select,
+.vork-select,
 .form-select-custom,
 .studio-select {
-  width: 100%;
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
-  background: rgba(10, 12, 18, 0.95);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  color: #ffffff;
-  padding: 12px 38px 12px 16px;
-  font-size: 0.9rem;
-  font-family: var(--font-sans);
+  font-family: var(--f-body);
+  font-size: 0.94rem;
   font-weight: 500;
-  outline: none;
+  line-height: 1.4;
+  color: var(--ink);
+  background-color: rgba(255, 255, 255, 0.92);
+  border: 1.5px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  height: 44px;
+  min-height: 44px;
+  padding: 10px 40px 10px 16px;
+  box-sizing: border-box;
+  width: var(--select-w, var(--select-width, 100%));
+  max-width: 100%;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  outline: none;
+  vertical-align: middle;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%231c1814' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 16px 16px;
+  transition: border-color 0.25s var(--ease), box-shadow 0.25s var(--ease), background-color 0.25s var(--ease), transform 0.2s var(--ease);
 }
 
+select:hover,
+.vork-select:hover,
 .form-select-custom:hover,
 .studio-select:hover {
-  border-color: var(--primary);
-  background: rgba(14, 18, 28, 0.98);
-  box-shadow: 0 0 12px rgba(0, 240, 255, 0.25);
+  border-color: var(--ink);
+  background-color: #ffffff;
 }
 
+select:focus,
+.vork-select:focus,
 .form-select-custom:focus,
 .studio-select:focus {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 2px rgba(0, 240, 255, 0.15), 0 0 16px rgba(0, 240, 255, 0.3);
-  background: rgba(20, 25, 40, 1);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px var(--accent-soft);
+  background-color: #ffffff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23ff7a3d' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
 }
 
-.form-select-custom optgroup,
-.studio-select optgroup {
-  background: #090c17;
-  color: var(--primary);
-  font-weight: 700;
-  padding: 6px 10px;
+input:disabled,
+textarea:disabled,
+select:disabled,
+.vork-select:disabled,
+.form-select-custom:disabled,
+.studio-select:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  background-color: rgba(28, 24, 20, 0.05);
+  border-color: var(--line);
 }
 
-.form-select-custom option,
-.studio-select option {
-  background: #0a0e1a;
-  color: #ffffff;
-  padding: 8px 12px;
+/* Modo Nocturno */
+body.is-dark select,
+body.is-dark .vork-select,
+body.is-dark .form-select-custom,
+body.is-dark .studio-select {
+  background-color: rgba(30, 25, 20, 0.92);
+  color: var(--ink);
+  border-color: var(--line-strong);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23f4ece1' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}
+
+body.is-dark select:hover,
+body.is-dark .vork-select:hover,
+body.is-dark .form-select-custom:hover,
+body.is-dark .studio-select:hover {
+  background-color: rgba(40, 32, 26, 0.98);
+  border-color: var(--muted);
+}
+
+body.is-dark select:focus,
+body.is-dark .vork-select:focus,
+body.is-dark .form-select-custom:focus,
+body.is-dark .studio-select:focus {
+  background-color: rgba(35, 28, 22, 1);
+  border-color: var(--accent);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23ff7a3d' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}
+
+/* Menú desplegable y opciones nativas */
+select option,
+select optgroup {
+  background-color: #ffffff;
+  color: #1c1814;
+  font-size: 0.95rem;
+  padding: 10px 14px;
+}
+body.is-dark select option,
+body.is-dark select optgroup {
+  background-color: #1f1a16;
+  color: #f4ece1;
+}
+
+/* --- TAMAÑOS: Pequeño, Mediano, Grande --- */
+/* 1. Pequeño (sm) */
+.select-sm,
+select.is-sm,
+.vork-select.select-sm,
+[data-size="sm"] select,
+select[data-size="sm"] {
+  height: 34px !important;
+  min-height: 34px !important;
+  padding: 5px 32px 5px 12px !important;
+  font-size: 0.82rem !important;
+  border-radius: var(--radius-pill) !important;
+  background-size: 13px 13px !important;
+  background-position: right 10px center !important;
+}
+
+/* 2. Mediano (md - valor estándar por defecto) */
+.select-md,
+select.is-md,
+.vork-select.select-md,
+[data-size="md"] select,
+select[data-size="md"] {
+  height: 46px !important;
+  min-height: 46px !important;
+  padding: 10px 40px 10px 16px !important;
+  font-size: 0.94rem !important;
+  border-radius: var(--radius-sm) !important;
+  background-size: 16px 16px !important;
+  background-position: right 14px center !important;
+  box-sizing: border-box !important;
+  vertical-align: middle !important;
+}
+
+/* 3. Grande (lg) */
+.select-lg,
+select.is-lg,
+.vork-select.select-lg,
+[data-size="lg"] select,
+select[data-size="lg"] {
+  height: 54px !important;
+  min-height: 54px !important;
+  padding: 14px 48px 14px 20px !important;
+  font-size: 1.08rem !important;
+  border-radius: var(--radius-md) !important;
+  background-size: 18px 18px !important;
+  background-position: right 18px center !important;
+}
+
+/* --- ANCHOS PERSONALIZABLES --- */
+/* Totalmente fluido / ancho completo (100%) */
+.select-w-full,
+.w-full,
+.select-full,
+.select-wrapper.select-w-full select,
+select.select-w-full {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Automático / ajustado al contenido */
+.select-w-auto,
+.w-auto,
+.select-auto,
+.select-wrapper.select-w-auto select,
+select.select-w-auto {
+  width: auto !important;
+}
+
+/* Anchuras preestablecidas escalables */
+.select-w-xs, select.select-w-xs { width: 140px !important; }
+.select-w-sm, select.select-w-sm { width: 200px !important; }
+.select-w-md, select.select-w-md { width: 280px !important; }
+.select-w-lg, select.select-w-lg { width: 380px !important; }
+.select-w-xl, select.select-w-xl { width: 480px !important; }
+
+/* Dropzone & File Uploaders */
+.dropzone, .upload-box, .file-drop-area {
+  border: 2px dashed rgba(28, 24, 20, 0.2);
+  border-radius: var(--radius);
+  padding: 44px 20px;
+  text-align: center;
+  background: rgba(255, 252, 247, 0.55);
+  cursor: pointer;
+  transition: all 0.3s var(--ease);
+}
+.dropzone:hover, .dropzone.dragover, .file-drop-area:hover {
+  border-color: var(--accent);
+  background: rgba(255, 122, 61, 0.05);
+  transform: scale(1.008);
+}
+
+/* Sliders */
+input[type="range"] {
+  accent-color: var(--accent);
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: rgba(28, 24, 20, 0.12);
+  outline: none;
 }

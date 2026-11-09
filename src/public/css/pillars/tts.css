@@ -1,0 +1,94 @@
+/* 18.3. TTS Studio & Acoustic Sliders */
+.range-group {
+  margin-bottom: 14px;
+}
+.range-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.82rem;
+  font-family: var(--f-mono);
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.range-val {
+  font-weight: 700;
+  color: var(--accent);
+}
+.studio-slider {
+  width: 100%;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.studio-equalizer-box {
+  background: var(--card-solid);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  margin: 12px 0 16px;
+}
+body.is-dark .studio-equalizer-box {
+  background: rgba(20, 17, 14, 0.8);
+}
+.eq-status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.eq-status-badge {
+  font-family: var(--f-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: var(--radius-xs);
+  background: rgba(28, 24, 20, 0.08);
+  color: var(--muted);
+}
+body.is-dark .eq-status-badge {
+  background: rgba(244, 236, 225, 0.1);
+  color: var(--muted-light);
+}
+.eq-status-badge.active {
+  background: var(--teal-soft);
+  color: var(--teal);
+}
+.eq-bars-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 38px;
+  padding: 2px 0;
+}
+.eq-bar {
+  flex: 1;
+  background: var(--line-strong);
+  border-radius: 2px;
+  height: 4px;
+  transition: height 0.15s ease, background-color 0.2s ease;
+}
+.eq-bars-row.animating .eq-bar {
+  background: var(--accent);
+  animation: eqPulse 0.8s ease-in-out infinite alternate;
+}
+.eq-bars-row.animating .eq-bar:nth-child(2n) { animation-delay: 0.1s; }
+.eq-bars-row.animating .eq-bar:nth-child(3n) { animation-delay: 0.2s; }
+.eq-bars-row.animating .eq-bar:nth-child(4n) { animation-delay: 0.3s; }
+.eq-bars-row.animating .eq-bar:nth-child(5n) { animation-delay: 0.15s; }
+@keyframes eqPulse {
+  0% { height: 4px; }
+  100% { height: 32px; }
+}
+.audio-actions-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+@media (max-width: 600px) {
+  .audio-actions-row {
+    flex-wrap: wrap;
+  }
+}
+.btn-filter-voice {
+  transition: all 0.2s ease;
+}

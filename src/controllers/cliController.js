@@ -125,7 +125,9 @@ exports.getInstallCmd = (req, res) => {
  * Sirve el icono oficial de Vork CLI (.ico) para ventanas y terminales
  */
 exports.getVorkIco = (req, res) => {
-  const filePath = path.join(__dirname, "..", "public", "img", "logo.ico");
+  const brandPath = path.join(__dirname, "..", "public", "img", "brand", "logo.ico");
+  const rootPath = path.join(__dirname, "..", "public", "img", "logo.ico");
+  const filePath = fs.existsSync(brandPath) ? brandPath : rootPath;
   if (!fs.existsSync(filePath)) {
     return res.status(404).send("Icono no encontrado");
   }

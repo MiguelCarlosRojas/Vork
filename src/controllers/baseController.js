@@ -3,6 +3,7 @@
  * Endpoints base de salud, ping, idiomas y documentación interactiva.
  */
 const path = require("path");
+const fs = require("fs");
 const { STATUS_CODES, POPULAR_LANGUAGES } = require("../config/config");
 const { PILLARS, API_ENDPOINTS } = require("../constants/pillars");
 const { translationService } = require("../services");
@@ -87,7 +88,9 @@ exports.getRootOverview = (req, res) => {
  */
 exports.getApiOverview = (req, res) => {
   if (req.accepts("html")) {
-    return res.sendFile(path.join(__dirname, "..", "public", "api.html"));
+    const apiPath = path.join(__dirname, "..", "public", "views", "portal", "api.html");
+    const fallbackPath = path.join(__dirname, "..", "public", "api.html");
+    return res.sendFile(fs.existsSync(apiPath) ? apiPath : fallbackPath);
   }
   res.json({
     platform: "Vork",

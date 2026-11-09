@@ -1,225 +1,349 @@
-/* ==========================================================================
-   Media Queries & Adaptabilidad Total (Mobile, Tablet, Desktop, Ultrawide)
-   ========================================================================== */
+/* ===== 15. RESPONSIVE DESIGN MULTIPLATAFORMA (MÓVILES, TABLETS, LAPTOPS & PANTALLAS GRANDES) ===== */
 
-/* Tablet & Pantallas Medianas (<= 1024px) */
+/* Compatibilidad táctil, notch y safe-areas en iOS (Safari) y Android (Chrome) */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  overflow-x: hidden;
+  width: 100%;
+  min-width: 320px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+button, a, select, input {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 1. Pantallas Medianas & Laptops / Tablets Landscape (<= 1200px) */
+@media (max-width: 1200px) {
+  .nav-container, .header-inner-full {
+    max-width: 96%;
+  }
+  .services-grid {
+    grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+    gap: 20px;
+  }
+}
+
+/* 2. Tablets en Retrato & iPads (<= 1024px) */
 @media (max-width: 1024px) {
-  .desktop-nav,
-  .nav-links-full {
-    display: none !important;
-  }
-
-  .toolbar-controls,
-  .translation-controls-full {
-    display: none !important;
-  }
-
-  .menu-toggle-btn {
-    display: flex !important;
-  }
-
-  .docs-sidebar {
-    width: 310px;
-    min-width: 310px;
-    padding: 0 0 28px 0;
-  }
-
-  .docs-sidebar-header {
-    padding: 20px 18px 16px 18px;
-  }
-
-  .docs-sidebar-nav {
-    padding: 12px 14px 28px 14px;
-  }
-
-  .docs-main-content {
-    padding: 28px 24px;
-  }
-
-  .hero-split {
-    flex-direction: column;
-    text-align: center;
-  }
-
-  .hero-actions {
-    justify-content: center;
-  }
-}
-
-/* Móvil y Tablets Compactas (<= 860px) */
-@media (max-width: 860px) {
-  .desktop-nav,
-  .nav-links-full {
-    display: none !important;
-  }
-
-  .toolbar-controls,
-  .translation-controls-full {
-    display: none !important;
-  }
-
-  .menu-toggle-btn {
-    display: flex !important;
-  }
-
-  .studio-controls-row {
-    grid-template-columns: 1fr;
-  }
-
-  .audio-actions-row {
-    flex-wrap: wrap;
-  }
-
-  .audio-actions-row .btn {
-    flex: 1 1 100% !important;
-  }
-
-  /* Documentación en Móvil: Sidebar se transforma en Índice Desplegable */
-  .docs-layout-container {
-    flex-direction: column;
-    height: auto;
-    max-height: none;
-    overflow: visible;
-  }
-
-  .docs-sidebar {
-    display: none; /* Se oculta para dar 100% de espacio al contenido y permitir scroll fluido */
-  }
-
-  .docs-mobile-toc-bar {
-    display: block;
-  }
-
-  .docs-main-content {
-    padding: 20px 16px 0 16px;
-    width: 100%;
-    min-width: 0;
-    height: auto;
-    max-height: none;
-    overflow-y: visible;
-  }
-
-  
-
-  .docs-section,
-  .docs-subsection {
-    scroll-margin-top: 80px;
-  }
-
-  .cards-full-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .footer-inner-full {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 32px;
-  }
-
-  .footer-col-brand {
-    grid-column: 1 / -1;
-    max-width: 100%;
-  }
-
-  .footer-bottom-full {
-    flex-direction: column;
-    text-align: center;
-    gap: 10px;
-  }
-}
-
-/* Móviles y Pantallas Angostas (<= 640px) */
-@media (max-width: 640px) {
-  .hero-split-media {
+  .desktop-nav {
     display: none;
   }
-
-  .platform-chips-container {
-    gap: 8px;
+  .menu-toggle-btn {
+    display: flex;
   }
-
-  .platform-chip {
-    flex: 1 1 calc(50% - 8px);
-    height: 40px;
-    padding: 8px 12px;
-    font-size: 0.82rem;
+  .services-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
   }
-}
-
-/* Móviles Compactos (<= 520px) */
-@media (max-width: 520px) {
   .footer-inner-full {
-    grid-template-columns: 1fr;
-    gap: 26px;
+    grid-template-columns: 1fr 1fr;
+    gap: 36px;
+  }
+  .workbench-card, .content-box {
+    padding: 32px 24px;
   }
 }
 
-/* Móviles Pequeños (<= 480px) */
-@media (max-width: 480px) {
+/* 3. Phablets & Móviles en Horizontal (<= 768px) */
+@media (max-width: 768px) {
+  .top-nav {
+    top: calc(8px + env(safe-area-inset-top, 0px));
+    padding: 0 10px;
+  }
   .nav-container {
-    padding: 0 14px;
-    min-height: 58px;
+    padding: 6px 14px;
+  }
+  .brand-subtitle {
+    display: none;
+  }
+  .toolbar-controls .custom-lang-group {
+    display: none;
+  }
+  .toolbar-controls .btn-english {
+    display: none;
+  }
+  
+  .hero, .hero-section {
+    padding: 32px 16px 24px;
+  }
+  .h-display, .hero-title {
+    font-size: clamp(2.1rem, 6.8vw, 3.4rem);
+    letter-spacing: -0.035em;
+    margin-bottom: 18px;
+  }
+  .lead, .hero-subtitle {
+    font-size: clamp(0.98rem, 2.2vw, 1.15rem);
+    margin-bottom: 24px;
+  }
+  .hero-ctas {
+    gap: 12px;
+    margin-bottom: 26px;
+  }
+  .hero-ctas .btn {
+    min-width: 180px;
   }
 
-  .brand-logo {
-    font-size: 0.95rem;
-    gap: 8px;
+  .services-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 0 12px;
+  }
+  .section-head {
+    margin: 0 auto 32px;
+    padding: 0 12px;
+  }
+  .workbench-wrap {
+    padding: 0 12px;
+    margin: 24px auto;
+  }
+  .footer-inner-full {
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+    padding: 0 16px;
   }
 
-  .brand-img {
-    width: 32px;
-    height: 32px;
+  /* Adaptaciones de Estudio para Tablets y Móviles (Pilar 01 a 09) */
+  .studio-grid {
+    grid-template-columns: 1fr !important;
+    gap: 18px !important;
   }
-
-  .brand-badge {
-    font-size: 0.62rem;
-    padding: 2px 6px;
+  .studio-controls-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
   }
-
-  .hero-full {
-    padding: 28px 18px;
-    border-radius: var(--radius-lg);
+  .studio-control-col {
+    width: 100% !important;
+    min-width: 100% !important;
   }
-
-  .hero-full h1 {
-    font-size: 1.75rem;
+  .studio-control-col select,
+  .studio-control-col input,
+  .studio-control-col .select-wrapper,
+  .studio-control-col .btn {
+    width: 100% !important;
   }
-
+  .audio-actions-row, .action-btns-row {
+    flex-direction: column !important;
+    width: 100% !important;
+    gap: 10px !important;
+  }
+  .audio-actions-row .btn, .action-btns-row .btn {
+    width: 100% !important;
+    flex: none !important;
+  }
+  .hero-split {
+    grid-template-columns: 1fr !important;
+    text-align: center;
+    gap: 24px;
+  }
   .hero-actions {
     flex-direction: column;
     width: 100%;
+    max-width: 320px;
+    margin: 0 auto;
+    gap: 10px;
   }
-
   .hero-actions .btn {
     width: 100%;
   }
+}
 
-  .metrics-row {
-    grid-template-columns: 1fr 1fr;
+/* 4. Teléfonos Móviles Estándar (Android, iOS iPhone) (<= 560px) */
+@media (max-width: 560px) {
+  .top-nav {
+    top: calc(6px + env(safe-area-inset-top, 0px));
+    padding: 0 8px;
+  }
+  .nav-container {
+    padding: 5px 10px;
+    gap: 6px;
+  }
+  .brand-group {
+    gap: 6px;
+  }
+  .brand-title {
+    font-size: 1.3rem;
+  }
+  .badge-brand {
+    display: none;
+  }
+  .toolbar-controls {
+    gap: 6px;
+  }
+  #btn-restore span {
+    display: none;
+  }
+  #btn-restore {
+    padding: 6px 8px !important;
+    min-width: 32px;
+  }
+  #status-pill span:not(.pulse) {
+    display: none;
+  }
+  #status-pill {
+    padding: 6px 8px !important;
+  }
+  #select-lang {
+    width: 104px !important;
+    min-width: 98px !important;
+    font-size: 0.76rem !important;
+    padding: 4px 20px 4px 8px !important;
   }
 
-  .code-panel {
-    font-size: 0.75rem;
-    padding: 12px;
+  .hero-ctas {
+    flex-direction: column;
+    width: 100%;
+    max-width: 340px;
+    gap: 10px;
+  }
+  .hero-ctas .btn {
+    width: 100%;
+    justify-content: center;
+    font-size: 0.94rem;
+    padding: 12px 18px;
   }
 
-  .studio-panel {
-    padding: 18px 14px;
+  .trust {
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 18px;
+    width: 100%;
+    max-width: 300px;
+  }
+  .trust .avatars {
+    margin: 0 auto;
   }
 
-  .voice-tab-btn {
-    padding: 8px 10px;
-    font-size: 0.76rem;
+  .card, .pillar-card {
+    padding: 24px 18px;
+    border-radius: 20px;
+  }
+  .card-top {
+    margin-bottom: 16px;
+  }
+  .card h3 {
+    font-size: 1.28rem;
+  }
+
+  .workbench-card, .content-box, .studio-wrapper, .content-box-card {
+    padding: 20px 16px !important;
+    border-radius: var(--radius-md) !important;
+    margin-bottom: 24px;
+  }
+  .h-section {
+    font-size: clamp(1.6rem, 5.5vw, 2.2rem);
+  }
+
+  .demo-target-wrap {
+    flex-wrap: wrap;
+  }
+  .demo-target-wrap select {
+    width: 100% !important;
+  }
+  .demo-target-wrap #btn-run-demo {
+    width: 100% !important;
+  }
+
+  /* Consola Terminal Vork CLI Responsive */
+  .vork-terminal-bar {
+    padding: 8px 12px;
+  }
+  .vork-terminal-bar-left {
+    gap: 10px;
+  }
+  .vork-terminal-body {
+    padding: 12px 14px;
+    gap: 8px;
+  }
+  .vork-terminal-prompt {
+    font-size: 0.85rem;
+  }
+  #cli-install-cmd {
+    font-size: 0.82rem !important;
+    white-space: nowrap !important;
+    word-break: normal !important;
+    display: inline-block;
+    width: auto;
+  }
+  #btn-copy-install, .btn-terminal-copy, .btn-copy {
+    width: auto !important;
+    padding: 5px 12px !important;
+    height: 32px !important;
+    font-size: 0.76rem !important;
+  }
+
+  .cli-cmd-box {
+    padding: 14px 14px !important;
+    gap: 10px !important;
+  }
+
+  .footer-inner-full {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+  .footer-bottom-full {
+    flex-direction: column;
+    text-align: left;
+    gap: 12px;
+    padding: 20px 0 0;
   }
 }
 
-/* Pantallas Ultra Estrechas (<= 360px) */
-@media (max-width: 360px) {
-  .brand-badge {
+/* 5. Pantallas Ultra-Compactas (<= 375px: iPhone SE, pequeños Androids) */
+@media (max-width: 375px) {
+  .h-display, .hero-title {
+    font-size: 1.95rem;
+  }
+  .lead, .hero-subtitle {
+    font-size: 0.94rem;
+  }
+  #select-lang {
+    width: 92px !important;
+    min-width: 88px !important;
+    font-size: 0.72rem !important;
+    padding: 4px 18px 4px 6px !important;
+  }
+  .nav-container {
+    padding: 4px 6px;
+  }
+  .card, .pillar-card {
+    padding: 20px 14px;
+  }
+  .vork-terminal-title span {
     display: none;
   }
+  #cli-install-cmd {
+    font-size: 0.78rem !important;
+  }
+}
 
-  .brand-logo {
-    font-size: 0.88rem;
+/* 6. Pantallas Panorámicas Ultra-Anchas (>= 1440px: iMac, Monitores 2K/4K) */
+@media (min-width: 1440px) {
+  .nav-container, .header-inner-full {
+    max-width: 1320px;
+  }
+  .hero, .hero-section {
+    max-width: 1320px;
+  }
+  .services-grid {
+    max-width: 1320px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 28px;
+  }
+  .workbench-wrap {
+    max-width: 1320px;
+  }
+  .footer-inner-full,
+  .footer-bottom-full {
+    max-width: 1320px;
   }
 }

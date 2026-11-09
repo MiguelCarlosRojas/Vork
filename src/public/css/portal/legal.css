@@ -1,0 +1,330 @@
+/* ===== 17. INFO / LEGAL / DOCS / STATUS / DONATE PAGES ===== */
+
+/* Contenedor de páginas informativas: mismo ancho que el héroe */
+.full-container,
+main.full-container {
+  width: 100% !important;
+  max-width: 1260px !important;
+  margin: 0 auto !important;
+  padding: clamp(12px, 2.5vw, 28px) clamp(16px, 4vw, 40px) 20px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px !important;
+  box-sizing: border-box !important;
+}
+
+#pilares {
+  max-width: 1220px !important;
+  width: 100% !important;
+  margin: 28px auto 0 auto !important;
+}
+#pilares .services-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)) !important;
+  gap: 20px !important;
+  max-width: 1180px !important;
+  margin: 0 auto !important;
+  width: 100% !important;
+}
+#pilares .card {
+  width: 100% !important;
+  max-width: 360px !important;
+  margin: 0 auto !important;
+  padding: 24px 22px !important;
+  min-height: auto !important;
+  box-sizing: border-box !important;
+}
+
+.cards-full-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)) !important;
+  gap: 20px !important;
+  max-width: 1180px !important;
+  margin: 22px auto !important;
+  width: 100% !important;
+}
+.tech-card {
+  max-width: 360px !important;
+  margin: 0 auto !important;
+  width: 100% !important;
+  padding: 22px 20px !important;
+  box-sizing: border-box !important;
+}
+
+.section-full-title-wide {
+  width: 100% !important;
+  max-width: 100% !important;
+  text-align: left;
+  margin-bottom: 32px;
+}
+.section-full-title-wide p {
+  width: 100% !important;
+  max-width: 100% !important;
+  font-size: 1.05rem;
+  color: var(--muted);
+  margin-top: 8px;
+  line-height: 1.6;
+}
+
+.full-container > .hero-full {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+.full-container > .content-box-card,
+.full-container > .telemetry-board,
+.full-container > .studio-wrapper,
+.full-container > section {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+.full-container > section .section-full-title {
+  margin-top: 8px;
+  margin-bottom: 28px;
+  text-align: left;
+  max-width: none;
+  padding: 0;
+}
+
+.full-container > section .section-full-title h2 {
+  font-size: clamp(1.45rem, 3vw, 2rem);
+}
+
+.full-container > section .section-full-title p {
+  font-size: 0.98rem;
+  max-width: 720px;
+}
+
+/* Tipografía y ritmo interno de las tarjetas de contenido */
+.content-box-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.content-box-card > .tech-card-tag {
+  margin-bottom: 10px;
+}
+
+.content-box-card > h2 {
+  font-family: var(--f-display);
+  font-size: clamp(1.28rem, 2.6vw, 1.65rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  margin: 0 0 14px 0;
+  line-height: 1.25;
+}
+
+.content-box-card > p,
+.content-box-card .content-block > p {
+  color: var(--muted);
+  font-size: 0.98rem;
+  line-height: 1.7;
+  margin: 0 0 14px 0;
+}
+
+.content-box-card > p:last-child,
+.content-box-card .content-block > p:last-child {
+  margin-bottom: 0;
+}
+
+.content-box-card ul,
+.content-box-card ol {
+  margin: 4px 0 0 0;
+  padding-left: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 0.96rem;
+  line-height: 1.65;
+}
+
+.content-box-card li strong {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.content-box-card a:not(.btn) {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.content-box-card a:not(.btn):hover {
+  color: var(--accent-hover);
+}
+
+.content-subheading,
+.content-box-card h3 {
+  font-family: var(--f-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 22px 0 8px 0;
+  line-height: 1.35;
+}
+
+.content-box-card h3:first-of-type {
+  margin-top: 16px;
+}
+
+.content-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+/* Bloques FAQ / troubleshooting */
+.faq-item,
+.content-block {
+  padding: 18px 0;
+  border-top: 1px solid var(--line);
+}
+
+.faq-item:first-of-type,
+.content-block:first-of-type {
+  margin-top: 8px;
+}
+
+.faq-item h3,
+.content-block h3 {
+  margin-top: 0;
+  margin-bottom: 8px;
+}
+
+.faq-item p,
+.content-block p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.65;
+}
+
+.pillar-block {
+  margin-top: 8px;
+  padding: 20px 0 4px;
+  border-top: 1px solid var(--line);
+}
+
+.pillar-block .pillar-tag {
+  display: inline-block;
+  margin-bottom: 12px;
+}
+
+.pillar-block .faq-item {
+  border-top: none;
+  padding: 10px 0 14px;
+}
+
+.pillar-block .faq-item + .faq-item {
+  border-top: 1px solid var(--line);
+  margin-top: 4px;
+  padding-top: 16px;
+}
+
+/* Tablas de docs / endpoints */
+.table-responsive,
+.table-responsive-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  margin: 16px 0 4px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  -webkit-overflow-scrolling: touch;
+  background: var(--card-solid);
+}
+
+.docs-table,
+.endpoints-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+  text-align: left;
+  margin: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+
+.docs-table th,
+.endpoints-table th {
+  background: rgba(28, 24, 20, 0.04);
+  color: var(--ink);
+  padding: 12px 16px;
+  font-weight: 700;
+  border-bottom: 1px solid var(--line);
+  font-family: var(--f-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.docs-table td,
+.endpoints-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  vertical-align: top;
+}
+
+.docs-table tr:last-child td,
+.endpoints-table tr:last-child td {
+  border-bottom: none;
+}
+
+.badge-method {
+  font-family: var(--f-mono);
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
+  display: inline-block;
+}
+
+.badge-post {
+  background: rgba(56, 189, 248, 0.12);
+  color: #0284c7;
+  border: 1px solid rgba(56, 189, 248, 0.28);
+}
+
+.badge-get {
+  background: rgba(34, 176, 160, 0.12);
+  color: #0f766e;
+  border: 1px solid rgba(34, 176, 160, 0.28);
+}
+
+body.is-dark .badge-post {
+  color: #38bdf8;
+}
+
+body.is-dark .badge-get {
+  color: #34d399;
+}
+
+/* Code boxes: header + panel deben ir juntos */
+.content-box-card > .code-box-header {
+  margin-top: 16px;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 0;
+  padding: 10px 16px;
+}
+
+.content-box-card > .code-box-header + .code-panel,
+.content-box-card > .code-box-header + pre.code-panel {
+  margin-top: 0;
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+}
+
+.content-box-card .code-box-wrapper {
+  margin: 16px 0 4px;
+}

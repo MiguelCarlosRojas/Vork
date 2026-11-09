@@ -1,0 +1,42 @@
+/* ===== 8. CONTINUOUS MARQUEE BAND (HUELLA SIGNATURE) ===== */
+.marquee-band {
+  width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  padding: 16px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: rgba(255, 252, 247, 0.55);
+  margin: 40px 0 70px;
+}
+body.is-dark .marquee-band {
+  background: rgba(30, 25, 20, 0.6);
+}
+
+.marquee-track {
+  display: inline-flex;
+  gap: 36px;
+  animation: marqueeRoll 28s linear infinite;
+}
+
+.marquee-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 28px;
+  font-family: var(--f-display);
+  font-weight: 700;
+  font-size: 0.96rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.marquee-item span.dot {
+  color: var(--accent);
+  font-size: 1.2rem;
+}
+
+@keyframes marqueeRoll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}

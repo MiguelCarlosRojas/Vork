@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+  <meta name="theme-color" content="#11141a">
+  <title>Vork TTS | Voz Neuronal y Síntesis de Texto a Voz con Vork</title>
+  <meta name="description" content="Vork TTS: genera locución hiperrealista con IA. Convierte texto a voz con Vork, modula tono, velocidad y descarga audio en MP3 y WAV.">
+  <meta name="keywords" content="Vork TTS, vork tts, Texto a voz con Vork, Vork Voz Neuronal, voz neuronal vork, sintetizador de voz vork, vork text to speech, voces realistas vork">
+  <link rel="canonical" href="https://vork-st1k.onrender.com/tts">
+
+  <!-- Open Graph -->
+  <meta property="og:site_name" content="Vork">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://vork-st1k.onrender.com/tts">
+  <meta property="og:title" content="Vork TTS | Voz Neuronal y Texto a Voz">
+  <meta property="og:description" content="Convierte texto en locución fluida y natural con voces humanas, ecualizador visual y descarga de audio directo.">
+  <meta property="og:image" content="https://vork-st1k.onrender.com/img/brand/logo.png">
+  <meta property="og:locale" content="es_ES">
+
+  <!-- Twitter Cards -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Vork TTS | Voz Neuronal y Texto a Voz">
+  <meta name="twitter:description" content="Síntesis de voz con entonación natural y soporte multilingüe en tiempo real.">
+  <meta name="twitter:image" content="https://vork-st1k.onrender.com/img/brand/logo.png">
+
+  <!-- Favicons y Manifest -->
+  <link rel="icon" type="image/png" sizes="192x192" href="/img/brand/logo.png">
+  <link rel="icon" type="image/png" sizes="64x64" href="/img/brand/logo.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/img/brand/logo.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/img/brand/logo.png">
+  <link rel="manifest" href="/manifest.json">
+  <!-- Compatibilidad Universal de Navegadores (Chrome, Safari, Edge, Firefox, Opera GX, Brave) -->
+  <meta name="application-name" content="Vork">
+  <meta name="apple-mobile-web-app-title" content="Vork">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="msapplication-TileColor" content="#11141a">
+  <meta name="msapplication-TileImage" content="/img/brand/logo.png">
+  <link rel="search" type="application/opensearchdescription+xml" title="Vork" href="/opensearch.xml">
+
+  <!-- Tipografías y Estilos -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+
+  <!-- Datos Estructurados JSON-LD -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebApplication",
+        "@id": "https://vork-st1k.onrender.com/tts#app",
+        "name": "Vork TTS",
+        "alternateName": [
+          "vork tts",
+          "Vork TTS",
+          "Vork Voz Neuronal",
+          "Texto a voz con Vork",
+          "Vork Text to Speech",
+          "Sintetizador Vork"
+        ],
+        "keywords": "Vork TTS, vork tts, Texto a voz con Vork, Vork Voz Neuronal, sintetizador de voz vork",
+        "url": "https://vork-st1k.onrender.com/tts",
+        "applicationCategory": "MultimediaApplication",
+        "operatingSystem": "All",
+        "browserRequirements": "Requires JavaScript. Requires HTML5 Audio.",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
+        "description": "Estudio de síntesis vocal neuronal que genera locución de alta calidad a partir de texto con control de parámetros prosódicos.",
+        "featureList": [
+          "Múltiples voces y timbres neuronales",
+          "Ajuste de velocidad, tono y volumen",
+          "Visualizador espectral interactivo",
+          "Descarga de archivos de audio MP3 y WAV"
+        ]
+      },
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Inicio",
+            "item": "https://vork-st1k.onrender.com/"
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Voz Neuronal TTS",
+            "item": "https://vork-st1k.onrender.com/tts"
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+
+  <script>
+    (function(){try{var m=document.cookie.match(/(?:^|; )vork_lang=([^;]*)/);var l=m?decodeURIComponent(m[1]):null;if(l&&l!=="original"&&l!=="es"){document.documentElement.classList.add("ct-pending");setTimeout(function(){document.documentElement.classList.remove("ct-pending");},800);}}catch(e){}})();
+  </script>
+    <link rel="stylesheet" href="/css/pillars/tts.css">
+  <script src="/js/spa-router.js" defer></script>
+  <script src="/js/ui.js" defer></script>
+</head>
+<body>
+
+  <!-- Textura de grano sutil Huella -->
+  <div class="grain" aria-hidden="true"></div>
+
+
+  <!-- Barra Superior -->
+  <header id="header-placeholder" data-component="header" data-active="tts"></header>
+
+  <main class="full-container">
+
+    <!-- Hero del Pilar 2 -->
+    <section class="hero-full">
+      <div class="hero-split">
+        <div class="hero-split-content">
+          <span class="label">Pilar 02 · Texto a Voz Neuronal</span>
+          <h1 class="h-section">Síntesis vocal hiperrealista con 24 voces y <em>alta fidelidad</em>.</h1>
+          <p class="lead" style="text-align: left; margin: 0;">
+            Convierte textos masivos en habla fluida en una sola llamada HTTP optimizada, modula tono y velocidad con decodificación directa en memoria RAM y descarga audios limpios en formato MP3 sin marcas de agua.
+          </p>
+          <div class="hero-actions">
+            <a href="#tts-studio" class="btn btn-primary">Iniciar Síntesis de Voz</a>
+            <a href="/api#api-post-tts" class="btn btn-outline">Probar en API REST</a>
+            <a href="/docs#session-tts" class="btn btn-outline">Docs Técnicos</a>
+          </div>
+        </div>
+
+        <div class="hero-split-media">
+          <div class="hero-logo-wrapper">
+            <div class="hero-logo-glow" style="background: radial-gradient(circle, rgba(0, 240, 255, 0.4) 0%, rgba(168, 85, 247, 0.25) 60%, transparent 80%);"></div>
+            <img src="/img/heroes/tts-hero.png" alt="Vork Síntesis Vocal TTS" class="hero-media-img" width="290" height="290">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ESTUDIO TTS INTERACTIVO -->
+    <section id="tts-studio" class="studio-wrapper">
+      <div class="studio-header">
+        <div class="studio-title-box">
+          <h2>
+            <svg class="icon" viewBox="0 0 24 24" style="color: var(--primary);"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+            Consola de Síntesis Vocal
+          </h2>
+          <p>Escribe tu mensaje, elige la voz deseada y haz clic en Reproducir para escuchar al instante.</p>
+        </div>
+        <span class="pillar-tag" style="background: rgba(255, 122, 61, 0.12); color: var(--primary); border-color: rgba(255, 122, 61, 0.3);">MOTOR ACTIVO // WEB SPEECH + NEURAL PCM</span>
+      </div>
+
+      <div class="studio-grid">
+        <!-- Editor de Texto -->
+        <div class="studio-panel">
+          <div class="studio-label">
+            <span>TEXTO A SINTETIZAR</span>
+            <span id="tts-char-count">108 caracteres</span>
+          </div>
+          <textarea id="tts-input-text" class="studio-textarea" placeholder="Escribe aquí el texto que deseas escuchar...">¡Hola! Bienvenido a Vork. Ahora puedes generar audio natural en varios idiomas con solo escribir tu texto.</textarea>
+
+          <div class="studio-controls-row">
+            <div class="studio-control-col">
+              <label for="tts-lang-select" style="display: block; font-size: 0.78rem; font-family: var(--font-mono); color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase;">IDIOMA</label>
+              <div class="select-wrapper">
+                <select id="tts-lang-select" class="form-select-custom select-md select-w-full">
+                  <option value="es-ES">Español (España / América)</option>
+                  <option value="en-US">English (United States)</option>
+                  <option value="en-GB">English (United Kingdom)</option>
+                  <option value="fr-FR">Français (France)</option>
+                  <option value="de-DE">Deutsch (Deutschland)</option>
+                  <option value="it-IT">Italiano (Italia)</option>
+                  <option value="pt-BR">Portugués (Brasil)</option>
+                  <option value="ja-JP">日本語 (Japón)</option>
+                  <option value="zh-CN">中文 (Mandarín)</option>
+                  <option value="ru-RU">Русский (Rusia)</option>
+                  <option value="ko-KR">한국어 (Corea)</option>
+                  <option value="ar-XA">العربية (Árabe)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="studio-control-col">
+              <label for="tts-voice-select" style="display: block; font-size: 0.78rem; font-family: var(--font-mono); color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase;">VOZ</label>
+              <div class="select-wrapper">
+                <select id="tts-voice-select" class="form-select-custom select-md select-w-full">
+                  <option value="default">Cargando catálogo neural...</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel de Modulación y Reproductor -->
+        <div class="studio-panel">
+          <div class="studio-label">
+            <span>MODULACIÓN ACÚSTICA</span>
+            <span>PROSODIA</span>
+          </div>
+
+          <div class="range-group">
+            <div class="range-header">
+              <span>Velocidad de Habla (Rate)</span>
+              <span id="tts-rate-val" class="range-val">1.0x</span>
+            </div>
+            <input type="range" id="tts-rate-slider" min="0.5" max="2.0" step="0.1" value="1.0" class="studio-slider">
+          </div>
+
+          <div class="range-group">
+            <div class="range-header">
+              <span>Tono Acústico (Pitch)</span>
+              <span id="tts-pitch-val" class="range-val">1.0</span>
+            </div>
+            <input type="range" id="tts-pitch-slider" min="0.5" max="2.0" step="0.1" value="1.0" class="studio-slider">
+          </div>
+
+          <!-- Ecualizador de Ondas -->
+          <div class="studio-equalizer-box">
+            <div class="eq-status-row">
+              <span id="tts-status-label" class="eq-status-badge">LISTO</span>
+              <span id="tts-time-label" style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted);">00:00</span>
+            </div>
+            <div id="tts-bars-container" class="eq-bars-row">
+              <div class="eq-bar"></div><div class="eq-bar"></div><div class="eq-bar"></div>
+              <div class="eq-bar"></div><div class="eq-bar"></div><div class="eq-bar"></div>
+              <div class="eq-bar"></div><div class="eq-bar"></div><div class="eq-bar"></div>
+              <div class="eq-bar"></div><div class="eq-bar"></div><div class="eq-bar"></div>
+              <div class="eq-bar"></div><div class="eq-bar"></div><div class="eq-bar"></div>
+              <div class="eq-bar"></div>
+            </div>
+          </div>
+
+          <!-- Botones de Acción -->
+          <div class="audio-actions-row">
+            <button id="tts-btn-play" class="btn btn-primary" style="flex: 1.5; padding: 12px 18px; font-weight: 700;">
+              <svg class="icon" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              Reproducir
+            </button>
+            <button id="tts-btn-pause" class="btn btn-outline" style="flex: 1; padding: 12px 14px;">
+              <svg class="icon" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+              Pausar
+            </button>
+            <button id="tts-btn-stop" class="btn btn-outline" style="flex: 1; padding: 12px 14px;">
+              <svg class="icon" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16"/></svg>
+              Detener
+            </button>
+          </div>
+
+          <!-- Acciones de Descarga y Compartir -->
+          <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px;">
+            <button id="tts-btn-download" class="btn btn-primary" style="padding: 10px 18px; font-weight: 700; display: inline-flex; align-items: center; gap: 8px;">
+              <svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Descargar
+            </button>
+            <button id="tts-btn-copy-stream" class="btn btn-outline" style="padding: 10px 16px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
+              <svg class="icon" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+              Copiar Enlace Directo
+            </button>
+          </div>
+          <audio id="backend-audio-player" preload="auto" style="display: none;"></audio>
+        </div>
+      </div>
+    </section>
+
+    <!-- Catálogo de Voces Humanas Reales (24 Voces Disponibles) -->
+    <section class="content-box-card" id="catalog-section">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; margin-bottom: 20px;">
+        <div>
+          <span class="tech-card-tag">[ VOICES_ECOSYSTEM // 24_REAL_HUMANS ]</span>
+          <h2 style="margin: 6px 0 4px;">Catálogo de Voces Humanas Reales</h2>
+          <p style="color: var(--muted); margin: 0; font-size: 0.95rem;">Voces acústicas con acentos auténticos, prosodia natural y articulación cristalina en más de 10 idiomas.</p>
+        </div>
+        <div id="catalog-filters" style="display: flex; gap: 6px; flex-wrap: wrap;">
+          <button class="btn btn-primary btn-filter-voice active" data-filter="all" style="padding: 6px 12px; font-size: 0.74rem;">Todas</button>
+          <button class="btn btn-outline btn-filter-voice" data-filter="es" style="padding: 6px 12px; font-size: 0.74rem;">Español</button>
+          <button class="btn btn-outline btn-filter-voice" data-filter="en" style="padding: 6px 12px; font-size: 0.74rem;">English</button>
+          <button class="btn btn-outline btn-filter-voice" data-filter="fr" style="padding: 6px 12px; font-size: 0.74rem;">Français</button>
+          <button class="btn btn-outline btn-filter-voice" data-filter="de" style="padding: 6px 12px; font-size: 0.74rem;">Deutsch</button>
+          <button class="btn btn-outline btn-filter-voice" data-filter="it" style="padding: 6px 12px; font-size: 0.74rem;">Italiano</button>
+          <button class="btn btn-outline btn-filter-voice" data-filter="pt" style="padding: 6px 12px; font-size: 0.74rem;">Português</button>
+          <button class="btn btn-outline btn-filter-voice" data-filter="ja" style="padding: 6px 12px; font-size: 0.74rem;">日本語</button>
+        </div>
+      </div>
+
+      <div id="voices-cards-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-top: 20px;">
+        <div style="grid-column: 1 / -1; padding: 20px; text-align: center; color: var(--muted);">
+          Cargando catálogo de 24 voces humanas desde el backend...
+        </div>
+      </div>
+    </section>
+
+    <!-- Documentación de Endpoint REST: Conecta Vork a tu Aplicación -->
+        <!-- VENTAJAS Y ARQUITECTURA DEL MOTOR -->
+    <section id="arquitectura-motor">
+      <div class="section-full-title-wide">
+        <span class="label">Ingeniería &amp; Rendimiento</span>
+        <h2 style="font-size: clamp(1.8rem, 3.5vw, 2.5rem); margin: 6px 0 10px 0;">Ventajas y Arquitectura del Motor</h2>
+        <p>Por qué la síntesis neuronal de Vork ofrece entonación humana natural, respuesta en tiempo real y descarga física en alta resolución.</p>
+      </div>
+
+      <div class="cards-full-grid">
+        <!-- 01 -->
+        <div class="tech-card">
+          <span class="tech-card-tag">SÍNTESIS MULTILINGÜE</span>
+          <div class="tech-card-icon">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+          </div>
+          <h3>24 Voces Humanas Calibradas</h3>
+          <p>Modelos vocales entrenados con prosodia y dinámica expresiva natural en más de 20 idiomas con timbre nativo y sin resonancias sintéticas.</p>
+        </div>
+
+        <!-- 02 -->
+        <div class="tech-card">
+          <span class="tech-card-tag">MODULACIÓN FINA</span>
+          <div class="tech-card-icon">
+            <svg class="icon" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+          </div>
+          <h3>Control de Pitch y Cadencia</h3>
+          <p>Modulación paramétrica de velocidad de locución (<code>0.5x - 2.0x</code>) y micro-afinación en Hz sin distorsión armónica ni aliasing digital.</p>
+        </div>
+
+        <!-- 03 -->
+        <div class="tech-card">
+          <span class="tech-card-tag">STREAMING EN RAM</span>
+          <div class="tech-card-icon">
+            <svg class="icon" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          </div>
+          <h3>Buffer Acústico Cero Espera</h3>
+          <p>Pre-renderizado en búfer de memoria con despacho por fragmentos para reproducción inmediata en <code>0ms</code> sin micro-cortes auditivos.</p>
+        </div>
+
+        <!-- 04 -->
+        <div class="tech-card">
+          <span class="tech-card-tag">EXPORTACIÓN DUAL</span>
+          <div class="tech-card-icon">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+          </div>
+          <h3>Descarga Física WAV &amp; MP3</h3>
+          <p>Serialización directa a contenedores <code>WAV PCM</code> sin pérdida y <code>MP3</code> a 192 kbps listos para producción de podcast y locución.</p>
+        </div>
+
+        <!-- 05 -->
+        <div class="tech-card">
+          <span class="tech-card-tag">WEB AUDIO PIPELINE</span>
+          <div class="tech-card-icon">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <h3>Decodificación Nativa</h3>
+          <p>Conexión directa al nodo <code>AudioContext</code> del navegador para reproducción balanceada por hardware con ecualización dinámica.</p>
+        </div>
+
+        <!-- 06 -->
+        <div class="tech-card">
+          <span class="tech-card-tag">INTEGRACIÓN REST</span>
+          <div class="tech-card-icon">
+            <svg class="icon" viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+          </div>
+          <h3>API REST de Síntesis</h3>
+          <p>Microservicio de alta concurrencia con endpoint <code>/api/tts</code> para invocar locuciones desde Node.js, Python o scripts de frontend.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="workbench-wrap" style="max-width: 1220px; margin: 36px auto 0 auto; padding: 0 20px;">
+      <div class="workbench-card" style="background: var(--dark); color: #f4ece1;">
+        <span class="label" style="color: var(--accent);">Guía de Integración</span>
+        <h2 class="h-section" style="color: #ffffff; margin-bottom: 8px;">Conecta <em>Vork</em> a tu Aplicación</h2>
+        <p style="color: #a59a8f; margin-bottom: 24px; font-size: 0.95rem;">Integra síntesis vocal neuronal humana directamente en tus microservicios o frontend consumiendo la API REST de Vork.</p>
+
+        <div class="pro-code-window">
+          <div class="pro-code-topbar">
+            <div style="display: flex; align-items: center; gap: 14px;">
+              <div class="pro-code-dots">
+                <span class="pro-dot pro-dot-red"></span>
+                <span class="pro-dot pro-dot-yellow"></span>
+                <span class="pro-dot pro-dot-green"></span>
+              </div>
+              <div class="code-tabs-nav">
+                <button type="button" class="code-tab-btn is-active" data-tab-group="tts-code" data-tab-target="tab-tts-curl">cURL</button>
+                <button type="button" class="code-tab-btn" data-tab-group="tts-code" data-tab-target="tab-tts-js">Node.js / JS</button>
+                <button type="button" class="code-tab-btn" data-tab-group="tts-code" data-tab-target="tab-tts-py">Python</button>
+              </div>
+            </div>
+            <button class="btn-code-copy" aria-label="Copiar código">
+              <svg class="icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+              <span>Copiar</span>
+            </button>
+          </div>
+
+          <div id="tab-tts-curl" class="code-tab-panel is-active" data-tab-group="tts-code">
+            <pre class="pro-code-body"><code><span class="c-comment"># Síntesis de voz directa mediante cURL</span>
+curl -X POST https://vork-st1k.onrender.com/api/tts \
+  -H <span class="c-str">"Content-Type: application/json"</span> \
+  -d <span class="c-str">'{
+    "text": "Hola, este es un mensaje sintetizado con Vork",
+    "lang": "es",
+    "rate": 1.0,
+    "pitch": 1.0
+  }'</span></code></pre>
+          </div>
+
+          <div id="tab-tts-js" class="code-tab-panel" data-tab-group="tts-code">
+            <pre class="pro-code-body"><code><span class="c-comment">// tts-service.js (Node.js 18+ / Navegador)</span>
+<span class="c-kw">const</span> response = <span class="c-kw">await</span> <span class="c-fn">fetch</span>(<span class="c-str">"https://vork-st1k.onrender.com/api/tts"</span>, {
+  method: <span class="c-str">"POST"</span>,
+  headers: { <span class="c-str">"Content-Type"</span>: <span class="c-str">"application/json"</span> },
+  body: <span class="c-fn">JSON.stringify</span>({
+    text: <span class="c-str">"Hola, este es un mensaje sintetizado con Vork"</span>,
+    lang: <span class="c-str">"es"</span>,
+    rate: 1.0,
+    pitch: 1.0
+  })
+});
+
+<span class="c-kw">const</span> data = <span class="c-kw">await</span> response.<span class="c-fn">json</span>();
+<span class="c-var">console</span>.<span class="c-fn">log</span>(<span class="c-str">"URL de Audio:"</span>, data.audioUrl);</code></pre>
+          </div>
+
+          <div id="tab-tts-py" class="code-tab-panel" data-tab-group="tts-code">
+            <pre class="pro-code-body"><code><span class="c-comment"># tts_service.py (Python Requests)</span>
+<span class="c-kw">import</span> requests
+
+payload = {
+    <span class="c-str">"text"</span>: <span class="c-str">"Hola, este es un mensaje sintetizado con Vork"</span>,
+    <span class="c-str">"lang"</span>: <span class="c-str">"es"</span>,
+    <span class="c-str">"rate"</span>: 1.0,
+    <span class="c-str">"pitch"</span>: 1.0
+}
+
+res = requests.post(<span class="c-str">"https://vork-st1k.onrender.com/api/tts"</span>, json=payload)
+data = res.json()
+<span class="c-fn">print</span>(<span class="c-str">"Audio generado:"</span>, data.get(<span class="c-str">"audioUrl"</span>))</code></pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+        <!-- LOS 8 PILARES DE VORK -->
+    <section class="workbench-wrap" id="pilares" style="padding: 0 20px !important;">
+      <div class="section-head" style="max-width: 100% !important; margin-bottom: 32px;">
+        <span class="label">Pilares Operacionales</span>
+        <h2 class="h-section">Los 8 Pilares de <em>Vork</em></h2>
+        <p class="lead" style="max-width: 100% !important;">Herramientas especializadas con consolas dedicadas a cada disciplina lingüística, vocal, multimedia y de mezcla musical.</p>
+      </div>
+
+                  <div class="services-grid">
+        <!-- Pilar 01 -->
+        <article class="card tilt" style="--tone:#22b0a0">
+          <div class="card-top">
+            <span class="card-num">01</span>
+            <span class="card-tag">Lenguaje</span>
+          </div>
+          <h3>Traductor en la Nube</h3>
+          <p>Traducción por lotes de alta velocidad (+200 idiomas). Extrae los nodos con TreeWalker y envía una sola petición consolidada.</p>
+          <div class="card-foot">
+            <a href="/translator"><span>Abrir Traductor</span></a>
+            <a href="/translator" class="card-arrow" aria-label="Ir a Traductor en la Nube"><svg class="icon" viewBox="0 0 24 24" width="16" height="16"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+          </div>
+        </article>
+
+        <!-- Pilar 02 (Página Actual) -->
+        <article class="card tilt" style="--tone:#ff8fa3; border-color: rgba(34, 176, 160, 0.45); box-shadow: 0 4px 20px rgba(34, 176, 160, 0.12);">
+          <div class="card-top">
+            <span class="card-num" style="color: #ff8fa3;">02</span>
+            <span class="card-tag" style="background: rgba(34, 176, 160, 0.15); color: #ff8fa3; border: 1px solid rgba(34, 176, 160, 0.3);">Voz IA</span>
+          </div>
+          <h3>Texto a Voz Neuronal</h3>
+          <p>Generación de habla realista con 24 voces humanas multilingües, control de velocidad, tono y decodificación de audio directa.</p>
+          <div class="card-foot" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+            <span style="font-size: 0.85rem; color: #ff8fa3; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
+              <span style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #ff8fa3; box-shadow: 0 0 6px #ff8fa3;"></span>
+              Estás aquí
+            </span>
+            <span class="card-check-badge" aria-label="Estás aquí">
+              <svg class="icon" viewBox="0 0 24 24" width="17" height="17" stroke="currentColor" fill="none" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+            </span>
+          </div>
+        </article>
+
+        <!-- Pilar 03 -->
+        <article class="card tilt" style="--tone:#ffc23d">
+          <div class="card-top">
+            <span class="card-num">03</span>
+            <span class="card-tag">Universal</span>
+          </div>
+          <h3>Conversor Multimedia</h3>
+          <p>Extracción sin marcas de agua de YouTube, TikTok, Instagram Reels y más a MP3 puro o MP4 HD con streaming de rango HTTP.</p>
+          <div class="card-foot">
+            <a href="/converter"><span>Abrir Conversor</span></a>
+            <a href="/converter" class="card-arrow" aria-label="Ir a Conversor Multimedia"><svg class="icon" viewBox="0 0 24 24" width="16" height="16"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+          </div>
+        </article>
+
+        <!-- Pilar 04 -->
+        <article class="card tilt" style="--tone:#ff5a5f">
+          <div class="card-top">
+            <span class="card-num">04</span>
+            <span class="card-tag">Stems</span>
+          </div>
+          <h3>Separador de Stems</h3>
+          <p>Aislamiento de voz (Acapella) y pista instrumental (Karaoke) mediante redes neuronales Demucs v4 y cancelación de fase.</p>
+          <div class="card-foot">
+            <a href="/vocal-remover"><span>Abrir Separador</span></a>
+            <a href="/vocal-remover" class="card-arrow" aria-label="Ir a Separador de Stems"><svg class="icon" viewBox="0 0 24 24" width="16" height="16"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+          </div>
+        </article>
+
+        <!-- Pilar 05 -->
+        <article class="card tilt" style="--tone:#ff7a3d">
+          <div class="card-top">
+            <span class="card-num">05</span>
+            <span class="card-tag">Imágenes</span>
+          </div>
+          <h3>Procesador de Imágenes</h3>
+          <p>Conversión universal entre PNG, JPG, WEBP, GIF, BMP, TIFF e ICO con control de compresión y redimensionado.</p>
+          <div class="card-foot">
+            <a href="/image-converter"><span>Abrir Procesador</span></a>
+            <a href="/image-converter" class="card-arrow" aria-label="Ir a Procesador de Imágenes"><svg class="icon" viewBox="0 0 24 24" width="16" height="16"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+          </div>
+        </article>
+
+        <!-- Pilar 06 -->
+        <article class="card tilt" style="--tone:#a99cff">
+          <div class="card-top">
+            <span class="card-num">06</span>
+            <span class="card-tag">Visión IA</span>
+          </div>
+          <h3>Estudio y Fondo IA</h3>
+          <p>Eliminación inteligente de siluetas con transparencia nítida y reemplazo de fondos creativos con modelos generativos.</p>
+          <div class="card-foot">
+            <a href="/background-remover"><span>Abrir Fondo IA</span></a>
+            <a href="/background-remover" class="card-arrow" aria-label="Ir a Estudio y Fondo IA"><svg class="icon" viewBox="0 0 24 24" width="16" height="16"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+          </div>
+        </article>
+
+        <!-- Pilar 07 -->
+        <article class="card tilt" style="--tone:#22b0a0">
+          <div class="card-top">
+            <span class="card-num">07</span>
+            <span class="card-tag">Imagen IA</span>
+          </div>
+          <h3>Generador de Imágenes IA</h3>
+          <p>Generación fotorrealista con FLUX.1 (sin marca de agua), control de aspecto dinámico (1:1, 16:9, 9:16, 4:3) y descarga en HD.</p>
+          <div class="card-foot">
+            <a href="/draw"><span>Abrir Generador IA</span></a>
+            <a href="/draw" class="card-arrow" aria-label="Ir a Generador de Imágenes IA"><svg class="icon" viewBox="0 0 24 24" width="16" height="16"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+          </div>
+        </article>
+
+        <!-- Pilar 08 -->
+        <article class="card tilt" style="--tone:#ff7a3d">
+          <div class="card-top">
+            <span class="card-num">08</span>
+            <span class="card-tag">Terminal</span>
+          </div>
+          <h3>Vork CLI & Agentes</h3>
+          <p>Consola de comandos completa para invocar los 8 pilares desde la terminal y orquestar sesiones de agentes autónomos.</p>
+          <div class="card-foot">
+            <a href="/cli"><span>Abrir Documentación CLI</span></a>
+            <a href="/cli" class="card-arrow" aria-label="Ir a Vork CLI & Agentes"><svg class="icon" viewBox="0 0 24 24" width="16" height="16"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- INSTALACIÓN RÁPIDA DE VORK CLI -->
+    <section class="workbench-wrap" id="cli-install-section" style="max-width: 1220px !important; width: 100% !important; margin: 20px auto 0 auto !important; padding: 0 20px !important;">
+      <div class="workbench-card" style="background: var(--dark); color: #f4ece1; margin-bottom: 0 !important; padding-bottom: 24px !important;">
+        <span class="label" style="color: var(--accent);">(03) Terminal &amp; Automatización</span>
+        <h2 class="h-section" style="color: #ffffff;">Instala <em>Vork CLI</em> en un solo comando.</h2>
+        <p style="color: #a59a8f; margin-bottom: 24px;">Disponible para Windows PowerShell y Linux / macOS con soporte para los 8 pilares operacionales:</p>
+
+        <!-- Consola de Instalación Rápida Tipo Terminal -->
+        <div class="vork-terminal-box">
+          <div class="vork-terminal-bar">
+            <div class="vork-terminal-bar-left">
+              <div class="vork-terminal-dots">
+                <span class="dot dot-red"></span>
+                <span class="dot dot-yellow"></span>
+                <span class="dot dot-green"></span>
+              </div>
+              <div class="vork-terminal-title">
+                <svg class="icon" viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" fill="none" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+                <span>powershell</span>
+              </div>
+            </div>
+            <button id="btn-copy-install" class="btn btn-sm" aria-label="Copiar comando">
+              <svg class="icon" viewBox="0 0 24 24" width="14" height="14"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+              <span>Copiar</span>
+            </button>
+          </div>
+          <div class="vork-terminal-body">
+            <span class="vork-terminal-prompt">PS &gt;</span>
+            <div class="vork-terminal-code-scroll">
+              <code id="cli-install-cmd">irm https://vork-st1k.onrender.com/cli/install.ps1 | iex</code>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Pie de Página Horizontal Alineado -->
+  <footer id="footer-placeholder" data-component="footer" data-active="tts"></footer>
+
+  <script src="/js/vork.js"></script>
+  <script src="/js/modules/tts.js" defer></script>
+</body>
+</html>

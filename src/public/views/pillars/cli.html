@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+  <meta name="theme-color" content="#11141a">
+  <title>Vork CLI | Terminal y Línea de Comandos para Desarrolladores y Agentes</title>
+  <meta name="description" content="Vork CLI (vork cli): entorno de terminal para desarrolladores. Ejecuta los 9 pilares multimodales y agentes de IA desde tu consola.">
+  <meta name="keywords" content="Vork CLI, vork cli, Vork Terminal, vork terminal, vork command line, instalar vork cli, cli vork, terminal vork, vork agents, vork cli download">
+  <link rel="canonical" href="https://vork-st1k.onrender.com/cli">
+
+  <!-- Open Graph -->
+  <meta property="og:site_name" content="Vork">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://vork-st1k.onrender.com/cli">
+  <meta property="og:title" content="Vork CLI | Terminal y Línea de Comandos">
+  <meta property="og:description" content="Construye, traduce, convierte medios y orquesta agentes IA directamente desde tu consola sin salir del flujo de trabajo con Vork CLI.">
+  <meta property="og:image" content="https://vork-st1k.onrender.com/img/brand/logo.png">
+  <meta property="og:locale" content="es_ES">
+
+  <!-- Twitter Cards -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Vork CLI | Terminal y Línea de Comandos">
+  <meta name="twitter:description" content="Interactúa con los 9 pilares de Vork desde la terminal de forma nativa y automatizada.">
+  <meta name="twitter:image" content="https://vork-st1k.onrender.com/img/brand/logo.png">
+
+  <!-- Favicons y Manifest -->
+  <link rel="icon" type="image/png" sizes="192x192" href="/img/brand/logo.png">
+  <link rel="icon" type="image/png" sizes="64x64" href="/img/brand/logo.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/img/brand/logo.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/img/brand/logo.png">
+  <link rel="manifest" href="/manifest.json">
+  <!-- Compatibilidad Universal de Navegadores (Chrome, Safari, Edge, Firefox, Opera GX, Brave) -->
+  <meta name="application-name" content="Vork">
+  <meta name="apple-mobile-web-app-title" content="Vork">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="msapplication-TileColor" content="#11141a">
+  <meta name="msapplication-TileImage" content="/img/brand/logo.png">
+  <link rel="search" type="application/opensearchdescription+xml" title="Vork" href="/opensearch.xml">
+
+  <!-- Fuentes y Estilos -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+
+  <!-- Datos Estructurados JSON-LD -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "SoftwareApplication",
+        "@id": "https://vork-st1k.onrender.com/cli#app",
+        "name": "Vork CLI",
+        "alternateName": [
+          "vork cli",
+          "Vork CLI",
+          "Vork Terminal",
+          "vork terminal",
+          "Vork Command Line Interface",
+          "Vork Agentes"
+        ],
+        "keywords": "Vork CLI, vork cli, Vork Terminal, vork terminal, vork command line",
+        "url": "https://vork-st1k.onrender.com/cli",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "Windows, macOS, Linux",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
+        "description": "Herramienta de consola de comandos para programadores que integra la suite de servicios de audio, voz, video y traducción con scripts de terminal.",
+        "featureList": [
+          "Instalador de una sola línea para PowerShell y Bash",
+          "Interacción en lenguaje natural y modo por banderas",
+          "Pipelines automatizados de traducción y transcodificación",
+          "Sin límites de telemetría invasiva y arquitectura abierta"
+        ]
+      },
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Inicio",
+            "item": "https://vork-st1k.onrender.com/"
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Vork CLI Terminal",
+            "item": "https://vork-st1k.onrender.com/cli"
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+
+  <script>
+    (function(){try{var m=document.cookie.match(/(?:^|; )vork_lang=([^;]*)/);var l=m?decodeURIComponent(m[1]):null;if(l&&l!=="original"&&l!=="es"){document.documentElement.classList.add("ct-pending");setTimeout(function(){document.documentElement.classList.remove("ct-pending");},800);}}catch(e){}})();
+  </script>
+    <link rel="stylesheet" href="/css/pillars/cli.css">
+  <script src="/js/spa-router.js" defer></script>
+  <script src="/js/ui.js" defer></script>
+  <script src="/js/utils/clipboard.js" defer></script>
+</head>
+<body>
+
+  <!-- Textura de grano sutil Huella -->
+  <div class="grain" aria-hidden="true"></div>
+
+
+  <!-- Barra Superior / Encabezado Inyectado Dinámicamente o Fallback -->
+  <header id="header-placeholder" data-component="header" data-active="cli"></header>
+
+  <main class="full-container">
+
+    <!-- Hero de Vork CLI -->
+    <section class="hero-full">
+      <div class="hero-split">
+        <div class="hero-split-content">
+          <span class="label">Pilar 08 · Vork CLI &amp; Agentes</span>
+          <h1 class="h-section">Automatización terminal unificada y control de <em>agentes autónomos</em>.</h1>
+          <p class="lead" style="text-align: left; margin: 0;">
+            Controla los 8 pilares operacionales en un solo binario multiplataforma ultra ligero, automatiza tareas complejas en tiempo real mediante 43 comandos directos y ejecuta flujos de ingeniería sin límites ni configuraciones redundantes.
+          </p>
+          <div class="hero-actions">
+            <a href="#install-section" class="btn btn-primary">Instalar CLI</a>
+            <a href="#pillars-cli-section" class="btn btn-outline">Los 9 pilares en CLI</a>
+            <a href="#features-section" class="btn btn-outline">Funcionalidades</a>
+          </div>
+        </div>
+
+        <div class="hero-split-media">
+          <div class="hero-logo-wrapper">
+            <div class="hero-logo-glow" style="background: radial-gradient(circle, rgba(255, 122, 61, 0.45) 0%, rgba(169, 156, 255, 0.25) 60%, transparent 80%);"></div>
+            <img src="/img/heroes/cli-hero.png" alt="Vork CLI Terminal" class="hero-media-img" width="290" height="290">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- INSTALACIÓN RÁPIDA DE VORK CLI -->
+    <section class="workbench-wrap" id="install-section">
+      <div class="workbench-card">
+        <span class="label" style="color: var(--accent);">[ INSTALACIÓN RÁPIDA // 1-LINE INSTALL ]</span>
+        <h2 class="h-section" style="color: var(--ink);">Instala <em>Vork CLI</em> en Windows, macOS o Linux</h2>
+        <p style="color: var(--muted); margin-bottom: 24px;">Detecta automáticamente tu sistema operativo y directorio de trabajo actual.</p>
+
+        <!-- Pestañas de Instalación -->
+        <div class="install-tabs" role="tablist">
+          <button type="button" role="tab" aria-selected="true" class="install-tab-btn active" id="tab-ps-btn" onclick="window.switchInstallTab &amp;&amp; window.switchInstallTab('ps')">
+            <svg class="icon" viewBox="0 0 24 24" width="16" height="16" style="width: 16px; height: 16px; flex-shrink: 0;"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+            <span>Windows PowerShell</span>
+          </button>
+          <button type="button" role="tab" aria-selected="false" class="install-tab-btn" id="tab-sh-btn" onclick="window.switchInstallTab &amp;&amp; window.switchInstallTab('sh')">
+            <svg class="icon" viewBox="0 0 24 24" width="16" height="16" style="width: 16px; height: 16px; flex-shrink: 0;"><path d="M4 17l6-6-6-6M12 19h8"/></svg>
+            <span>macOS &amp; Linux (Bash/Zsh)</span>
+          </button>
+          <button type="button" role="tab" aria-selected="false" class="install-tab-btn" id="tab-cmd-btn" onclick="window.switchInstallTab &amp;&amp; window.switchInstallTab('cmd')">
+            <svg class="icon" viewBox="0 0 24 24" width="16" height="16" style="width: 16px; height: 16px; flex-shrink: 0;"><rect width="18" height="14" x="3" y="5" rx="2"/><path d="M7 15h10M7 9l3 3-3 3"/></svg>
+            <span>Windows CMD</span>
+          </button>
+        </div>
+
+        <!-- Panel PowerShell (Windows) -->
+        <div class="install-panel active" id="panel-ps" style="display: block;">
+          <div class="vork-terminal-box">
+            <div class="vork-terminal-bar">
+              <div class="vork-terminal-bar-left">
+                <div class="vork-terminal-dots">
+                  <span class="dot dot-red"></span>
+                  <span class="dot dot-yellow"></span>
+                  <span class="dot dot-green"></span>
+                </div>
+                <div class="vork-terminal-title">
+                  <svg class="icon" viewBox="0 0 24 24" width="13" height="13" style="width: 13px; height: 13px; flex-shrink: 0;" stroke="currentColor" fill="none" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+                  <span>powershell (Windows)</span>
+                </div>
+              </div>
+              <button class="btn btn-sm btn-terminal-copy" aria-label="Copiar comando PowerShell" onclick="copiarAlPortapapeles(this, 'code-install-ps')">
+                <svg class="icon" viewBox="0 0 24 24" width="14" height="14" style="width: 14px; height: 14px; flex-shrink: 0;"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                <span>Copiar</span>
+              </button>
+            </div>
+            <div class="vork-terminal-body">
+              <span class="vork-terminal-prompt">PS &gt;</span>
+              <div class="vork-terminal-code-scroll">
+                <code id="code-install-ps" class="cli-install-cmd">irm https://vork-st1k.onrender.com/cli/install.ps1 | iex</code>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel Bash / Zsh (macOS & Linux) -->
+        <div class="install-panel" id="panel-sh" style="display: none;">
+          <div class="vork-terminal-box">
+            <div class="vork-terminal-bar">
+              <div class="vork-terminal-bar-left">
+                <div class="vork-terminal-dots">
+                  <span class="dot dot-red"></span>
+                  <span class="dot dot-yellow"></span>
+                  <span class="dot dot-green"></span>
+                </div>
+                <div class="vork-terminal-title">
+                  <svg class="icon" viewBox="0 0 24 24" width="13" height="13" style="width: 13px; height: 13px; flex-shrink: 0;" stroke="currentColor" fill="none" stroke-width="2"><path d="M4 17l6-6-6-6M12 19h8"/></svg>
+                  <span>zsh / bash (macOS &amp; Linux)</span>
+                </div>
+              </div>
+              <button class="btn btn-sm btn-terminal-copy" aria-label="Copiar comando macOS y Linux" onclick="copiarAlPortapapeles(this, 'code-install-sh')">
+                <svg class="icon" viewBox="0 0 24 24" width="14" height="14" style="width: 14px; height: 14px; flex-shrink: 0;"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                <span>Copiar</span>
+              </button>
+            </div>
+            <div class="vork-terminal-body">
+              <span class="vork-terminal-prompt">$ &gt;</span>
+              <div class="vork-terminal-code-scroll">
+                <code id="code-install-sh" class="cli-install-cmd">curl -fsSL https://vork-st1k.onrender.com/cli/install.sh | bash</code>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel CMD (Windows) -->
+        <div class="install-panel" id="panel-cmd" style="display: none;">
+          <div class="vork-terminal-box">
+            <div class="vork-terminal-bar">
+              <div class="vork-terminal-bar-left">
+                <div class="vork-terminal-dots">
+                  <span class="dot dot-red"></span>
+                  <span class="dot dot-yellow"></span>
+                  <span class="dot dot-green"></span>
+                </div>
+                <div class="vork-terminal-title">
+                  <svg class="icon" viewBox="0 0 24 24" width="13" height="13" style="width: 13px; height: 13px; flex-shrink: 0;" stroke="currentColor" fill="none" stroke-width="2"><rect width="18" height="14" x="3" y="5" rx="2"/><path d="M7 15h10M7 9l3 3-3 3"/></svg>
+                  <span>cmd.exe (Windows)</span>
+                </div>
+              </div>
+              <button class="btn btn-sm btn-terminal-copy" aria-label="Copiar comando CMD" onclick="copiarAlPortapapeles(this, 'code-install-cmd')">
+                <svg class="icon" viewBox="0 0 24 24" width="14" height="14" style="width: 14px; height: 14px; flex-shrink: 0;"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                <span>Copiar</span>
+              </button>
+            </div>
+            <div class="vork-terminal-body">
+              <span class="vork-terminal-prompt">C:\&gt;</span>
+              <div class="vork-terminal-code-scroll">
+                <code id="code-install-cmd" class="cli-install-cmd">curl -fsSL https://vork-st1k.onrender.com/cli/install.cmd -o install.cmd &amp;&amp; install.cmd &amp;&amp; del install.cmd</code>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- LOS 9 pilares OPERACIONALES DIRECTO EN TU TERMINAL -->
+    <section id="pillars-cli-section" style="margin-top: 48px;">
+      <div class="section-full-title">
+        <h2>Los 9 pilares Operacionales en tu Terminal</h2>
+        <p>El CLI ejecuta de manera idéntica y en tiempo real las mismas capacidades del portal web oficial.</p>
+      </div>
+
+      <div class="cli-features-grid">
+        <!-- Pilar 1 CLI -->
+        <div class="cli-feature-card">
+          <div class="cli-feature-icon">
+            <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20M12 2a14.5 14.5 0 0 1 0 20M2 12h20"/></svg>
+          </div>
+          <span class="pillar-tag" style="margin-bottom: 8px;">PILAR 01 // TRADUCTOR</span>
+          <h3>Traducción en la Nube</h3>
+          <p>Traduce frases, archivos o lotes a más de 200 idiomas con caché en memoria.</p>
+          <div class="terminal-command-row" style="margin-top: 14px;">
+            <code style="color: #38bdf8; font-size: 0.8rem;">ct translate "Hola mundo" --to en</code>
+          </div>
+        </div>
+
+        <!-- Pilar 2 CLI -->
+        <div class="cli-feature-card">
+          <div class="cli-feature-icon">
+            <svg class="icon" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+          </div>
+          <span class="pillar-tag" style="margin-bottom: 8px;">PILAR 02 // TTS</span>
+          <h3>Texto a Voz Neuronal</h3>
+          <p>Síntesis multilingüe con 24 voces neuronales humanas y descarga directa en WAV o MP3.</p>
+          <div class="terminal-command-row" style="margin-top: 14px;">
+            <code style="color: #38bdf8; font-size: 0.8rem;">ct tts "Bienvenido" -Voice es-ES-AlvaroNeural</code>
+          </div>
+        </div>
+
+        <!-- Pilar 3 CLI -->
+        <div class="cli-feature-card">
+          <div class="cli-feature-icon">
+            <svg class="icon" viewBox="0 0 24 24"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2"/></svg>
+          </div>
+          <span class="pillar-tag" style="margin-bottom: 8px;">PILAR 03 // MULTIMEDIA</span>
+          <h3>Conversor Universal</h3>
+          <p>Descarga y convierte videos de YouTube, TikTok, Reels, Twitter a MP3 (320kbps) o MP4 HD.</p>
+          <div class="terminal-command-row" style="margin-top: 14px;">
+            <code style="color: #38bdf8; font-size: 0.8rem;">ct media "https://youtu.be/..." -Format mp3</code>
+          </div>
+        </div>
+
+        <!-- Pilar 4 CLI -->
+        <div class="cli-feature-card">
+          <div class="cli-feature-icon">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+          </div>
+          <span class="pillar-tag" style="margin-bottom: 8px;">PILAR 04 // STEMS AI</span>
+          <h3>Separador de Voz (Demucs v4)</h3>
+          <p>Aísla la pista Acapella (voz pura) y Karaoke (instrumental sin voz) a partir de URLs o archivos.</p>
+          <div class="terminal-command-row" style="margin-top: 14px;">
+            <code style="color: #38bdf8; font-size: 0.8rem;">ct separate cancion.mp3 -Quality lossless</code>
+          </div>
+        </div>
+
+        <!-- Pilar 5 CLI -->
+        <div class="cli-feature-card">
+          <div class="cli-feature-icon">
+            <svg class="icon" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+          </div>
+          <span class="pillar-tag" style="margin-bottom: 8px;">PILAR 05 // IMÁGENES</span>
+          <h3>Conversor de Formatos de Imagen</h3>
+          <p>Transforma y optimiza entre PNG, JPG, WEBP, GIF, BMP, TIFF e ICO con control de compresión.</p>
+          <div class="terminal-command-row" style="margin-top: 14px;">
+            <code style="color: #38bdf8; font-size: 0.8rem;">ct image foto.png -Format webp -Quality 90</code>
+          </div>
+        </div>
+
+        <!-- Pilar 6 CLI -->
+        <div class="cli-feature-card">
+          <div class="cli-feature-icon">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3"/><circle cx="12" cy="12" r="3"/></svg>
+          </div>
+          <span class="pillar-tag" style="margin-bottom: 8px;">PILAR 06 // FONDO IA</span>
+          <h3>Estudio de Fondo IA</h3>
+          <p>Eliminación de fondo con red U2-Net y reemplazo compositivo en segundos.</p>
+          <div class="terminal-command-row" style="margin-top: 14px;">
+            <code style="color: #38bdf8; font-size: 0.8rem;">ct remove-bg foto.jpg -Out limpia.png</code>
+          </div>
+        </div>
+
+        <!-- Pilar 7 CLI -->
+        <div class="cli-feature-card">
+          <div class="cli-feature-icon">
+            <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>
+          </div>
+          <span class="pillar-tag" style="margin-bottom: 8px;">PILAR 07 // DRAW IA</span>
+          <h3>Generador de Imágenes IA</h3>
+          <p>Generación fotorrealista FLUX.1 en 1024x1024 100% libre de marcas de agua.</p>
+          <div class="terminal-command-row" style="margin-top: 14px;">
+            <code style="color: #38bdf8; font-size: 0.8rem;">ct draw "paisaje cyber" -Ratio 16:9</code>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Vista Previa de la Interfaz de Terminal (TUI Preview) -->
+    <section style="margin-top: 48px;">
+      <div class="section-full-title">
+        <h2>Experiencia de Terminal Interactiva (TUI)</h2>
+        <p>Una consola de alta velocidad diseñada para programadores con soporte completo de subagentes y aprobación de herramientas.</p>
+      </div>
+
+      <div class="terminal-box" style="max-width: 900px; margin: 0 auto;">
+        <div class="terminal-header">
+          <div class="terminal-dots">
+            <span class="terminal-dot dot-red"></span>
+            <span class="terminal-dot dot-yellow"></span>
+            <span class="terminal-dot dot-green"></span>
+          </div>
+          <span class="terminal-title">vork session // 8 pilares activos</span>
+          <span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.4); font-size: 0.72rem;">ONLINE</span>
+        </div>
+        <div class="terminal-body" style="font-size: 0.85rem; background: #07090f;">
+          <div style="color: #64748b;">$ cd C:\workspace\my-project</div>
+          <div style="color: #38bdf8;">$ ct --help</div>
+          <div style="color: #00f0ff; margin-top: 4px;">[Vork CLI v3.0.0] Los 8 pilares operacionales están listos para usar.</div>
+          <div style="color: #f8fafc; margin-top: 6px;">$ ct translate "Despliegue exitoso" --to en</div>
+          <div style="color: #10b981;">[Traduccion]: Successful deployment</div>
+          <div style="color: #f8fafc; margin-top: 6px;">$ ct separate "https://youtube.com/watch?v=..." --quality lossless</div>
+          <div style="color: #10b981;">✔ Meta Demucs v4: Stems Acapella e Instrumental generados en 0ms.</div>
+          <div style="color: #38bdf8; margin-top: 10px;">$ agy</div>
+          <div style="color: #facc15;">&gt; "Optimiza las imágenes a WEBP y orquesta un subagente para actualizar las pruebas de traducción."</div>
+          <div style="color: #10b981;">✔ Subagente en segundo plano invocado. Escribe <kbd class="cli-key">/agents</kbd> para supervisar.</div>
+          <div style="color: #38bdf8; margin-top: 6px;">⚡ Solicitud de herramienta: run_command("npm test")</div>
+          <div style="color: #f8fafc;">  Pulsa <kbd class="cli-key">ctrl+k</kbd> para aprobar herramientas al instante.</div>
+          <div style="margin-top: 10px; color: #00f0ff; display: flex; align-items: center; gap: 6px;">
+            <span>&gt;</span>
+            <span style="display: inline-block; width: 8px; height: 16px; background: #00f0ff;"></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Características y Capacidades Principales (Features Grid) -->
+    <section id="features-section" style="margin-top: 48px;">
+      <div class="section-full-title">
+        <h2>Capacidades del Motor de Agentes</h2>
+        <p>Todo el poder del ecosistema de terminal de Vork AI en la comodidad de tu consola.</p>
+      </div>
+
+      <div class="cli-features-grid">
+        <!-- Feature 1 -->
+        <div class="cli-feature-card">
+          <div class="cli-feature-icon">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <h3>Trabaja en lenguaje natural</h3>
+          <p>
+            Edita, orquesta y construye todo en lenguaje natural. Diles a tus agentes lo que necesitas y trabajarán para lograrlo.
+          </p>
+        </div>
+
+        <!-- Feature 2 -->
+        <div class="cli-feature-card">
+          <div class="cli-feature-icon">
+            <svg class="icon" viewBox="0 0 24 24"><rect width="8" height="8" x="2" y="2" rx="2"/><rect width="8" height="8" x="14" y="2" rx="2"/><rect width="8" height="8" x="2" y="14" rx="2"/><rect width="8" height="8" x="14" y="14" rx="2"/></svg>
+          </div>
+          <h3>Funciones de subagentes</h3>
+          <p>
+            Ejecuta múltiples agentes en paralelo para resolver tareas más grandes con mayor rapidez.
+          </p>
+        </div>
+
+        <!-- Feature 3 -->
+        <div class="cli-feature-card">
+          <div class="cli-feature-icon">
+            <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <h3>Subagentes</h3>
+          <p>
+            Delega tareas en segundo plano a sesiones concurrentes de agentes. Escribe <kbd class="cli-key">/agents</kbd> para abrir el panel y supervisar el estado, y usa <kbd class="cli-key">ctrl+k</kbd> para aprobar herramientas al instante.
+          </p>
+        </div>
+
+        <!-- Feature 4 -->
+        <div class="cli-feature-card">
+          <div class="cli-feature-icon">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+          </div>
+          <h3>Altamente configurable</h3>
+          <p>
+            Navega por todo tu flujo de trabajo mediante atajos de terminal estándar: ajusta permisos, temas y preferencias con <kbd class="cli-key">/config</kbd> y escribe <kbd class="cli-key">/keybindings</kbd> para personalizar cada atajo.
+          </p>
+        </div>
+
+        <!-- Feature 5 -->
+        <div class="cli-feature-card">
+          <div class="cli-feature-icon">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M4 20l16-16"/></svg>
+          </div>
+          <h3>Comandos con diagonal</h3>
+          <p>
+            Accede al instante a configuraciones de complementos, MCP, habilidades y hooks mediante comandos con diagonal, mejorando rápidamente tu flujo de trabajo.
+          </p>
+        </div>
+
+        <!-- Feature 6 -->
+        <div class="cli-feature-card">
+          <div class="cli-feature-icon">
+            <svg class="icon" viewBox="0 0 24 24"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          </div>
+          <h3>Donde ya trabajas</h3>
+          <p>
+            Ideal para desarrolladores que se sienten como en casa en la terminal.
+          </p>
+        </div>
+
+        <!-- Feature 7 -->
+        <div class="cli-feature-card" style="grid-column: 1 / -1;">
+          <div class="cli-feature-icon" style="background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.25); color: var(--accent-emerald);">
+            <svg class="icon" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          </div>
+          <h3>Experiencia ágil</h3>
+          <p>
+            Un consumo mínimo de recursos diseñado para la velocidad; la forma más ligera de invocar, supervisar e interactuar con los agentes de Vork.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Guía de Onboarding y Primer Inicio -->
+    <section style="margin-top: 48px;">
+      <div class="section-full-title">
+        <h2>Primeros Pasos con Vork CLI</h2>
+        <p>Configuración interactiva en 3 sencillos pasos para empezar a construir de inmediato.</p>
+      </div>
+
+      <div class="steps-container">
+        <!-- Paso 1 -->
+        <div class="step-card">
+          <div class="step-number">1</div>
+          <h4>Inicia la interfaz de terminal (TUI)</h4>
+          <p>
+            Abre una nueva ventana de terminal, navega al directorio de tu proyecto de destino y ejecuta el comando de inicio para comenzar tu primera sesión.
+          </p>
+          <div style="margin-top: 14px;">
+            <code style="background: rgba(0, 0, 0, 0.5); padding: 4px 8px; border-radius: 4px; color: var(--primary);">ct --help</code>
+          </div>
+        </div>
+
+        <!-- Paso 2 -->
+        <div class="step-card">
+          <div class="step-number">2</div>
+          <h4>Configuración del primer inicio</h4>
+          <p>
+            En tu primer inicio, la interfaz de terminal te guiará a través de una breve configuración interactiva para elegir tu esquema de colores, modo de renderizado y confianza del espacio de trabajo.
+          </p>
+          <div style="margin-top: 14px;">
+            <code style="background: rgba(0, 0, 0, 0.5); padding: 4px 8px; border-radius: 4px; color: #10b981;">/config</code>
+          </div>
+        </div>
+
+        <!-- Paso 3 -->
+        <div class="step-card">
+          <div class="step-number">3</div>
+          <h4>Más información</h4>
+          <p>
+            Consulta la Guía de primeros pasos para obtener detalles sobre la configuración avanzada, la configuración de proxy y cómo escribir tu primera instrucción.
+          </p>
+          <div style="margin-top: 14px;">
+            <a href="/docs" class="btn btn-outline" style="padding: 6px 14px; font-size: 0.8rem;">Ver Documentación</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tabla de Comandos con Diagonal -->
+    <section id="slash-commands" style="margin-top: 48px;">
+      <div class="section-full-title">
+        <span class="label">Atajos & Orquestación</span>
+        <h2>Los 43 Comandos con Barra (/)</h2>
+        <p>Atajos indispensables dentro de la consola interactiva y ejecución directa de terminal.</p>
+      </div>
+
+      <div class="slash-table-wrapper">
+        <table class="slash-table">
+          <thead>
+            <tr>
+              <th>Comando</th>
+              <th>Categoría</th>
+              <th>Propósito</th>
+              <th>Atajo / Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- 1. Pilares Operacionales (8) -->
+            <tr>
+              <td><span class="slash-cmd">/translate</span></td>
+              <td><span class="badge" style="background: rgba(255, 122, 61, 0.15); color: var(--color-primary); font-size: 0.72rem; padding: 2px 8px; border-radius: 4px;">Pilar 01</span></td>
+              <td>Traducción neuronal por lotes en +200 idiomas.</td>
+              <td><code>vork translate</code></td>
+            </tr>
+            <tr>
+              <td><span class="slash-cmd">/tts</span></td>
+              <td><span class="badge" style="background: rgba(255, 122, 61, 0.15); color: var(--color-primary); font-size: 0.72rem; padding: 2px 8px; border-radius: 4px;">Pilar 02</span></td>
+              <td>Síntesis de voz con 24 voces neuronales humanas de alta fidelidad.</td>
+              <td><code>vork tts</code></td>
+            </tr>
+            <tr>
+              <td><span class="slash-cmd">/media</span></td>
+              <td><span class="badge" style="background: rgba(255, 122, 61, 0.15); color: var(--color-primary); font-size: 0.72rem; padding: 2px 8px; border-radius: 4px;">Pilar 03</span></td>
+              <td>Conversión universal de YouTube, TikTok, IG a MP3 / MP4.</td>
+              <td><code>vork media</code></td>
+            </tr>
+            <tr>
+              <td><span class="slash-cmd">/separate</span></td>
+              <td><span class="badge" style="background: rgba(255, 122, 61, 0.15); color: var(--color-primary); font-size: 0.72rem; padding: 2px 8px; border-radius: 4px;">Pilar 04</span></td>
+              <td>Aislamiento de Stems Acapella y Karaoke con Demucs v4.</td>
+              <td><code>vork separate</code></td>
+            </tr>
+            <tr>
+              <td><span class="slash-cmd">/image</span></td>
+              <td><span class="badge" style="background: rgba(255, 122, 61, 0.15); color: var(--color-primary); font-size: 0.72rem; padding: 2px 8px; border-radius: 4px;">Pilar 05</span></td>
+              <td>Conversión universal entre PNG, JPG, WEBP, ICO y AVIF.</td>
+              <td><code>vork image</code></td>
+            </tr>
+            <tr>
+              <td><span class="slash-cmd">/remove-bg</span></td>
+              <td><span class="badge" style="background: rgba(255, 122, 61, 0.15); color: var(--color-primary); font-size: 0.72rem; padding: 2px 8px; border-radius: 4px;">Pilar 06</span></td>
+              <td>Aislamiento inteligente de silueta y transparencia con U2-Net.</td>
+              <td><code>vork remove-bg</code></td>
+            </tr>
+            <tr>
+              <td><span class="slash-cmd">/draw</span></td>
+              <td><span class="badge" style="background: rgba(255, 122, 61, 0.15); color: var(--color-primary); font-size: 0.72rem; padding: 2px 8px; border-radius: 4px;">Pilar 07</span></td>
+              <td>Generación fotorrealista con FLUX.1 libre de sellos o marcas de agua.</td>
+              <td><code>vork draw</code></td>
+            </tr>
+            <tr>
+              <td><span class="slash-cmd">/agents</span></td>
+              <td><span class="badge" style="background: rgba(255, 122, 61, 0.15); color: var(--color-primary); font-size: 0.72rem; padding: 2px 8px; border-radius: 4px;">Pilar 08</span></td>
+              <td>Orquestación interactiva de subagentes en terminal paralela.</td>
+              <td><kbd class="cli-key">ctrl+k</kbd> aprobar</td>
+            </tr>
+
+            <!-- 2. Agentes Autónomos & Planificación IA (8) -->
+            <tr>
+              <td><span class="slash-cmd">/goal</span></td>
+              <td><span class="badge" style="background: rgba(169, 156, 255, 0.15); color: #a99cff; font-size: 0.72rem; padding: 2px 8px; border-radius: 4px;">Agentes</span></td>
+              <td>Modo autónomo continuo para tareas exhaustivas de desarrollo.</td>
+              <td>Modo persistente</td>
+            </tr>
+            <tr>
+              <td><span class="slash-cmd">/plan</span></td>
+              <td><span class="badge" style="background: rgba(169, 156, 255, 0.15); color: #a99cff; font-size: 0.72rem; padding: 2px 8px; border-radius: 4px;">Agentes</span></td>
+              <td>Desglose arquitectónico paso a paso antes de escribir código.</td>
+              <td>Planificación guiada</td>
+            </tr>
+            <tr>
+              <td><span class="slash-cmd">/teamwork</span></td>
+              <td><span class="badge" style="background: rgba(169, 156, 255, 0.15); color: #a99cff; font-size: 0.72rem; padding: 2px 8px; border-radius: 4px;">Agentes</span></td>
+              <td>Orquestación colaborativa con múltiples subagentes concurrentes.</td>
+              <td>Multi-agente</td>
+            </tr>
+            <tr>
+              <td><span class="slash-cmd">/boost</span></td>
+              <td><span class="badge" style="background: rgba(169, 156, 255, 0.15); color: #a99cff; font-size: 0.72rem; padding: 2px 8px; border-radius: 4px;">Agentes</span></td>
+              <td>Razonamiento profundo con verificación multifacética estricta.</td>
+              <td>Deep reasoning</td>
+            </tr>
+            <tr>
+              <td><span class="slash-cmd">/learn</span></td>
+              <td><span class="badge" style="background: rgba(169, 156, 255, 0.15); color: #a99cff; font-size: 0.72rem; padding: 2px 8px; border-radius: 4px;">Agentes</span></td>
+              <td>Persistir reglas, correcciones y preferencias para futuras sesiones.</td>
+              <td>Memoria a largo plazo</td>
+            </tr>
+            <tr>
+              <td><span class="slash-cmd">/browser</span></td>
+              <td><span class="badge" style="background: rgba(169, 156, 255, 0.15); color: #a99cff; font-size: 0.72rem; padding: 2px 8px; border-radius: 4px;">Agentes</span></td>
+              <td>Navegación e interacción web automatizada para pruebas y scraping.</td>
+              <td>Web automation</td>
+            </tr>
+            <tr>
+              <td><span class="slash-cmd">/automation</span></td>
+              <td><span class="badge" style="background: rgba(169, 156, 255, 0.15); color: #a99cff; font-size: 0.72rem; padding: 2px 8px; border-radius: 4px;">Agentes</span></td>
+              <td>Diseñar y programar tareas automatizadas y cronjobs en background.</td>
+              <td>Programación cron</td>
+            </tr>
+
+            <!-- 3. Contexto, Sesión & Memoria (7) -->
+            <tr>
+              <td><span class="slash-cmd">/compact</span></td>
+              <td><span class="badge" style="background: rgba(79, 172, 254, 0.15); color: #4facfe; font-size: 0.72rem; padding: 2px 8px; border-radius: 4px;">Sesión</span></td>
+              <td>Compactar historial y contexto para optimizar la ventana de tokens.</td>
+              <td>Ahorro de tokens</td>
+            </tr>
+            <tr>
+              <td><span class="slash-cmd">/clear</span></td>
+              <td><span class="badge" style="background: rgba(79, 172, 254, 0.15); color: #4facfe; font-size: 0.72rem; padding: 2px 8px; border-radius: 4px;">Sesión</span></td>
+              <td>Limpiar pantalla de la terminal conservando la memoria activa.</td>
+              <td><code>cls / clear</code></td>
+            </tr>
+            <tr>
+              <td><span class="slash-cmd">/reset</span></td>
+              <td><span class="badge" style="background: rgba(79, 172, 254, 0.15); color: #4facfe; font-size: 0.72rem; padding: 2px 8px; border-radius: 4px;">Sesión</span></td>
+              <td>Reiniciar variables, historial y estado de la sesión activa a cero.</td>
+              <td>Reinicio limpio</td>
+            </tr>
+            <tr>
+              <td><span class="slash-cmd">/history</span></td>
+              <td><span class="badge" style="background: rgba(79, 172, 254, 0.15); color: #4facfe; font-size: 0.72rem; padding: 2px 8px; border-radius: 4px;">Sesión</span></td>
+              <td>Explorar el historial cronológico de comandos y prompts ejecutados.</td>
+              <td>Logs de sesión</td>
+            </tr>
+            <tr>
+              <td><span class="slash-cmd">/save</span></td>
+              <td><span class="badge" style="background: rgba(79, 172, 254, 0.15); color: #4facfe; font-size: 0.72rem; padding: 2px 8px; border-radius: 4px;">Sesión</span></td>
+              <td>Guardar sesión activa, artefactos y variables de contexto en disco.</td>
+              <td>Snapshot de trabajo</td>
+            </tr>
+            <tr>
+              <td><span class="slash-cmd">/resume</span></td>
+              <td><span class="badge" style="background: rgba(79, 172, 254, 0.15); color: #4facfe; font-size: 0.72rem; padding: 2px 8px; border-radius: 4px;">Sesión</span></td>
+              <td>Reanudar una sesión guardada previamente y restaurar su flujo.</td>
+              <td>Restauración</td>
+            </tr>
+            <tr>
+              <td><span class="slash-cmd">/undo</span></td>
+              <td><span class="badge" style="background: rgba(79, 172, 254, 0.15); color: #4facfe; font-size: 0.72rem; padding: 2px 8px; border-radius: 4px;">Sesión</span></td>
+              <td>Deshacer el último cambio de código o acción realizada por el agente.</td>
+              <td>Revertir paso</td>
+            </tr>
+
+            <!-- 4. Código, Git & Flujo de Trabajo (7) -->
+            <tr>
+              <td><span class="slash-cmd">/status</span></td>
+              <td><span class="badge" style="background: rgba(0, 242, 254, 0.15); color: #00f2fe; font-size: 0.72rem; padding: 2px 8px; border-radius: 4px;">Desarrollo</span></td>
+              <td>Inspeccionar estado de Git, archivos modificados y tareas activas.</td>
+              <td><code>git status</code></td>
+            </tr>
+            <tr>
+              <td><span class="slash-cmd">/diff</span></td>
+              <td><span class="badge" style="background: rgba(0, 242, 254, 0.15); color: #00f2fe; font-size: 0.72rem; padding: 2px 8px; border-radius: 4px;">Desarrollo</span></td>
+              <td>Visualizar diferencias y modificaciones de código en la terminal.</td>
+              <td>Visor diff</td>
+            </tr>
+            <tr>
+              <td><span class="slash-cmd">/commit</span></td>
+              <td><span class="badge" style="background: rgba(0, 242, 254, 0.15); color: #00f2fe; font-size: 0.72rem; padding: 2px 8px; border-radius: 4px;">Desarrollo</span></td>
+              <td>Generar commit semántico inteligente basado en los cambios detectados.</td>
+              <td>Git IA commit</td>
+            </tr>
+            <tr>
+              <td><span class="slash-cmd">/review</span></td>
+              <td><span class="badge" style="background: rgba(0, 242, 254, 0.15); color: #00f2fe; font-size: 0.72rem; padding: 2px 8px; border-radius: 4px;">Desarrollo</span></td>
+              <td>Auditoría integral de código, buenas prácticas y seguridad OWASP.</td>
+              <td>Code review</td>
+            </tr>
+            <tr>
+              <td><span class="slash-cmd">/test</span></td>
+              <td><span class="badge" style="background: rgba(0, 242, 254, 0.15); color: #00f2fe; font-size: 0.72rem; padding: 2px 8px; border-radius: 4px;">Desarrollo</span></td>
+              <td>Ejecución y validación de suites de pruebas unitarias y de integración.</td>
+              <td>Test runner</td>
+            </tr>
+            <tr>
+              <td><span class="slash-cmd">/bug</span></td>
+              <td><span class="badge" style="background: rgba(0, 242, 254, 0.15); color: #00f2fe; font-size: 0.72rem; padding: 2px 8px; border-radius: 4px;">Desarrollo</span></td>
+              <td>Diagnóstico y depuración asistida de excepciones y trazas de error.</td>
+              <td>Debug IA</td>
+            </tr>
+            <tr>
+              <td><span class="slash-cmd">/refactor</span></td>
+              <td><span class="badge" style="background: rgba(0, 242, 254, 0.15); color: #00f2fe; font-size: 0.72rem; padding: 2px 8px; border-radius: 4px;">Desarrollo</span></td>
+              <td>Reestructurar y optimizar arquitectura sin alterar el comportamiento.</td>
+              <td>Optimización</td>
+            </tr>
+
+            <!-- 5. Configuración & Preferencias (6) -->
+            <tr>
+              <td><span class="slash-cmd">/config</span></td>
+              <td><span class="badge" style="background: rgba(254, 209, 54, 0.15); color: #fed136; font-size: 0.72rem; padding: 2px 8px; border-radius: 4px;">Configuración</span></td>
+              <td>Ajustar permisos, temas visuales y opciones operativas del CLI.</td>
+              <td>Panel interactivo</td>
+            </tr>
+            <tr>
+              <td><span class="slash-cmd">/keybindings</span></td>
+              <td><span class="badge" style="background: rgba(254, 209, 54, 0.15); color: #fed136; font-size: 0.72rem; padding: 2px 8px; border-radius: 4px;">Configuración</span></td>
+              <td>Personalizar atajos de teclado y combinaciones de teclas de terminal.</td>
+              <td>Mapeo de atajos</td>
+            </tr>
+            <tr>
+              <td><span class="slash-cmd">/permissions</span></td>
+              <td><span class="badge" style="background: rgba(254, 209, 54, 0.15); color: #fed136; font-size: 0.72rem; padding: 2px 8px; border-radius: 4px;">Configuración</span></td>
+              <td>Administrar permisos de ejecución de comandos bash y herramientas.</td>
+              <td>Sandbox & Security</td>
+            </tr>
+            <tr>
+              <td><span class="slash-cmd">/model</span></td>
+              <td><span class="badge" style="background: rgba(254, 209, 54, 0.15); color: #fed136; font-size: 0.72rem; padding: 2px 8px; border-radius: 4px;">Configuración</span></td>
+              <td>Consultar o alternar el modelo de lenguaje de IA activo.</td>
+              <td>Selector de modelo</td>
+            </tr>
+            <tr>
+              <td><span class="slash-cmd">/theme</span></td>
+              <td><span class="badge" style="background: rgba(254, 209, 54, 0.15); color: #fed136; font-size: 0.72rem; padding: 2px 8px; border-radius: 4px;">Configuración</span></td>
+              <td>Alternar entre temas visuales (Cyberpunk, Matrix, Dark, Coral).</td>
+              <td>Personalización</td>
+            </tr>
+            <tr>
+              <td><span class="slash-cmd">/env</span></td>
+              <td><span class="badge" style="background: rgba(254, 209, 54, 0.15); color: #fed136; font-size: 0.72rem; padding: 2px 8px; border-radius: 4px;">Configuración</span></td>
+              <td>Consultar y modificar variables de entorno activas del sistema.</td>
+              <td>Variables de entorno</td>
+            </tr>
+
+            <!-- 6. Sistema, Telemetría & Utilidades (6) -->
+            <tr>
+              <td><span class="slash-cmd">/help</span></td>
+              <td><span class="badge" style="background: rgba(46, 213, 115, 0.15); color: #2ed573; font-size: 0.72rem; padding: 2px 8px; border-radius: 4px;">Sistema</span></td>
+              <td>Manual interactivo de comandos, pilares y atajos disponibles.</td>
+              <td>Ayuda rápida</td>
+            </tr>
+            <tr>
+              <td><span class="slash-cmd">/update</span></td>
+              <td><span class="badge" style="background: rgba(46, 213, 115, 0.15); color: #2ed573; font-size: 0.72rem; padding: 2px 8px; border-radius: 4px;">Sistema</span></td>
+              <td>Sincronizar y actualizar Vork CLI inmediatamente a la última versión.</td>
+              <td>Auto-update atómico</td>
+            </tr>
+            <tr>
+              <td><span class="slash-cmd">/health</span></td>
+              <td><span class="badge" style="background: rgba(46, 213, 115, 0.15); color: #2ed573; font-size: 0.72rem; padding: 2px 8px; border-radius: 4px;">Sistema</span></td>
+              <td>Telemetría en tiempo real y estado de los 8 pilares operacionales.</td>
+              <td>Telemetría en vivo</td>
+            </tr>
+            <tr>
+              <td><span class="slash-cmd">/ping</span></td>
+              <td><span class="badge" style="background: rgba(46, 213, 115, 0.15); color: #2ed573; font-size: 0.72rem; padding: 2px 8px; border-radius: 4px;">Sistema</span></td>
+              <td>Medición de latencia de red hacia la nube de microservicios de Vork.</td>
+              <td>Prueba de ping</td>
+            </tr>
+            <tr>
+              <td><span class="slash-cmd">/docs</span></td>
+              <td><span class="badge" style="background: rgba(46, 213, 115, 0.15); color: #2ed573; font-size: 0.72rem; padding: 2px 8px; border-radius: 4px;">Sistema</span></td>
+              <td>Abrir la documentación oficial interactiva de Vork en el navegador.</td>
+              <td>Documentación web</td>
+            </tr>
+            <tr>
+              <td><span class="slash-cmd">/exit</span></td>
+              <td><span class="badge" style="background: rgba(46, 213, 115, 0.15); color: #2ed573; font-size: 0.72rem; padding: 2px 8px; border-radius: 4px;">Sistema</span></td>
+              <td>Cerrar la sesión de terminal de forma segura guardando el historial.</td>
+              <td><kbd class="cli-key">ctrl+d ctrl+d</kbd></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+            <!-- VENTAJAS Y ARQUITECTURA DEL MOTOR -->
+    <section id="arquitectura-motor">
+      <div class="section-full-title-wide">
+        <span class="label">Ingeniería &amp; Rendimiento</span>
+        <h2 style="font-size: clamp(1.8rem, 3.5vw, 2.5rem); margin: 6px 0 10px 0;">Ventajas y Arquitectura del Motor</h2>
+        <p>Por qué la terminal unificada de Vork transforma flujos manuales en pipelines automatizados de ingeniería multimedia.</p>
+      </div>
+
+      <div class="cards-full-grid">
+        <!-- 01 -->
+        <div class="tech-card">
+          <span class="tech-card-tag">ARQUITECTURA MODULAR</span>
+          <div class="tech-card-icon">
+            <svg class="icon" viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+          </div>
+          <h3>Micro-Drivers Desacoplados</h3>
+          <p>Submódulos autónomos para cada disciplina que se cargan dinámicamente en memoria según la orden solicitada por el operador.</p>
+        </div>
+
+        <!-- 02 -->
+        <div class="tech-card">
+          <span class="tech-card-tag">INSTALADOR UNIVERSAL</span>
+          <div class="tech-card-icon">
+            <svg class="icon" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><polyline points="8 10 12 14 16 10"/></svg>
+          </div>
+          <h3>Comando 1-Línea Multiplataforma</h3>
+          <p>Despliegue automático en Windows PowerShell, Linux y macOS sin requerir compiladores locales ni configuraciones manuales.</p>
+        </div>
+
+        <!-- 03 -->
+        <div class="tech-card">
+          <span class="tech-card-tag">ORQUESTACIÓN DE AGENTES</span>
+          <div class="tech-card-icon">
+            <svg class="icon" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          </div>
+          <h3>Modo Pair Programming</h3>
+          <p>Protocolo especializado para coordinar agentes autónomos y asistentes de código con feedback estructurado y diagnósticos en vivo.</p>
+        </div>
+
+        <!-- 04 -->
+        <div class="tech-card">
+          <span class="tech-card-tag">TUBERÍAS UNIX Y PIPES</span>
+          <div class="tech-card-icon">
+            <svg class="icon" viewBox="0 0 24 24"><line x1="4" y1="12" x2="20" y2="12"/><polyline points="14 6 20 12 14 18"/></svg>
+          </div>
+          <h3>Automatización en Scripts CI/CD</h3>
+          <p>Soporte completo de flujos estándar <code>stdin</code> / <code>stdout</code>, redirección de archivos y ejecución desatendida en pipelines.</p>
+        </div>
+
+        <!-- 05 -->
+        <div class="tech-card">
+          <span class="tech-card-tag">ACTUALIZACIÓN CONTINUA</span>
+          <div class="tech-card-icon">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.19"/></svg>
+          </div>
+          <h3>Comando vork update</h3>
+          <p>Sincronización instantánea con el repositorio central para incorporar los últimos algoritmos y correcciones de ingeniería.</p>
+        </div>
+
+        <!-- 06 -->
+        <div class="tech-card">
+          <span class="tech-card-tag">LOGGING ESTRUCTURADO</span>
+          <div class="tech-card-icon">
+            <svg class="icon" viewBox="0 0 24 24"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="M6 8h.01M10 8h.01"/></svg>
+          </div>
+          <h3>Salida JSON &amp; Modo Silencioso</h3>
+          <p>Serialización limpia en formato JSON y banderas <code>--quiet</code> para procesar resultados con herramientas de terminal o scripts.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- LOS 8 PILARES DE VORK -->
+    <section class="workbench-wrap" id="pilares" style="padding: 0 20px !important;">
+      <div class="section-head" style="max-width: 100% !important; margin-bottom: 32px;">
+        <span class="label">Pilares Operacionales</span>
+        <h2 class="h-section">Los 8 Pilares de <em>Vork</em></h2>
+        <p class="lead" style="max-width: 100% !important;">Herramientas especializadas con consolas dedicadas a cada disciplina lingüística, vocal, multimedia y de mezcla musical.</p>
+      </div>
+
+                  <div class="services-grid">
+        <!-- Pilar 01 -->
+        <article class="card tilt" style="--tone:#22b0a0">
+          <div class="card-top">
+            <span class="card-num">01</span>
+            <span class="card-tag">Lenguaje</span>
+          </div>
+          <h3>Traductor en la Nube</h3>
+          <p>Traducción por lotes de alta velocidad (+200 idiomas). Extrae los nodos con TreeWalker y envía una sola petición consolidada.</p>
+          <div class="card-foot">
+            <a href="/translator"><span>Abrir Traductor</span></a>
+            <a href="/translator" class="card-arrow" aria-label="Ir a Traductor en la Nube"><svg class="icon" viewBox="0 0 24 24" width="16" height="16"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+          </div>
+        </article>
+
+        <!-- Pilar 02 -->
+        <article class="card tilt" style="--tone:#ff8fa3">
+          <div class="card-top">
+            <span class="card-num">02</span>
+            <span class="card-tag">Voz IA</span>
+          </div>
+          <h3>Texto a Voz Neuronal</h3>
+          <p>Generación de habla realista con 24 voces humanas multilingües, control de velocidad, tono y decodificación de audio directa.</p>
+          <div class="card-foot">
+            <a href="/tts"><span>Abrir Estudio TTS</span></a>
+            <a href="/tts" class="card-arrow" aria-label="Ir a Texto a Voz Neuronal"><svg class="icon" viewBox="0 0 24 24" width="16" height="16"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+          </div>
+        </article>
+
+        <!-- Pilar 03 -->
+        <article class="card tilt" style="--tone:#ffc23d">
+          <div class="card-top">
+            <span class="card-num">03</span>
+            <span class="card-tag">Universal</span>
+          </div>
+          <h3>Conversor Multimedia</h3>
+          <p>Extracción sin marcas de agua de YouTube, TikTok, Instagram Reels y más a MP3 puro o MP4 HD con streaming de rango HTTP.</p>
+          <div class="card-foot">
+            <a href="/converter"><span>Abrir Conversor</span></a>
+            <a href="/converter" class="card-arrow" aria-label="Ir a Conversor Multimedia"><svg class="icon" viewBox="0 0 24 24" width="16" height="16"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+          </div>
+        </article>
+
+        <!-- Pilar 04 -->
+        <article class="card tilt" style="--tone:#ff5a5f">
+          <div class="card-top">
+            <span class="card-num">04</span>
+            <span class="card-tag">Stems</span>
+          </div>
+          <h3>Separador de Stems</h3>
+          <p>Aislamiento de voz (Acapella) y pista instrumental (Karaoke) mediante redes neuronales Demucs v4 y cancelación de fase.</p>
+          <div class="card-foot">
+            <a href="/vocal-remover"><span>Abrir Separador</span></a>
+            <a href="/vocal-remover" class="card-arrow" aria-label="Ir a Separador de Stems"><svg class="icon" viewBox="0 0 24 24" width="16" height="16"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+          </div>
+        </article>
+
+        <!-- Pilar 05 -->
+        <article class="card tilt" style="--tone:#ff7a3d">
+          <div class="card-top">
+            <span class="card-num">05</span>
+            <span class="card-tag">Imágenes</span>
+          </div>
+          <h3>Procesador de Imágenes</h3>
+          <p>Conversión universal entre PNG, JPG, WEBP, GIF, BMP, TIFF e ICO con control de compresión y redimensionado.</p>
+          <div class="card-foot">
+            <a href="/image-converter"><span>Abrir Procesador</span></a>
+            <a href="/image-converter" class="card-arrow" aria-label="Ir a Procesador de Imágenes"><svg class="icon" viewBox="0 0 24 24" width="16" height="16"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+          </div>
+        </article>
+
+        <!-- Pilar 06 -->
+        <article class="card tilt" style="--tone:#a99cff">
+          <div class="card-top">
+            <span class="card-num">06</span>
+            <span class="card-tag">Visión IA</span>
+          </div>
+          <h3>Estudio y Fondo IA</h3>
+          <p>Eliminación inteligente de siluetas con transparencia nítida y reemplazo de fondos creativos con modelos generativos.</p>
+          <div class="card-foot">
+            <a href="/background-remover"><span>Abrir Fondo IA</span></a>
+            <a href="/background-remover" class="card-arrow" aria-label="Ir a Estudio y Fondo IA"><svg class="icon" viewBox="0 0 24 24" width="16" height="16"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+          </div>
+        </article>
+
+        <!-- Pilar 07 -->
+        <article class="card tilt" style="--tone:#22b0a0">
+          <div class="card-top">
+            <span class="card-num">07</span>
+            <span class="card-tag">Imagen IA</span>
+          </div>
+          <h3>Generador de Imágenes IA</h3>
+          <p>Generación fotorrealista con FLUX.1 (sin marca de agua), control de aspecto dinámico (1:1, 16:9, 9:16, 4:3) y descarga en HD.</p>
+          <div class="card-foot">
+            <a href="/draw"><span>Abrir Generador IA</span></a>
+            <a href="/draw" class="card-arrow" aria-label="Ir a Generador de Imágenes IA"><svg class="icon" viewBox="0 0 24 24" width="16" height="16"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+          </div>
+        </article>
+
+        <!-- Pilar 08 (Página Actual) -->
+        <article class="card tilt" style="--tone:#ff7a3d; border-color: rgba(34, 176, 160, 0.45); box-shadow: 0 4px 20px rgba(34, 176, 160, 0.12);">
+          <div class="card-top">
+            <span class="card-num" style="color: #ff7a3d;">08</span>
+            <span class="card-tag" style="background: rgba(34, 176, 160, 0.15); color: #ff7a3d; border: 1px solid rgba(34, 176, 160, 0.3);">Terminal</span>
+          </div>
+          <h3>Vork CLI & Agentes</h3>
+          <p>Consola de comandos completa para invocar los 8 pilares desde la terminal y orquestar sesiones de agentes autónomos.</p>
+          <div class="card-foot" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+            <span style="font-size: 0.85rem; color: #ff7a3d; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
+              <span style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #ff7a3d; box-shadow: 0 0 6px #ff7a3d;"></span>
+              Estás aquí
+            </span>
+            <span class="card-check-badge" aria-label="Estás aquí">
+              <svg class="icon" viewBox="0 0 24 24" width="17" height="17" stroke="currentColor" fill="none" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+            </span>
+          </div>
+        </article>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Componente Modular: Pie de Página Inyectado Dinámicamente -->
+  <footer id="footer-placeholder" data-component="footer" data-active="cli"></footer>
+
+  <script src="/js/vork.js"></script>
+  <script src="/js/modules/cli.js"></script>
+  
+</body>
+</html>

@@ -1,0 +1,108 @@
+/* ----- Telemetría / Estado ----- */
+.telemetry-board {
+  background: var(--card);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: clamp(20px, 3.5vw, 32px);
+  box-shadow: var(--shadow-md);
+}
+
+.status-indicator-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 22px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(135deg, rgba(34, 176, 160, 0.1) 0%, rgba(255, 252, 247, 0.6) 100%);
+  border: 1px solid rgba(34, 176, 160, 0.28);
+  margin-bottom: 22px;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.status-indicator-banner.status-sleeping {
+  background: linear-gradient(135deg, rgba(255, 194, 61, 0.12) 0%, rgba(255, 252, 247, 0.6) 100%);
+  border-color: rgba(255, 194, 61, 0.35);
+}
+
+.status-headline {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pulse-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--teal);
+  box-shadow: 0 0 12px rgba(34, 176, 160, 0.6);
+  animation: pulseGlow 2s infinite;
+  flex-shrink: 0;
+}
+
+@keyframes pulseGlow {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 176, 160, 0.55); }
+  70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(34, 176, 160, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 176, 160, 0); }
+}
+
+.metrics-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 14px;
+}
+
+.metric-box {
+  background: rgba(28, 24, 20, 0.03);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  text-align: center;
+}
+
+.metric-val {
+  font-size: 1.5rem;
+  font-weight: 800;
+  font-family: var(--f-mono);
+  color: var(--ink);
+  line-height: 1.1;
+  margin-bottom: 4px;
+}
+
+.metric-val.green {
+  color: var(--teal);
+}
+
+.metric-label {
+  font-size: 0.7rem;
+  color: var(--muted-light);
+  text-transform: uppercase;
+  font-family: var(--f-mono);
+  letter-spacing: 0.04em;
+}
+
+.endpoints-heading {
+  margin-top: 32px;
+  margin-bottom: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.endpoints-heading h3 {
+  font-size: 1.2rem;
+  color: var(--ink);
+  margin: 0;
+  font-family: var(--f-display);
+  font-weight: 800;
+}
+
+.endpoints-heading span {
+  font-size: 0.78rem;
+  font-family: var(--f-mono);
+  color: var(--muted-light);
+}

@@ -1,6 +1,6 @@
 /**
  * cli.js
- * Módulo de la consola Vork CLI y gestión de pestañas de terminal.
+ * Módulo de la consola Vork CLI, gestión de pestañas de terminal y copiado de comandos.
  */
 
 (function (window, document) {
@@ -47,9 +47,23 @@
     });
   }
 
+  function copiarAlPortapapeles(btn, elementId) {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+    navigator.clipboard.writeText(el.innerText || el.textContent || "");
+    btn.classList.add("btn-copied");
+    const origHtml = btn.innerHTML;
+    btn.innerHTML = '<svg class="icon" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" fill="none" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg> <span>¡Copiado!</span>';
+    setTimeout(() => {
+      btn.classList.remove("btn-copied");
+      btn.innerHTML = origHtml;
+    }, 1800);
+  }
+
   // Exponer globalmente en window de inmediato
   window.switchInstallTab = switchInstallTab;
   window.detectUserOS = detectUserOS;
+  window.copiarAlPortapapeles = copiarAlPortapapeles;
 
   function initInstallTabs() {
     const btnPs = document.getElementById("tab-ps-btn");
@@ -103,7 +117,6 @@
     initInstallTabs();
   }
 
-  // También escuchar por si SPA Router inserta el contenido dinámicamente
   window.addEventListener("load", initInstallTabs);
   window.initCliModule = initInstallTabs;
 

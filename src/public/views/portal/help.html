@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+  <meta name="theme-color" content="#11141a">
+  <title>Centro de Ayuda y Preguntas Frecuentes | Vork</title>
+  <meta name="description" content="Centro de Ayuda de Vork: respuestas a preguntas frecuentes sobre traducción, síntesis TTS, cookies y configuración.">
+  <link rel="canonical" href="https://vork-st1k.onrender.com/help">
+
+  <!-- Open Graph -->
+  <meta property="og:site_name" content="Vork">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://vork-st1k.onrender.com/help">
+  <meta property="og:title" content="Centro de Ayuda y Preguntas Frecuentes | Vork">
+  <meta property="og:description" content="Guía de dudas habituales, latencias, límites y configuración de los servicios multimodales de Vork.">
+  <meta property="og:image" content="https://vork-st1k.onrender.com/img/brand/logo.png">
+  <meta property="og:locale" content="es_ES">
+
+  <!-- Twitter Cards -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Centro de Ayuda | Vork">
+  <meta name="twitter:description" content="Respuestas inmediatas a dudas habituales sobre funcionamiento, latencias y cookies en Vork.">
+  <meta name="twitter:image" content="https://vork-st1k.onrender.com/img/brand/logo.png">
+
+  <!-- Favicons y Manifest -->
+  <link rel="icon" type="image/png" sizes="192x192" href="/img/brand/logo.png">
+  <link rel="icon" type="image/png" sizes="64x64" href="/img/brand/logo.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/img/brand/logo.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/img/brand/logo.png">
+  <link rel="manifest" href="/manifest.json">
+  <!-- Compatibilidad Universal de Navegadores (Chrome, Safari, Edge, Firefox, Opera GX, Brave) -->
+  <meta name="application-name" content="Vork">
+  <meta name="apple-mobile-web-app-title" content="Vork">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="msapplication-TileColor" content="#11141a">
+  <meta name="msapplication-TileImage" content="/img/brand/logo.png">
+  <link rel="search" type="application/opensearchdescription+xml" title="Vork" href="/opensearch.xml">
+
+  <!-- Fuentes y Estilos -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+
+  <!-- Datos Estructurados FAQPage JSON-LD -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "FAQPage",
+        "@id": "https://vork-st1k.onrender.com/help#faq",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "¿Qué es Vork y qué servicios ofrece?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Vork es un ecosistema cloud multimodal que integra 8 pilares: traducción neuronal por micro-lotes (+200 idiomas), síntesis de voz TTS, conversor universal, separador de stems Demucs v4, mezclador DJ en vivo, procesador de imágenes, eliminador de fondos con IA y terminal CLI."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "¿Cómo funciona la traducción por micro-lotes sin bloquear la página?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "El SDK agrupa todos los fragmentos textuales del DOM en lotes de tamaño optimizado, enviando una sola petición HTTP comprimida. Las traducciones se cachean con 0ms de latencia en peticiones recurrentes."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "¿Es gratuito utilizar Vork?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Sí, Vork es un proyecto de código abierto y acceso público gratuito diseñado para estudiantes, creadores y desarrolladores de todo el mundo."
+            }
+          }
+        ]
+      },
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Inicio",
+            "item": "https://vork-st1k.onrender.com/"
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Centro de Ayuda",
+            "item": "https://vork-st1k.onrender.com/help"
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+
+  <script>
+    (function(){try{var m=document.cookie.match(/(?:^|; )vork_lang=([^;]*)/);var l=m?decodeURIComponent(m[1]):null;if(l&&l!=="original"&&l!=="es"){document.documentElement.classList.add("ct-pending");setTimeout(function(){document.documentElement.classList.remove("ct-pending");},800);}}catch(e){}})();
+  </script>
+  <script src="/js/spa-router.js" defer></script>
+  <script src="/js/ui.js" defer></script>
+</head>
+<body>
+
+  <div class="grain" aria-hidden="true"></div>
+
+  <header id="header-placeholder" data-component="header" data-active="help"></header>
+
+  <main class="full-container">
+    <section class="hero-full">
+      <div class="hero-split hero-split-solo">
+        <div class="hero-split-content">
+          <span class="label">[ CENTRO DE ASISTENCIA Y GUÍAS DE AUTOAYUDA ]</span>
+          <h1 class="h-section">Centro de <em>Ayuda</em></h1>
+          <p class="lead" style="text-align: left; margin: 0;">
+            Respuestas inmediatas a dudas habituales sobre funcionamiento, latencias, cookies y configuración de Vork. Si requieres asistencia técnica personalizada, visita nuestro portal de <a href="/support" style="color: var(--accent); text-decoration: underline;">Soporte Técnico</a>:
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <article class="content-box-card">
+      <span class="tech-card-tag">[ 01 // PREGUNTAS_FRECUENTES_9_PILARES ]</span>
+      <h2>Preguntas Frecuentes de los 9 Pilares (FAQ)</h2>
+
+      <div class="faq-item">
+        <h3>¿Por qué la primera petición puede tardar entre 25 y 35 segundos?</h3>
+        <p>
+          El microservicio se ejecuta en el tier en la nube de Render. Si el servidor no recibe tráfico durante 15 minutos continuos, entra en modo reposo automático (sleep). La primera solicitud despierta la máquina virtual ("cold start") en aproximadamente 25 a 35 segundos. Tras reactivarse, todas las consultas responden de inmediato con latencias ultrarrápidas de 150 a 300 ms (o 0 ms si provienen del caché en memoria RAM).
+        </p>
+      </div>
+
+      <div class="pillar-block">
+        <span class="pillar-tag">PILAR 01 // TRADUCTOR EN LA NUBE</span>
+        <div class="faq-item">
+          <h3>¿Cómo optimiza Vork el consumo de red en mi navegador?</h3>
+          <p>
+            A diferencia de scripts tradicionales que disparan cientos de peticiones HTTP por cada párrafo o etiqueta, el SDK de Vork recorre el árbol DOM mediante <code>TreeWalker</code>, agrupa todos los textos visibles únicos en un solo arreglo JSON (<code>texts: [...]</code>) y realiza <strong>una única solicitud HTTP consolidada</strong> hacia <code>POST /api/translate</code>.
+          </p>
+        </div>
+        <div class="faq-item">
+          <h3>¿Cómo funciona la memoria de traducción en caché y la persistencia?</h3>
+          <p>
+            Vork opera con <strong>cero uso de <code>localStorage</code></strong>. Utiliza una memoria caché activa en RAM durante la sesión (Map) tanto en el navegador como en el servidor (caché LRU de hasta 10,000 entradas), respondiendo en 0 ms ante textos repetidos. Para recordar el idioma entre páginas y visitas, emplea la cookie técnica <code>vork_lang</code> con vigencia de 365 días (<code>SameSite=Lax</code>).
+          </p>
+        </div>
+      </div>
+
+      <div class="pillar-block">
+        <span class="pillar-tag" style="border-color: rgba(56, 189, 248, 0.4); color: #0284c7;">PILAR 02 // TEXTO A VOZ (TTS)</span>
+        <div class="faq-item">
+          <h3>¿Qué opciones de síntesis y voces ofrece el Estudio TTS?</h3>
+          <p>
+            Ofrece un motor híbrido: síntesis instantánea en navegador mediante Web Speech API con modulación de velocidad (rate) y tono (pitch), y un catálogo de <strong>24 voces humanas neuronales</strong> en backend (accesibles en <code>GET /api/tts/voices</code>). Admite generación directa y streaming con descarga forzada en formato binario <code>.wav</code> o <code>.mp3</code>.
+          </p>
+        </div>
+      </div>
+
+      
+
+      <div class="pillar-block">
+        <span class="pillar-tag" style="border-color: rgba(239, 68, 68, 0.4); color: #dc2626;">PILAR 04 // CONVERSOR MULTIMEDIA (MP3 / MP4)</span>
+        <div class="faq-item">
+          <h3>¿Qué plataformas y calidades de conversión están soportadas?</h3>
+          <p>
+            El motor procesa enlaces de <strong>YouTube, TikTok (sin marcas de agua), Instagram Reels, Facebook, Twitter/X, Pinterest</strong> y archivos multimedia directos. Permite extraer Audio en MP3 (320 kbps, 256 kbps, 192 kbps y 128 kbps) o Video en MP4 (1080p Full HD, 720p HD, 480p y 360p). Admite modo individual o conversión masiva por lotes de hasta 10 enlaces simultáneos con streaming binario y descarga directa.
+          </p>
+        </div>
+      </div>
+    </article>
+
+    <article class="content-box-card">
+      <span class="tech-card-tag">[ 02 // DIAGNÓSTICO_Y_RESOLUCIÓN ]</span>
+      <h2>Resolución de Problemas Reales (Troubleshooting)</h2>
+
+      <div class="faq-item">
+        <h3>Error HTTP 400: Parámetros de Idioma en Traducción</h3>
+        <p>
+          El endpoint <code>POST /api/translate</code> admite tanto el alias estándar <code>to</code> como <code>targetLanguage</code> (ej: <code>"to": "en"</code> o <code>"targetLanguage": "fr"</code>). Para el texto, envía <code>text: "cadena"</code> o el arreglo por lotes <code>texts: ["cadena 1", "cadena 2"]</code>.
+        </p>
+      </div>
+
+      <div class="faq-item">
+        <h3>Error en Síntesis TTS: "Texto requerido o voz no válida"</h3>
+        <p>
+          En <code>POST /api/tts</code> debes enviar un objeto JSON con <code>text</code> (máximo 5000 caracteres por solicitud) y opcionalmente <code>lang</code> o <code>voice</code>. Consulta las voces disponibles en tiempo real llamando a <code>GET /api/tts/voices</code>.
+        </p>
+      </div>
+
+      
+
+      <div class="faq-item">
+        <h3>Error en Conversor: "URL no soportada o contenido privado"</h3>
+        <p>
+          Verifica que el enlace pertenezca a una de las plataformas compatibles (YouTube, TikTok, Instagram, Facebook, Twitter/X, Pinterest) y que el contenido sea público. Los videos configurados como privados o con restricciones de edad de terceros requieren acceso autenticado no disponible en la API pública.
+        </p>
+      </div>
+
+      <div class="faq-item">
+        <h3>Consultas CORS desde otros dominios o aplicaciones móviles</h3>
+        <p>
+          Vork cuenta con CORS universal abierto (<code>Access-Control-Allow-Origin: *</code>) y gestiona automáticamente las peticiones de verificación <code>OPTIONS</code> devolviendo estado <code>204 No Content</code>.
+        </p>
+      </div>
+    </article>
+
+    <article class="content-box-card">
+      <span class="tech-card-tag">[ 03 // CONTACTO_ADICIONAL ]</span>
+      <h2>¿Aún necesitas ayuda personalizada?</h2>
+      <p>
+        Si tu consulta no queda resuelta con estas guías o deseas reportar una anomalía técnica en producción, accede a nuestro canal especializado:
+      </p>
+      <div class="content-actions">
+        <a href="/support" class="btn btn-primary">Ir a Soporte Técnico</a>
+        <a href="/status" class="btn btn-outline">Comprobar Monitor en Vivo</a>
+      </div>
+    </article>
+  </main>
+
+  <footer id="footer-placeholder" data-component="footer" data-active="help"></footer>
+
+  <script src="/js/vork.js"></script>
+  <script src="/js/modules/common.js" defer></script>
+</body>
+</html>

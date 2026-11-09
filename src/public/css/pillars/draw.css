@@ -1,0 +1,211 @@
+/**
+ * draw.css
+ * Estilos del lienzo de dibujo y generador de imágenes IA del Pilar 07 (Flux)
+ */
+
+.draw-hero-glow {
+      background: radial-gradient(circle, rgba(34, 176, 160, 0.45) 0%, rgba(255, 122, 61, 0.22) 60%, transparent 80%);
+    }
+    .ratio-pills-wrap {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .ratio-pill-btn {
+      flex: 1 1 120px;
+      padding: 10px 14px;
+      background: rgba(15, 20, 30, 0.7);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      color: var(--text-secondary);
+      font-size: 0.86rem;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
+    .ratio-pill-btn:hover {
+      border-color: rgba(34, 176, 160, 0.6);
+      color: #fff;
+      transform: translateY(-2px);
+    }
+    .ratio-pill-btn.active {
+      background: rgba(34, 176, 160, 0.16);
+      border-color: #22b0a0;
+      color: #22b0a0;
+      font-weight: 700;
+      box-shadow: 0 0 16px rgba(34, 176, 160, 0.25);
+    }
+    .ratio-pill-btn span.ratio-dim {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .ratio-pill-btn.active span.ratio-dim {
+      color: #a3f7eb;
+    }
+    .prompt-textarea {
+      width: 100%;
+      min-height: 120px;
+      background: rgba(10, 14, 24, 0.85);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      color: #f4ece1;
+      padding: 14px 16px;
+      font-size: 0.98rem;
+      line-height: 1.5;
+      resize: vertical;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      box-sizing: border-box;
+    }
+    .prompt-textarea:focus {
+      border-color: #22b0a0;
+      box-shadow: 0 0 0 3px rgba(34, 176, 160, 0.15);
+    }
+    .prompt-tags-shelf {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .prompt-sample-tag {
+      font-size: 0.78rem;
+      padding: 5px 11px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      border-radius: 999px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .prompt-sample-tag:hover {
+      background: rgba(34, 176, 160, 0.12);
+      border-color: rgba(34, 176, 160, 0.4);
+      color: #22b0a0;
+    }
+    .preview-canvas-box {
+      margin-top: 28px;
+      padding: 20px;
+      background: rgba(10, 14, 24, 0.6);
+      border: 1px dashed rgba(34, 176, 160, 0.35);
+      border-radius: var(--radius-lg);
+      text-align: center;
+      min-height: 320px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+    .result-image-display {
+      max-width: 100%;
+      max-height: 640px;
+      border-radius: var(--radius-md);
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
+      border: 1px solid rgba(34, 176, 160, 0.3);
+      display: none;
+    }
+
+    /* Subtítulo a ancho completo */
+    .section-full-title-wide {
+      width: 100% !important;
+      max-width: 100% !important;
+      text-align: left;
+      margin-bottom: 32px;
+    }
+    .section-full-title-wide p {
+      width: 100% !important;
+      max-width: 100% !important;
+      font-size: 1.05rem;
+      color: var(--muted);
+      margin-top: 8px;
+      line-height: 1.6;
+    }
+
+    /* Contenedor principal y rejillas balanceadas (igual a Pilar 01 translator.html) */
+    main.full-container {
+      max-width: 1260px !important;
+      width: 100% !important;
+      padding-bottom: 20px !important;
+      gap: 16px !important;
+    }
+
+    #pilares {
+      max-width: 1220px !important;
+      width: 100% !important;
+      margin: 28px auto 0 auto !important;
+    }
+    #pilares .services-grid {
+      display: grid !important;
+      grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)) !important;
+      gap: 20px !important;
+      max-width: 1180px !important;
+      margin: 0 auto !important;
+      width: 100% !important;
+    }
+    #pilares .card {
+      width: 100% !important;
+      max-width: 360px !important;
+      margin: 0 auto !important;
+      padding: 24px 22px !important;
+      min-height: auto !important;
+      box-sizing: border-box !important;
+    }
+
+    .cards-full-grid {
+      display: grid !important;
+      grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)) !important;
+      gap: 20px !important;
+      max-width: 1180px !important;
+      margin: 22px auto !important;
+      width: 100% !important;
+    }
+    .tech-card {
+      max-width: 360px !important;
+      margin: 0 auto !important;
+      width: 100% !important;
+      padding: 22px 20px !important;
+      box-sizing: border-box !important;
+    }
+
+    /* Badge de verificación de Pilar 07 activo (Fondo blanco sin pasar el mouse) */
+    .card-check-badge {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 1.5px solid #e2e8f0;
+      background: #ffffff !important;
+      color: #0f172a;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.25s ease;
+      cursor: default;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+    }
+    .card-check-badge svg {
+      stroke: #0f172a !important;
+      color: #0f172a !important;
+      width: 17px;
+      height: 17px;
+      transition: stroke 0.25s ease, transform 0.25s ease;
+    }
+    .card:hover .card-check-badge,
+    .card-check-badge:hover {
+      background: #22b0a0 !important;
+      border-color: #2dd4bf !important;
+      transform: scale(1.08);
+      box-shadow: 0 0 14px rgba(34, 176, 160, 0.45);
+    }
+    .card:hover .card-check-badge svg,
+    .card-check-badge:hover svg {
+      stroke: #ffffff !important;
+      color: #ffffff !important;
+    }

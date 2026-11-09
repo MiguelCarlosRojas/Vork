@@ -21,7 +21,6 @@
 
     const inputUrl = document.getElementById("input-video-url");
     const btnClear = document.getElementById("btn-clear-url");
-    const btnPaste = document.getElementById("btn-paste-clipboard");
     const btnToggleBatch = document.getElementById("btn-toggle-batch");
     const singleBox = document.getElementById("single-link-box");
     const batchBox = document.getElementById("batch-link-box");
@@ -84,16 +83,16 @@
 
     function getQualityBadgeLabel(fmt, value) {
       if (fmt === "mp3") {
-        if (value === "320k") return "STUDIO MASTER (320 kbps)";
-        if (value === "192k") return "ESTÁNDAR (192 kbps)";
-        if (value === "128k") return "AHORRO (128 kbps)";
-        return `STUDIO MASTER (${value})`;
+        if (value === "320k") return "320 kbps";
+        if (value === "192k") return "192 kbps";
+        if (value === "128k") return "128 kbps";
+        return `${value}`;
       } else {
-        if (value === "1080p") return "FULL HD (1080p)";
-        if (value === "720p") return "HD (720p)";
-        if (value === "480p") return "SD (480p)";
-        if (value === "360p") return "MÓVIL (360p)";
-        return `FULL HD (${value})`;
+        if (value === "1080p") return "1080p Full HD";
+        if (value === "720p") return "720p HD";
+        if (value === "480p") return "480p SD";
+        if (value === "360p") return "360p Móvil";
+        return `${value}`;
       }
     }
 
@@ -217,7 +216,6 @@
         batchUrls.style.cursor = disabled ? "not-allowed" : "text";
       }
       if (btnClear) btnClear.disabled = disabled;
-      if (btnPaste) btnPaste.disabled = disabled;
       if (btnToggleBatch) btnToggleBatch.disabled = disabled;
       if (btnFormatMp3) btnFormatMp3.disabled = disabled;
       if (btnFormatMp4) btnFormatMp4.disabled = disabled;
@@ -238,7 +236,6 @@
         btnFormatMp3,
         btnFormatMp4,
         btnClear,
-        btnPaste,
         btnToggleBatch
       ];
 
@@ -372,23 +369,6 @@
       });
     }
 
-    if (btnPaste && !btnPaste._bound) {
-      btnPaste._bound = true;
-      btnPaste.addEventListener("click", async () => {
-        try {
-          const text = await navigator.clipboard.readText();
-          if (text) {
-            inputUrl.value = text.trim();
-            resetProgressBox();
-            hidePreviousResult();
-            syncDetectedPlatform(inputUrl.value);
-          }
-        } catch {
-          inputUrl.focus();
-        }
-      });
-    }
-
     if (btnToggleBatch && !btnToggleBatch._bound) {
       btnToggleBatch._bound = true;
       btnToggleBatch.addEventListener("click", () => {
@@ -398,12 +378,16 @@
         if (isBatchMode) {
           singleBox.style.display = "none";
           batchBox.style.display = "block";
-          btnToggleBatch.textContent = "Modo Enlace Único";
+          btnToggleBatch.setAttribute("data-tooltip", "Modo Enlace Único");
+          btnToggleBatch.setAttribute("aria-label", "Modo Enlace Único");
+          btnToggleBatch.innerHTML = `<svg id="btn-toggle-batch-icon" class="icon" viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>`;
           if (btnConvertText) btnConvertText.textContent = "CONVERTIR LOTE";
         } else {
           singleBox.style.display = "block";
           batchBox.style.display = "none";
-          btnToggleBatch.innerHTML = `<svg class="icon" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg> Modo Lote (Múltiples Enlaces)`;
+          btnToggleBatch.setAttribute("data-tooltip", "Modo Lote (Múltiples Enlaces)");
+          btnToggleBatch.setAttribute("aria-label", "Modo Lote (Múltiples Enlaces)");
+          btnToggleBatch.innerHTML = `<svg id="btn-toggle-batch-icon" class="icon" viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>`;
           if (btnConvertText) btnConvertText.textContent = "CONVERTIR MULTIMEDIA";
         }
       });
@@ -606,31 +590,28 @@
           document.body.appendChild(a);
           a.click();
           a.remove();
+
+          btnDownload.setAttribute("data-tooltip", "¡Descargando!");
+          setTimeout(() => {
+            btnDownload.setAttribute("data-tooltip", "Descargar");
+          }, 2000);
         };
       }
 
       if (btnCopyStream) {
         btnCopyStream.onclick = () => {
           navigator.clipboard.writeText(item.streamUrl);
-          const origHtml = btnCopyStream.innerHTML;
-          const origBg = btnCopyStream.style.background;
-          const origColor = btnCopyStream.style.color;
-          const origBorder = btnCopyStream.style.borderColor;
+          const ICON_DEFAULT = '<svg id="copy-stream-icon" class="icon" viewBox="0 0 24 24" width="17" height="17" stroke="currentColor" fill="none" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>';
+          const ICON_SUCCESS = '<svg class="icon" viewBox="0 0 24 24" width="17" height="17" stroke="#10b981" fill="none" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>';
 
-          btnCopyStream.classList.add("btn-copied");
-          btnCopyStream.innerHTML = '<svg class="icon" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> <span>¡Enlace Copiado!</span>';
-          btnCopyStream.style.background = "#10b981";
-          btnCopyStream.style.color = "#ffffff";
+          btnCopyStream.setAttribute("data-tooltip", "¡Enlace Copiado!");
+          btnCopyStream.innerHTML = ICON_SUCCESS;
           btnCopyStream.style.borderColor = "#10b981";
-          btnCopyStream.style.fontWeight = "700";
 
           setTimeout(() => {
-            btnCopyStream.classList.remove("btn-copied");
-            btnCopyStream.innerHTML = origHtml;
-            btnCopyStream.style.background = origBg;
-            btnCopyStream.style.color = origColor;
-            btnCopyStream.style.borderColor = origBorder;
-            btnCopyStream.style.fontWeight = "";
+            btnCopyStream.setAttribute("data-tooltip", "Copiar Enlace Directo");
+            btnCopyStream.innerHTML = ICON_DEFAULT;
+            btnCopyStream.style.borderColor = "";
           }, 2000);
         };
       }
