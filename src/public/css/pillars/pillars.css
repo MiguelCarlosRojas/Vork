@@ -4,99 +4,319 @@
  */
 
 /* Subtítulo a ancho completo */
-    .section-full-title-wide {
-      width: 100% !important;
-      max-width: 100% !important;
-      text-align: left;
-      margin-bottom: 32px;
-    }
-    .section-full-title-wide p {
-      width: 100% !important;
-      max-width: 100% !important;
-      font-size: 1.05rem;
-      color: var(--muted);
-      margin-top: 8px;
-      line-height: 1.6;
-    }
+.section-full-title-wide {
+  width: 100% !important;
+  max-width: 100% !important;
+  text-align: left;
+  margin-bottom: 32px;
+}
+.section-full-title-wide .label {
+  font-family: var(--f-mono, monospace);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  display: inline-block;
+  margin-bottom: 6px;
+}
+.section-full-title-wide h2 {
+  font-size: clamp(1.8rem, 3.5vw, 2.5rem);
+  margin: 6px 0 10px 0;
+  color: var(--ink);
+}
+.section-full-title-wide p {
+  width: 100% !important;
+  max-width: 100% !important;
+  font-size: 1.05rem;
+  color: var(--muted);
+  margin-top: 8px;
+  line-height: 1.6;
+}
 
-    /* Contenedor principal y rejillas balanceadas (igual a Pilar 01 translator.html) */
-    main.full-container {
-      max-width: 1260px !important;
-      width: 100% !important;
-      padding-bottom: 20px !important;
-      gap: 16px !important;
-    }
+/* Contenedor principal y rejillas balanceadas */
+main.full-container {
+  max-width: 1260px !important;
+  width: 100% !important;
+  padding-bottom: 20px !important;
+  gap: 16px !important;
+}
 
-    #pilares {
-      max-width: 1220px !important;
-      width: 100% !important;
-      margin: 28px auto 0 auto !important;
-    }
-    #pilares .services-grid {
-      display: grid !important;
-      grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)) !important;
-      gap: 20px !important;
-      max-width: 1180px !important;
-      margin: 0 auto !important;
-      width: 100% !important;
-    }
-    #pilares .card {
-      width: 100% !important;
-      max-width: 360px !important;
-      margin: 0 auto !important;
-      padding: 24px 22px !important;
-      min-height: auto !important;
-      box-sizing: border-box !important;
-    }
+#pilares {
+  max-width: 1220px !important;
+  width: 100% !important;
+  margin: 28px auto 0 auto !important;
+}
+#pilares .services-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)) !important;
+  gap: 20px !important;
+  max-width: 1180px !important;
+  margin: 0 auto !important;
+  width: 100% !important;
+}
+#pilares .card {
+  width: 100% !important;
+  max-width: 360px !important;
+  margin: 0 auto !important;
+  padding: 24px 22px !important;
+  min-height: auto !important;
+  box-sizing: border-box !important;
+}
 
-    .cards-full-grid {
-      display: grid !important;
-      grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)) !important;
-      gap: 20px !important;
-      max-width: 1180px !important;
-      margin: 22px auto !important;
-      width: 100% !important;
-    }
-    .tech-card {
-      max-width: 360px !important;
-      margin: 0 auto !important;
-      width: 100% !important;
-      padding: 22px 20px !important;
-      box-sizing: border-box !important;
-    }
+/* ==========================================================================
+   Grilla de Tarjetas Técnicas de Ingeniería (Bento Grid)
+   ========================================================================== */
+.cards-full-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)) !important;
+  gap: 20px !important;
+  max-width: 1180px !important;
+  margin: 22px auto 40px auto !important;
+  width: 100% !important;
+}
 
-    /* Badge de verificación de Pilar 08 activo (Fondo blanco sin pasar el mouse) */
-    .card-check-badge {
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      border: 1.5px solid #e2e8f0;
-      background: #ffffff !important;
-      color: #0f172a;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      transition: all 0.25s ease;
-      cursor: default;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
-    }
-    .card-check-badge svg {
-      stroke: #0f172a !important;
-      color: #0f172a !important;
-      width: 17px;
-      height: 17px;
-      transition: stroke 0.25s ease, transform 0.25s ease;
-    }
-    .card:hover .card-check-badge,
-    .card-check-badge:hover {
-      background: #ff7a3d !important;
-      border-color: #ff7a3d !important;
-      transform: scale(1.08);
-      box-shadow: 0 0 14px rgba(255, 122, 61, 0.45);
-    }
-    .card:hover .card-check-badge svg,
-    .card-check-badge:hover svg {
-      stroke: #ffffff !important;
-      color: #ffffff !important;
-    }
+.tech-card {
+  background: var(--card) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: var(--radius) !important;
+  max-width: 360px !important;
+  margin: 0 auto !important;
+  width: 100% !important;
+  padding: 24px 22px !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 14px !important;
+  position: relative !important;
+  overflow: hidden !important;
+  box-shadow: var(--shadow-sm) !important;
+  transition: all 0.3s var(--ease) !important;
+}
+
+.tech-card::before {
+  content: "" !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  height: 3px !important;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent) !important;
+  opacity: 0 !important;
+  transition: opacity 0.3s var(--ease) !important;
+}
+
+.tech-card:hover {
+  transform: translateY(-4px) !important;
+  background: var(--card-hover) !important;
+  border-color: var(--accent) !important;
+  box-shadow: var(--shadow-hover) !important;
+}
+
+.tech-card:hover::before {
+  opacity: 1 !important;
+}
+
+.tech-card-tag {
+  font-family: var(--f-mono, monospace) !important;
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  color: var(--accent) !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase !important;
+  display: inline-block !important;
+}
+
+.tech-card-icon {
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: var(--radius-sm) !important;
+  background: rgba(255, 122, 61, 0.12) !important;
+  border: 1px solid rgba(255, 122, 61, 0.25) !important;
+  color: var(--accent) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+}
+
+.tech-card-icon svg {
+  width: 22px !important;
+  height: 22px !important;
+}
+
+.tech-card h3 {
+  font-size: 1.25rem !important;
+  margin: 4px 0 0 0 !important;
+  color: var(--ink) !important;
+  line-height: 1.3 !important;
+}
+
+.tech-card p {
+  font-size: 0.92rem !important;
+  color: var(--muted) !important;
+  line-height: 1.6 !important;
+  margin: 0 !important;
+}
+
+.tech-card .btn,
+.tech-card a.btn {
+  margin-top: auto !important;
+  align-self: flex-start !important;
+}
+
+/* Badge de verificación de Pilar Activo */
+.card-check-badge {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1.5px solid #e2e8f0;
+  background: #ffffff !important;
+  color: #0f172a;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.25s ease;
+  cursor: default;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+.card-check-badge svg {
+  stroke: #0f172a !important;
+  color: #0f172a !important;
+  width: 17px;
+  height: 17px;
+  transition: stroke 0.25s ease, transform 0.25s ease;
+}
+.card:hover .card-check-badge,
+.card-check-badge:hover {
+  background: var(--tone, #ff7a3d) !important;
+  border-color: var(--tone, #ff7a3d) !important;
+  transform: scale(1.08);
+  box-shadow: 0 0 14px rgba(255, 122, 61, 0.45);
+}
+.card:hover .card-check-badge svg,
+.card-check-badge:hover svg {
+  stroke: #ffffff !important;
+  color: #ffffff !important;
+}
+
+/* ==========================================================================
+   Contenedor Studio & Workbench (Consolas Interactivas de Pilares)
+   ========================================================================== */
+.studio-wrapper,
+.content-box-card {
+  background: var(--card) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: var(--radius) !important;
+  padding: clamp(24px, 4vw, 44px) !important;
+  box-shadow: var(--shadow-md) !important;
+  margin: 36px auto !important;
+  max-width: 1240px !important;
+  box-sizing: border-box !important;
+}
+
+.studio-header {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: flex-start !important;
+  flex-wrap: wrap !important;
+  gap: 20px !important;
+  margin-bottom: 28px !important;
+  padding-bottom: 20px !important;
+  border-bottom: 1px solid var(--line) !important;
+}
+
+.studio-title-box h2 {
+  font-size: clamp(1.6rem, 3vw, 2.2rem) !important;
+  margin: 6px 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  color: var(--ink) !important;
+}
+
+.studio-title-box p {
+  color: var(--muted) !important;
+  font-size: 1rem !important;
+  margin: 6px 0 0 0 !important;
+  line-height: 1.6 !important;
+}
+
+.studio-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)) !important;
+  gap: 24px !important;
+}
+
+.studio-panel {
+  background: rgba(255, 255, 255, 0.85) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: var(--radius-md) !important;
+  padding: 24px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 14px !important;
+  box-shadow: var(--shadow-sm) !important;
+  box-sizing: border-box !important;
+}
+body.is-dark .studio-panel {
+  background: rgba(30, 25, 20, 0.85) !important;
+}
+
+.studio-label {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  font-family: var(--f-display) !important;
+  font-weight: 700 !important;
+  font-size: 0.82rem !important;
+  letter-spacing: 0.05em !important;
+  text-transform: uppercase !important;
+  color: var(--muted) !important;
+}
+
+.studio-textarea {
+  width: 100% !important;
+  border-radius: var(--radius-sm) !important;
+  border: 1.5px solid var(--line-strong) !important;
+  background: #ffffff !important;
+  color: var(--ink) !important;
+  padding: 14px 18px !important;
+  font-size: 0.95rem !important;
+  resize: vertical !important;
+  line-height: 1.6 !important;
+  box-sizing: border-box !important;
+}
+body.is-dark .studio-textarea {
+  background: #1a1612 !important;
+  color: var(--ink) !important;
+}
+
+.studio-textarea-adaptive {
+  min-height: 160px !important;
+  height: auto !important;
+  max-height: 600px !important;
+  overflow-y: auto !important;
+  resize: vertical !important;
+  line-height: 1.65 !important;
+  font-size: 0.96rem !important;
+  transition: min-height 0.2s ease !important;
+}
+
+.studio-controls-row {
+  display: flex !important;
+  gap: 16px !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+}
+
+.studio-control-col {
+  flex: 1 !important;
+  min-width: 160px !important;
+  display: flex !important;
+  flex-direction: column !important;
+}

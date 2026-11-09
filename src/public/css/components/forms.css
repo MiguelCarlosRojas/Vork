@@ -651,3 +651,289 @@ input[type="range"] {
   background: rgba(28, 24, 20, 0.12);
   outline: none;
 }
+
+/* ==========================================================================
+   Tooltips Dinámicos Universales (.btn-icon-tooltip)
+   ========================================================================== */
+.btn-icon-tooltip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--line);
+  color: var(--muted);
+  cursor: pointer;
+  user-select: none;
+}
+.btn-icon-tooltip:hover {
+  background: rgba(255, 122, 61, 0.12);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.btn-icon-tooltip[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 9px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  background: #11141a;
+  color: #ffffff;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 0.74rem;
+  font-family: var(--f-mono, monospace);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  z-index: 10001;
+}
+.btn-icon-tooltip[data-tooltip]::before {
+  content: "";
+  position: absolute;
+  bottom: calc(100% + 3px);
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 5px 5px 0 5px;
+  border-style: solid;
+  border-color: #11141a transparent transparent transparent;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease;
+  z-index: 10001;
+}
+.btn-icon-tooltip:hover[data-tooltip]::after,
+.btn-icon-tooltip:hover[data-tooltip]::before {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ==========================================================================
+   Sistema de Selectores con Buscador Integrado (.lang-combo)
+   ========================================================================== */
+.lang-combo-container {
+  position: relative;
+  width: 100%;
+}
+body.is-dark .lang-combo-trigger,
+.lang-combo-trigger {
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+  width: 100% !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  padding: 0 42px 0 16px !important;
+  background: #ffffff !important;
+  background-image: none !important;
+  border: 1.5px solid #d1d5db !important;
+  border-radius: var(--radius-sm) !important;
+  color: #0f172a !important;
+  font-size: 0.91rem !important;
+  font-weight: 600 !important;
+  font-family: var(--f-body, sans-serif) !important;
+  cursor: pointer !important;
+  user-select: none !important;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease !important;
+  box-sizing: border-box !important;
+  text-align: left !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12) !important;
+}
+body.is-dark .lang-combo-trigger:hover,
+.lang-combo-trigger:hover {
+  background: #f8fafc !important;
+  border-color: var(--accent) !important;
+  box-shadow: 0 4px 14px rgba(255, 122, 61, 0.25) !important;
+}
+body.is-dark .lang-combo-trigger:focus,
+.lang-combo-trigger:focus,
+.lang-combo-container.is-open .lang-combo-trigger {
+  background: #ffffff !important;
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 2.5px rgba(255, 122, 61, 0.35) !important;
+  outline: none !important;
+}
+.lang-combo-trigger-text {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.01em !important;
+  color: #0f172a !important;
+  flex: 1 !important;
+  line-height: 1.2 !important;
+}
+.lang-combo-arrow-btn {
+  position: absolute !important;
+  right: 14px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: #334155 !important;
+  pointer-events: none !important;
+  transition: color 0.2s ease, transform 0.25s ease !important;
+  width: 18px !important;
+  height: 18px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+.lang-combo-arrow-btn svg {
+  width: 16px !important;
+  height: 16px !important;
+  stroke: #334155 !important;
+  stroke-width: 2.6 !important;
+  display: block !important;
+}
+.lang-combo-trigger:hover .lang-combo-arrow-btn svg {
+  stroke: var(--accent) !important;
+}
+.lang-combo-container.is-open .lang-combo-arrow-btn {
+  transform: translateY(-50%) rotate(180deg) !important;
+}
+.lang-combo-container.is-open .lang-combo-arrow-btn svg {
+  stroke: var(--accent) !important;
+}
+
+/* Menú Desplegable con Bordes Profesionales */
+.lang-combo-menu {
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 0;
+  right: 0;
+  background: #0f1218;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-top: 2px solid var(--accent);
+  border-radius: var(--radius-sm);
+  z-index: 9999;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.88);
+  display: none;
+  overflow: hidden;
+}
+.lang-combo-container.is-open .lang-combo-menu {
+  display: block;
+  animation: menuFadeIn 0.16s ease-out forwards;
+}
+@keyframes menuFadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Buscador Interno */
+.lang-combo-search-box {
+  position: relative !important;
+  height: 36px !important;
+  min-height: 36px !important;
+  max-height: 36px !important;
+  padding: 0 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background: rgba(255, 255, 255, 0.03) !important;
+  display: flex !important;
+  align-items: center !important;
+  box-sizing: border-box !important;
+}
+.lang-search-icon {
+  position: absolute !important;
+  left: 12px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  color: #64748b !important;
+  pointer-events: none !important;
+  transition: color 0.2s ease !important;
+  width: 15px !important;
+  height: 15px !important;
+  z-index: 2 !important;
+}
+.lang-combo-search-box:focus-within .lang-search-icon {
+  color: var(--accent) !important;
+}
+.lang-combo-search-input {
+  width: 100% !important;
+  height: 36px !important;
+  min-height: 36px !important;
+  max-height: 36px !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 2px 12px 0 34px !important;
+  color: #ffffff !important;
+  font-size: 0.84rem !important;
+  font-family: var(--f-body, sans-serif) !important;
+  box-sizing: border-box !important;
+  line-height: 34px !important;
+  vertical-align: middle !important;
+}
+.lang-combo-search-input:focus {
+  outline: none !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+.lang-combo-search-input::placeholder {
+  color: #64748b !important;
+  font-size: 0.82rem !important;
+  line-height: 34px !important;
+}
+
+/* Lista Scrollable de Idiomas */
+.lang-combo-list {
+  max-height: 250px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.lang-combo-list::-webkit-scrollbar {
+  width: 5px;
+}
+.lang-combo-list::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+}
+.lang-combo-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 4px;
+}
+.combo-item {
+  height: 36px;
+  min-height: 36px;
+  padding: 0 12px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.84rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  transition: background-color 0.12s ease;
+  box-sizing: border-box;
+}
+.combo-item:hover, .combo-item.is-selected {
+  background: rgba(255, 122, 61, 0.18);
+  color: var(--accent);
+}
+.combo-item-label {
+  color: #ffffff;
+  font-weight: 500;
+}
+.combo-item-code {
+  color: var(--muted);
+  font-family: var(--f-mono, monospace);
+  font-size: 0.74rem;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.combo-empty {
+  padding: 16px 14px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  text-align: center;
+  font-family: var(--f-mono, monospace);
+}
+

@@ -401,3 +401,224 @@ body.is-dark .studio-textarea {
 
 /* Tech Cards (Architecture Highlights) */
 /* Subtítulo a ancho completo para Secciones de Ingeniería y Ecosistema */
+.section-full-title-wide {
+  width: 100% !important;
+  max-width: 100% !important;
+  text-align: left;
+  margin-bottom: 32px;
+}
+.section-full-title-wide .label {
+  font-family: var(--f-mono, monospace);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  display: inline-block;
+  margin-bottom: 6px;
+}
+.section-full-title-wide h2 {
+  font-size: clamp(1.8rem, 3.5vw, 2.5rem);
+  margin: 6px 0 10px 0;
+  color: var(--ink);
+}
+.section-full-title-wide p {
+  width: 100% !important;
+  max-width: 100% !important;
+  font-size: 1.05rem;
+  color: var(--muted);
+  margin-top: 8px;
+  line-height: 1.6;
+}
+
+#pilares {
+  max-width: 1220px !important;
+  width: 100% !important;
+  margin: 28px auto 0 auto !important;
+}
+#pilares .services-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)) !important;
+  gap: 20px !important;
+  max-width: 1180px !important;
+  margin: 0 auto !important;
+  width: 100% !important;
+}
+#pilares .card {
+  width: 100% !important;
+  max-width: 360px !important;
+  margin: 0 auto !important;
+  padding: 24px 22px !important;
+  min-height: auto !important;
+  box-sizing: border-box !important;
+}
+
+/* Grilla de Tarjetas Técnicas (Bento Grid) */
+.cards-full-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)) !important;
+  gap: 20px !important;
+  max-width: 1180px !important;
+  margin: 22px auto 40px auto !important;
+  width: 100% !important;
+}
+
+.tech-card {
+  background: var(--card);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  max-width: 360px !important;
+  margin: 0 auto !important;
+  width: 100% !important;
+  padding: 24px 22px !important;
+  box-sizing: border-box !important;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s var(--ease);
+}
+
+.tech-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0;
+  transition: opacity 0.3s var(--ease);
+}
+
+.tech-card:hover {
+  transform: translateY(-4px);
+  background: var(--card-hover);
+  border-color: var(--accent);
+  box-shadow: var(--shadow-hover);
+}
+
+.tech-card:hover::before {
+  opacity: 1;
+}
+
+.tech-card-tag {
+  font-family: var(--f-mono, monospace);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  display: inline-block;
+}
+
+.tech-card-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 122, 61, 0.12);
+  border: 1px solid rgba(255, 122, 61, 0.25);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.tech-card-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.tech-card h3 {
+  font-size: 1.25rem;
+  margin: 4px 0 0 0;
+  color: var(--ink);
+  line-height: 1.3;
+}
+
+.tech-card p {
+  font-size: 0.92rem;
+  color: var(--muted);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.tech-card .btn,
+.tech-card a.btn {
+  margin-top: auto;
+  align-self: flex-start;
+}
+
+/* Badge de verificación de Pilar Activo */
+.card-check-badge {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1.5px solid #e2e8f0;
+  background: #ffffff !important;
+  color: #0f172a;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.25s ease;
+  cursor: default;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+.card-check-badge svg {
+  stroke: #0f172a !important;
+  color: #0f172a !important;
+  width: 17px;
+  height: 17px;
+  transition: stroke 0.25s ease, transform 0.25s ease;
+}
+.card:hover .card-check-badge,
+.card-check-badge:hover {
+  background: var(--tone, #22b0a0) !important;
+  border-color: var(--tone, #22b0a0) !important;
+  transform: scale(1.08);
+  box-shadow: 0 0 14px rgba(34, 176, 160, 0.45);
+}
+.card:hover .card-check-badge svg,
+.card-check-badge:hover svg {
+  stroke: #ffffff !important;
+  color: #ffffff !important;
+}
+
+/* Callout informativo */
+.callout {
+  background: rgba(255, 122, 61, 0.08);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius-sm);
+  padding: 16px 20px;
+  margin: 18px 0;
+  font-size: 0.95rem;
+  color: var(--ink);
+}
+
+/* Tarjeta de Contenido Editorial */
+.content-box-card {
+  background: var(--card);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: clamp(24px, 4vw, 40px);
+  margin-bottom: clamp(24px, 4vw, 36px);
+  box-shadow: var(--shadow-sm);
+}
+.content-box-card h2 {
+  font-size: clamp(1.4rem, 2.8vw, 1.8rem);
+  margin: 8px 0 16px 0;
+  color: var(--ink);
+}
+.content-box-card p {
+  color: var(--ink);
+  line-height: 1.65;
+  font-size: 0.96rem;
+}
+
