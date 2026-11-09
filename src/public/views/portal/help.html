@@ -6,7 +6,8 @@
   <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
   <meta name="theme-color" content="#11141a">
   <title>Centro de Ayuda y Preguntas Frecuentes | Vork</title>
-  <meta name="description" content="Centro de Ayuda de Vork: respuestas a preguntas frecuentes sobre traducción, síntesis TTS, cookies y configuración.">
+  <meta name="description" content="Centro de Ayuda de Vork: respuestas a preguntas frecuentes sobre traducción neuronal, síntesis TTS, conversor, stems Demucs, fondo IA, FLUX.1 y CLI.">
+  <meta name="keywords" content="Centro de ayuda Vork, ayuda vork, faq vork, preguntas frecuentes vork, soporte vork, tutoriales vork, manual vork, problemas vork">
   <link rel="canonical" href="https://vork-st1k.onrender.com/help">
 
   <!-- Open Graph -->
@@ -14,14 +15,14 @@
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://vork-st1k.onrender.com/help">
   <meta property="og:title" content="Centro de Ayuda y Preguntas Frecuentes | Vork">
-  <meta property="og:description" content="Guía de dudas habituales, latencias, límites y configuración de los servicios multimodales de Vork.">
+  <meta property="og:description" content="Guía de dudas habituales, latencias, límites y configuración de los 9 pilares multimodales de Vork.">
   <meta property="og:image" content="https://vork-st1k.onrender.com/img/brand/logo.png">
   <meta property="og:locale" content="es_ES">
 
   <!-- Twitter Cards -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Centro de Ayuda | Vork">
-  <meta name="twitter:description" content="Respuestas inmediatas a dudas habituales sobre funcionamiento, latencias y cookies en Vork.">
+  <meta name="twitter:title" content="Centro de Ayuda y Preguntas Frecuentes | Vork">
+  <meta name="twitter:description" content="Respuestas inmediatas a dudas habituales sobre funcionamiento, latencias y configuración en Vork.">
   <meta name="twitter:image" content="https://vork-st1k.onrender.com/img/brand/logo.png">
 
   <!-- Favicons y Manifest -->
@@ -30,7 +31,6 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/img/brand/logo.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/img/brand/logo.png">
   <link rel="manifest" href="/manifest.json">
-  <!-- Compatibilidad Universal de Navegadores (Chrome, Safari, Edge, Firefox, Opera GX, Brave) -->
   <meta name="application-name" content="Vork">
   <meta name="apple-mobile-web-app-title" content="Vork">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -59,7 +59,7 @@
             "name": "¿Qué es Vork y qué servicios ofrece?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "Vork es un ecosistema cloud multimodal que integra 8 pilares: traducción neuronal por micro-lotes (+200 idiomas), síntesis de voz TTS, conversor universal, separador de stems Demucs v4, mezclador DJ en vivo, procesador de imágenes, eliminador de fondos con IA y terminal CLI."
+              "text": "Vork es un ecosistema cloud multimodal que integra 9 pilares: traducción neuronal por micro-lotes (+200 idiomas), síntesis vocal TTS, conversor multimedia universal, separador de stems Demucs v4, procesador de imágenes WebP/AVIF, estudio de fondo IA, generador de imágenes FLUX.1, terminal CLI con agentes y asistente Vork Desktop."
             }
           },
           {
@@ -120,12 +120,13 @@
           <span class="label">[ CENTRO DE ASISTENCIA Y GUÍAS DE AUTOAYUDA ]</span>
           <h1 class="h-section">Centro de <em>Ayuda</em></h1>
           <p class="lead" style="text-align: left; margin: 0;">
-            Respuestas inmediatas a dudas habituales sobre funcionamiento, latencias, cookies y configuración de Vork. Si requieres asistencia técnica personalizada, visita nuestro portal de <a href="/support" style="color: var(--accent); text-decoration: underline;">Soporte Técnico</a>:
+            Respuestas inmediatas a dudas habituales sobre funcionamiento, latencias, cookies y configuración de los 9 pilares de Vork. Si requieres asistencia técnica personalizada, visita nuestro portal de <a href="/support" style="color: var(--accent); text-decoration: underline;">Soporte Técnico</a>:
           </p>
         </div>
       </div>
     </section>
 
+    <!-- FAQ DE LOS 9 PILARES -->
     <article class="content-box-card">
       <span class="tech-card-tag">[ 01 // PREGUNTAS_FRECUENTES_9_PILARES ]</span>
       <h2>Preguntas Frecuentes de los 9 Pilares (FAQ)</h2>
@@ -133,7 +134,7 @@
       <div class="faq-item">
         <h3>¿Por qué la primera petición puede tardar entre 25 y 35 segundos?</h3>
         <p>
-          El microservicio se ejecuta en el tier en la nube de Render. Si el servidor no recibe tráfico durante 15 minutos continuos, entra en modo reposo automático (sleep). La primera solicitud despierta la máquina virtual ("cold start") en aproximadamente 25 a 35 segundos. Tras reactivarse, todas las consultas responden de inmediato con latencias ultrarrápidas de 150 a 300 ms (o 0 ms si provienen del caché en memoria RAM).
+          El microservicio se ejecuta en el tier en la nube de Render. Si el servidor no recibe tráfico durante 15 minutos continuos, entra en modo reposo automático (sleep). La primera solicitud despierta la máquina virtual (&quot;cold start&quot;) en aproximadamente 25 a 35 segundos. Tras reactivarse, todas las consultas responden de inmediato con latencias ultrarrápidas de 150 a 300 ms (o 0 ms si provienen del caché en memoria RAM).
         </p>
       </div>
 
@@ -163,10 +164,8 @@
         </div>
       </div>
 
-      
-
       <div class="pillar-block">
-        <span class="pillar-tag" style="border-color: rgba(239, 68, 68, 0.4); color: #dc2626;">PILAR 04 // CONVERSOR MULTIMEDIA (MP3 / MP4)</span>
+        <span class="pillar-tag" style="border-color: rgba(239, 68, 68, 0.4); color: #dc2626;">PILAR 03 // CONVERSOR MULTIMEDIA (MP3 / MP4)</span>
         <div class="faq-item">
           <h3>¿Qué plataformas y calidades de conversión están soportadas?</h3>
           <p>
@@ -174,8 +173,69 @@
           </p>
         </div>
       </div>
+
+      <div class="pillar-block">
+        <span class="pillar-tag" style="border-color: rgba(255, 0, 123, 0.4); color: #ff007b;">PILAR 04 // SEPARADOR DE STEMS (DEMUCS v4)</span>
+        <div class="faq-item">
+          <h3>¿Cómo extrae las pistas de voz e instrumental sin distorsión?</h3>
+          <p>
+            Emplea la red neuronal Demucs v4 para descomponer archivos de audio en pistas aisladas: Instrumental (Karaoke) y Acapella (Voces). El aislamiento se realiza a -48dB sin solapamiento de armónicos y permite preescucha dual en tiempo real y descarga WAV/MP3.
+          </p>
+        </div>
+      </div>
+
+      <div class="pillar-block">
+        <span class="pillar-tag" style="border-color: rgba(245, 158, 11, 0.4); color: #f59e0b;">PILAR 05 // PROCESADOR DE IMÁGENES</span>
+        <div class="faq-item">
+          <h3>¿Qué formatos puedo convertir y cómo se realiza la optimización?</h3>
+          <p>
+            Convierte entre WebP, AVIF, PNG, JPG, GIF, BMP e ICO con remuestreo LANCZOS de alta calidad. Reduce el peso de las imágenes hasta un 80% manteniendo nitidez absoluta para mejorar el rendimiento SEO y velocidad de carga web.
+          </p>
+        </div>
+      </div>
+
+      <div class="pillar-block">
+        <span class="pillar-tag" style="border-color: rgba(16, 185, 129, 0.4); color: #10b981;">PILAR 06 // ESTUDIO Y FONDO IA</span>
+        <div class="faq-item">
+          <h3>¿Cómo funciona la segmentación de siluetas y eliminación de fondos?</h3>
+          <p>
+            El modelo neuronal U2-Net detecta contornos y sujetos con precisión subpíxel (cabello, bordes translúcidos y prendas). Puedes exportar la silueta en PNG transparente o sustituir el fondo por un color sólido, degradado o textura generativa.
+          </p>
+        </div>
+      </div>
+
+      <div class="pillar-block">
+        <span class="pillar-tag" style="border-color: rgba(169, 156, 255, 0.4); color: #8b5cf6;">PILAR 07 // GENERADOR DE IMÁGENES IA (FLUX.1)</span>
+        <div class="faq-item">
+          <h3>¿Tiene marcas de agua o límites de generación?</h3>
+          <p>
+            No. Vork Draw utiliza el modelo FLUX.1 de 12 mil millones de parámetros para generar imágenes fotorrealistas y conceptuales en 1024x1024 sin sellos ni marcas de agua, con descarga directa y soporte para múltiples relaciones de aspecto (1:1, 16:9, 9:16, 4:3).
+          </p>
+        </div>
+      </div>
+
+      <div class="pillar-block">
+        <span class="pillar-tag" style="border-color: rgba(0, 240, 255, 0.4); color: #00bcd4;">PILAR 08 // VORK CLI &amp; AGENTES AUTÓNOMOS</span>
+        <div class="faq-item">
+          <h3>¿Cómo instalo y utilizo Vork desde la terminal?</h3>
+          <p>
+            Puedes instalarlo en un solo comando mediante PowerShell (<code>iwr -useb https://vork-st1k.onrender.com/cli/install.ps1 | iex</code>) o Windows CMD. Permite orquestar traducciones masivas, transcodificación y agentes autónomos de automatización sin abrir el navegador.
+          </p>
+        </div>
+      </div>
+
+      <div class="pillar-block">
+        <span class="pillar-tag" style="border-color: rgba(255, 122, 61, 0.4); color: #ff7a3d;">PILAR 09 // VORK DESKTOP (ASISTENTE RESIDENTE)</span>
+        <div class="faq-item">
+          <h3>¿Qué ventajas tiene el asistente de voz para Windows?</h3>
+          <p>
+            Vork Desktop reside en el borde superior de la pantalla (always-on-top), reconoce exclusivamente la huella biométrica de tu voz y ejecuta comandos sobre Windows, Spotify, Google Calendar y hojas de cálculo sin suscripciones.
+          </p>
+        </div>
+      </div>
     </article>
 
+    <!-- RESOLUCIÓN DE PROBLEMAS -->
     <article class="content-box-card">
       <span class="tech-card-tag">[ 02 // DIAGNÓSTICO_Y_RESOLUCIÓN ]</span>
       <h2>Resolución de Problemas Reales (Troubleshooting)</h2>
@@ -183,21 +243,19 @@
       <div class="faq-item">
         <h3>Error HTTP 400: Parámetros de Idioma en Traducción</h3>
         <p>
-          El endpoint <code>POST /api/translate</code> admite tanto el alias estándar <code>to</code> como <code>targetLanguage</code> (ej: <code>"to": "en"</code> o <code>"targetLanguage": "fr"</code>). Para el texto, envía <code>text: "cadena"</code> o el arreglo por lotes <code>texts: ["cadena 1", "cadena 2"]</code>.
+          El endpoint <code>POST /api/translate</code> admite tanto el alias estándar <code>to</code> como <code>targetLanguage</code> (ej: <code>&quot;to&quot;: &quot;en&quot;</code> o <code>&quot;targetLanguage&quot;: &quot;fr&quot;</code>). Para el texto, envía <code>text: &quot;cadena&quot;</code> o el arreglo por lotes <code>texts: [&quot;cadena 1&quot;, &quot;cadena 2&quot;]</code>.
         </p>
       </div>
 
       <div class="faq-item">
-        <h3>Error en Síntesis TTS: "Texto requerido o voz no válida"</h3>
+        <h3>Error en Síntesis TTS: &quot;Texto requerido o voz no válida&quot;</h3>
         <p>
           En <code>POST /api/tts</code> debes enviar un objeto JSON con <code>text</code> (máximo 5000 caracteres por solicitud) y opcionalmente <code>lang</code> o <code>voice</code>. Consulta las voces disponibles en tiempo real llamando a <code>GET /api/tts/voices</code>.
         </p>
       </div>
 
-      
-
       <div class="faq-item">
-        <h3>Error en Conversor: "URL no soportada o contenido privado"</h3>
+        <h3>Error en Conversor: &quot;URL no soportada o contenido privado&quot;</h3>
         <p>
           Verifica que el enlace pertenezca a una de las plataformas compatibles (YouTube, TikTok, Instagram, Facebook, Twitter/X, Pinterest) y que el contenido sea público. Los videos configurados como privados o con restricciones de edad de terceros requieren acceso autenticado no disponible en la API pública.
         </p>
@@ -215,11 +273,12 @@
       <span class="tech-card-tag">[ 03 // CONTACTO_ADICIONAL ]</span>
       <h2>¿Aún necesitas ayuda personalizada?</h2>
       <p>
-        Si tu consulta no queda resuelta con estas guías o deseas reportar una anomalía técnica en producción, accede a nuestro canal especializado:
+        Si tu consulta no queda resuelta con estas guías o deseas reportar una anomalía técnica en producción, accede a nuestros canales especializados:
       </p>
       <div class="content-actions">
         <a href="/support" class="btn btn-primary">Ir a Soporte Técnico</a>
         <a href="/status" class="btn btn-outline">Comprobar Monitor en Vivo</a>
+        <a href="/docs" class="btn btn-outline">Manual de Arquitectura</a>
       </div>
     </article>
   </main>

@@ -6,7 +6,8 @@
   <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
   <meta name="theme-color" content="#11141a">
   <title>Guías de Integración y Tutoriales | Vork — SDK y Ejemplos de Código</title>
-  <meta name="description" content="Guías y tutoriales de Vork: aprende a integrar la traducción por micro-lotes, síntesis de voz TTS y utilidades multimedia en código.">
+  <meta name="description" content="Guías y tutoriales de Vork: aprende a integrar la traducción por micro-lotes, síntesis TTS, conversor, stems Demucs, procesador de imágenes, fondo IA y FLUX.1 en tu código.">
+  <meta name="keywords" content="Guías Vork, tutoriales Vork, SDK Vork, vork.js, integración traducción, API Vork tutorial, código Vork, npm vork, python vork, api rest ejemplos">
   <link rel="canonical" href="https://vork-st1k.onrender.com/learn">
 
   <!-- Open Graph -->
@@ -14,13 +15,13 @@
   <meta property="og:type" content="article">
   <meta property="og:url" content="https://vork-st1k.onrender.com/learn">
   <meta property="og:title" content="Guías de Integración y Tutoriales | Vork">
-  <meta property="og:description" content="Aprende a integrar Vork en cualquier lenguaje de programación sin dependencias externas complejas.">
+  <meta property="og:description" content="Aprende a integrar los 9 pilares de Vork en cualquier lenguaje de programación sin dependencias complejas.">
   <meta property="og:image" content="https://vork-st1k.onrender.com/img/brand/logo.png">
   <meta property="og:locale" content="es_ES">
 
   <!-- Twitter Cards -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Guías de Integración | Vork">
+  <meta name="twitter:title" content="Guías de Integración y Tutoriales | Vork">
   <meta name="twitter:description" content="Tutoriales paso a paso para arquitecturas frontend y backend con el ecosistema Vork.">
   <meta name="twitter:image" content="https://vork-st1k.onrender.com/img/brand/logo.png">
 
@@ -30,7 +31,6 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/img/brand/logo.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/img/brand/logo.png">
   <link rel="manifest" href="/manifest.json">
-  <!-- Compatibilidad Universal de Navegadores (Chrome, Safari, Edge, Firefox, Opera GX, Brave) -->
   <meta name="application-name" content="Vork">
   <meta name="apple-mobile-web-app-title" content="Vork">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -95,7 +95,6 @@
   <!-- Textura de grano sutil Huella -->
   <div class="grain" aria-hidden="true"></div>
 
-
   <!-- Barra Superior -->
   <header id="header-placeholder" data-component="header" data-active="learn"></header>
 
@@ -107,7 +106,7 @@
           <span class="label">[ GUÍAS DE INTEGRACIÓN Y TUTORIALES ]</span>
           <h1 class="h-section">Aprende a Integrar <em>Vork</em></h1>
           <p class="lead" style="text-align: left; margin: 0;">
-            Guía técnica integral paso a paso. Aprende los fundamentos arquitectónicos, la integración en el navegador con el SDK JavaScript y el consumo directo en servidores con micro-lotes y tolerancia a fallos:
+            Guía técnica integral paso a paso. Aprende los fundamentos arquitectónicos, la integración en el navegador con el SDK JavaScript y el consumo directo en servidores con micro-lotes, streaming y tolerancia a fallos:
           </p>
         </div>
       </div>
@@ -144,12 +143,47 @@
               <td>Audiolibros, asistentes virtuales, accesibilidad auditiva y doblaje dinámico.</td>
               <td>24 voces humanas neuronales, modulación de velocidad y tono, entrega en buffer WAV / MP3.</td>
             </tr>
-            
             <tr>
               <td><strong>Pilar 3: Conversor Multimedia</strong></td>
               <td>REST POST <code>/api/media/convert</code> e inspección POST <code>/api/media/info</code>.</td>
               <td>Extracción de audio de videos, conversión a MP3 hasta 320 kbps y video MP4 hasta 1080p.</td>
               <td>Soporta YouTube, TikTok sin marca, Instagram, Facebook y Twitter; modo lote de hasta 10 URLs.</td>
+            </tr>
+            <tr>
+              <td><strong>Pilar 4: Separador de Stems (Demucs v4)</strong></td>
+              <td>REST POST <code>/api/separator/process</code> y streaming <code>/api/separator/stream</code>.</td>
+              <td>Karaoke profesional, remezclas, transcripción vocal y práctica musical.</td>
+              <td>Aislamiento acústico a -48dB sin diafonía entre pista instrumental y voz acapella.</td>
+            </tr>
+            <tr>
+              <td><strong>Pilar 5: Procesador de Imágenes</strong></td>
+              <td>REST POST <code>/api/image/convert</code> y catálogo <code>/api/image/formats</code>.</td>
+              <td>Optimización web masiva, transcodificación de catálogos y compresión WebP/AVIF.</td>
+              <td>Filtro LANCZOS de alta resolución, reducción de peso hasta un 80% y exportación en 7 formatos.</td>
+            </tr>
+            <tr>
+              <td><strong>Pilar 6: Estudio y Fondo IA</strong></td>
+              <td>REST POST <code>/api/image/remove-bg</code> y soporte FormData multi-part.</td>
+              <td>Fotografía de e-commerce, avatares de perfil y composición gráfica profesional.</td>
+              <td>Segmentación neuronal de siluetas subpíxel y exportación PNG transparente o con fondo de color.</td>
+            </tr>
+            <tr>
+              <td><strong>Pilar 7: Generador de Imágenes IA</strong></td>
+              <td>REST POST <code>/api/image/generate</code> (FLUX.1 schnell).</td>
+              <td>Generación artística, diseño conceptual, portadas y prototipado visual.</td>
+              <td>Salida fotorrealista en 1024x1024, sin marcas de agua y relaciones de aspecto personalizadas.</td>
+            </tr>
+            <tr>
+              <td><strong>Pilar 8: Vork CLI &amp; Agentes</strong></td>
+              <td>Ejecutable CLI / PowerShell / Terminal desatendida.</td>
+              <td>Pipelines de CI/CD, tareas batch, scripts de terminal y automatización con agentes.</td>
+              <td>Sintaxis directa, comandos unificados con diagonal y salida estructurada JSON / pipe.</td>
+            </tr>
+            <tr>
+              <td><strong>Pilar 9: Vork Desktop</strong></td>
+              <td>Asistente nativo para Windows (Always-on-Top).</td>
+              <td>Productividad manos libres, control de ventanas, agenda Google, Spotify y Excel.</td>
+              <td>Huella vocal biométrica exclusiva, respuesta neuronal en español y cero planes de pago.</td>
             </tr>
           </tbody>
         </table>
@@ -167,88 +201,31 @@
       <h3 class="content-subheading">Paso 1: Incluir el Script en tu HTML</h3>
       <p>Añade la etiqueta <code>&lt;script&gt;</code> al final del <code>&lt;body&gt;</code> o dentro de <code>&lt;head&gt;</code>:</p>
       <div class="code-box-wrapper">
-      <div class="code-box-header">
-        <span>HTML / ETIQUETA SCRIPT CDN</span>
-        <button class="btn-copy" onclick="copiarAlPortapapeles(this, 'code-learn-1')">Copiar</button>
-      </div>
-      <pre class="code-panel" id="code-learn-1">&lt;script src="https://vork-st1k.onrender.com/js/vork.js"&gt;&lt;/script&gt;</pre>
-    </div>
-
-      <h3 class="content-subheading">Paso 2: Opciones de Inicialización</h3>
-      <p>Al instanciar <code>new Vork(options)</code>, dispones de los siguientes parámetros configurables:</p>
-      
-      <div class="table-responsive">
-        <table class="docs-table">
-          <thead>
-            <tr>
-              <th>Parámetro</th>
-              <th>Tipo</th>
-              <th>Valor por Defecto</th>
-              <th>Descripción</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><code>endpoint</code></td>
-              <td>string</td>
-              <td><code>"/api/translate"</code></td>
-              <td>URL absoluta o relativa del servicio de traducción. En producción usa: <code>https://vork-st1k.onrender.com/api/translate</code>.</td>
-            </tr>
-            <tr>
-              <td><code>useCookies</code></td>
-              <td>boolean</td>
-              <td><code>true</code></td>
-              <td>Si es <code>true</code>, guarda el idioma seleccionado en la cookie del navegador para mantener la preferencia en futuras visitas.</td>
-            </tr>
-            <tr>
-              <td><code>batchSize</code></td>
-              <td>number</td>
-              <td><code>500</code></td>
-              <td>Número máximo de nodos de texto enviados por petición HTTP.</td>
-            </tr>
-            <tr>
-              <td><code>onStart</code></td>
-              <td>function</td>
-              <td><code>null</code></td>
-              <td>Callback invocado al iniciar la traducción (ideal para mostrar spinners o barras de carga).</td>
-            </tr>
-            <tr>
-              <td><code>onComplete</code></td>
-              <td>function</td>
-              <td><code>null</code></td>
-              <td>Callback invocado cuando todos los textos del DOM han sido reemplazados exitosamente.</td>
-            </tr>
-            <tr>
-              <td><code>onError</code></td>
-              <td>function</td>
-              <td><code>null</code></td>
-              <td>Callback que recibe el error en caso de fallo de red o tiempo de espera agotado.</td>
-            </tr>
-          </tbody>
-        </table>
+        <div class="code-box-header">
+          <span>HTML / ETIQUETA SCRIPT CDN</span>
+          <button class="btn-copy" onclick="copiarAlPortapapeles(this, 'code-learn-1')">Copiar</button>
+        </div>
+        <pre class="code-panel" id="code-learn-1">&lt;script src="https://vork-st1k.onrender.com/js/vork.js"&gt;&lt;/script&gt;</pre>
       </div>
 
-      <h3 class="content-subheading">Paso 3: Código de Ejemplo Funcional Completo</h3>
+      <h3 class="content-subheading">Paso 2: Código de Ejemplo Funcional Completo</h3>
       <p>Copia y pega este archivo HTML en tu computadora para probar la traducción en tiempo real:</p>
       <div class="code-box-wrapper">
-      <div class="code-box-header">
-        <span>HTML COMPLETO / EJEMPLO CLIENTE MÍNIMO</span>
-        <button class="btn-copy" onclick="copiarAlPortapapeles(this, 'code-learn-2')">Copiar</button>
-      </div>
-      <pre class="code-panel" id="code-learn-2">&lt;!DOCTYPE html&gt;
+        <div class="code-box-header">
+          <span>HTML COMPLETO / CLIENTE MÍNIMO</span>
+          <button class="btn-copy" onclick="copiarAlPortapapeles(this, 'code-learn-2')">Copiar</button>
+        </div>
+        <pre class="code-panel" id="code-learn-2">&lt;!DOCTYPE html&gt;
 &lt;html lang="es"&gt;
 &lt;head&gt;
   &lt;meta charset="UTF-8"&gt;
-  &lt;title&gt;Mi Sitio Multilingüe&lt;/title&gt;
+  &lt;title&gt;Mi Sitio Multilingüe con Vork&lt;/title&gt;
 &lt;/head&gt;
 &lt;body&gt;
-  &lt;!-- Barra de selección de idioma --&gt;
   &lt;header&gt;
     &lt;button id="btn-en"&gt;English&lt;/button&gt;
     &lt;button id="btn-fr"&gt;Français&lt;/button&gt;
-    &lt;button id="btn-de"&gt;Deutsch&lt;/button&gt;
     &lt;button id="btn-original"&gt;Restaurar Original&lt;/button&gt;
-    &lt;span id="loading-indicator" style="display: none; margin-left: 10px;"&gt;Traduciendo...&lt;/span&gt;
   &lt;/header&gt;
 
   &lt;main&gt;
@@ -257,113 +234,39 @@
     &lt;p class="notranslate"&gt;Esta marca Vork no se traduce nunca.&lt;/p&gt;
   &lt;/main&gt;
 
-  &lt;!-- Inclusión del SDK --&gt;
   &lt;script src="https://vork-st1k.onrender.com/js/vork.js"&gt;&lt;/script&gt;
   &lt;script&gt;
-    // 1. Inicialización del traductor
     const translator = new Vork({
       endpoint: "https://vork-st1k.onrender.com/api/translate",
-      useCookies: true,
-      batchSize: 500,
-      onStart: () => {
-        document.getElementById("loading-indicator").style.display = "inline";
-      },
-      onComplete: () => {
-        document.getElementById("loading-indicator").style.display = "none";
-      },
-      onError: (err) => {
-        document.getElementById("loading-indicator").style.display = "none";
-        console.error("Error al traducir:", err);
-      }
+      useCookies: true
     });
-
-    // 2. Conectar eventos de botones
     document.getElementById("btn-en").onclick = () => translator.translateToEnglish();
     document.getElementById("btn-fr").onclick = () => translator.translatePage("fr");
-    document.getElementById("btn-de").onclick = () => translator.translatePage("de");
     document.getElementById("btn-original").onclick = () => translator.restoreOriginal();
   &lt;/script&gt;
 &lt;/body&gt;
 &lt;/html&gt;</pre>
-    </div>
-
-      <h3 class="content-subheading">Paso 4: Exclusión de Elementos y Marcas</h3>
-      <p>
-        Para proteger nombres propios, términos técnicos, marcas comerciales o bloques de código que no deben traducirse, añade la clase <code>notranslate</code> o el atributo HTML estándar <code>translate="no"</code>:
-      </p>
-      <div class="code-box-wrapper">
-      <div class="code-box-header">
-        <span>HTML / EXCLUSIÓN DE ELEMENTOS</span>
-        <button class="btn-copy" onclick="copiarAlPortapapeles(this, 'code-learn-exclude')">Copiar</button>
       </div>
-      <pre class="code-panel" id="code-learn-exclude">&lt;!-- Opción A: Mediante clase CSS --&gt;
-&lt;span class="notranslate"&gt;Vork Enterprise&lt;/span&gt;
-
-&lt;!-- Opción B: Mediante atributo estándar HTML5 --&gt;
-&lt;div translate="no"&gt;
-  &lt;p&gt;API_KEY_SECRET = "sk_live_9941a87b"&lt;/p&gt;
-&lt;/div&gt;</pre>
-    </div>
     </article>
 
     <!-- Módulo 2: Backend Node.js -->
     <article class="content-box-card">
       <span class="tech-card-tag">[ 02 // BACKEND_NODEJS ]</span>
-      <h2>2. Consumo desde Backend (Node.js & TypeScript)</h2>
+      <h2>2. Consumo desde Backend (Node.js &amp; TypeScript)</h2>
       <p>
         Invoca la API desde cualquier servidor Node.js, Express, Next.js, Fastify o NestJS mediante el estándar nativo <code>fetch</code> sin requerir librerías externas.
       </p>
 
-      <h3 class="content-subheading">2.1 Traducción de Texto Individual</h3>
       <div class="code-box-wrapper">
-      <div class="code-box-header">
-        <span>NODE.JS / TEXTO SIMPLE (FETCH)</span>
-        <button class="btn-copy" onclick="copiarAlPortapapeles(this, 'code-learn-3')">Copiar</button>
-      </div>
-      <pre class="code-panel" id="code-learn-3">async function traducirTexto(texto, idiomaDestino) {
+        <div class="code-box-header">
+          <span>NODE.JS / TRADUCCIÓN POR LOTES (BATCH)</span>
+          <button class="btn-copy" onclick="copiarAlPortapapeles(this, 'code-learn-batch-node')">Copiar</button>
+        </div>
+        <pre class="code-panel" id="code-learn-batch-node">async function traducirLote(listaTextos, idiomaDestino) {
   const url = "https://vork-st1k.onrender.com/api/translate";
   const respuesta = await fetch(url, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      text: texto,
-      targetLanguage: idiomaDestino
-    })
-  });
-
-  if (!respuesta.ok) {
-    const errorJson = await respuesta.json().catch(() => ({}));
-    throw new Error(errorJson.error || `HTTP Error ${respuesta.status}`);
-  }
-
-  const datos = await respuesta.json();
-  return datos.translatedText; // Cadena traducida
-}
-
-// Ejemplo de uso:
-traducirTexto("Servicio de traducción en tiempo real", "en")
-  .then(res => console.log("Resultado:", res)) // "Real-time translation service"
-  .catch(err => console.error("Error:", err.message));</pre>
-    </div>
-
-      <h3 class="content-subheading">2.2 Traducción de Lotes Masivos (Micro-batch)</h3>
-      <p>
-        Para catálogos, menús o notificaciones compuestas, envía el arreglo <code>texts</code> para procesar hasta 1,000 cadenas en una sola llamada:
-      </p>
-      <div class="code-box-wrapper">
-      <div class="code-box-header">
-        <span>NODE.JS / TRADUCCIÓN POR LOTES (BATCH)</span>
-        <button class="btn-copy" onclick="copiarAlPortapapeles(this, 'code-learn-batch-node')">Copiar</button>
-      </div>
-      <pre class="code-panel" id="code-learn-batch-node">async function traducirLote(listaTextos, idiomaDestino) {
-  const url = "https://vork-st1k.onrender.com/api/translate";
-  const respuesta = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       texts: listaTextos,
       targetLanguage: idiomaDestino
@@ -371,52 +274,15 @@ traducirTexto("Servicio de traducción en tiempo real", "en")
   });
 
   const datos = await respuesta.json();
-  if (!datos.success) {
-    throw new Error(datos.error || "Error al procesar lote");
-  }
-
-  return datos.translatedTexts; // Array con orden garantizado
+  if (!datos.success) throw new Error(datos.error || "Error al procesar lote");
+  return datos.translatedTexts; // Array ordenado garantizado
 }
 
 // Ejemplo:
 traducirLote(["Inicio", "Configuración", "Cerrar Sesión"], "en")
   .then(resultado => console.log(resultado));
   // Salida: ["Home", "Settings", "Log Out"]</pre>
-    </div>
-
-      <h3 class="content-subheading">2.3 Manejo Resiliente del "Cold Start" en Render</h3>
-      <p>
-        En la infraestructura gratuita de Render, la máquina entra en suspensión tras 15 minutos de inactividad. El primer contacto tardará entre 30 y 45 segundos mientras el servidor inicia. Implementa un reintento con retardo (backoff):
-      </p>
-      <div class="code-box-wrapper">
-      <div class="code-box-header">
-        <span>NODE.JS / CLIENTE RESILIENTE CON RETRY</span>
-        <button class="btn-copy" onclick="copiarAlPortapapeles(this, 'code-learn-retry')">Copiar</button>
       </div>
-      <pre class="code-panel" id="code-learn-retry">async function traducirConReintento(texto, idioma, maxIntentos = 3) {
-  const url = "https://vork-st1k.onrender.com/api/translate";
-
-  for (let intento = 1; intento <= maxIntentos; intento++) {
-    try {
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: texto, targetLanguage: idioma }),
-        signal: AbortSignal.timeout(50000) // 50s de margen para Cold Start
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        return data.translatedText;
-      }
-    } catch (err) {
-      console.warn(`Intento ${intento} fallido. Esperando reactivación...`);
-      if (intento === maxIntentos) throw err;
-      await new Promise(r => setTimeout(r, 4000 * intento));
-    }
-  }
-}</pre>
-    </div>
     </article>
 
     <!-- Módulo 3: Backend Python -->
@@ -424,81 +290,45 @@ traducirLote(["Inicio", "Configuración", "Cerrar Sesión"], "en")
       <span class="tech-card-tag">[ 03 // BACKEND_PYTHON ]</span>
       <h2>3. Consumo desde Python</h2>
       <p>
-        Integración directa para scripts de datos o APIs construidas con FastAPI, Flask, Django o scripts de procesamiento batch:
+        Integración directa para scripts de ciencia de datos, FastAPI o pipelines de Machine Learning:
       </p>
 
       <div class="code-box-wrapper">
-      <div class="code-box-header">
-        <span>PYTHON / MÓDULO REQUESTS (TEXTO Y BATCH)</span>
-        <button class="btn-copy" onclick="copiarAlPortapapeles(this, 'code-learn-4')">Copiar</button>
-      </div>
-      <pre class="code-panel" id="code-learn-4">import requests
-from typing import List, Union
+        <div class="code-box-header">
+          <span>PYTHON / MÓDULO REQUESTS (TEXTO Y BATCH)</span>
+          <button class="btn-copy" onclick="copiarAlPortapapeles(this, 'code-learn-4')">Copiar</button>
+        </div>
+        <pre class="code-panel" id="code-learn-4">import requests
 
 API_URL = "https://vork-st1k.onrender.com/api/translate"
 
-def traducir(contenido: Union[str, List[str]], idioma_destino: str) -> Union[str, List[str]]:
+def traducir(contenido, idioma_destino):
     headers = {"Content-Type": "application/json"}
-    
-    # Detección automática: texto individual o lote
-    if isinstance(contenido, list):
-        payload = {"texts": contenido, "targetLanguage": idioma_destino}
-    else:
-        payload = {"text": contenido, "targetLanguage": idioma_destino}
-    
-    # Timeout amplio para absorber posibles cold starts
+    payload = {"texts": contenido, "targetLanguage": idioma_destino} if isinstance(contenido, list) else {"text": contenido, "targetLanguage": idioma_destino}
     response = requests.post(API_URL, json=payload, headers=headers, timeout=60)
     response.raise_for_status()
     data = response.json()
-    
-    if isinstance(contenido, list):
-        return data.get("translatedTexts", [])
-    return data.get("translatedText", "")
+    return data.get("translatedTexts") if isinstance(contenido, list) else data.get("translatedText")
 
-# Pruebas de ejecución:
 print(traducir("Servicio de traducción en la nube", "en"))
-# Salida: "Cloud translation service"
-
-print(traducir(["Facturación", "Inventario", "Reportes"], "fr"))
-# Salida: ["Facturation", "Inventaire", "Rapports"]</pre>
-    </div>
-    </article>
-
-    <!-- Módulo 4: Automatización con cURL -->
-    <article class="content-box-card">
-      <span class="tech-card-tag">[ 04 // CLI_AUTOMATION ]</span>
-      <h2>4. Automatización con cURL y Terminal</h2>
-      <p>
-        Puedes consumir el microservicio directamente desde scripts de terminal Bash, pipelines de GitHub Actions o tareas programadas Cron:
-      </p>
-
-      <div class="code-box-wrapper">
-      <div class="code-box-header">
-        <span>TERMINAL / CURL Y JQ</span>
-        <button class="btn-copy" onclick="copiarAlPortapapeles(this, 'code-learn-curl')">Copiar</button>
+# Salida: "Cloud translation service"</pre>
       </div>
-      <pre class="code-panel" id="code-learn-curl"># 1. Traducción directa e impresión limpia del resultado con jq
-curl -s -X POST "https://vork-st1k.onrender.com/api/translate" \
-  -H "Content-Type: application/json" \
-  -d '{"text": "Despliegue completado con éxito", "targetLanguage": "en"}' \
-  | jq -r '.translatedText'</pre>
-    </div>
     </article>
 
-    <!-- Módulo 5: Integración Pilar 2 - Texto a Voz (TTS) -->
+    <!-- Módulo 4: Síntesis de Voz TTS (Pilar 02) -->
     <article class="content-box-card">
-      <span class="tech-card-tag">[ 05 // TTS_INTEGRATION ]</span>
-      <h2>5. Integración del Pilar 2: Texto a Voz (TTS)</h2>
+      <span class="tech-card-tag">[ 04 // TTS_INTEGRATION ]</span>
+      <h2>4. Integración del Pilar 2: Texto a Voz (TTS)</h2>
       <p>
         Genera locución humana en tiempo real con 24 voces neuronales desde JavaScript o cualquier backend:
       </p>
 
-      <div class="code-box-header">
-        <span>JAVASCRIPT (FETCH) / SÍNTESIS Y REPRODUCCIÓN DE AUDIO WAV</span>
-        <button class="btn-copy" onclick="copiarAlPortapapeles(this, 'code-learn-tts')">Copiar</button>
-      </div>
-      <pre class="code-panel" id="code-learn-tts">// 1. Sintetizar y reproducir audio en el navegador
-async function reproducirTexto(texto, voz = "es-ES-AlvaroNeural") {
+      <div class="code-box-wrapper">
+        <div class="code-box-header">
+          <span>JAVASCRIPT / SÍNTESIS Y REPRODUCCIÓN DE AUDIO</span>
+          <button class="btn-copy" onclick="copiarAlPortapapeles(this, 'code-learn-tts')">Copiar</button>
+        </div>
+        <pre class="code-panel" id="code-learn-tts">async function reproducirTexto(texto, voz = "es-ES-AlvaroNeural") {
   const res = await fetch("https://vork-st1k.onrender.com/api/tts", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -516,40 +346,27 @@ async function reproducirTexto(texto, voz = "es-ES-AlvaroNeural") {
   audio.play();
 }
 
-// 2. Consultar catálogo de 24 voces disponibles
+// Consultar catálogo de voces disponibles
 fetch("https://vork-st1k.onrender.com/api/tts/voices")
   .then(r => r.json())
   .then(data => console.log("Voces disponibles:", data.voices));</pre>
-    </div>
+      </div>
     </article>
 
-    
-    
-
-    <!-- Módulo 7: Integración Pilar 4 - Conversor Multimedia (MP3 / MP4) -->
+    <!-- Módulo 5: Conversor Multimedia (Pilar 03) -->
     <article class="content-box-card">
-      <span class="tech-card-tag">[ 07 // CONVERTER_INTEGRATION ]</span>
-      <h2>7. Integración del Pilar 4: Conversor Multimedia Universal</h2>
+      <span class="tech-card-tag">[ 05 // CONVERTER_INTEGRATION ]</span>
+      <h2>5. Integración del Pilar 3: Conversor Multimedia</h2>
       <p>
         Extrae audio MP3 (hasta 320 kbps) o video MP4 (hasta 1080p) desde YouTube, TikTok, Instagram Reels, Facebook o Twitter/X:
       </p>
 
       <div class="code-box-wrapper">
-      <div class="code-box-header">
-        <span>NODE.JS / INSPECCIÓN Y CONVERSIÓN MULTIMEDIA</span>
-        <button class="btn-copy" onclick="copiarAlPortapapeles(this, 'code-learn-media')">Copiar</button>
-      </div>
-      <pre class="code-panel" id="code-learn-media">// 1. Obtener metadatos y formatos del video
-const infoRes = await fetch("https://vork-st1k.onrender.com/api/media/info", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" })
-});
-const mediaInfo = await infoRes.json();
-console.log("Título:", mediaInfo.title, "Formatos:", mediaInfo.formats);
-
-// 2. Solicitar conversión a MP3 de alta fidelidad (320 kbps)
-const convertRes = await fetch("https://vork-st1k.onrender.com/api/media/convert", {
+        <div class="code-box-header">
+          <span>NODE.JS / INSPECCIÓN Y CONVERSIÓN MULTIMEDIA</span>
+          <button class="btn-copy" onclick="copiarAlPortapapeles(this, 'code-learn-media')">Copiar</button>
+        </div>
+        <pre class="code-panel" id="code-learn-media">const convertRes = await fetch("https://vork-st1k.onrender.com/api/media/convert", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
@@ -560,7 +377,59 @@ const convertRes = await fetch("https://vork-st1k.onrender.com/api/media/convert
 });
 const result = await convertRes.json();
 console.log("Enlace de descarga directa:", result.downloadUrl);</pre>
-    </div>
+      </div>
+    </article>
+
+    <!-- Módulo 6: Separador de Stems (Pilar 04) -->
+    <article class="content-box-card">
+      <span class="tech-card-tag">[ 06 // STEMS_DEMUCS_INTEGRATION ]</span>
+      <h2>6. Integración del Pilar 4: Separador de Stems (Demucs v4)</h2>
+      <p>
+        Descompón canciones completas en pistas aisladas de Instrumental y Acapella enviando un archivo de audio mediante FormData:
+      </p>
+
+      <div class="code-box-wrapper">
+        <div class="code-box-header">
+          <span>JAVASCRIPT / SEPARACIÓN DEMUCS V4</span>
+          <button class="btn-copy" onclick="copiarAlPortapapeles(this, 'code-learn-demucs')">Copiar</button>
+        </div>
+        <pre class="code-panel" id="code-learn-demucs">const form = new FormData();
+form.append("file", audioFileInput.files[0]);
+
+const response = await fetch("https://vork-st1k.onrender.com/api/separator/process", {
+  method: "POST",
+  body: form
+});
+const data = await response.json();
+console.log("Pista Instrumental:", data.instrumentalUrl);
+console.log("Pista Acapella:", data.vocalsUrl);</pre>
+      </div>
+    </article>
+
+    <!-- Módulo 7: Generador de Imágenes IA FLUX.1 (Pilar 07) -->
+    <article class="content-box-card">
+      <span class="tech-card-tag">[ 07 // FLUX_AI_INTEGRATION ]</span>
+      <h2>7. Integración del Pilar 7: Generador de Imágenes IA (FLUX.1)</h2>
+      <p>
+        Crea arte e imágenes hiperrealistas en 1024x1024 a partir de descripciones textuales sin marca de agua:
+      </p>
+
+      <div class="code-box-wrapper">
+        <div class="code-box-header">
+          <span>JAVASCRIPT / GENERACIÓN VISUAL FLUX.1</span>
+          <button class="btn-copy" onclick="copiarAlPortapapeles(this, 'code-learn-flux')">Copiar</button>
+        </div>
+        <pre class="code-panel" id="code-learn-flux">const imgRes = await fetch("https://vork-st1k.onrender.com/api/image/generate", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    prompt: "Cyberpunk urban cityscape at sunset, ultra realistic, 8k cinematic lighting",
+    aspectRatio: "16:9"
+  })
+});
+const imgData = await imgRes.json();
+console.log("URL de imagen generada:", imgData.imageUrl);</pre>
+      </div>
     </article>
 
     <!-- Módulo 8: Códigos de Respuesta y Diagnóstico -->

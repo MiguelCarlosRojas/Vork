@@ -6,7 +6,8 @@
   <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
   <meta name="theme-color" content="#11141a">
   <title>Estado del Servicio | Vork — Monitor de Red y Telemetría en Tiempo Real</title>
-  <meta name="description" content="Monitor en tiempo real de Vork: comprobación en vivo de disponibilidad, latencia de red, tiempo de respuesta y telemetría de memoria.">
+  <meta name="description" content="Monitor en tiempo real de Vork: comprobación en vivo de disponibilidad, latencia de red, tiempo de respuesta y telemetría de memoria en los 9 pilares.">
+  <meta name="keywords" content="Estado Vork, monitor Vork, telemetría Vork, disponibilidad Vork, uptime Vork, ping API Vork, microservicios Vork en tiempo real, latencia vork">
   <link rel="canonical" href="https://vork-st1k.onrender.com/status">
 
   <!-- Open Graph -->
@@ -30,7 +31,6 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/img/brand/logo.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/img/brand/logo.png">
   <link rel="manifest" href="/manifest.json">
-  <!-- Compatibilidad Universal de Navegadores (Chrome, Safari, Edge, Firefox, Opera GX, Brave) -->
   <meta name="application-name" content="Vork">
   <meta name="apple-mobile-web-app-title" content="Vork">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -96,56 +96,54 @@
   <!-- Textura de grano sutil Huella -->
   <div class="grain" aria-hidden="true"></div>
 
-
   <!-- Barra Superior -->
   <header id="header-placeholder" data-component="header" data-active="status"></header>
 
   <main class="full-container">
-    
-    <!-- Hero de Estado -->
+
     <section class="hero-full">
       <div class="hero-split hero-split-solo">
         <div class="hero-split-content">
-          <span class="label" style="display: inline-flex; align-items: center; gap: 8px;">
-            <span class="pulse-dot"></span>
-            Monitor de Red en Tiempo Real
-          </span>
+          <span class="label">[ MONITOR DE SISTEMAS Y TELEMETRÍA ]</span>
           <h1 class="h-section">Estado del Microservicio en <em>Producción</em></h1>
           <p class="lead" style="text-align: left; margin: 0;">
-            Comprobación en vivo del estado de conectividad, latencia de red y respuestas del servidor en <strong>https://vork-st1k.onrender.com</strong>:
+            Comprobación en vivo del estado de los 9 pilares de Vork. Medición directa de ping, tiempo de actividad del proceso, disponibilidad de rutas y latencias reales:
           </p>
-          <div class="hero-actions">
-            <button id="btn-check-live" class="btn btn-primary">
-              <svg class="icon" viewBox="0 0 24 24"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-              Comprobar Conectividad Ahora
-            </button>
-          </div>
         </div>
       </div>
     </section>
 
-    <!-- Telemetría en Vivo (Diseño Glassmorphism Moderno sin cuadros negros) -->
-    <div class="telemetry-board">
-      <div id="main-status-banner" class="status-indicator-banner status-online">
-        <div class="status-headline">
-          <span class="pulse-dot" id="live-pulse"></span>
+    <section class="workbench-wrap">
+      
+      <!-- Banner de Estado Global -->
+      <div class="status-banner-card" id="main-status-banner">
+        <div class="status-banner-info">
+          <div class="status-indicator">
+            <span class="status-dot"></span>
+            <span class="status-dot-pulse"></span>
+          </div>
           <div>
-            <h3 id="live-status-title" style="margin: 0; color: var(--ink);">Servicio Activo y Operacional</h3>
-            <span id="live-status-subtitle" style="font-size: 0.88rem; color: var(--muted);">
-              Conexión verificada con https://vork-st1k.onrender.com
-            </span>
+            <h2 id="live-status-title">Conectando con el microservicio...</h2>
+            <p id="live-status-subtitle">Consultando estado operativo y telemetría de red</p>
           </div>
         </div>
-        <div style="font-size: 0.82rem; color: var(--text-muted); text-align: right;">
-          <div>Último chequeo: <strong id="last-check-time" style="color: var(--ink);">Calculando...</strong></div>
-          <div>Cifrado: <strong style="color: var(--accent-emerald);">TLS 1.3 / HTTPS</strong></div>
+        <div class="status-banner-action">
+          <button id="btn-check-live" class="btn btn-primary" title="Realizar comprobación de latencia ahora">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+            <span>Verificar Ahora</span>
+          </button>
         </div>
       </div>
 
-      <div class="metrics-row">
+      <!-- Cuadrícula de Métricas de Rendimiento -->
+      <div class="metrics-grid">
         <div class="metric-box">
-          <div class="metric-label">Latencia Medida</div>
-          <div class="metric-val green" id="metric-latency">-- ms</div>
+          <div class="metric-label">Latencia de Red (Ping)</div>
+          <div class="metric-val" id="metric-latency">-- ms</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-label">Última Comprobación</div>
+          <div class="metric-val" id="last-check-time">--:--:--</div>
         </div>
         <div class="metric-box">
           <div class="metric-label">Tiempo Activo del Proceso</div>
@@ -163,7 +161,7 @@
 
       <div class="endpoints-heading">
         <h3>Disponibilidad de Endpoints (Los 9 Pilares de Vork)</h3>
-        <span>28 ENDPOINTS ACTIVOS • PROTOCOLO REST</span>
+        <span>27 ENDPOINTS ACTIVOS • PROTOCOLO REST</span>
       </div>
 
       <div class="table-responsive-wrapper">
@@ -179,7 +177,7 @@
             </tr>
           </thead>
           <tbody>
-            <!-- PILAR 1: TRADUCCIÓN -->
+            <!-- PILAR 01: TRADUCCIÓN -->
             <tr>
               <td><span class="pillar-tag" style="font-size: 0.65rem; padding: 2px 6px;">PILAR 01 // TEXT</span></td>
               <td><span class="badge-method badge-post">POST</span></td>
@@ -213,12 +211,12 @@
               <td><strong id="status-health" style="color: var(--accent-emerald);">Operacional</strong></td>
             </tr>
 
-            <!-- PILAR 2: TEXTO A VOZ (TTS) -->
+            <!-- PILAR 02: TEXTO A VOZ (TTS) -->
             <tr>
               <td><span class="pillar-tag" style="font-size: 0.65rem; padding: 2px 6px; border-color: rgba(56, 189, 248, 0.4); color: #38bdf8;">PILAR 02 // AUDIO</span></td>
               <td><span class="badge-method badge-get">GET</span></td>
               <td><code>/api/tts/voices</code></td>
-              <td>Catálogo de voces humanas disponibles (idiomas, acentos, timbres y géneros)</td>
+              <td>Catálogo de 24 voces humanas neuronales (idiomas, acentos y timbres)</td>
               <td id="ping-tts-voices">-- ms</td>
               <td><strong id="status-tts-voices" style="color: var(--accent-emerald);">Operacional</strong></td>
             </tr>
@@ -297,7 +295,7 @@
               <td><strong id="status-media-download" style="color: var(--accent-emerald);">Operacional</strong></td>
             </tr>
 
-            <!-- PILAR 5: SEPARADOR DE VOZ E INSTRUMENTAL (DEMUCS v4) -->
+            <!-- PILAR 04: SEPARADOR DE STEMS (DEMUCS v4) -->
             <tr>
               <td><span class="pillar-tag" style="font-size: 0.65rem; padding: 2px 6px; border-color: rgba(255, 0, 123, 0.4); color: #ff007b;">PILAR 04 // STEMS AI</span></td>
               <td><span class="badge-method badge-post">POST</span></td>
@@ -322,45 +320,18 @@
               <td id="ping-sep-download">-- ms</td>
               <td><strong id="status-sep-download" style="color: var(--accent-emerald);">Operacional</strong></td>
             </tr>
-            
 
-            <!-- PILAR 7: VORK CLI & AGENTES -->
+            <!-- PILAR 05: CONVERSOR Y PROCESADOR DE IMÁGENES -->
             <tr>
-              <td><span class="pillar-tag" style="font-size: 0.65rem; padding: 2px 6px; border-color: rgba(255, 122, 61, 0.35); color: #00f0ff;">PILAR 07 // CLI</span></td>
-              <td><span class="badge-method badge-get">GET</span></td>
-              <td><code>/cli/install.ps1</code></td>
-              <td>Script instalador automatizado para Windows PowerShell (1-line install)</td>
-              <td id="ping-cli-ps1">-- ms</td>
-              <td><strong id="status-cli-ps1" style="color: var(--accent-emerald);">Operacional</strong></td>
-            </tr>
-            <tr>
-              <td><span class="pillar-tag" style="font-size: 0.65rem; padding: 2px 6px; border-color: rgba(255, 122, 61, 0.35); color: #00f0ff;">PILAR 07 // CLI</span></td>
-              <td><span class="badge-method badge-get">GET</span></td>
-              <td><code>/cli/install.cmd</code></td>
-              <td>Instalador desatendido para Símbolo del Sistema (Windows CMD)</td>
-              <td id="ping-cli-cmd">-- ms</td>
-              <td><strong id="status-cli-cmd" style="color: var(--accent-emerald);">Operacional</strong></td>
-            </tr>
-            <tr>
-              <td><span class="pillar-tag" style="font-size: 0.65rem; padding: 2px 6px; border-color: rgba(255, 122, 61, 0.35); color: #00f0ff;">PILAR 07 // CLI</span></td>
-              <td><span class="badge-method badge-get">GET</span></td>
-              <td><code>/api/cli/info</code></td>
-              <td>Metadatos de versión, catálogo de comandos y comandos con diagonal</td>
-              <td id="ping-cli-info">-- ms</td>
-              <td><strong id="status-cli-info" style="color: var(--accent-emerald);">Operacional</strong></td>
-            </tr>
-
-            <!-- PILAR 8: CONVERSOR Y PROCESADOR DE IMÁGENES -->
-            <tr>
-              <td><span class="pillar-tag" style="font-size: 0.65rem; padding: 2px 6px; border-color: rgba(245, 158, 11, 0.4); color: #f59e0b;">PILAR 08 // IMAGE</span></td>
+              <td><span class="pillar-tag" style="font-size: 0.65rem; padding: 2px 6px; border-color: rgba(245, 158, 11, 0.4); color: #f59e0b;">PILAR 05 // IMAGE</span></td>
               <td><span class="badge-method badge-get">GET</span></td>
               <td><code>/api/image/formats</code></td>
-              <td>Catálogo global de formatos gráficos soportados (PNG, JPG, WEBP, GIF, BMP, TIFF, ICO)</td>
+              <td>Catálogo de formatos gráficos (WebP, AVIF, PNG, JPG, GIF, BMP, ICO)</td>
               <td id="ping-img-formats">-- ms</td>
               <td><strong id="status-img-formats" style="color: var(--accent-emerald);">Operacional</strong></td>
             </tr>
             <tr>
-              <td><span class="pillar-tag" style="font-size: 0.65rem; padding: 2px 6px; border-color: rgba(245, 158, 11, 0.4); color: #f59e0b;">PILAR 08 // IMAGE</span></td>
+              <td><span class="pillar-tag" style="font-size: 0.65rem; padding: 2px 6px; border-color: rgba(245, 158, 11, 0.4); color: #f59e0b;">PILAR 05 // IMAGE</span></td>
               <td><span class="badge-method badge-post">POST</span></td>
               <td><code>/api/image/convert</code></td>
               <td>Conversión y escalado LANCZOS con calidad y dimensiones configurables</td>
@@ -368,7 +339,7 @@
               <td><strong id="status-img-convert" style="color: var(--accent-emerald);">Operacional</strong></td>
             </tr>
             <tr>
-              <td><span class="pillar-tag" style="font-size: 0.65rem; padding: 2px 6px; border-color: rgba(245, 158, 11, 0.4); color: #f59e0b;">PILAR 08 // IMAGE</span></td>
+              <td><span class="pillar-tag" style="font-size: 0.65rem; padding: 2px 6px; border-color: rgba(245, 158, 11, 0.4); color: #f59e0b;">PILAR 05 // IMAGE</span></td>
               <td><span class="badge-method badge-get">GET</span></td>
               <td><code>/api/image/stream</code></td>
               <td>Streaming de imagen procesada con cabecera Content-Type nativa</td>
@@ -376,201 +347,88 @@
               <td><strong id="status-img-stream" style="color: var(--accent-emerald);">Operacional</strong></td>
             </tr>
             <tr>
-              <td><span class="pillar-tag" style="font-size: 0.65rem; padding: 2px 6px; border-color: rgba(245, 158, 11, 0.4); color: #f59e0b;">PILAR 08 // IMAGE</span></td>
+              <td><span class="pillar-tag" style="font-size: 0.65rem; padding: 2px 6px; border-color: rgba(245, 158, 11, 0.4); color: #f59e0b;">PILAR 05 // IMAGE</span></td>
               <td><span class="badge-method badge-get">GET</span></td>
               <td><code>/api/image/download</code></td>
-              <td>Descarga física con cabecera Content-Disposition de la imagen convertida</td>
+              <td>Descarga física de imagen procesada en buffer binario directo</td>
               <td id="ping-img-download">-- ms</td>
               <td><strong id="status-img-download" style="color: var(--accent-emerald);">Operacional</strong></td>
             </tr>
 
-            <!-- PILAR 9: ESTUDIO Y ELIMINADOR DE FONDO IA -->
+            <!-- PILAR 06: ESTUDIO Y FONDO IA -->
             <tr>
-              <td><span class="pillar-tag" style="font-size: 0.65rem; padding: 2px 6px; border-color: rgba(168, 85, 247, 0.4); color: #c084fc;">PILAR 09 // BG AI</span></td>
+              <td><span class="pillar-tag" style="font-size: 0.65rem; padding: 2px 6px; border-color: rgba(16, 185, 129, 0.4); color: #10b981;">PILAR 06 // REMOVE BG</span></td>
               <td><span class="badge-method badge-post">POST</span></td>
-              <td><code>/api/image/remove-background</code></td>
-              <td>Eliminación de fondo por IA (rembg U2-Net), transparencia alfa o sustitución creativa</td>
+              <td><code>/api/image/remove-bg</code></td>
+              <td>Segmentación neuronal U2-Net para siluetas transparentes o fondos de color</td>
               <td id="ping-img-bg-remove">-- ms</td>
               <td><strong id="status-img-bg-remove" style="color: var(--accent-emerald);">Operacional</strong></td>
             </tr>
             <tr>
-              <td><span class="pillar-tag" style="font-size: 0.65rem; padding: 2px 6px; border-color: rgba(168, 85, 247, 0.4); color: #c084fc;">PILAR 09 // BG AI</span></td>
+              <td><span class="pillar-tag" style="font-size: 0.65rem; padding: 2px 6px; border-color: rgba(16, 185, 129, 0.4); color: #10b981;">PILAR 06 // REMOVE BG</span></td>
               <td><span class="badge-method badge-post">POST</span></td>
-              <td><code>/api/image/remove-bg</code></td>
-              <td>Alias directo para segmentación neuronal de sujetos y chroma key automático</td>
+              <td><code>/api/remove-bg</code></td>
+              <td>Alias directo para clientes HTTP livianos y compatibilidad retroactiva</td>
               <td id="ping-img-bg-short">-- ms</td>
               <td><strong id="status-img-bg-short" style="color: var(--accent-emerald);">Operacional</strong></td>
+            </tr>
+
+            <!-- PILAR 07: GENERADOR DE IMÁGENES IA (FLUX.1) -->
+            <tr>
+              <td><span class="pillar-tag" style="font-size: 0.65rem; padding: 2px 6px; border-color: rgba(169, 156, 255, 0.4); color: #8b5cf6;">PILAR 07 // FLUX.1</span></td>
+              <td><span class="badge-method badge-post">POST</span></td>
+              <td><code>/api/image/generate</code></td>
+              <td>Generación visual neuronal de 1024x1024 con FLUX.1 sin marca de agua</td>
+              <td id="ping-img-generate">-- ms</td>
+              <td><strong id="status-img-generate" style="color: var(--accent-emerald);">Operacional</strong></td>
+            </tr>
+
+            <!-- PILAR 08: VORK CLI & AGENTES -->
+            <tr>
+              <td><span class="pillar-tag" style="font-size: 0.65rem; padding: 2px 6px; border-color: rgba(0, 240, 255, 0.4); color: #00bcd4;">PILAR 08 // CLI</span></td>
+              <td><span class="badge-method badge-get">GET</span></td>
+              <td><code>/cli/install.ps1</code></td>
+              <td>Script instalador automatizado para Windows PowerShell (1-line install)</td>
+              <td id="ping-cli-ps1">-- ms</td>
+              <td><strong id="status-cli-ps1" style="color: var(--accent-emerald);">Operacional</strong></td>
+            </tr>
+            <tr>
+              <td><span class="pillar-tag" style="font-size: 0.65rem; padding: 2px 6px; border-color: rgba(0, 240, 255, 0.4); color: #00bcd4;">PILAR 08 // CLI</span></td>
+              <td><span class="badge-method badge-get">GET</span></td>
+              <td><code>/cli/install.cmd</code></td>
+              <td>Instalador desatendido para Símbolo del Sistema (Windows CMD)</td>
+              <td id="ping-cli-cmd">-- ms</td>
+              <td><strong id="status-cli-cmd" style="color: var(--accent-emerald);">Operacional</strong></td>
+            </tr>
+            <tr>
+              <td><span class="pillar-tag" style="font-size: 0.65rem; padding: 2px 6px; border-color: rgba(0, 240, 255, 0.4); color: #00bcd4;">PILAR 08 // CLI</span></td>
+              <td><span class="badge-method badge-get">GET</span></td>
+              <td><code>/api/cli/info</code></td>
+              <td>Metadatos de versión, catálogo de comandos y comandos con diagonal</td>
+              <td id="ping-cli-info">-- ms</td>
+              <td><strong id="status-cli-info" style="color: var(--accent-emerald);">Operacional</strong></td>
+            </tr>
+
+            <!-- PILAR 09: VORK DESKTOP -->
+            <tr>
+              <td><span class="pillar-tag" style="font-size: 0.65rem; padding: 2px 6px; border-color: rgba(255, 122, 61, 0.4); color: #ff7a3d;">PILAR 09 // DESKTOP</span></td>
+              <td><span class="badge-method badge-get">GET</span></td>
+              <td><code>/desktop</code></td>
+              <td>Asistente biométrico residente en Windows, reconocimiento vocal y control de apps</td>
+              <td id="ping-desktop-status">-- ms</td>
+              <td><strong id="status-desktop" style="color: var(--accent-emerald);">Operacional</strong></td>
             </tr>
           </tbody>
         </table>
       </div>
-    </div>
 
-    <!-- Centro de Documentación Técnica y Recursos de la API -->
-    <section>
-      <div class="section-full-title">
-        <h2>Documentación Técnica, API REST y Recursos</h2>
-        <p>Todo lo necesario para comprender la arquitectura, consumir los endpoints e integrar el servicio en minutos.</p>
-      </div>
-
-      <div class="cards-full-grid">
-        <div class="tech-card">
-          <span class="tech-card-tag">[ DOCS // API_SPEC ]</span>
-          <div class="tech-card-icon">
-            <svg class="icon" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-          </div>
-          <h3>Documentación de la API</h3>
-          <p>Especificación completa de endpoints, esquemas JSON, códigos de respuesta HTTP, configuración de cookies técnicas y manejo de errores.</p>
-          <div style="margin-top: auto; padding-top: 28px;">
-            <a href="/docs" class="btn btn-outline" style="padding: 10px 20px; font-size: 0.88rem;">Ver Documentación</a>
-          </div>
-        </div>
-
-        <div class="tech-card">
-          <span class="tech-card-tag">[ PLAYGROUND // LIVE_REST ]</span>
-          <div class="tech-card-icon">
-            <svg class="icon" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-          </div>
-          <h3>API REST</h3>
-          <p>Consola interactiva para ejecutar llamadas directas a <code>/api/translate</code>, <code>/api/tts</code> y probar respuestas JSON en vivo sin instalar herramientas externas.</p>
-          <div style="margin-top: auto; padding-top: 28px;">
-            <a href="/api" class="btn btn-primary" style="padding: 10px 20px; font-size: 0.88rem;">Abrir Playground</a>
-          </div>
-        </div>
-
-        <div class="tech-card">
-          <span class="tech-card-tag">[ LEARN // CODE_GUIDES ]</span>
-          <div class="tech-card-icon">
-            <svg class="icon" viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-          </div>
-          <h3>Guías de Integración</h3>
-          <p>Ejemplos de código listos para producción en JavaScript Vanilla, Node.js, Python, React, Vue, Angular y comandos cURL estándar.</p>
-          <div style="margin-top: auto; padding-top: 28px;">
-            <a href="/learn" class="btn btn-outline" style="padding: 10px 20px; font-size: 0.88rem;">Ver Guías</a>
-          </div>
-        </div>
-
-        <div class="tech-card">
-          <span class="tech-card-tag">[ PILAR 01 // TRANSLATOR ]</span>
-          <div class="tech-card-icon">
-            <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20M12 2a14.5 14.5 0 0 1 0 20M2 12h20"/></svg>
-          </div>
-          <h3>Consola del Traductor</h3>
-          <p>Interfaz dedicada a la traducción masiva de textos y páginas web con persistencia técnica en cookies y soporte para más de 200 lenguajes.</p>
-          <div style="margin-top: auto; padding-top: 28px;">
-            <a href="/translator" class="btn btn-outline" style="padding: 10px 20px; font-size: 0.88rem;">Ir al Traductor</a>
-          </div>
-        </div>
-
-        <div class="tech-card">
-          <span class="tech-card-tag">[ PILAR 02 // TTS_STUDIO ]</span>
-          <div class="tech-card-icon">
-            <svg class="icon" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
-          </div>
-          <h3>Estudio Texto a Voz (TTS)</h3>
-          <p>Generación de audio realista con catálogo multilingüe de voces humanas, selector de tono, calibración de velocidad y descarga en WAV.</p>
-          <div style="margin-top: auto; padding-top: 28px;">
-            <a href="/tts" class="btn btn-outline" style="padding: 10px 20px; font-size: 0.88rem;">Ir a Estudio TTS</a>
-          </div>
-        </div>
-
-        
-
-        <div class="tech-card">
-          <span class="tech-card-tag">[ PILAR 03 // MEDIA_CONVERTER ]</span>
-          <div class="tech-card-icon">
-            <svg class="icon" viewBox="0 0 24 24"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2"/><circle cx="8" cy="12" r="2"/></svg>
-          </div>
-          <h3>Conversor Multimedia (MP3 / MP4)</h3>
-          <p>Motor de conversión directa desde YouTube, TikTok, Reels, Facebook y Twitter/X a audio MP3 (hasta 320 kbps) o video MP4 sin marcas de agua.</p>
-          <div style="margin-top: auto; padding-top: 28px;">
-            <a href="/converter" class="btn btn-outline" style="padding: 10px 20px; font-size: 0.88rem;">Ir a Conversor</a>
-          </div>
-        </div>
-
-        <div class="tech-card">
-          <span class="tech-card-tag">[ PILAR 04 // STEMS_AI ]</span>
-          <div class="tech-card-icon">
-            <svg class="icon" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
-          </div>
-          <h3>Separador de Voz e Instrumental</h3>
-          <p>Aislamiento neuronal Demucs v4 con atenuación a -48 dB para generar pistas Karaoke y Acapellas puras.</p>
-          <div style="margin-top: auto; padding-top: 28px;">
-            <a href="/vocal-remover" class="btn btn-outline" style="padding: 10px 20px; font-size: 0.88rem;">Ir al Separador</a>
-          </div>
-        </div>
-
-        <div class="tech-card">
-          <span class="tech-card-tag">[ PILAR 05 // IMAGE_STUDIO ]</span>
-          <div class="tech-card-icon">
-            <svg class="icon" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
-          </div>
-          <h3>Procesador de Imágenes</h3>
-          <p>Conversión multiformato (PNG, JPG, WebP, GIF, BMP, TIFF, ICO) con redimensionamiento, preservación de alfa y compresión.</p>
-          <div style="margin-top: auto; padding-top: 28px;">
-            <a href="/image-converter" class="btn btn-outline" style="padding: 10px 20px; font-size: 0.88rem;">Ir al Procesador</a>
-          </div>
-        </div>
-
-        <div class="tech-card">
-          <span class="tech-card-tag">[ PILAR 06 // BG_AI_STUDIO ]</span>
-          <div class="tech-card-icon">
-            <svg class="icon" viewBox="0 0 24 24"><path d="m21 16-4 4-4-4"/><path d="M17 20V4"/><path d="m3 8 4-4 4 4"/><path d="M7 4v16"/></svg>
-          </div>
-          <h3>Estudio y Fondo IA</h3>
-          <p>Segmentación neuronal U2-Net para aislar siluetas, canales alfa transparentes y fondos creativos.</p>
-          <div style="margin-top: auto; padding-top: 28px;">
-            <a href="/background-remover" class="btn btn-outline" style="padding: 10px 20px; font-size: 0.88rem;">Ir a Fondo IA</a>
-          </div>
-        </div>
-
-        <div class="tech-card">
-          <span class="tech-card-tag">[ PILAR 08 // FLUX.1 ]</span>
-          <div class="tech-card-icon">
-            <svg class="icon" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-          </div>
-          <h3>Generador de Imágenes IA</h3>
-          <p>Generación fotorrealista con FLUX.1 Neural Engine sin marcas de agua, proporciones dinámicas y descarga directa en HD.</p>
-          <div style="margin-top: auto; padding-top: 28px;">
-            <a href="/draw" class="btn btn-outline" style="padding: 10px 20px; font-size: 0.88rem;">Ir a /draw</a>
-          </div>
-        </div>
-
-        <div class="tech-card">
-          <span class="tech-card-tag">[ PILAR 08 // CLI ]</span>
-          <div class="tech-card-icon">
-            <svg class="icon" viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
-          </div>
-          <h3>Vork CLI &amp; Agentes</h3>
-          <p>Entorno de terminal interactivo (TUI) con agentes autónomos, comandos con diagonal y subagentes concurrentes.</p>
-          <div style="margin-top: auto; padding-top: 28px;">
-            <a href="/cli" class="btn btn-outline" style="padding: 10px 20px; font-size: 0.88rem;">Ir a Vork CLI</a>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Especificaciones de Infraestructura y Comportamiento en Render -->
-    <section class="content-box-card">
-      <span class="tech-card-tag">[ INFRASTRUCTURE // SLA ]</span>
-      <h2>Comportamiento Operativo en la Nube (Render Free Tier)</h2>
-      <p>
-        Vork opera bajo la capa libre de Render con microservicios optimizados para no generar ningún coste y brindar disponibilidad continua a la comunidad:
-      </p>
-      <div class="callout" style="margin: 18px 0;">
-        <strong>Modo Reposo y Arranque en Frío:</strong> Si no se detectan solicitudes durante 15 minutos continuos, la máquina virtual entra en modo de reposo automático. La primera petición subsiguiente despierta la instancia en aproximadamente 25 a 35 segundos. Las siguientes solicitudes responden con latencia de 150 a 300 ms (o 0 ms si la respuesta está en memoria RAM).
-      </div>
-      <p>
-        Para mantener tu backend despierto sin incurrir en costos, puedes enviar un ping periódico cada 10 minutos a <code>GET /api/ping</code> mediante cron jobs o herramientas de monitoreo gratuitas.
-      </p>
     </section>
 
   </main>
 
-  <!-- Pie de Página Aliniado y Estructurado -->
   <footer id="footer-placeholder" data-component="footer" data-active="status"></footer>
 
   <script src="/js/vork.js"></script>
-    <script src="/js/modules/status.js" defer></script>
+  <script src="/js/modules/status.js" defer></script>
 </body>
 </html>

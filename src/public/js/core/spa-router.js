@@ -133,6 +133,37 @@
         currentOgTitle.setAttribute("content", newOgTitle.getAttribute("content") || "");
       }
 
+      // Meta Keywords
+      let currentKeywords = document.querySelector('meta[name="keywords"]');
+      const newKeywords = doc.querySelector('meta[name="keywords"]');
+      if (newKeywords) {
+        if (!currentKeywords) {
+          currentKeywords = document.createElement("meta");
+          currentKeywords.setAttribute("name", "keywords");
+          document.head.appendChild(currentKeywords);
+        }
+        currentKeywords.setAttribute("content", newKeywords.getAttribute("content") || "");
+      }
+
+      // Canonical URL
+      const currentCanonical = document.querySelector('link[rel="canonical"]');
+      const newCanonical = doc.querySelector('link[rel="canonical"]');
+      if (currentCanonical && newCanonical) {
+        currentCanonical.setAttribute("href", newCanonical.getAttribute("href") || "");
+      }
+
+      // OpenGraph Image & URL
+      const currentOgImg = document.querySelector('meta[property="og:image"]');
+      const newOgImg = doc.querySelector('meta[property="og:image"]');
+      if (currentOgImg && newOgImg) {
+        currentOgImg.setAttribute("content", newOgImg.getAttribute("content") || "");
+      }
+      const currentOgUrl = document.querySelector('meta[property="og:url"]');
+      const newOgUrl = doc.querySelector('meta[property="og:url"]');
+      if (currentOgUrl && newOgUrl) {
+        currentOgUrl.setAttribute("content", newOgUrl.getAttribute("content") || "");
+      }
+
       // 3. SINCRONIZAR HOJAS DE ESTILO Y BLOQUES <style> EN <head>
       // Limpiar estilos dinámicos de páginas anteriores
       document.head.querySelectorAll("[data-spa-injected]").forEach(el => el.remove());
