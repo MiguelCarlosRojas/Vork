@@ -41,6 +41,7 @@ module.exports = {
   PORT: parseInt(process.env.PORT, 10) || 3000,
   APP_URL: process.env.APP_URL || "",
   API_URL: process.env.API_URL || "",
+  TRUST_PROXY: process.env.TRUST_PROXY || 1,
 
   // 2. Timeouts del Servidor
   SERVER_TIMEOUTS: {

@@ -4,12 +4,12 @@
  */
 const mediaRepository = require("../repository/media.repository");
 const {
+  SUPPORTED_PLATFORMS,
   detectPlatform,
-  fetchMediaInfo,
-  convertMediaUrl,
-  convertMediaUrlInstantly,
-  mediaBufferStore,
-  SUPPORTED_PLATFORMS
+  extractMediaInfo,
+  processConversion,
+  processBatchConversion,
+  getMediaById
 } = require("./mediaEngine");
 
 class MediaService {
@@ -26,23 +26,23 @@ class MediaService {
   }
 
   async getMediaMetadata(url) {
-    return fetchMediaInfo(url);
+    return extractMediaInfo(url);
   }
 
   async getMediaInfo(url) {
-    return fetchMediaInfo(url);
+    return extractMediaInfo(url);
   }
 
-  async convert(url, options = {}) {
-    return convertMediaUrl(url, options);
+  async convertSingleMedia(options = {}) {
+    return processConversion(options);
   }
 
-  async convertInstant(url, options = {}) {
-    return convertMediaUrlInstantly(url, options);
+  async convertBatchMedia(options = {}) {
+    return processBatchConversion(options);
   }
 
   findMediaById(id) {
-    return this.repository.findBufferById(id);
+    return getMediaById(id) || this.repository.findBufferById(id);
   }
 }
 

@@ -16,6 +16,9 @@ const pageRoutes = require("./pageRouter");
 
 const app = express();
 
+// 0. Confianza en el Proxy Inverso (Configurable dinámicamente desde .env.production)
+app.set("trust proxy", env.TRUST_PROXY);
+
 // 1. Ocultar huellas de tecnología (Previene reconocimiento por atacantes)
 app.disable("x-powered-by");
 

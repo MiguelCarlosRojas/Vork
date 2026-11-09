@@ -9,7 +9,7 @@ const axios = require("axios");
 const { spawn } = require("child_process");
 const ffmpegPath = require("@ffmpeg-installer/ffmpeg").path;
 const mediaService = require("../service/media.service");
-const { MEDIA_CACHE_DIR } = require("../service/mediaEngine");
+const { MEDIA_CACHE_DIR, wrapStreamUrl } = require("../service/mediaEngine");
 const {
   validateSafeUrl,
   sanitizeId,
@@ -303,13 +303,19 @@ exports.streamMedia = async (req, res) => {
         selectedTrack = item.audioTracks.find(t => t.isDefault) || item.audioTracks[0];
       }
     }
-    const audioUrl = selectedTrack ? selectedTrack.url : (item.mp3Url || item.remoteStreamUrl);
+    const rawAudioUrl = selectedTrack ? selectedTrack.url : (item.mp3Url || item.remoteStreamUrl);
+    const audioUrl = wrapStreamUrl(rawAudioUrl);
 
     // ==========================================
     // 1. STREAMING DE AUDIO (VISTA PREVIA MP3)
     // ==========================================
     if (streamType === "audio") {
-      // Proxy streaming directo con Range HTTP 206 sin bloquear con transcodificaciones lentas
+      // 1.1 Si el archivo físico ya existe en disco, servirlo inmediatamente con Range 206
+      if (item.filePath && fs.existsSync(item.filePath) && fs.statSync(item.filePath).size > 1000) {
+        return serveFileStream(res, req, item.filePath, item.mimeType || "audio/mpeg");
+      }
+
+      // 1.2 Proxy streaming directo con Range HTTP 206
       if (audioUrl) {
         try {
           const reqHeaders = {
@@ -336,11 +342,39 @@ exports.streamMedia = async (req, res) => {
           res.setHeader("Access-Control-Allow-Origin", "*");
           return remoteStream.data.pipe(res);
         } catch (pipeErr) {
-          logger.warn(`Proxy streaming de audio falló (${pipeErr.message}), intentando archivo local...`);
+          logger.warn(`Proxy streaming de audio falló (${pipeErr.message}), intentando transcodificación en vivo FFmpeg...`);
+        }
+
+        // 1.3 Fallback: Streaming en vivo transcodificado a MP3 con FFmpeg
+        try {
+          res.setHeader("Content-Type", "audio/mpeg");
+          res.setHeader("Cache-Control", "no-cache");
+          res.setHeader("Access-Control-Allow-Origin", "*");
+
+          const ffArgs = [
+            "-user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+            "-i", audioUrl,
+            "-vn",
+            "-c:a", "libmp3lame",
+            "-b:a", reqQuality || "192k",
+            "-f", "mp3",
+            "pipe:1"
+          ];
+          const ff = spawn(ffmpegPath, ffArgs);
+          ff.stdout.pipe(res);
+          req.on("close", () => {
+            try { ff.kill("SIGKILL"); } catch {}
+          });
+          ff.on("error", (err) => {
+            logger.warn(`Error en FFmpeg live audio stream: ${err.message}`);
+          });
+          return;
+        } catch (ffErr) {
+          logger.warn(`Live FFmpeg audio streaming falló: ${ffErr.message}`);
         }
       }
 
-      // Servir desde archivo físico en disco si está disponible
+      // Servir desde archivo físico en disco si terminó de transcodificarse
       if (item.filePath && fs.existsSync(item.filePath) && fs.statSync(item.filePath).size > 1000) {
         return serveFileStream(res, req, item.filePath, item.mimeType || "audio/mpeg");
       }
@@ -359,19 +393,19 @@ exports.streamMedia = async (req, res) => {
       }
 
       // Si se especificó calidad y existe un stream para dicha resolución en videoStreamsByQuality, usarlo
-      let videoStreamUrl = item.mp4Url || item.remoteStreamUrl;
+      let videoStreamUrl = wrapStreamUrl(item.mp4Url || item.remoteStreamUrl);
       let effectiveAudioUrl = audioUrl;
       let isSeparateAudio = Boolean(item.separateAudio);
       if (reqQuality && item.videoStreamsByQuality && item.videoStreamsByQuality[reqQuality]) {
         const qVal = item.videoStreamsByQuality[reqQuality];
         if (typeof qVal === "object" && qVal !== null && qVal.videoUrl) {
-          videoStreamUrl = qVal.videoUrl;
+          videoStreamUrl = wrapStreamUrl(qVal.videoUrl);
           if (qVal.audioUrl) {
-            effectiveAudioUrl = qVal.audioUrl;
+            effectiveAudioUrl = wrapStreamUrl(qVal.audioUrl);
             isSeparateAudio = true;
           }
         } else {
-          videoStreamUrl = qVal;
+          videoStreamUrl = wrapStreamUrl(qVal);
         }
       }
 
@@ -385,7 +419,7 @@ exports.streamMedia = async (req, res) => {
           "-user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
           "-i", videoStreamUrl,
           "-user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
-          "-i", audioUrl,
+          "-i", effectiveAudioUrl,
           "-map", "0:v:0",
           "-map", "1:a:0",
           "-c:v", "copy",
@@ -489,21 +523,22 @@ exports.downloadMedia = async (req, res) => {
         selectedAudioTrack = item.audioTracks.find(t => t.isDefault) || item.audioTracks[0];
       }
     }
-    const audioUrl = selectedAudioTrack ? selectedAudioTrack.url : (item.mp3Url || item.remoteStreamUrl);
+    const rawAudioUrl = selectedAudioTrack ? selectedAudioTrack.url : (item.mp3Url || item.remoteStreamUrl);
+    const audioUrl = wrapStreamUrl(rawAudioUrl);
 
-    let videoStreamUrl = item.mp4Url || item.remoteStreamUrl;
+    let videoStreamUrl = wrapStreamUrl(item.mp4Url || item.remoteStreamUrl);
     let effectiveAudioUrl = audioUrl;
     let isSeparateAudio = Boolean(item.separateAudio);
     if (reqQuality && item.videoStreamsByQuality && item.videoStreamsByQuality[reqQuality]) {
       const qVal = item.videoStreamsByQuality[reqQuality];
       if (typeof qVal === "object" && qVal !== null && qVal.videoUrl) {
-        videoStreamUrl = qVal.videoUrl;
+        videoStreamUrl = wrapStreamUrl(qVal.videoUrl);
         if (qVal.audioUrl) {
-          effectiveAudioUrl = qVal.audioUrl;
+          effectiveAudioUrl = wrapStreamUrl(qVal.audioUrl);
           isSeparateAudio = true;
         }
       } else {
-        videoStreamUrl = qVal;
+        videoStreamUrl = wrapStreamUrl(qVal);
       }
     }
 
@@ -532,14 +567,55 @@ exports.downloadMedia = async (req, res) => {
         return ff.stdout.pipe(res);
       }
 
+      // 1.1 Si el archivo físico transcrito ya existe en disco, servirlo con prioridad
+      if (item.filePath && fs.existsSync(item.filePath) && fs.statSync(item.filePath).size > 1000) {
+        if (!isPathContained(item.filePath, MEDIA_CACHE_DIR)) {
+          logger.warn(`[Seguridad] Intento de Path Traversal bloqueado en downloadMedia: ${item.filePath}`);
+          return res.status(403).send("Acceso denegado a archivo fuera del almacenamiento permitido.");
+        }
+
+        const resolvedPath = path.resolve(item.filePath);
+        const stat = fs.statSync(resolvedPath);
+        res.setHeader("Content-Disposition", `attachment; filename="${safeFilename}"`);
+        res.setHeader("Content-Type", "audio/mpeg");
+        res.setHeader("Content-Length", stat.size);
+        const stream = fs.createReadStream(resolvedPath);
+        return stream.pipe(res);
+      }
+
+      // 1.2 Si la conversión física inicial está en curso, esperar si se descarga el archivo por defecto
+      if (item.conversionPromise && (!item.filePath || !fs.existsSync(item.filePath) || fs.statSync(item.filePath).size < 1000)) {
+        try {
+          await item.conversionPromise;
+          if (item.filePath && fs.existsSync(item.filePath) && fs.statSync(item.filePath).size > 1000) {
+            const resolvedPath = path.resolve(item.filePath);
+            const stat = fs.statSync(resolvedPath);
+            res.setHeader("Content-Disposition", `attachment; filename="${safeFilename}"`);
+            res.setHeader("Content-Type", "audio/mpeg");
+            res.setHeader("Content-Length", stat.size);
+            const stream = fs.createReadStream(resolvedPath);
+            return stream.pipe(res);
+          }
+        } catch (err) {
+          logger.warn(`Aviso al esperar conversión asíncrona para descarga: ${err.message}`);
+        }
+      }
+
+      // 1.3 Si no hay archivo físico aún, transcodificar al vuelo con FFmpeg hacia MP3 auténtico
       res.setHeader("Content-Disposition", `attachment; filename="${safeFilename}"`);
       res.setHeader("Content-Type", "audio/mpeg");
-      const remotePipe = await axios.get(effectiveAudioUrl, {
-        responseType: "stream",
-        timeout: 60000,
-        headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" }
-      });
-      return remotePipe.data.pipe(res);
+      const ffArgs = [
+        "-user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+        "-i", effectiveAudioUrl,
+        "-vn",
+        "-c:a", "libmp3lame",
+        "-b:a", selectedQuality || "320k",
+        "-f", "mp3",
+        "pipe:1"
+      ];
+      const ff = spawn(ffmpegPath, ffArgs);
+      req.on("close", () => { try { ff.kill("SIGKILL"); } catch {} });
+      return ff.stdout.pipe(res);
     }
 
     // 2. Descarga de Video (MP4) si el usuario seleccionó una pista alternativa o calidad diferente a la inicial
@@ -600,7 +676,8 @@ exports.downloadMedia = async (req, res) => {
     }
 
     // Fallback: si no hay archivo local, transmitir directamente desde el stream remoto con cabecera de descarga
-    const fallbackUrl = item.format === "mp4" ? (item.mp4Url || item.remoteStreamUrl) : (item.mp3Url || item.remoteStreamUrl);
+    const rawFallbackUrl = item.format === "mp4" ? (item.mp4Url || item.remoteStreamUrl) : (item.mp3Url || item.remoteStreamUrl);
+    const fallbackUrl = wrapStreamUrl(rawFallbackUrl);
     if (fallbackUrl) {
       res.setHeader("Content-Disposition", `attachment; filename="${safeFilename}"`);
       res.setHeader("Content-Type", item.mimeType);

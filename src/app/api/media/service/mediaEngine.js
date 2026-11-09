@@ -23,6 +23,23 @@ const { validateSafeUrl } = require("../../../util/validator");
 const cheerio = require("cheerio");
 
 /**
+ * Envuelve streams directos de YouTube/GoogleVideo con proxy transparente
+ * para evitar el error HTTP 403 Forbidden provocado por el enlace de IP de Google CDN.
+ */
+function wrapStreamUrl(url) {
+  if (!url || typeof url !== "string") return url;
+  const clean = url.trim();
+  if (
+    clean.includes("googlevideo.com") &&
+    !clean.includes("api.vidsnap.app/proxy") &&
+    !clean.includes("/proxy?u=")
+  ) {
+    return `https://api.vidsnap.app/proxy?u=${encodeURIComponent(clean)}`;
+  }
+  return clean;
+}
+
+/**
  * Decodificación y desencriptación de respuestas ofuscadas de SnapSave
  */
 function decodeSnapApp(args) {
@@ -236,7 +253,7 @@ async function fetchYouTubeStreams(normalizedUrl) {
           audioTracks.push({
             id: `audio_${audioTracks.length}`,
             label,
-            url: af.url,
+            url: wrapStreamUrl(af.url),
             isDefault: label.toLowerCase().includes("original") || audioTracks.length === 0
           });
         });
@@ -274,14 +291,14 @@ async function fetchYouTubeStreams(normalizedUrl) {
           if (matchedKey) {
             const isMp4 = vf.type?.includes("mp4") || vf.container === "mp4";
             if (!videoStreamsByQuality[matchedKey] || isMp4) {
-              videoStreamsByQuality[matchedKey] = vf.url;
+              videoStreamsByQuality[matchedKey] = wrapStreamUrl(vf.url);
             }
           }
         });
 
         const sortedQualityKeys = Object.keys(videoStreamsByQuality).sort((a, b) => (parseInt(b, 10) || 0) - (parseInt(a, 10) || 0));
-        const bestVideoUrl = videoStreamsByQuality["1080p"] || videoStreamsByQuality["720p"] || (sortedQualityKeys.length > 0 ? videoStreamsByQuality[sortedQualityKeys[0]] : videoFormats[0]?.url) || null;
-        const bestAudioUrl = audioTracks.find(t => t.isDefault)?.url || audioTracks[0]?.url || null;
+        const bestVideoUrl = wrapStreamUrl(videoStreamsByQuality["1080p"] || videoStreamsByQuality["720p"] || (sortedQualityKeys.length > 0 ? videoStreamsByQuality[sortedQualityKeys[0]] : videoFormats[0]?.url) || null);
+        const bestAudioUrl = wrapStreamUrl(audioTracks.find(t => t.isDefault)?.url || audioTracks[0]?.url || null);
 
         return {
           title: d.title || null,
@@ -340,8 +357,8 @@ async function fetchYouTubeStreams(normalizedUrl) {
     const r = await withTimeout(rahad.alldl(normalizedUrl), 5000);
     if (r && r.data && r.data.download) {
       const dl = r.data.download;
-      let audioUrl = dl.audio || dl.video;
-      let videoUrl = dl.video || dl.audio;
+      let audioUrl = wrapStreamUrl(dl.audio || dl.video);
+      let videoUrl = wrapStreamUrl(dl.video || dl.audio);
       if (audioUrl || videoUrl) {
         return {
           title: r.data.title,
@@ -380,18 +397,19 @@ async function fetchYouTubeStreams(normalizedUrl) {
     valid.forEach(v => {
       if (Array.isArray(v.audioTracks)) {
         v.audioTracks.forEach(t => {
-          if (!t.url || seenAudioUrls.has(t.url) || seenAudioLabels.has(t.label)) return;
-          seenAudioUrls.add(t.url);
+          const wrappedUrl = wrapStreamUrl(t.url);
+          if (!wrappedUrl || seenAudioUrls.has(wrappedUrl) || seenAudioLabels.has(t.label)) return;
+          seenAudioUrls.add(wrappedUrl);
           seenAudioLabels.add(t.label);
           audioTracks.push({
             id: `audio_${audioTracks.length}`,
             label: t.label,
-            url: t.url,
+            url: wrappedUrl,
             isDefault: Boolean(t.isDefault)
           });
         });
       }
-      const extraAudio = v.mp3 || v.audio;
+      const extraAudio = wrapStreamUrl(v.mp3 || v.audio);
       if (extraAudio && !seenAudioUrls.has(extraAudio)) {
         seenAudioUrls.add(extraAudio);
         const label = parseAudioTrackLabel(extraAudio);
@@ -421,15 +439,24 @@ async function fetchYouTubeStreams(normalizedUrl) {
     }
 
     // Fusionar streams de video por calidad
-    const videoStreamsByQuality = invidiousRes?.videoStreamsByQuality || {};
+    const videoStreamsByQuality = {};
     valid.forEach(v => {
       if (v.videoStreamsByQuality) {
-        Object.assign(videoStreamsByQuality, v.videoStreamsByQuality);
+        for (const [k, val] of Object.entries(v.videoStreamsByQuality)) {
+          if (typeof val === "object" && val !== null && val.videoUrl) {
+            videoStreamsByQuality[k] = {
+              videoUrl: wrapStreamUrl(val.videoUrl),
+              audioUrl: wrapStreamUrl(val.audioUrl)
+            };
+          } else {
+            videoStreamsByQuality[k] = wrapStreamUrl(val);
+          }
+        }
       }
     });
 
-    const primaryVideo = videoStreamsByQuality["1080p"] || videoStreamsByQuality["720p"] || first.mp4 || valid.find(v => v.mp4)?.mp4 || null;
-    const primaryAudio = audioTracks.find(t => t.isDefault)?.url || audioTracks[0]?.url || first.mp3 || null;
+    const primaryVideo = wrapStreamUrl(videoStreamsByQuality["1080p"] || videoStreamsByQuality["720p"] || first.mp4 || valid.find(v => v.mp4)?.mp4 || null);
+    const primaryAudio = wrapStreamUrl(audioTracks.find(t => t.isDefault)?.url || audioTracks[0]?.url || first.mp3 || null);
 
     return {
       title,
@@ -854,10 +881,10 @@ async function extractMediaInfo(url, requestedFormat = "mp3") {
         if (ytRes.title && (!info.title || info.title.startsWith("YouTube Video"))) info.title = ytRes.title;
         if (ytRes.author && (info.author === "Desconocido" || info.author === "YouTube Creator")) info.author = ytRes.author;
         if (ytRes.thumbnail && (!info.thumbnail || info.thumbnail.includes("logo.png"))) info.thumbnail = ytRes.thumbnail;
-        info.mp4Url = ytRes.mp4 || null;
-        info.mp3Url = ytRes.mp3 || ytRes.mp4 || null;
+        info.mp4Url = wrapStreamUrl(ytRes.mp4) || null;
+        info.mp3Url = wrapStreamUrl(ytRes.mp3) || info.mp4Url || null;
         info.videoStreamsByQuality = ytRes.videoStreamsByQuality || {};
-        info.audioTracks = ytRes.audioTracks || [];
+        info.audioTracks = (ytRes.audioTracks || []).map(t => ({ ...t, url: wrapStreamUrl(t.url) }));
         info.selectedAudioTrack = ytRes.audioTracks?.find(t => t.isDefault)?.id || ytRes.audioTracks?.[0]?.id || null;
         info.separateAudio = Boolean(ytRes.separateAudio || (ytRes.mp4 && ytRes.mp3 && ytRes.mp4 !== ytRes.mp3));
         info.directMediaUrl = requestedFormat === "mp4" ? (info.mp4Url || info.mp3Url) : (info.mp3Url || info.mp4Url);
@@ -1340,7 +1367,8 @@ async function extractMediaInfo(url, requestedFormat = "mp3") {
  */
 async function downloadStreamFast(url, tempFilePath) {
   try {
-    const headRes = await axios.get(url, {
+    const targetUrl = wrapStreamUrl(url);
+    const headRes = await axios.get(targetUrl, {
       headers: {
         "Range": "bytes=0-0",
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
@@ -1366,7 +1394,7 @@ async function downloadStreamFast(url, tempFilePath) {
         if (start > end) break;
 
         promises.push(
-          axios.get(url, {
+          axios.get(targetUrl, {
             headers: {
               "Range": `bytes=${start}-${end}`,
               "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
@@ -1394,6 +1422,7 @@ async function downloadStreamFast(url, tempFilePath) {
  * Transcodifica un stream remoto a MP3 puro usando FFmpeg
  */
 async function transcodeToMp3(streamUrl, outputPath, quality = "320k") {
+  const safeStreamUrl = wrapStreamUrl(streamUrl);
   const bitrateMap = {
     "320k": "320k",
     "256k": "256k",
@@ -1405,12 +1434,12 @@ async function transcodeToMp3(streamUrl, outputPath, quality = "320k") {
   const bitrate = bitrateMap[quality] || (quality.endsWith("k") ? quality : `${quality}k`);
 
   // Acelerador: Descargar chunks paralelos para eludir la tasa limitada de proxies
-  let localInput = streamUrl;
+  let localInput = safeStreamUrl;
   let tempDownloadedFile = null;
 
-  if (streamUrl && streamUrl.startsWith("http")) {
+  if (safeStreamUrl && safeStreamUrl.startsWith("http")) {
     const tempCandidate = path.join(MEDIA_CACHE_DIR, `temp_dl_${Date.now()}_${Math.random().toString(36).slice(2, 7)}.tmp`);
-    const isDownloaded = await downloadStreamFast(streamUrl, tempCandidate);
+    const isDownloaded = await downloadStreamFast(safeStreamUrl, tempCandidate);
     if (isDownloaded && fs.existsSync(tempCandidate) && fs.statSync(tempCandidate).size > 1000) {
       localInput = tempCandidate;
       tempDownloadedFile = tempCandidate;
@@ -1464,7 +1493,7 @@ async function transcodeToMp3(streamUrl, outputPath, quality = "320k") {
         logger.warn(`FFmpeg directo terminó con código ${code}, probando stream pipe...`);
         axios({
           method: "get",
-          url: streamUrl,
+          url: safeStreamUrl,
           responseType: "stream",
           headers: {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
@@ -1512,12 +1541,13 @@ async function transcodeToMp3(streamUrl, outputPath, quality = "320k") {
  * Transcodifica un stream remoto a WAV puro (Audio PCM 16-bit sin compresión)
  */
 function transcodeToWav(streamUrl, outputPath) {
+  const safeStreamUrl = wrapStreamUrl(streamUrl);
   return new Promise((resolve, reject) => {
     try {
       const ff = spawn(ffmpegPath, [
         "-y",
         "-user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-        "-i", streamUrl,
+        "-i", safeStreamUrl,
         "-vn",
         "-c:a", "pcm_s16le",
         "-f", "wav",
@@ -1536,7 +1566,7 @@ function transcodeToWav(streamUrl, outputPath) {
         // Intento 2: Fallback vía Axios stream pipe
         axios({
           method: "get",
-          url: streamUrl,
+          url: safeStreamUrl,
           responseType: "stream",
           headers: {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
@@ -1577,9 +1607,11 @@ function transcodeToWav(streamUrl, outputPath) {
  * Remuxea o transcodifica un stream remoto a MP4 estándar para reproducción web instantánea
  */
 function transcodeToMp4(streamUrl, outputPath, quality = "1080p", audioStreamUrl = null) {
+  const safeStreamUrl = wrapStreamUrl(streamUrl);
+  const safeAudioStreamUrl = wrapStreamUrl(audioStreamUrl);
   return new Promise((resolve, reject) => {
     try {
-      const hasSeparateAudio = Boolean(audioStreamUrl && audioStreamUrl !== streamUrl);
+      const hasSeparateAudio = Boolean(safeAudioStreamUrl && safeAudioStreamUrl !== safeStreamUrl);
 
       let scaleFilter = "";
       const qNumMatch = quality && String(quality).match(/(\d{3,4})p?/);
@@ -1593,13 +1625,13 @@ function transcodeToMp4(streamUrl, outputPath, quality = "1080p", audioStreamUrl
       const args = [
         "-y",
         "-user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
-        "-i", streamUrl
+        "-i", safeStreamUrl
       ];
 
       if (hasSeparateAudio) {
         args.push(
           "-user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
-          "-i", audioStreamUrl
+          "-i", safeAudioStreamUrl
         );
       }
 
@@ -1898,21 +1930,24 @@ async function processConversion(options = {}) {
   // Construir lista de candidatos según formato y plataforma
   const candidateStreams = [];
   if (selectedFormat === "mp3" || selectedFormat === "wav") {
-    if (mediaInfo.mp3Url) candidateStreams.push(mediaInfo.mp3Url);
-    if (mediaInfo.directMediaUrl && !candidateStreams.includes(mediaInfo.directMediaUrl)) {
-      candidateStreams.push(mediaInfo.directMediaUrl);
+    if (mediaInfo.mp3Url) candidateStreams.push(wrapStreamUrl(mediaInfo.mp3Url));
+    if (mediaInfo.directMediaUrl) {
+      const wrapped = wrapStreamUrl(mediaInfo.directMediaUrl);
+      if (!candidateStreams.includes(wrapped)) candidateStreams.push(wrapped);
     }
-    if (mediaInfo.mp4Url && !candidateStreams.includes(mediaInfo.mp4Url)) {
-      candidateStreams.push(mediaInfo.mp4Url);
+    if (mediaInfo.mp4Url) {
+      const wrapped = wrapStreamUrl(mediaInfo.mp4Url);
+      if (!candidateStreams.includes(wrapped)) candidateStreams.push(wrapped);
     }
   } else {
-    if (mediaInfo.mp4Url) candidateStreams.push(mediaInfo.mp4Url);
-    if (mediaInfo.directMediaUrl && !candidateStreams.includes(mediaInfo.directMediaUrl)) {
-      candidateStreams.push(mediaInfo.directMediaUrl);
+    if (mediaInfo.mp4Url) candidateStreams.push(wrapStreamUrl(mediaInfo.mp4Url));
+    if (mediaInfo.directMediaUrl) {
+      const wrapped = wrapStreamUrl(mediaInfo.directMediaUrl);
+      if (!candidateStreams.includes(wrapped)) candidateStreams.push(wrapped);
     }
   }
 
-  const primaryRemoteStream = candidateStreams[0] || mediaInfo.directMediaUrl || mediaInfo.mp4Url || mediaInfo.mp3Url;
+  const primaryRemoteStream = wrapStreamUrl(candidateStreams[0] || mediaInfo.directMediaUrl || mediaInfo.mp4Url || mediaInfo.mp3Url);
   const initialSizeBytes = estimateMediaSizeBytes(selectedFormat, selectedQuality, finalDurationSeconds);
   const finalThumbnail = mediaInfo.thumbnail || `/api/media/thumbnail-proxy?title=${encodeURIComponent(mediaInfo.title)}&platform=${encodeURIComponent(mediaInfo.platform)}&author=${encodeURIComponent(mediaInfo.author)}`;
 
@@ -1933,17 +1968,17 @@ async function processConversion(options = {}) {
     durationSeconds: finalDurationSeconds,
     sizeBytes: initialSizeBytes,
     thumbnail: finalThumbnail,
-    mp4Url: mediaInfo.mp4Url || null,
-    mp3Url: mediaInfo.mp3Url || null,
+    mp4Url: wrapStreamUrl(mediaInfo.mp4Url) || null,
+    mp3Url: wrapStreamUrl(mediaInfo.mp3Url) || null,
     videoStreamsByQuality: mediaInfo.videoStreamsByQuality || {},
     availableQualities,
     selectedQuality,
     separateAudio: Boolean(mediaInfo.separateAudio),
-    separateAudioUrl: mediaInfo.separateAudio ? (mediaInfo.mp3Url || mediaInfo.directMediaUrl) : null,
+    separateAudioUrl: mediaInfo.separateAudio ? wrapStreamUrl(mediaInfo.mp3Url || mediaInfo.directMediaUrl) : null,
     audioTracks: audioTracks.map(t => ({
       id: t.id,
       label: t.label,
-      url: t.url,
+      url: wrapStreamUrl(t.url),
       isDefault: selectedTrackObj ? t.id === selectedTrackObj.id : Boolean(t.isDefault)
     })),
     selectedAudioTrack: selectedTrackObj ? selectedTrackObj.id : (audioTracks[0]?.id || null),
@@ -2060,37 +2095,50 @@ function getMediaById(id) {
   let item = mediaBufferStore.get(id);
   if (!item) {
     // Intentar recuperar desde almacenamiento físico si el proceso se reinició
+    const metaPath = path.join(MEDIA_CACHE_DIR, `${id}.json`);
+    let meta = null;
+    if (fs.existsSync(metaPath)) {
+      try { meta = JSON.parse(fs.readFileSync(metaPath, 'utf8')); } catch {}
+    }
+
     const possibleExts = ["mp4", "mp3", "wav", "webm"];
+    let diskPath = null;
+    let foundExt = meta?.format || "mp3";
     for (const ext of possibleExts) {
-      let diskPath = path.join(MEDIA_CACHE_DIR, `${id}.${ext}`);
-      if (!fs.existsSync(diskPath)) {
+      let candidate = path.join(MEDIA_CACHE_DIR, `${id}.${ext}`);
+      if (!fs.existsSync(candidate)) {
         try {
           const files = fs.readdirSync(MEDIA_CACHE_DIR);
           const found = files.find(f => f.startsWith(`${id}_`) && f.endsWith(`.${ext}`));
-          if (found) diskPath = path.join(MEDIA_CACHE_DIR, found);
+          if (found) candidate = path.join(MEDIA_CACHE_DIR, found);
         } catch {}
       }
-      if (fs.existsSync(diskPath)) {
-        const stats = fs.statSync(diskPath);
-        const metaPath = path.join(MEDIA_CACHE_DIR, `${id}.json`);
-        let meta = {};
-        if (fs.existsSync(metaPath)) {
-          try { meta = JSON.parse(fs.readFileSync(metaPath, 'utf8')); } catch {}
-        }
-        item = {
-          id,
-          format: ext,
-          mimeType: ext === "mp4" ? "video/mp4" : ext === "wav" ? "audio/wav" : "audio/mpeg",
-          filePath: diskPath,
-          filename: meta.filename || `Vork_Media_${id}.${ext}`,
-          sizeBytes: stats.size,
-          mp4Url: meta.mp4Url || null,
-          mp3Url: meta.mp3Url || null,
-          createdAt: meta.createdAt || stats.mtimeMs || Date.now()
-        };
-        mediaBufferStore.set(id, item);
+      if (fs.existsSync(candidate)) {
+        diskPath = candidate;
+        foundExt = ext;
         break;
       }
+    }
+
+    if (diskPath || meta) {
+      const stats = diskPath && fs.existsSync(diskPath) ? fs.statSync(diskPath) : null;
+      item = {
+        ...(meta || {}),
+        id,
+        format: foundExt,
+        mimeType: foundExt === "mp4" ? "video/mp4" : (foundExt === "wav" ? "audio/wav" : "audio/mpeg"),
+        filePath: diskPath || meta?.filePath || null,
+        filename: meta?.filename || `Vork_Media_${id}.${foundExt}`,
+        sizeBytes: stats ? stats.size : (meta?.sizeBytes || 0),
+        mp4Url: wrapStreamUrl(meta?.mp4Url),
+        mp3Url: wrapStreamUrl(meta?.mp3Url),
+        remoteStreamUrl: wrapStreamUrl(meta?.remoteStreamUrl),
+        candidateStreams: Array.isArray(meta?.candidateStreams) ? meta.candidateStreams.map(wrapStreamUrl) : [],
+        audioTracks: Array.isArray(meta?.audioTracks) ? meta.audioTracks.map(t => ({ ...t, url: wrapStreamUrl(t.url) })) : [],
+        videoStreamsByQuality: meta?.videoStreamsByQuality || {},
+        createdAt: meta?.createdAt || stats?.mtimeMs || Date.now()
+      };
+      mediaBufferStore.set(id, item);
     }
   }
   if (!item) return null;
@@ -2108,14 +2156,38 @@ function getMediaById(id) {
   return item;
 }
 
+/**
+ * Procesa múltiples conversiones en lote (hasta 10 elementos simultáneos)
+ */
+async function processBatchConversion({ urls = [], format = "mp3", quality = "320k" } = {}) {
+  const selectedUrls = urls.slice(0, 10);
+  return Promise.all(
+    selectedUrls.map(async (link) => {
+      try {
+        return await processConversion({ url: link, format, quality });
+      } catch (itemErr) {
+        return {
+          status: "error",
+          url: link,
+          error: itemErr.message
+        };
+      }
+    })
+  );
+}
+
 module.exports = {
   MEDIA_CACHE_DIR,
   SUPPORTED_PLATFORMS,
   detectPlatform,
   extractMediaInfo,
   processConversion,
+  processBatchConversion,
   getMediaById,
   formatBytes,
   formatDurationSeconds,
-  sanitizeFilename
+  sanitizeFilename,
+  wrapStreamUrl,
+  mediaBufferStore,
+  convertedJobCache
 };
