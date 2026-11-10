@@ -132,7 +132,7 @@ const TRUSTED_MEDIA_DOMAINS = [
   "youtube.com", "youtu.be", "googlevideo.com", "ytimg.com",
   "facebook.com", "fbcdn.net", "fb.watch",
   "instagram.com", "cdninstagram.com",
-  "tiktok.com", "tiktokcdn.com", "tiktokcdn-us.com", "byteoversea.com", "ibytedtos.com", "tikwm.com",
+  "tiktok.com", "tiktokcdn.com", "tiktokcdn-us.com", "byteoversea.com", "ibytedtos.com", "tikwm.com", "muscdn.com", "musical.ly",
   "twitter.com", "x.com", "twimg.com", "t.co",
   "reddit.com", "redd.it", "pinterest.com", "pin.it"
 ];

@@ -164,15 +164,41 @@ async function extractThumbnailFrame(videoSource, targetThumbPath) {
   if (!videoSource || !targetThumbPath) return false;
   return new Promise((resolve) => {
     try {
-      const args = [
-        "-y",
+      const parentDir = path.dirname(targetThumbPath);
+      if (!fs.existsSync(parentDir)) {
+        fs.mkdirSync(parentDir, { recursive: true });
+      }
+
+      const isRemote = typeof videoSource === "string" && (videoSource.startsWith("http://") || videoSource.startsWith("https://"));
+      const baseArgs = ["-y"];
+
+      if (isRemote) {
+        let referer = "https://www.google.com/";
+        if (/tiktok|byteoversea|ibytedtos|muscdn|musical\.ly/i.test(videoSource)) {
+          referer = "https://www.tiktok.com/";
+        } else if (/tikwm\.com/i.test(videoSource)) {
+          referer = "https://www.tikwm.com/";
+        } else if (/twitter|twimg|x\.com/i.test(videoSource)) {
+          referer = "https://twitter.com/";
+        } else if (/instagram|cdninstagram|fbcdn/i.test(videoSource)) {
+          referer = "https://www.instagram.com/";
+        }
+
+        baseArgs.push(
+          "-user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+          "-headers", `Referer: ${referer}\r\n`
+        );
+      }
+
+      const args1 = [
+        ...baseArgs,
         "-ss", "00:00:01",
         "-i", videoSource,
         "-vframes", "1",
         "-q:v", "2",
         targetThumbPath
       ];
-      const ff = spawn(ffmpegPath, args);
+      const ff = spawn(ffmpegPath, args1);
       const timer = setTimeout(() => {
         try { ff.kill("SIGKILL"); } catch {}
         resolve(false);
@@ -182,9 +208,10 @@ async function extractThumbnailFrame(videoSource, targetThumbPath) {
         if (code === 0 && fs.existsSync(targetThumbPath)) {
           resolve(true);
         } else {
-          // Si falló con -ss 00:00:01 (video de menos de 1 segundo), intentar al segundo 0
+          // Si falló con -ss 00:00:01 (video de menos de 1 segundo o stream sin seek previo), intentar al segundo 0
           try {
-            const ff2 = spawn(ffmpegPath, ["-y", "-i", videoSource, "-vframes", "1", "-q:v", "2", targetThumbPath]);
+            const args2 = [...baseArgs, "-i", videoSource, "-vframes", "1", "-q:v", "2", targetThumbPath];
+            const ff2 = spawn(ffmpegPath, args2);
             const timer2 = setTimeout(() => {
               try { ff2.kill("SIGKILL"); } catch {}
               resolve(false);
@@ -1243,7 +1270,8 @@ async function extractMediaInfo(url, requestedFormat = "mp3") {
           info.directMediaUrl = vUrl;
         }
         if (twRes.title) info.title = twRes.title;
-        if (twRes.thumb) info.thumbnail = twRes.thumb;
+        const twThumb = twRes.thumb || twRes.thumbnail || twRes.cover || twRes.image;
+        if (twThumb) info.thumbnail = twThumb;
       }
     } catch (twErr) {
       logger.warn(`btch.twitter fallo para Twitter/X: ${twErr.message}`);
@@ -1454,24 +1482,40 @@ async function extractMediaInfo(url, requestedFormat = "mp3") {
     info.title = defaultTitle;
   }
 
+  // Extraer el stream de video preferente para respaldo o extracción directa de fotogramas
+  const candidateStream = info.mp4Url || info.directMediaUrl || (info.videoStreamsByQuality && Object.values(info.videoStreamsByQuality)[0]);
+  const streamUrl = (typeof candidateStream === "object" && candidateStream?.videoUrl) ? candidateStream.videoUrl : candidateStream;
+  const validStreamUrl = (streamUrl && typeof streamUrl === "string" && streamUrl.startsWith("http")) ? streamUrl : null;
+
   // Si la miniatura es una URL remota externa (TikTok, Instagram, Twitter, etc.),
   // enrutar a través de nuestro proxy para garantizar que nunca sea bloqueada por CORS o Referer.
-  // Si no se obtuvo miniatura remota o es el logo por defecto, generar miniatura estilizada por proxy SVG.
+  // Si no se obtuvo miniatura remota o es el logo por defecto, intentar usar el stream de video para extraer fotograma
+  // o generar miniatura estilizada por proxy SVG.
   if (info.thumbnail && typeof info.thumbnail === "string") {
     let t = info.thumbnail.trim();
     if (t.startsWith("//")) t = "https:" + t;
     if (t.startsWith("http")) {
       if (!t.includes("i.ytimg.com") && !t.includes("/api/media/thumbnail-proxy") && !t.includes("/api/media/thumbnail?")) {
-        info.thumbnail = `/api/media/thumbnail-proxy?url=${encodeURIComponent(t)}&title=${encodeURIComponent(info.title)}&platform=${encodeURIComponent(info.platform)}&author=${encodeURIComponent(info.author)}`;
+        const vParam = validStreamUrl ? `&v=${encodeURIComponent(validStreamUrl)}` : "";
+        info.thumbnail = `/api/media/thumbnail-proxy?url=${encodeURIComponent(t)}${vParam}&title=${encodeURIComponent(info.title)}&platform=${encodeURIComponent(info.platform)}&author=${encodeURIComponent(info.author)}`;
       }
     } else if (t.startsWith("/") && !t.includes("logo.png") && !t.includes("/api/media/")) {
       t = `https://www.tikwm.com${t}`;
-      info.thumbnail = `/api/media/thumbnail-proxy?url=${encodeURIComponent(t)}&title=${encodeURIComponent(info.title)}&platform=${encodeURIComponent(info.platform)}&author=${encodeURIComponent(info.author)}`;
+      const vParam = validStreamUrl ? `&v=${encodeURIComponent(validStreamUrl)}` : "";
+      info.thumbnail = `/api/media/thumbnail-proxy?url=${encodeURIComponent(t)}${vParam}&title=${encodeURIComponent(info.title)}&platform=${encodeURIComponent(info.platform)}&author=${encodeURIComponent(info.author)}`;
     } else if (!info.thumbnail || info.thumbnail === "/img/logo.png") {
+      if (validStreamUrl) {
+        info.thumbnail = `/api/media/thumbnail-proxy?url=${encodeURIComponent(validStreamUrl)}&title=${encodeURIComponent(info.title)}&platform=${encodeURIComponent(info.platform)}&author=${encodeURIComponent(info.author)}`;
+      } else {
+        info.thumbnail = `/api/media/thumbnail-proxy?title=${encodeURIComponent(info.title)}&platform=${encodeURIComponent(info.platform)}&author=${encodeURIComponent(info.author)}`;
+      }
+    }
+  } else {
+    if (validStreamUrl) {
+      info.thumbnail = `/api/media/thumbnail-proxy?url=${encodeURIComponent(validStreamUrl)}&title=${encodeURIComponent(info.title)}&platform=${encodeURIComponent(info.platform)}&author=${encodeURIComponent(info.author)}`;
+    } else {
       info.thumbnail = `/api/media/thumbnail-proxy?title=${encodeURIComponent(info.title)}&platform=${encodeURIComponent(info.platform)}&author=${encodeURIComponent(info.author)}`;
     }
-  } else if (!info.thumbnail || info.thumbnail === "/img/logo.png") {
-    info.thumbnail = `/api/media/thumbnail-proxy?title=${encodeURIComponent(info.title)}&platform=${encodeURIComponent(info.platform)}&author=${encodeURIComponent(info.author)}`;
   }
 
   // Almacenar en caché en RAM para acelerar conversiones subsecuentes del mismo enlace

@@ -5,6 +5,7 @@
  */
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 const axios = require("axios");
 const { spawn } = require("child_process");
 const ffmpegPath = require("@ffmpeg-installer/ffmpeg").path;
@@ -71,7 +72,11 @@ exports.getThumbnailProxy = async (req, res) => {
   res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS");
   res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
 
-  const { url, title, platform, author } = req.query;
+  let { url, v, title, platform, author } = req.query;
+  if ((!url || typeof url !== "string") && (v && typeof v === "string")) {
+    url = v;
+  }
+
   if (!url || typeof url !== "string") {
     res.setHeader("Content-Type", "image/svg+xml");
     return res.send(generateThumbnailSvg(title, platform, author));
@@ -81,6 +86,28 @@ exports.getThumbnailProxy = async (req, res) => {
     // 🛡️ Blindaje SSRF: Bloquea IPs privadas, loopback (127.0.0.1) y metadatos cloud (169.254.169.254)
     await validateSafeUrl(url);
 
+    // 1. Servir desde caché física en disco si ya fue extraído previamente (0ms)
+    const cacheKey = crypto.createHash("md5").update(url).digest("hex");
+    const cachedDiskPath = path.join(MEDIA_CACHE_DIR, `proxy_${cacheKey}.jpg`);
+
+    if (fs.existsSync(cachedDiskPath) && isPathContained(cachedDiskPath, MEDIA_CACHE_DIR)) {
+      res.setHeader("Content-Type", "image/jpeg");
+      res.setHeader("Cache-Control", "public, max-age=86400, stale-while-revalidate=604800");
+      return fs.createReadStream(cachedDiskPath).pipe(res);
+    }
+
+    // 2. Si la URL apunta a un flujo de video (ej. MP4, video.twimg.com, etc.), extraer fotograma real
+    const isVideoStream = /\.(mp4|webm|mov|mkv)(\?.*)?$/i.test(url) || /video\.twimg\.com/i.test(url) || /tiktokcdn.*video/i.test(url);
+    if (isVideoStream) {
+      const ok = await extractThumbnailFrame(url, cachedDiskPath);
+      if (ok && fs.existsSync(cachedDiskPath)) {
+        res.setHeader("Content-Type", "image/jpeg");
+        res.setHeader("Cache-Control", "public, max-age=86400, stale-while-revalidate=604800");
+        return fs.createReadStream(cachedDiskPath).pipe(res);
+      }
+    }
+
+    // 3. Petición HTTP a la URL remota de la imagen con cabeceras de origen correctas
     const reqHeaders = {
       "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
       "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8"
@@ -92,6 +119,8 @@ exports.getThumbnailProxy = async (req, res) => {
       reqHeaders["Referer"] = "https://www.tikwm.com/";
     } else if (/instagram|cdninstagram|fbcdn/i.test(url)) {
       reqHeaders["Referer"] = "https://www.instagram.com/";
+    } else if (/twitter|twimg|x\.com/i.test(url)) {
+      reqHeaders["Referer"] = "https://twitter.com/";
     }
 
     const imgRes = await axios.get(url, {
@@ -101,11 +130,39 @@ exports.getThumbnailProxy = async (req, res) => {
       maxRedirects: 3
     });
 
-    res.setHeader("Content-Type", imgRes.headers["content-type"] || "image/jpeg");
+    const contentType = (imgRes.headers["content-type"] || "").toLowerCase();
+
+    // Si el servidor devolvió un flujo de video en vez de imagen, extraer fotograma con FFmpeg
+    if (contentType.startsWith("video/")) {
+      const ok = await extractThumbnailFrame(url, cachedDiskPath);
+      if (ok && fs.existsSync(cachedDiskPath)) {
+        res.setHeader("Content-Type", "image/jpeg");
+        res.setHeader("Cache-Control", "public, max-age=86400, stale-while-revalidate=604800");
+        return fs.createReadStream(cachedDiskPath).pipe(res);
+      }
+    }
+
+    res.setHeader("Content-Type", contentType.startsWith("image/") ? contentType : "image/jpeg");
     res.setHeader("Cache-Control", "public, max-age=86400, stale-while-revalidate=604800");
     imgRes.data.pipe(res);
   } catch (err) {
     logger.warn(`Fallback proxy de miniatura para ${url}: ${err.message}`);
+
+    // Si falló la descarga de la imagen pero se cuenta con el video de respaldo (v), extraer fotograma
+    if (v && typeof v === "string" && v !== url && v.startsWith("http")) {
+      try {
+        await validateSafeUrl(v);
+        const vKey = crypto.createHash("md5").update(v).digest("hex");
+        const vDiskPath = path.join(MEDIA_CACHE_DIR, `proxy_${vKey}.jpg`);
+        const ok = await extractThumbnailFrame(v, vDiskPath);
+        if (ok && fs.existsSync(vDiskPath)) {
+          res.setHeader("Content-Type", "image/jpeg");
+          res.setHeader("Cache-Control", "public, max-age=86400, stale-while-revalidate=604800");
+          return fs.createReadStream(vDiskPath).pipe(res);
+        }
+      } catch {}
+    }
+
     res.setHeader("Content-Type", "image/svg+xml");
     res.send(generateThumbnailSvg(title, platform, author));
   }
