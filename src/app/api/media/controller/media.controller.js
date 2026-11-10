@@ -9,7 +9,7 @@ const axios = require("axios");
 const { spawn } = require("child_process");
 const ffmpegPath = require("@ffmpeg-installer/ffmpeg").path;
 const mediaService = require("../service/media.service");
-const { MEDIA_CACHE_DIR, wrapStreamUrl } = require("../service/mediaEngine");
+const { MEDIA_CACHE_DIR, wrapStreamUrl, extractThumbnailFrame } = require("../service/mediaEngine");
 const {
   validateSafeUrl,
   sanitizeId,
@@ -115,27 +115,62 @@ exports.getThumbnailProxy = async (req, res) => {
  * Miniatura física extraída localmente por FFmpeg durante la conversión
  * Blindado contra Path Traversal
  */
-exports.getThumbnail = (req, res) => {
+exports.getThumbnail = async (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
 
   const safeId = sanitizeId(req.query.id);
   if (!safeId) {
     res.setHeader("Content-Type", "image/svg+xml");
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
     return res.send(generateThumbnailSvg("Video Multimedia", "MEDIA", ""));
   }
 
   const item = mediaService.findMediaById(safeId);
-  if (item && item.thumbPath && fs.existsSync(item.thumbPath)) {
-    // 🛡️ Path Traversal Guard: Confinamiento de ruta dentro de MEDIA_CACHE_DIR
-    if (isPathContained(item.thumbPath, MEDIA_CACHE_DIR)) {
-      res.setHeader("Content-Type", "image/jpeg");
-      res.setHeader("Cache-Control", "public, max-age=86400");
-      return fs.createReadStream(path.resolve(item.thumbPath)).pipe(res);
+  const diskThumbPath = path.join(MEDIA_CACHE_DIR, `${safeId}.jpg`);
+
+  // 1. Si el fotograma ya existe físicamente en disco, servirlo inmediatamente como JPEG
+  if (fs.existsSync(diskThumbPath) && isPathContained(diskThumbPath, MEDIA_CACHE_DIR)) {
+    if (item) item.thumbPath = diskThumbPath;
+    res.setHeader("Content-Type", "image/jpeg");
+    res.setHeader("Cache-Control", "public, max-age=86400, stale-while-revalidate=604800");
+    return fs.createReadStream(path.resolve(diskThumbPath)).pipe(res);
+  }
+
+  // 2. Si el registro en memoria ya tiene thumbPath y existe
+  if (item && item.thumbPath && fs.existsSync(item.thumbPath) && isPathContained(item.thumbPath, MEDIA_CACHE_DIR)) {
+    res.setHeader("Content-Type", "image/jpeg");
+    res.setHeader("Cache-Control", "public, max-age=86400, stale-while-revalidate=604800");
+    return fs.createReadStream(path.resolve(item.thumbPath)).pipe(res);
+  }
+
+  // 3. Extracción síncrona/inmediata al vuelo si tenemos el flujo de origen o el archivo
+  if (item) {
+    const videoSource = (item.filePath && fs.existsSync(item.filePath))
+      ? item.filePath
+      : (item.remoteStreamUrl || item.candidateStreams?.[0] || item.mp4Url);
+
+    if (videoSource) {
+      try {
+        const ok = await extractThumbnailFrame(videoSource, diskThumbPath);
+        if (ok && fs.existsSync(diskThumbPath)) {
+          item.thumbPath = diskThumbPath;
+          res.setHeader("Content-Type", "image/jpeg");
+          res.setHeader("Cache-Control", "public, max-age=86400, stale-while-revalidate=604800");
+          return fs.createReadStream(path.resolve(diskThumbPath)).pipe(res);
+        }
+      } catch {}
     }
   }
 
+  // 4. Si el registro tiene una miniatura remota válida (no SVG), redirigir hacia ella
+  if (item && item.thumbnail && item.thumbnail !== `/api/media/thumbnail?id=${safeId}` && !item.thumbnail.includes("title=")) {
+    return res.redirect(item.thumbnail);
+  }
+
+  // 5. Fallback SVG transitorio (sin caché agresiva para permitir actualización inmediata al generarse el frame)
   res.setHeader("Content-Type", "image/svg+xml");
+  res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
   res.send(generateThumbnailSvg(item ? item.title : "Video Multimedia", item ? item.platform : "MEDIA", item ? item.author : ""));
 };
 

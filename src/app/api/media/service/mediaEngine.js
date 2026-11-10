@@ -149,6 +149,9 @@ try {
   const ffmpegInstaller = require("@ffmpeg-installer/ffmpeg");
   if (ffmpegInstaller && ffmpegInstaller.path) {
     ffmpegPath = ffmpegInstaller.path;
+    if (process.platform !== "win32" && fs.existsSync(ffmpegPath)) {
+      try { fs.chmodSync(ffmpegPath, 0o755); } catch {}
+    }
   }
 } catch (e) {
   logger.warn(`No se pudo cargar @ffmpeg-installer/ffmpeg, se usará 'ffmpeg' del sistema: ${e.message}`);
@@ -179,7 +182,24 @@ async function extractThumbnailFrame(videoSource, targetThumbPath) {
         if (code === 0 && fs.existsSync(targetThumbPath)) {
           resolve(true);
         } else {
-          resolve(false);
+          // Si falló con -ss 00:00:01 (video de menos de 1 segundo), intentar al segundo 0
+          try {
+            const ff2 = spawn(ffmpegPath, ["-y", "-i", videoSource, "-vframes", "1", "-q:v", "2", targetThumbPath]);
+            const timer2 = setTimeout(() => {
+              try { ff2.kill("SIGKILL"); } catch {}
+              resolve(false);
+            }, 5000);
+            ff2.on("close", (c2) => {
+              clearTimeout(timer2);
+              resolve(c2 === 0 && fs.existsSync(targetThumbPath));
+            });
+            ff2.on("error", () => {
+              clearTimeout(timer2);
+              resolve(false);
+            });
+          } catch {
+            resolve(false);
+          }
         }
       });
       ff.on("error", () => {
@@ -2053,8 +2073,11 @@ async function processConversion(options = {}) {
 
   const primaryRemoteStream = wrapStreamUrl(candidateStreams[0] || mediaInfo.directMediaUrl || mediaInfo.mp4Url || mediaInfo.mp3Url);
   const initialSizeBytes = estimateMediaSizeBytes(selectedFormat, selectedQuality, finalDurationSeconds);
-  const hasRemoteThumb = mediaInfo.thumbnail && !mediaInfo.thumbnail.includes("title=") && mediaInfo.thumbnail.includes("url=");
-  const finalThumbnail = hasRemoteThumb
+  const isFallbackSvg = !mediaInfo.thumbnail ||
+    mediaInfo.thumbnail === "/img/logo.png" ||
+    (typeof mediaInfo.thumbnail === "string" && mediaInfo.thumbnail.startsWith("/api/media/thumbnail-proxy?") && !mediaInfo.thumbnail.includes("url="));
+
+  const finalThumbnail = !isFallbackSvg
     ? mediaInfo.thumbnail
     : `/api/media/thumbnail?id=${jobId}`;
 
@@ -2099,6 +2122,21 @@ async function processConversion(options = {}) {
   // Lanzar la transcodificación física en segundo plano (no bloquea la respuesta HTTP)
   itemRecord.conversionPromise = (async () => {
     try {
+      const primaryStream = candidateStreams[0];
+      const thumbPath = path.join(MEDIA_CACHE_DIR, `${jobId}.jpg`);
+
+      // 1. Extraer inmediatamente el fotograma JPEG en paralelo (rápido: ~300ms)
+      if (primaryStream && (!itemRecord.thumbPath || !fs.existsSync(itemRecord.thumbPath))) {
+        extractThumbnailFrame(primaryStream, thumbPath).then(ok => {
+          if (ok && fs.existsSync(thumbPath)) {
+            itemRecord.thumbPath = thumbPath;
+            try {
+              fs.writeFileSync(path.join(MEDIA_CACHE_DIR, `${jobId}.json`), JSON.stringify(itemRecord), 'utf8');
+            } catch {}
+          }
+        }).catch(() => {});
+      }
+
       for (const streamUrl of candidateStreams) {
         if (!streamUrl) continue;
         try {
@@ -2111,8 +2149,7 @@ async function processConversion(options = {}) {
                 itemRecord.durationSeconds = transRes.durationSeconds;
               }
             }
-            // Generar miniatura física JPEG extraída con FFmpeg si aún no existe
-            const thumbPath = path.join(MEDIA_CACHE_DIR, `${jobId}.jpg`);
+            // Generar o confirmar miniatura física JPEG extraída con FFmpeg
             if (!itemRecord.thumbPath || !fs.existsSync(itemRecord.thumbPath)) {
               const frameOk = await extractThumbnailFrame(streamUrl, thumbPath);
               if (frameOk && fs.existsSync(thumbPath)) {
@@ -2127,7 +2164,6 @@ async function processConversion(options = {}) {
             if (transRes && transRes.sizeBytes) {
               itemRecord.sizeBytes = transRes.sizeBytes;
             }
-            const thumbPath = path.join(MEDIA_CACHE_DIR, `${jobId}.jpg`);
             if (!itemRecord.thumbPath || !fs.existsSync(itemRecord.thumbPath)) {
               const frameOk = await extractThumbnailFrame(streamUrl, thumbPath);
               if (frameOk && fs.existsSync(thumbPath)) {
@@ -2147,8 +2183,7 @@ async function processConversion(options = {}) {
                 itemRecord.durationSeconds = transRes.durationSeconds;
               }
             }
-            // Generar miniatura física JPEG extraída directamente del archivo MP4 renderizado
-            const thumbPath = path.join(MEDIA_CACHE_DIR, `${jobId}.jpg`);
+            // Generar o confirmar miniatura física JPEG extraída directamente del archivo MP4 renderizado
             if (!itemRecord.thumbPath || !fs.existsSync(itemRecord.thumbPath)) {
               const srcForThumb = fs.existsSync(outputPath) ? outputPath : streamUrl;
               const frameOk = await extractThumbnailFrame(srcForThumb, thumbPath);
@@ -2315,6 +2350,7 @@ module.exports = {
   SUPPORTED_PLATFORMS,
   detectPlatform,
   extractMediaInfo,
+  extractThumbnailFrame,
   processConversion,
   processBatchConversion,
   getMediaById,
