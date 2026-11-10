@@ -86,9 +86,11 @@ exports.getThumbnailProxy = async (req, res) => {
       "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8"
     };
 
-    if (url.includes("tiktok") || url.includes("byteoversea") || url.includes("ibytedtos")) {
+    if (/tiktok|byteoversea|ibytedtos|muscdn|musical\.ly/i.test(url)) {
       reqHeaders["Referer"] = "https://www.tiktok.com/";
-    } else if (url.includes("instagram") || url.includes("cdninstagram") || url.includes("fbcdn")) {
+    } else if (/tikwm\.com/i.test(url)) {
+      reqHeaders["Referer"] = "https://www.tikwm.com/";
+    } else if (/instagram|cdninstagram|fbcdn/i.test(url)) {
       reqHeaders["Referer"] = "https://www.instagram.com/";
     }
 

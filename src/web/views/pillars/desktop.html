@@ -293,26 +293,47 @@
       </div>
     </section>
 
-    <!-- DESCARGA EN GITHUB RELEASES -->
-    <section class="workbench-wrap">
-      <div class="workbench-card" style="text-align: center; padding: 48px 24px;">
-        <span class="label" style="color: var(--accent);">[ RELEASES OFICIALES ]</span>
-        <h2 class="h-section" style="margin-bottom: 12px;">Descarga <em>Vork Desktop</em> para Windows</h2>
-        <p style="color: var(--muted); max-width: 600px; margin: 0 auto 28px auto;">
-          Descarga el instalador oficial <strong>Vork-Setup.exe</strong> con asistente guiado, selección de carpeta de destino, barra de progreso y accesos directos en el escritorio, o la versión portátil en ZIP. 100% gratuito y sin suscripciones.
-        </p>
+    <!-- INSTALACIÓN RÁPIDA DE VORK CLI -->
+    <section class="workbench-wrap" id="cli-install-section" style="max-width: 1220px !important; width: 100% !important; margin: 20px auto 0 auto !important; padding: 0 20px !important;">
+      <div class="workbench-card" style="background: var(--dark); color: #f4ece1; margin-bottom: 0 !important; padding-bottom: 24px !important;">
+        <span class="label" style="color: var(--accent);">(03) Terminal &amp; Automatización</span>
+        <h2 class="h-section" style="color: #ffffff;">Instala <em>Vork CLI</em> en un solo comando.</h2>
+        <p style="color: #a59a8f; margin-bottom: 24px;">Disponible para Windows PowerShell y Linux / macOS con soporte para los 9 pilares operacionales:</p>
 
-        <a href="https://github.com/MiguelCarlosRojas/Vork/releases/tag/v1.0.0" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-lg">
-          <svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          <span>Descargar Vork-Setup.exe (v1.0.0)</span>
-        </a>
+        <!-- Consola de Instalación Rápida Tipo Terminal -->
+        <div class="vork-terminal-box">
+          <div class="vork-terminal-bar">
+            <div class="vork-terminal-bar-left">
+              <div class="vork-terminal-dots">
+                <span class="dot dot-red"></span>
+                <span class="dot dot-yellow"></span>
+                <span class="dot dot-green"></span>
+              </div>
+              <div class="vork-terminal-title">
+                <svg class="icon" viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" fill="none" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+                <span>powershell</span>
+              </div>
+            </div>
+            <button id="btn-copy-install" class="btn btn-sm" aria-label="Copiar comando">
+              <svg class="icon" viewBox="0 0 24 24" width="14" height="14"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+              <span>Copiar</span>
+            </button>
+          </div>
+          <div class="vork-terminal-body">
+            <span class="vork-terminal-prompt">PS &gt;</span>
+            <div class="vork-terminal-code-scroll">
+              <code id="cli-install-cmd">irm https://vork-st1k.onrender.com/cli/install.ps1 | iex</code>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
   </main>
 
   <!-- Pie de Página Inyectado Dinámicamente -->
-  <footer id="footer-placeholder" data-component="footer"></footer>
+  <footer id="footer-placeholder" data-component="footer" data-active="desktop"></footer>
 
+  <script src="/js/vork.js"></script>
 </body>
 </html>

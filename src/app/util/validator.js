@@ -82,23 +82,35 @@ function isPrivateIP(ip) {
   if (!ip || typeof ip !== "string") return true;
   const cleanIp = ip.trim().toLowerCase();
 
-  if (
-    cleanIp === "::1" ||
-    cleanIp === "::" ||
-    cleanIp.startsWith("fc") ||
-    cleanIp.startsWith("fd") ||
-    cleanIp.startsWith("fe80") ||
-    cleanIp.startsWith("ff") ||
-    cleanIp === "0:0:0:0:0:0:0:1"
-  ) {
-    return true;
-  }
-
+  // IPv4 mapeado en IPv6 (ej: ::ffff:192.168.1.1 o ::ffff:142.250.0.1)
   if (cleanIp.startsWith("::ffff:")) {
     const ipv4Part = cleanIp.substring(7);
     return isPrivateIP(ipv4Part);
   }
 
+  // IPv6 nativo (contiene dos puntos ':')
+  if (cleanIp.includes(":")) {
+    if (
+      cleanIp === "::1" ||
+      cleanIp === "::" ||
+      cleanIp === "0:0:0:0:0:0:0:1" ||
+      cleanIp === "0:0:0:0:0:0:0:0" ||
+      cleanIp.startsWith("fc") || // Unique Local Address (ULA) fc00::/7
+      cleanIp.startsWith("fd") ||
+      cleanIp.startsWith("fe80") || // Link-local fe80::/10
+      cleanIp.startsWith("fe9") ||
+      cleanIp.startsWith("fea") ||
+      cleanIp.startsWith("feb") ||
+      cleanIp.startsWith("ff") || // Multicast ff00::/8
+      cleanIp.startsWith("2001:db8:") // Documentación / Test-net
+    ) {
+      return true;
+    }
+    // Cualquier otra IPv6 global unicast (ej: 2000::/3 como 2a00:, 2600:, etc.) es pública
+    return false;
+  }
+
+  // IPv4
   const parts = cleanIp.split(".").map(p => parseInt(p, 10));
   if (parts.length !== 4 || parts.some(n => isNaN(n) || n < 0 || n > 255)) {
     return true;
@@ -115,6 +127,15 @@ function isPrivateIP(ip) {
 
   return false;
 }
+
+const TRUSTED_MEDIA_DOMAINS = [
+  "youtube.com", "youtu.be", "googlevideo.com", "ytimg.com",
+  "facebook.com", "fbcdn.net", "fb.watch",
+  "instagram.com", "cdninstagram.com",
+  "tiktok.com", "tiktokcdn.com", "tiktokcdn-us.com", "byteoversea.com", "ibytedtos.com", "tikwm.com",
+  "twitter.com", "x.com", "twimg.com", "t.co",
+  "reddit.com", "redd.it", "pinterest.com", "pin.it"
+];
 
 async function validateSafeUrl(rawUrl) {
   if (!rawUrl || typeof rawUrl !== "string") {
@@ -137,8 +158,16 @@ async function validateSafeUrl(rawUrl) {
     throw new Error("Acceso denegado a hosts locales.");
   }
 
+  const hostLower = hostname.toLowerCase();
+  const isTrustedMedia = TRUSTED_MEDIA_DOMAINS.some(d => hostLower === d || hostLower.endsWith("." + d));
+
   if (/^(\d{1,3}\.){3}\d{1,3}$/.test(hostname) && isPrivateIP(hostname)) {
     throw new Error("Acceso bloqueado: la IP solicitada es privada o reservada.");
+  }
+
+  // Si es un dominio público reconocido de las plataformas multimedia autorizadas, omitir resolución estricta
+  if (isTrustedMedia) {
+    return true;
   }
 
   try {

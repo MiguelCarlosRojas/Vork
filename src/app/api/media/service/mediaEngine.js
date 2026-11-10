@@ -155,6 +155,44 @@ try {
 }
 
 /**
+ * Extrae un fotograma JPEG de alta fidelidad desde un archivo de video o flujo remoto con FFmpeg
+ */
+async function extractThumbnailFrame(videoSource, targetThumbPath) {
+  if (!videoSource || !targetThumbPath) return false;
+  return new Promise((resolve) => {
+    try {
+      const args = [
+        "-y",
+        "-ss", "00:00:01",
+        "-i", videoSource,
+        "-vframes", "1",
+        "-q:v", "2",
+        targetThumbPath
+      ];
+      const ff = spawn(ffmpegPath, args);
+      const timer = setTimeout(() => {
+        try { ff.kill("SIGKILL"); } catch {}
+        resolve(false);
+      }, 7000);
+      ff.on("close", (code) => {
+        clearTimeout(timer);
+        if (code === 0 && fs.existsSync(targetThumbPath)) {
+          resolve(true);
+        } else {
+          resolve(false);
+        }
+      });
+      ff.on("error", () => {
+        clearTimeout(timer);
+        resolve(false);
+      });
+    } catch {
+      resolve(false);
+    }
+  });
+}
+
+/**
  * Envoltorio para limitar tiempo de espera en promesas de descarga de terceros
  */
 function withTimeout(promise, ms = 12000) {
@@ -921,24 +959,68 @@ async function extractMediaInfo(url, requestedFormat = "mp3") {
   else if (platform.id === "tiktok") {
     const resolvedUrl = await resolveRedirectUrl(cleanUrl);
 
-    // 2.1 Consulta a TikWM API (POST & GET)
+    // 2.1 Consulta a TikWM API (POST & GET con reintentos multicanal)
     try {
-      const tikRes = await axios.post("https://www.tikwm.com/api/", { url: resolvedUrl }, {
-        timeout: 9000,
-        headers: { "Content-Type": "application/json", "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" }
-      });
-      if (tikRes.data && tikRes.data.code === 0 && tikRes.data.data) {
-        const d = tikRes.data.data;
-        if (d.title) info.title = d.title.slice(0, 120);
-        if (d.author?.nickname) info.author = d.author.nickname;
-        else if (d.author?.unique_id) info.author = `@${d.author.unique_id}`;
-        if (d.cover || d.origin_cover) info.thumbnail = d.cover || d.origin_cover;
-        if (typeof d.duration === "number" && d.duration > 0) {
-          info.durationSeconds = d.duration;
-          info.duration = formatDurationSeconds(d.duration);
+      let tikData = null;
+      const tikHeaders = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+        "Accept": "application/json",
+        "Referer": "https://www.tikwm.com/"
+      };
+
+      // Intento 1: POST JSON estándar
+      try {
+        const tikRes = await axios.post("https://www.tikwm.com/api/", { url: resolvedUrl }, {
+          timeout: 8000,
+          headers: { ...tikHeaders, "Content-Type": "application/json" }
+        });
+        if (tikRes.data && tikRes.data.code === 0 && tikRes.data.data) {
+          tikData = tikRes.data.data;
         }
-        info.mp4Url = d.play || d.hdplay || null;
-        info.mp3Url = d.music || d.play || null;
+      } catch {}
+
+      // Intento 2: GET directo con parámetro url (alta resiliencia en datacenters de Render)
+      if (!tikData) {
+        try {
+          const tikGet = await axios.get(`https://www.tikwm.com/api/?url=${encodeURIComponent(resolvedUrl)}`, {
+            timeout: 8000,
+            headers: tikHeaders
+          });
+          if (tikGet.data && tikGet.data.code === 0 && tikGet.data.data) {
+            tikData = tikGet.data.data;
+          }
+        } catch {}
+      }
+
+      // Intento 3: Mirror sin subdominio www
+      if (!tikData) {
+        try {
+          const tikAlt = await axios.get(`https://tikwm.com/api/?url=${encodeURIComponent(resolvedUrl)}`, {
+            timeout: 8000,
+            headers: tikHeaders
+          });
+          if (tikAlt.data && tikAlt.data.code === 0 && tikAlt.data.data) {
+            tikData = tikAlt.data.data;
+          }
+        } catch {}
+      }
+
+      if (tikData) {
+        if (tikData.title) info.title = tikData.title.slice(0, 120);
+        if (tikData.author?.nickname) info.author = tikData.author.nickname;
+        else if (tikData.author?.unique_id) info.author = `@${tikData.author.unique_id}`;
+        let cover = tikData.cover || tikData.origin_cover || tikData.dynamic_cover;
+        if (cover && typeof cover === "string") {
+          if (cover.startsWith("//")) cover = "https:" + cover;
+          else if (cover.startsWith("/")) cover = "https://www.tikwm.com" + cover;
+          info.thumbnail = cover;
+        }
+        if (typeof tikData.duration === "number" && tikData.duration > 0) {
+          info.durationSeconds = tikData.duration;
+          info.duration = formatDurationSeconds(tikData.duration);
+        }
+        info.mp4Url = tikData.play || tikData.hdplay || null;
+        info.mp3Url = tikData.music || tikData.play || null;
         info.directMediaUrl = requestedFormat === "mp4" ? (info.mp4Url || info.mp3Url) : (info.mp3Url || info.mp4Url);
       }
     } catch (tikErr) {
@@ -946,20 +1028,27 @@ async function extractMediaInfo(url, requestedFormat = "mp3") {
     }
 
     // 2.2 Fallback con rahad-all-downloader-v2
-    if (!info.directMediaUrl) {
+    if (!info.directMediaUrl || !info.thumbnail || info.thumbnail.includes("logo.png")) {
       try {
         const { alldl } = require("rahad-all-downloader-v2");
         const dlData = await withTimeout(alldl(resolvedUrl), 15000);
-        if (dlData && dlData.data) {
-          if (dlData.data.title) info.title = dlData.data.title;
-          if (dlData.data.thumbnail) info.thumbnail = dlData.data.thumbnail;
-          else if (dlData.data.download?.thumbnail) info.thumbnail = dlData.data.download.thumbnail;
-          if (dlData.data.author?.nickname || dlData.data.author?.name) {
-            info.author = dlData.data.author.nickname || dlData.data.author.name;
+        if (dlData) {
+          const d = dlData.data || dlData;
+          if (d.title && (!info.title || info.title === defaultTitle)) info.title = d.title.slice(0, 120);
+          const dlAuthor = d.owner?.nickname || d.owner?.username || d.author?.nickname || d.author?.name || dlData.metadata?.author?.name || d.author;
+          if (dlAuthor && (info.author === defaultAuthor || info.author === "Desconocido")) {
+            info.author = String(dlAuthor).startsWith("@") ? dlAuthor : `@${dlAuthor}`;
           }
-          info.mp4Url = dlData.data.download?.url || dlData.data.download?.no_watermark || dlData.data.videoUrl || null;
-          info.mp3Url = dlData.data.download?.music || info.mp4Url;
-          info.directMediaUrl = requestedFormat === "mp4" ? (info.mp4Url || info.mp3Url) : (info.mp3Url || info.mp4Url);
+          const rawDlThumb = d.thumbnail || dlData.metadata?.thumbnail || d.download?.thumbnail || d.cover || d.origin_cover || d.owner?.avatar || d.author?.avatar;
+          if (rawDlThumb && typeof rawDlThumb === "string" && (!info.thumbnail || info.thumbnail.includes("logo.png"))) {
+            let tUrl = rawDlThumb;
+            if (tUrl.startsWith("//")) tUrl = "https:" + tUrl;
+            else if (tUrl.startsWith("/")) tUrl = "https://www.tikwm.com" + tUrl;
+            info.thumbnail = tUrl;
+          }
+          if (!info.mp4Url) info.mp4Url = d.download?.no_watermark || d.download?.url || d.videoUrl || d.video || null;
+          if (!info.mp3Url) info.mp3Url = d.download?.music || d.music || info.mp4Url;
+          if (!info.directMediaUrl) info.directMediaUrl = requestedFormat === "mp4" ? (info.mp4Url || info.mp3Url) : (info.mp3Url || info.mp4Url);
         }
       } catch (alldlErr) {
         logger.warn(`rahad.alldl fallback para TikTok: ${alldlErr.message}`);
@@ -967,17 +1056,23 @@ async function extractMediaInfo(url, requestedFormat = "mp3") {
     }
 
     // 2.3 Fallback con btch.ttdl
-    if (!info.directMediaUrl) {
+    if (!info.directMediaUrl || !info.thumbnail || info.thumbnail.includes("logo.png")) {
       try {
         const ttRes = await withTimeout(btch.ttdl(resolvedUrl), 10000);
         if (ttRes && ttRes.status) {
-          if (ttRes.title) info.title = ttRes.title;
-          if (ttRes.thumbnail) info.thumbnail = ttRes.thumbnail;
+          if (ttRes.title && (!info.title || info.title === defaultTitle)) info.title = ttRes.title;
+          const rawTtThumb = ttRes.thumbnail || ttRes.cover;
+          if (rawTtThumb && typeof rawTtThumb === "string" && (!info.thumbnail || info.thumbnail.includes("logo.png"))) {
+            let tUrl = rawTtThumb;
+            if (tUrl.startsWith("//")) tUrl = "https:" + tUrl;
+            else if (tUrl.startsWith("/")) tUrl = "https://www.tikwm.com" + tUrl;
+            info.thumbnail = tUrl;
+          }
           const v = Array.isArray(ttRes.video) ? ttRes.video[0] : ttRes.video;
           const a = Array.isArray(ttRes.audio) ? ttRes.audio[0] : ttRes.audio;
-          info.mp4Url = v || null;
-          info.mp3Url = a || v || null;
-          info.directMediaUrl = requestedFormat === "mp4" ? (info.mp4Url || info.mp3Url) : (info.mp3Url || info.mp4Url);
+          if (!info.mp4Url) info.mp4Url = v || null;
+          if (!info.mp3Url) info.mp3Url = a || v || null;
+          if (!info.directMediaUrl) info.directMediaUrl = requestedFormat === "mp4" ? (info.mp4Url || info.mp3Url) : (info.mp3Url || info.mp4Url);
         }
       } catch (ttErr) {
         logger.warn(`btch.ttdl fallback fallo: ${ttErr.message}`);
@@ -1342,9 +1437,18 @@ async function extractMediaInfo(url, requestedFormat = "mp3") {
   // Si la miniatura es una URL remota externa (TikTok, Instagram, Twitter, etc.),
   // enrutar a través de nuestro proxy para garantizar que nunca sea bloqueada por CORS o Referer.
   // Si no se obtuvo miniatura remota o es el logo por defecto, generar miniatura estilizada por proxy SVG.
-  if (info.thumbnail && typeof info.thumbnail === "string" && info.thumbnail.startsWith("http")) {
-    if (!info.thumbnail.includes("i.ytimg.com") && !info.thumbnail.includes("/api/media/thumbnail-proxy")) {
-      info.thumbnail = `/api/media/thumbnail-proxy?url=${encodeURIComponent(info.thumbnail)}&title=${encodeURIComponent(info.title)}&platform=${encodeURIComponent(info.platform)}&author=${encodeURIComponent(info.author)}`;
+  if (info.thumbnail && typeof info.thumbnail === "string") {
+    let t = info.thumbnail.trim();
+    if (t.startsWith("//")) t = "https:" + t;
+    if (t.startsWith("http")) {
+      if (!t.includes("i.ytimg.com") && !t.includes("/api/media/thumbnail-proxy") && !t.includes("/api/media/thumbnail?")) {
+        info.thumbnail = `/api/media/thumbnail-proxy?url=${encodeURIComponent(t)}&title=${encodeURIComponent(info.title)}&platform=${encodeURIComponent(info.platform)}&author=${encodeURIComponent(info.author)}`;
+      }
+    } else if (t.startsWith("/") && !t.includes("logo.png") && !t.includes("/api/media/")) {
+      t = `https://www.tikwm.com${t}`;
+      info.thumbnail = `/api/media/thumbnail-proxy?url=${encodeURIComponent(t)}&title=${encodeURIComponent(info.title)}&platform=${encodeURIComponent(info.platform)}&author=${encodeURIComponent(info.author)}`;
+    } else if (!info.thumbnail || info.thumbnail === "/img/logo.png") {
+      info.thumbnail = `/api/media/thumbnail-proxy?title=${encodeURIComponent(info.title)}&platform=${encodeURIComponent(info.platform)}&author=${encodeURIComponent(info.author)}`;
     }
   } else if (!info.thumbnail || info.thumbnail === "/img/logo.png") {
     info.thumbnail = `/api/media/thumbnail-proxy?title=${encodeURIComponent(info.title)}&platform=${encodeURIComponent(info.platform)}&author=${encodeURIComponent(info.author)}`;
@@ -1949,7 +2053,10 @@ async function processConversion(options = {}) {
 
   const primaryRemoteStream = wrapStreamUrl(candidateStreams[0] || mediaInfo.directMediaUrl || mediaInfo.mp4Url || mediaInfo.mp3Url);
   const initialSizeBytes = estimateMediaSizeBytes(selectedFormat, selectedQuality, finalDurationSeconds);
-  const finalThumbnail = mediaInfo.thumbnail || `/api/media/thumbnail-proxy?title=${encodeURIComponent(mediaInfo.title)}&platform=${encodeURIComponent(mediaInfo.platform)}&author=${encodeURIComponent(mediaInfo.author)}`;
+  const hasRemoteThumb = mediaInfo.thumbnail && !mediaInfo.thumbnail.includes("title=") && mediaInfo.thumbnail.includes("url=");
+  const finalThumbnail = hasRemoteThumb
+    ? mediaInfo.thumbnail
+    : `/api/media/thumbnail?id=${jobId}`;
 
   const itemRecord = {
     id: jobId,
@@ -2004,12 +2111,29 @@ async function processConversion(options = {}) {
                 itemRecord.durationSeconds = transRes.durationSeconds;
               }
             }
+            // Generar miniatura física JPEG extraída con FFmpeg si aún no existe
+            const thumbPath = path.join(MEDIA_CACHE_DIR, `${jobId}.jpg`);
+            if (!itemRecord.thumbPath || !fs.existsSync(itemRecord.thumbPath)) {
+              const frameOk = await extractThumbnailFrame(streamUrl, thumbPath);
+              if (frameOk && fs.existsSync(thumbPath)) {
+                itemRecord.thumbPath = thumbPath;
+                itemRecord.thumbnail = `/api/media/thumbnail?id=${jobId}`;
+              }
+            }
             itemRecord.isReady = true;
             break;
           } else if (selectedFormat === "wav") {
             const transRes = await transcodeToWav(streamUrl, outputPath);
             if (transRes && transRes.sizeBytes) {
               itemRecord.sizeBytes = transRes.sizeBytes;
+            }
+            const thumbPath = path.join(MEDIA_CACHE_DIR, `${jobId}.jpg`);
+            if (!itemRecord.thumbPath || !fs.existsSync(itemRecord.thumbPath)) {
+              const frameOk = await extractThumbnailFrame(streamUrl, thumbPath);
+              if (frameOk && fs.existsSync(thumbPath)) {
+                itemRecord.thumbPath = thumbPath;
+                itemRecord.thumbnail = `/api/media/thumbnail?id=${jobId}`;
+              }
             }
             itemRecord.isReady = true;
             break;
@@ -2021,6 +2145,16 @@ async function processConversion(options = {}) {
               if (transRes.duration && (!itemRecord.duration || itemRecord.duration === "00:00")) {
                 itemRecord.duration = transRes.duration;
                 itemRecord.durationSeconds = transRes.durationSeconds;
+              }
+            }
+            // Generar miniatura física JPEG extraída directamente del archivo MP4 renderizado
+            const thumbPath = path.join(MEDIA_CACHE_DIR, `${jobId}.jpg`);
+            if (!itemRecord.thumbPath || !fs.existsSync(itemRecord.thumbPath)) {
+              const srcForThumb = fs.existsSync(outputPath) ? outputPath : streamUrl;
+              const frameOk = await extractThumbnailFrame(srcForThumb, thumbPath);
+              if (frameOk && fs.existsSync(thumbPath)) {
+                itemRecord.thumbPath = thumbPath;
+                itemRecord.thumbnail = `/api/media/thumbnail?id=${jobId}`;
               }
             }
             itemRecord.isReady = true;
