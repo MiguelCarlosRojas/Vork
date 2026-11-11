@@ -414,22 +414,18 @@ exports.streamMedia = async (req, res) => {
     // 1. STREAMING DE AUDIO (VISTA PREVIA MP3)
     // ==========================================
     if (streamType === "audio") {
+      try {
+        const variantPath = await mediaService.ensureMediaVariant(item, reqQuality, reqAudioTrack);
+        if (variantPath && fs.existsSync(variantPath) && fs.statSync(variantPath).size > 1000) {
+          return serveFileStream(res, req, variantPath, item.mimeType || "audio/mpeg");
+        }
+      } catch (vErr) {
+        logger.warn(`Aviso al obtener variante de audio en streamMedia: ${vErr.message}`);
+      }
+
       // 1.1 Si el archivo físico ya existe en disco, servirlo inmediatamente con Range 206
       if (item.filePath && fs.existsSync(item.filePath) && fs.statSync(item.filePath).size > 1000) {
         return serveFileStream(res, req, item.filePath, item.mimeType || "audio/mpeg");
-      }
-
-      // Si la conversión física a MP3 está en curso, esperar hasta 8s a que esté listo en disco
-      if (item.conversionPromise) {
-        try {
-          await Promise.race([
-            item.conversionPromise,
-            new Promise(resolve => setTimeout(resolve, 8000))
-          ]);
-        } catch {}
-        if (item.filePath && fs.existsSync(item.filePath) && fs.statSync(item.filePath).size > 1000) {
-          return serveFileStream(res, req, item.filePath, item.mimeType || "audio/mpeg");
-        }
       }
 
       // 1.2 Proxy streaming directo con Range HTTP 206
@@ -469,50 +465,10 @@ exports.streamMedia = async (req, res) => {
           res.setHeader("Access-Control-Allow-Origin", "*");
           return remoteStream.data.pipe(res);
         } catch (pipeErr) {
-          logger.warn(`Proxy streaming de audio falló (${pipeErr.message}), intentando transcodificación en vivo FFmpeg...`);
-        }
-
-        // 1.3 Fallback: Streaming en vivo transcodificado a MP3 con FFmpeg
-        try {
-          res.setHeader("Content-Type", "audio/mpeg");
-          res.setHeader("Cache-Control", "no-cache");
-          res.setHeader("Access-Control-Allow-Origin", "*");
-
-          const aHeaders = ["-user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"];
-          if (/googlevideo|youtube/i.test(audioUrl)) {
-            aHeaders.push("-headers", "Referer: https://www.youtube.com/\r\n");
-          } else if (/tiktok|byteoversea|ibytedtos/i.test(audioUrl)) {
-            aHeaders.push("-headers", "Referer: https://www.tiktok.com/\r\n");
-          } else if (/twitter|twimg|x\.com/i.test(audioUrl)) {
-            aHeaders.push("-headers", "Referer: https://twitter.com/\r\n");
-          } else if (/chocolatemoo53|invidious|nerdvpn/i.test(audioUrl)) {
-            aHeaders.push("-headers", "Referer: https://yt.chocolatemoo53.com/\r\n");
-          }
-
-          const ffArgs = [
-            ...aHeaders,
-            "-i", audioUrl,
-            "-vn",
-            "-c:a", "libmp3lame",
-            "-b:a", reqQuality || "192k",
-            "-f", "mp3",
-            "pipe:1"
-          ];
-          const ff = spawn(ffmpegPath, ffArgs);
-          ff.stdout.pipe(res);
-          req.on("close", () => {
-            try { ff.kill("SIGKILL"); } catch {}
-          });
-          ff.on("error", (err) => {
-            logger.warn(`Error en FFmpeg live audio stream: ${err.message}`);
-          });
-          return;
-        } catch (ffErr) {
-          logger.warn(`Live FFmpeg audio streaming falló: ${ffErr.message}`);
+          logger.warn(`Proxy streaming de audio falló (${pipeErr.message})`);
         }
       }
 
-      // Servir desde archivo físico en disco si terminó de transcodificarse
       if (item.filePath && fs.existsSync(item.filePath) && fs.statSync(item.filePath).size > 1000) {
         return serveFileStream(res, req, item.filePath, item.mimeType || "audio/mpeg");
       }
@@ -522,28 +478,28 @@ exports.streamMedia = async (req, res) => {
     // 2. STREAMING DE VIDEO (VISTA PREVIA MP4)
     // ==========================================
     if (streamType === "video" || item.format === "mp4") {
-      // 2.1 Comprobar si existe un archivo físico transcrito en disco
-      const specificPath = reqQuality ? path.join(MEDIA_CACHE_DIR, `${item.id}_${reqQuality}.mp4`) : null;
-      let targetFilePath = (specificPath && fs.existsSync(specificPath) && fs.statSync(specificPath).size > 1000)
-        ? specificPath
-        : (item.filePath && fs.existsSync(item.filePath) && fs.statSync(item.filePath).size > 1000 ? item.filePath : null);
+      // 2.1 Garantizar archivo físico con la calidad y pista exacta solicitada
+      try {
+        const variantPath = await mediaService.ensureMediaVariant(item, reqQuality, reqAudioTrack);
+        if (variantPath && fs.existsSync(variantPath) && fs.statSync(variantPath).size > 1000) {
+          return serveFileStream(res, req, variantPath, item.mimeType || "video/mp4");
+        }
+      } catch (err) {
+        logger.warn(`Aviso al obtener variante de video en streamMedia: ${err.message}`);
+      }
 
-      // Si no existe en disco pero está transcodificándose, esperar hasta 10s
-      if (!targetFilePath && item.conversionPromise) {
+      // Si la conversión física inicial está en curso, esperar si se solicita el archivo base
+      if (item.conversionPromise && (!item.filePath || !fs.existsSync(item.filePath) || fs.statSync(item.filePath).size < 1000)) {
         try {
           await Promise.race([
             item.conversionPromise,
-            new Promise(resolve => setTimeout(resolve, 10000))
+            new Promise(resolve => setTimeout(resolve, 8000))
           ]);
         } catch {}
-
-        targetFilePath = (specificPath && fs.existsSync(specificPath) && fs.statSync(specificPath).size > 1000)
-          ? specificPath
-          : (item.filePath && fs.existsSync(item.filePath) && fs.statSync(item.filePath).size > 1000 ? item.filePath : null);
       }
 
-      if (targetFilePath) {
-        return serveFileStream(res, req, targetFilePath, item.mimeType || "video/mp4");
+      if (item.filePath && fs.existsSync(item.filePath) && fs.statSync(item.filePath).size > 1000) {
+        return serveFileStream(res, req, item.filePath, item.mimeType || "video/mp4");
       }
 
       // 2.2 Si disponemos del stream combinado de MP4 (H.264 + AAC integrado en un único archivo), servir con Range 206 nativo
@@ -587,110 +543,6 @@ exports.streamMedia = async (req, res) => {
           logger.warn(`Proxy streaming de video combinado falló (${combErr.message})`);
         }
       }
-
-      // Si se especificó calidad y existe un stream para dicha resolución en videoStreamsByQuality, usarlo
-      let videoStreamUrl = wrapStreamUrl(item.mp4Url || item.remoteStreamUrl);
-      let effectiveAudioUrl = audioUrl;
-      let isSeparateAudio = Boolean(item.separateAudio);
-      if (reqQuality && item.videoStreamsByQuality && item.videoStreamsByQuality[reqQuality]) {
-        const qVal = item.videoStreamsByQuality[reqQuality];
-        if (typeof qVal === "object" && qVal !== null && qVal.videoUrl) {
-          videoStreamUrl = wrapStreamUrl(qVal.videoUrl);
-          if (qVal.audioUrl) {
-            effectiveAudioUrl = wrapStreamUrl(qVal.audioUrl);
-            isSeparateAudio = true;
-          }
-        } else {
-          videoStreamUrl = wrapStreamUrl(qVal);
-        }
-      }
-
-      // Si el video tiene audio separado (YouTube adaptive stream / Facebook 1080p), remuxear en vivo con FFmpeg y la pista de audio seleccionada
-      if (videoStreamUrl && effectiveAudioUrl && isSeparateAudio) {
-        res.setHeader("Content-Type", "video/mp4");
-        res.setHeader("Cache-Control", "no-cache");
-        res.setHeader("Access-Control-Allow-Origin", "*");
-
-        const vHeaders = ["-user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"];
-        if (/googlevideo|youtube/i.test(videoStreamUrl)) {
-          vHeaders.push("-headers", "Referer: https://www.youtube.com/\r\n");
-        } else if (/tiktok|byteoversea|ibytedtos/i.test(videoStreamUrl)) {
-          vHeaders.push("-headers", "Referer: https://www.tiktok.com/\r\n");
-        } else if (/twitter|twimg|x\.com/i.test(videoStreamUrl)) {
-          vHeaders.push("-headers", "Referer: https://twitter.com/\r\n");
-        } else if (/chocolatemoo53|invidious|nerdvpn/i.test(videoStreamUrl)) {
-          vHeaders.push("-headers", "Referer: https://yt.chocolatemoo53.com/\r\n");
-        }
-
-        const aHeaders = ["-user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"];
-        if (/googlevideo|youtube/i.test(effectiveAudioUrl)) {
-          aHeaders.push("-headers", "Referer: https://www.youtube.com/\r\n");
-        } else if (/tiktok|byteoversea|ibytedtos/i.test(effectiveAudioUrl)) {
-          aHeaders.push("-headers", "Referer: https://www.tiktok.com/\r\n");
-        } else if (/twitter|twimg|x\.com/i.test(effectiveAudioUrl)) {
-          aHeaders.push("-headers", "Referer: https://twitter.com/\r\n");
-        } else if (/chocolatemoo53|invidious|nerdvpn/i.test(effectiveAudioUrl)) {
-          aHeaders.push("-headers", "Referer: https://yt.chocolatemoo53.com/\r\n");
-        }
-
-        const ffArgs = [
-          ...vHeaders,
-          "-i", videoStreamUrl,
-          ...aHeaders,
-          "-i", effectiveAudioUrl,
-          "-map", "0:v:0",
-          "-map", "1:a:0",
-          "-c:v", "copy",
-          "-c:a", "aac",
-          "-b:a", "128k",
-          "-movflags", "+frag_keyframe+empty_moov+default_base_moof",
-          "-f", "mp4",
-          "pipe:1"
-        ];
-
-        const ff = spawn(ffmpegPath, ffArgs);
-        ff.stdout.pipe(res);
-
-        req.on("close", () => {
-          try { ff.kill("SIGKILL"); } catch {}
-        });
-
-        ff.on("error", (err) => {
-          logger.warn(`Error en FFmpeg live remux video: ${err.message}`);
-        });
-        return;
-      }
-
-      // Si el video ya integra audio, proxy directo con Range
-      if (videoStreamUrl) {
-        try {
-          const reqHeaders = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-            "Accept": "*/*"
-          };
-          if (req.headers.range) {
-            reqHeaders["Range"] = req.headers.range;
-          }
-          const remoteStream = await axios.get(videoStreamUrl, {
-            responseType: "stream",
-            headers: reqHeaders,
-            timeout: 25000
-          });
-          res.status(remoteStream.status);
-          if (remoteStream.headers["content-range"]) {
-            res.setHeader("Content-Range", remoteStream.headers["content-range"]);
-          }
-          if (remoteStream.headers["content-length"]) {
-            res.setHeader("Content-Length", remoteStream.headers["content-length"]);
-          }
-          res.setHeader("Content-Type", remoteStream.headers["content-type"] || "video/mp4");
-          res.setHeader("Accept-Ranges", "bytes");
-          res.setHeader("Access-Control-Allow-Origin", "*");
-          return remoteStream.data.pipe(res);
-        } catch (vErr) {
-          logger.warn(`Proxy streaming de video falló: ${vErr.message}`);
-        }
-      }
     }
 
     // Servir desde archivo físico en disco (verificando confinamiento en MEDIA_CACHE_DIR)
@@ -730,164 +582,45 @@ exports.downloadMedia = async (req, res) => {
     } else if (reqQuality && item.format === "mp3") {
       reqQuality = reqQuality.replace(/[^0-9]/g, "") + "k";
     }
-    const selectedQuality = reqQuality || item.quality || (item.format === "mp4" ? "720p" : "320k");
 
-    let selectedAudioTrack = null;
-    if (item.audioTracks && item.audioTracks.length > 0) {
-      if (reqAudioTrack) {
-        selectedAudioTrack = item.audioTracks.find(t => t.id === reqAudioTrack);
-      }
-      if (!selectedAudioTrack) {
-        selectedAudioTrack = item.audioTracks.find(t => t.isDefault) || item.audioTracks[0];
-      }
-    }
-    const rawAudioUrl = selectedAudioTrack ? selectedAudioTrack.url : (item.mp3Url || item.remoteStreamUrl);
-    const audioUrl = wrapStreamUrl(rawAudioUrl);
+    const selectedQuality = reqQuality || item.quality || (item.format === "mp4" ? "1080p" : "320k");
+    const safeFilename = sanitizeFilenameHeader(
+      item.filename ? item.filename.replace(/\.(mp3|mp4|wav)$/i, `_${selectedQuality}.${item.format || "mp3"}`) : `media_${selectedQuality}.${item.format || "mp3"}`,
+      `media.${item.format || "mp3"}`
+    );
 
-    let videoStreamUrl = wrapStreamUrl(item.mp4Url || item.remoteStreamUrl);
-    let effectiveAudioUrl = audioUrl;
-    let isSeparateAudio = Boolean(item.separateAudio);
-    if (reqQuality && item.videoStreamsByQuality && item.videoStreamsByQuality[reqQuality]) {
-      const qVal = item.videoStreamsByQuality[reqQuality];
-      if (typeof qVal === "object" && qVal !== null && qVal.videoUrl) {
-        videoStreamUrl = wrapStreamUrl(qVal.videoUrl);
-        if (qVal.audioUrl) {
-          effectiveAudioUrl = wrapStreamUrl(qVal.audioUrl);
-          isSeparateAudio = true;
-        }
-      } else {
-        videoStreamUrl = wrapStreamUrl(qVal);
+    // Obtener la variante física garantizada con la calidad y pista exacta
+    let finalFilePath = null;
+    try {
+      const variantPath = await mediaService.ensureMediaVariant(item, reqQuality, reqAudioTrack);
+      if (variantPath && fs.existsSync(variantPath) && fs.statSync(variantPath).size > 1000) {
+        finalFilePath = variantPath;
       }
+    } catch (vErr) {
+      logger.warn(`Aviso al obtener variante en downloadMedia: ${vErr.message}`);
     }
 
-    const safeFilename = sanitizeFilenameHeader(item.filename, `media.${item.format || "mp3"}`);
-
-    // 1. Descarga de Audio (MP3) con la pista y calidad seleccionada
-    if (item.format === "mp3" && effectiveAudioUrl) {
-      if (reqQuality && reqQuality !== item.quality) {
-        const customFilename = sanitizeFilenameHeader(
-          item.filename.replace(/\.mp3$/i, `_${selectedQuality}.mp3`),
-          `audio_${selectedQuality}.mp3`
-        );
-        res.setHeader("Content-Disposition", `attachment; filename="${customFilename}"`);
-        res.setHeader("Content-Type", "audio/mpeg");
-        const ffArgs = [
-          "-user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
-          "-i", effectiveAudioUrl,
-          "-vn",
-          "-c:a", "libmp3lame",
-          "-b:a", selectedQuality,
-          "-f", "mp3",
-          "pipe:1"
-        ];
-        const ff = spawn(ffmpegPath, ffArgs);
-        req.on("close", () => { try { ff.kill("SIGKILL"); } catch {} });
-        return ff.stdout.pipe(res);
-      }
-
-      // 1.1 Si el archivo físico transcrito ya existe en disco, servirlo con prioridad
-      if (item.filePath && fs.existsSync(item.filePath) && fs.statSync(item.filePath).size > 1000) {
-        if (!isPathContained(item.filePath, MEDIA_CACHE_DIR)) {
-          logger.warn(`[Seguridad] Intento de Path Traversal bloqueado en downloadMedia: ${item.filePath}`);
-          return res.status(403).send("Acceso denegado a archivo fuera del almacenamiento permitido.");
-        }
-
-        const resolvedPath = path.resolve(item.filePath);
-        const stat = fs.statSync(resolvedPath);
-        res.setHeader("Content-Disposition", `attachment; filename="${safeFilename}"`);
-        res.setHeader("Content-Type", "audio/mpeg");
-        res.setHeader("Content-Length", stat.size);
-        const stream = fs.createReadStream(resolvedPath);
-        return stream.pipe(res);
-      }
-
-      // 1.2 Si la conversión física inicial está en curso, esperar si se descarga el archivo por defecto
+    if (!finalFilePath) {
       if (item.conversionPromise && (!item.filePath || !fs.existsSync(item.filePath) || fs.statSync(item.filePath).size < 1000)) {
         try {
           await item.conversionPromise;
-          if (item.filePath && fs.existsSync(item.filePath) && fs.statSync(item.filePath).size > 1000) {
-            const resolvedPath = path.resolve(item.filePath);
-            const stat = fs.statSync(resolvedPath);
-            res.setHeader("Content-Disposition", `attachment; filename="${safeFilename}"`);
-            res.setHeader("Content-Type", "audio/mpeg");
-            res.setHeader("Content-Length", stat.size);
-            const stream = fs.createReadStream(resolvedPath);
-            return stream.pipe(res);
-          }
-        } catch (err) {
-          logger.warn(`Aviso al esperar conversión asíncrona para descarga: ${err.message}`);
-        }
+        } catch {}
       }
-
-      // 1.3 Si no hay archivo físico aún, transcodificar al vuelo con FFmpeg hacia MP3 auténtico
-      res.setHeader("Content-Disposition", `attachment; filename="${safeFilename}"`);
-      res.setHeader("Content-Type", "audio/mpeg");
-      const ffArgs = [
-        "-user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
-        "-i", effectiveAudioUrl,
-        "-vn",
-        "-c:a", "libmp3lame",
-        "-b:a", selectedQuality || "320k",
-        "-f", "mp3",
-        "pipe:1"
-      ];
-      const ff = spawn(ffmpegPath, ffArgs);
-      req.on("close", () => { try { ff.kill("SIGKILL"); } catch {} });
-      return ff.stdout.pipe(res);
-    }
-
-    // 2. Descarga de Video (MP4) si el usuario seleccionó una pista alternativa o calidad diferente a la inicial
-    if (item.format === "mp4" && effectiveAudioUrl && videoStreamUrl && isSeparateAudio) {
-      const isCustomTrack = reqAudioTrack && reqAudioTrack !== item.selectedAudioTrack;
-      const isCustomQuality = reqQuality && reqQuality !== item.quality;
-      const hasLocalReady = item.filePath && fs.existsSync(item.filePath) && fs.statSync(item.filePath).size > 1000;
-
-      if (isCustomTrack || isCustomQuality || !hasLocalReady) {
-        const customFilename = sanitizeFilenameHeader(
-          item.filename.replace(/\.mp4$/i, `_${selectedQuality}.mp4`),
-          `video_${selectedQuality}.mp4`
-        );
-        res.setHeader("Content-Disposition", `attachment; filename="${customFilename}"`);
-        res.setHeader("Content-Type", "video/mp4");
-        const ffArgs = [
-          "-user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
-          "-i", videoStreamUrl,
-          "-user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
-          "-i", effectiveAudioUrl,
-          "-map", "0:v:0",
-          "-map", "1:a:0",
-          "-c:v", "copy",
-          "-c:a", "aac",
-          "-b:a", "160k",
-          "-movflags", "+faststart",
-          "-f", "mp4",
-          "pipe:1"
-        ];
-        const ff = spawn(ffmpegPath, ffArgs);
-        req.on("close", () => { try { ff.kill("SIGKILL"); } catch {} });
-        return ff.stdout.pipe(res);
+      if (item.filePath && fs.existsSync(item.filePath) && fs.statSync(item.filePath).size > 1000) {
+        finalFilePath = item.filePath;
       }
     }
 
-    // Si la conversión física inicial está en curso, esperar si se descarga el archivo por defecto
-    if (item.conversionPromise && (!item.filePath || !fs.existsSync(item.filePath) || fs.statSync(item.filePath).size < 1000)) {
-      try {
-        await item.conversionPromise;
-      } catch (err) {
-        logger.warn(`Aviso al esperar conversión asíncrona para descarga: ${err.message}`);
-      }
-    }
-
-    if (item.filePath && fs.existsSync(item.filePath) && fs.statSync(item.filePath).size > 1000) {
-      if (!isPathContained(item.filePath, MEDIA_CACHE_DIR)) {
-        logger.warn(`[Seguridad] Intento de Path Traversal bloqueado en downloadMedia: ${item.filePath}`);
+    if (finalFilePath) {
+      if (!isPathContained(finalFilePath, MEDIA_CACHE_DIR)) {
+        logger.warn(`[Seguridad] Intento de Path Traversal bloqueado en downloadMedia: ${finalFilePath}`);
         return res.status(403).send("Acceso denegado a archivo fuera del almacenamiento permitido.");
       }
 
-      const resolvedPath = path.resolve(item.filePath);
+      const resolvedPath = path.resolve(finalFilePath);
       const stat = fs.statSync(resolvedPath);
       res.setHeader("Content-Disposition", `attachment; filename="${safeFilename}"`);
-      res.setHeader("Content-Type", item.mimeType);
+      res.setHeader("Content-Type", item.format === "mp4" ? "video/mp4" : (item.format === "wav" ? "audio/wav" : "audio/mpeg"));
       res.setHeader("Content-Length", stat.size);
       const stream = fs.createReadStream(resolvedPath);
       return stream.pipe(res);
@@ -898,7 +631,7 @@ exports.downloadMedia = async (req, res) => {
     const fallbackUrl = wrapStreamUrl(rawFallbackUrl);
     if (fallbackUrl) {
       res.setHeader("Content-Disposition", `attachment; filename="${safeFilename}"`);
-      res.setHeader("Content-Type", item.mimeType);
+      res.setHeader("Content-Type", item.format === "mp4" ? "video/mp4" : (item.format === "wav" ? "audio/wav" : "audio/mpeg"));
       const remotePipe = await axios.get(fallbackUrl, {
         responseType: "stream",
         timeout: 60000,
@@ -910,6 +643,6 @@ exports.downloadMedia = async (req, res) => {
     res.status(404).send("Archivo multimedia no disponible para descarga.");
   } catch (err) {
     logger.error(`Error en mediaController.downloadMedia: ${err.message}`);
-    res.status(500).send("Error al descargar archivo multimedia.");
+    res.status(500).send("Error interno en descarga de medios.");
   }
 };

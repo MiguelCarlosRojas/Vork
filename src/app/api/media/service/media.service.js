@@ -9,7 +9,8 @@ const {
   extractMediaInfo,
   processConversion,
   processBatchConversion,
-  getMediaById
+  getMediaById,
+  ensureMediaVariant
 } = require("./mediaEngine");
 
 class MediaService {
@@ -43,6 +44,10 @@ class MediaService {
 
   findMediaById(id) {
     return getMediaById(id) || this.repository.findBufferById(id);
+  }
+
+  async ensureMediaVariant(item, targetQuality, targetAudioTrackId) {
+    return ensureMediaVariant(item, targetQuality, targetAudioTrackId);
   }
 }
 

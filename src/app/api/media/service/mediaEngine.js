@@ -466,7 +466,8 @@ async function fetchYouTubeStreams(normalizedUrl) {
         });
 
         const sortedQualityKeys = Object.keys(videoStreamsByQuality).sort((a, b) => (parseInt(b, 10) || 0) - (parseInt(a, 10) || 0));
-        const bestVideoUrl = wrapStreamUrl(videoStreamsByQuality["1080p"] || videoStreamsByQuality["720p"] || (sortedQualityKeys.length > 0 ? videoStreamsByQuality[sortedQualityKeys[0]] : toInvidiousProxyUrl(inst, videoFormats[0]?.url)) || null);
+        const highestNativeKey = sortedQualityKeys.length > 0 ? sortedQualityKeys[0] : null;
+        const bestVideoUrl = wrapStreamUrl((highestNativeKey ? videoStreamsByQuality[highestNativeKey] : null) || videoStreamsByQuality["1080p"] || videoStreamsByQuality["720p"] || toInvidiousProxyUrl(inst, videoFormats[0]?.url) || null);
         const bestAudioUrl = wrapStreamUrl(audioTracks.find(t => t.isDefault)?.url || audioTracks[0]?.url || null);
 
         return {
@@ -2067,7 +2068,7 @@ const convertedJobCache = new Map();
  * con respuesta ultra rápida (< 2 segundos) y transcodificación física asíncrona garantizada.
  */
 async function processConversion(options = {}) {
-  const { url, format = "mp3", quality = "320k", audioTrack: reqAudioTrackId } = options;
+  const { url, format = "mp3", quality, audioTrack: reqAudioTrackId } = options;
 
   if (!url) {
     throw new Error("El parámetro 'url' es obligatorio para la conversión.");
@@ -2075,7 +2076,7 @@ async function processConversion(options = {}) {
 
   const fmtLower = String(format || "").toLowerCase().trim();
   const selectedFormat = ["mp4", "wav"].includes(fmtLower) ? fmtLower : "mp3";
-  const cleanQuality = typeof quality === "string" ? quality.toLowerCase().trim() : (selectedFormat === "mp4" ? "720p" : "320k");
+  const cleanQuality = typeof quality === "string" ? quality.toLowerCase().trim() : (selectedFormat === "mp4" ? "best" : "320k");
   const cacheKey = `${url.trim()}|${selectedFormat}|${cleanQuality}|${reqAudioTrackId || "default"}`;
 
   // Comprobar si ya existe una conversión previa en caché en RAM
@@ -2186,7 +2187,7 @@ async function processConversion(options = {}) {
     if (cleanQuality !== "best" && cleanQuality !== "auto" && availableQualities.some(q => q.id === matchedQ)) {
       selectedQuality = matchedQ;
     } else {
-      selectedQuality = availableQualities[0]?.id || "720p";
+      selectedQuality = availableQualities[0]?.id || "1080p";
     }
   } else {
     // Formato MP3 o WAV: Todas las calidades estándar de audio disponibles
@@ -2211,7 +2212,9 @@ async function processConversion(options = {}) {
   }
 
   const downloadFilename = `Vork_${cleanTitle}.${extension}`;
-  const outputPath = path.join(MEDIA_CACHE_DIR, `${jobId}_${selectedQuality}.${extension}`);
+  const effectiveAudioTrackId = selectedTrackObj ? selectedTrackObj.id : (audioTracks[0]?.id || "audio_0");
+  const outputPath = path.join(MEDIA_CACHE_DIR, `${jobId}_${selectedQuality}_${effectiveAudioTrackId}.${extension}`);
+  const legacyOutputPath = path.join(MEDIA_CACHE_DIR, `${jobId}_${selectedQuality}.${extension}`);
 
   // Si es video MP4 y disponemos de streams por resolución, seleccionar el correspondiente a selectedQuality
   if (selectedFormat === "mp4" && mediaInfo.videoStreamsByQuality) {
@@ -2225,7 +2228,7 @@ async function processConversion(options = {}) {
       if (typeof specificVideoStream === "object" && specificVideoStream !== null && specificVideoStream.videoUrl) {
         mediaInfo.mp4Url = specificVideoStream.videoUrl;
         mediaInfo.directMediaUrl = specificVideoStream.videoUrl;
-        if (specificVideoStream.audioUrl) {
+        if (specificVideoStream.audioUrl && !selectedTrackObj) {
           mediaInfo.mp3Url = specificVideoStream.audioUrl;
           mediaInfo.separateAudio = true;
         }
@@ -2373,6 +2376,13 @@ async function processConversion(options = {}) {
               }
             }
             itemRecord.isReady = true;
+            if (fs.existsSync(outputPath) && fs.statSync(outputPath).size > 1000) {
+              try {
+                if (legacyOutputPath && !fs.existsSync(legacyOutputPath)) {
+                  fs.copyFileSync(outputPath, legacyOutputPath);
+                }
+              } catch {}
+            }
             break;
           } else if (selectedFormat === "wav") {
             const transRes = await transcodeToWav(streamUrl, outputPath);
@@ -2387,6 +2397,13 @@ async function processConversion(options = {}) {
               }
             }
             itemRecord.isReady = true;
+            if (fs.existsSync(outputPath) && fs.statSync(outputPath).size > 1000) {
+              try {
+                if (legacyOutputPath && !fs.existsSync(legacyOutputPath)) {
+                  fs.copyFileSync(outputPath, legacyOutputPath);
+                }
+              } catch {}
+            }
             break;
           } else {
             const separateAudioUrl = mediaInfo.separateAudio ? (mediaInfo.mp3Url || mediaInfo.directMediaUrl) : null;
@@ -2408,6 +2425,13 @@ async function processConversion(options = {}) {
               }
             }
             itemRecord.isReady = true;
+            if (fs.existsSync(outputPath) && fs.statSync(outputPath).size > 1000) {
+              try {
+                if (legacyOutputPath && !fs.existsSync(legacyOutputPath)) {
+                  fs.copyFileSync(outputPath, legacyOutputPath);
+                }
+              } catch {}
+            }
             break;
           }
         } catch (convErr) {
@@ -2461,6 +2485,8 @@ async function processConversion(options = {}) {
     filename: downloadFilename,
     mimeType,
     sizeBytes: initialSizeBytes,
+    quality: selectedQuality,
+    selectedQuality,
     availableQualities: itemRecord.availableQualities || [],
     audioTracks: (itemRecord.audioTracks || []).map(t => ({ id: t.id, label: t.label, isDefault: t.isDefault })),
     selectedAudioTrack: itemRecord.selectedAudioTrack || null,
@@ -2568,6 +2594,168 @@ async function processBatchConversion({ urls = [], format = "mp3", quality = "32
   );
 }
 
+// Almacén de promesas de generación de variantes multimedia para evitar transcodes duplicados
+const variantPromises = new Map();
+
+/**
+ * Garantiza que exista en disco la variante exacta de video/audio con la calidad y pista solicitada.
+ * Si ya existe, retorna su ruta física inmediatamente (< 1ms).
+ * Si no existe, realiza remux ultra-rápido (< 2s) y retorna la ruta en cuanto esté lista.
+ * Mantiene mutex / cache de promesas para solicitudes concurrentes (como bytes=0- de navegadores).
+ */
+async function ensureMediaVariant(item, targetQuality, targetAudioTrackId) {
+  if (!item) return null;
+
+  const isMp4 = item.format === "mp4";
+  const defaultTrackId = item.selectedAudioTrack || (item.audioTracks?.find(t => t.isDefault)?.id) || item.audioTracks?.[0]?.id || "audio_0";
+  const finalTrackId = targetAudioTrackId || defaultTrackId;
+
+  let finalQuality = targetQuality;
+  if (!finalQuality || finalQuality === "best" || finalQuality === "auto") {
+    finalQuality = item.selectedQuality || item.quality || (item.availableQualities && item.availableQualities[0]?.id) || (isMp4 ? "1080p" : "320k");
+  }
+  if (isMp4) {
+    const match = String(finalQuality).match(/(\d{3,4})p?/);
+    if (match) finalQuality = `${match[1]}p`;
+  } else {
+    finalQuality = String(finalQuality).replace(/[^0-9]/g, "") + "k";
+    if (finalQuality === "k") finalQuality = "320k";
+  }
+
+  const ext = item.format || (isMp4 ? "mp4" : "mp3");
+  const variantFilename = `${item.id}_${finalQuality}_${finalTrackId}.${ext}`;
+  const variantPath = path.join(MEDIA_CACHE_DIR, variantFilename);
+
+  // 1. Si el archivo exacto con la pista y calidad ya existe físicamente en disco y tiene tamaño válido:
+  if (fs.existsSync(variantPath) && fs.statSync(variantPath).size > 1000) {
+    return variantPath;
+  }
+
+  // 2. Si es la pista por defecto, verificar si existe con la nomenclatura previa `${item.id}_${finalQuality}.${ext}`
+  if (finalTrackId === defaultTrackId) {
+    const legacyPath = path.join(MEDIA_CACHE_DIR, `${item.id}_${finalQuality}.${ext}`);
+    if (fs.existsSync(legacyPath) && fs.statSync(legacyPath).size > 1000) {
+      return legacyPath;
+    }
+    if (item.filePath && fs.existsSync(item.filePath) && fs.statSync(item.filePath).size > 1000) {
+      if (item.filePath.includes(finalQuality) || item.quality === finalQuality) {
+        return item.filePath;
+      }
+    }
+  }
+
+  // 3. Si la conversión inicial está corriendo y coincide con la calidad y pista por defecto, esperar:
+  if (finalTrackId === defaultTrackId && (finalQuality === item.selectedQuality || finalQuality === item.quality)) {
+    if (item.conversionPromise) {
+      try {
+        await Promise.race([
+          item.conversionPromise,
+          new Promise(res => setTimeout(res, 8000))
+        ]);
+      } catch {}
+      if (fs.existsSync(variantPath) && fs.statSync(variantPath).size > 1000) return variantPath;
+      const legacyPath = path.join(MEDIA_CACHE_DIR, `${item.id}_${finalQuality}.${ext}`);
+      if (fs.existsSync(legacyPath) && fs.statSync(legacyPath).size > 1000) return legacyPath;
+      if (item.filePath && fs.existsSync(item.filePath) && fs.statSync(item.filePath).size > 1000) return item.filePath;
+    }
+  }
+
+  // 4. Si ya hay una promesa activa transcodificando esta combinación específica, reutilizarla
+  const mutexKey = `${item.id}_${finalQuality}_${finalTrackId}.${ext}`;
+  if (variantPromises.has(mutexKey)) {
+    try {
+      const existingRes = await variantPromises.get(mutexKey);
+      if (existingRes && fs.existsSync(existingRes) && fs.statSync(existingRes).size > 1000) {
+        return existingRes;
+      }
+    } catch {}
+  }
+
+  // 5. Generar la variante requerida
+  const generationPromise = (async () => {
+    try {
+      if (isMp4) {
+        // Resolver URL de video para finalQuality
+        let videoUrl = null;
+        if (item.videoStreamsByQuality) {
+          const entry = item.videoStreamsByQuality[finalQuality];
+          if (entry) {
+            videoUrl = typeof entry === "object" ? entry.videoUrl : entry;
+          }
+          if (!videoUrl) {
+            const availableKeys = Object.keys(item.videoStreamsByQuality).sort((a, b) => (parseInt(b, 10) || 0) - (parseInt(a, 10) || 0));
+            const exactOrBelow = availableKeys.find(k => (parseInt(k, 10) || 0) <= (parseInt(finalQuality, 10) || 1080));
+            const chosenKey = exactOrBelow || availableKeys[0];
+            if (chosenKey) {
+              const chEntry = item.videoStreamsByQuality[chosenKey];
+              videoUrl = typeof chEntry === "object" ? chEntry.videoUrl : chEntry;
+            }
+          }
+        }
+        if (!videoUrl) {
+          videoUrl = item.mp4Url || item.remoteStreamUrl;
+        }
+
+        // Resolver URL de audio para finalTrackId
+        let audioUrl = null;
+        if (item.audioTracks && item.audioTracks.length > 0) {
+          const trObj = item.audioTracks.find(t => t.id === finalTrackId);
+          if (trObj && trObj.url) {
+            audioUrl = trObj.url;
+          }
+        }
+        if (!audioUrl) {
+          audioUrl = item.mp3Url || item.remoteStreamUrl;
+        }
+
+        logger.info(`Generando variante MP4: ${item.id} (${finalQuality}, pista ${finalTrackId})...`);
+        const transResult = await transcodeToMp4(videoUrl, variantPath, finalQuality, item.separateAudio ? audioUrl : null);
+        if (transResult && fs.existsSync(variantPath) && fs.statSync(variantPath).size > 1000) {
+          logger.info(`Variante MP4 lista: ${variantFilename} (${formatBytes(transResult.sizeBytes)})`);
+          return variantPath;
+        }
+      } else {
+        // Formato Audio (MP3 o WAV)
+        let audioUrl = null;
+        if (item.audioTracks && item.audioTracks.length > 0) {
+          const trObj = item.audioTracks.find(t => t.id === finalTrackId);
+          if (trObj && trObj.url) {
+            audioUrl = trObj.url;
+          }
+        }
+        if (!audioUrl) {
+          audioUrl = item.mp3Url || item.remoteStreamUrl;
+        }
+
+        logger.info(`Generando variante Audio: ${item.id} (${finalQuality}, pista ${finalTrackId})...`);
+        if (ext === "wav") {
+          await transcodeToWav(audioUrl, variantPath);
+        } else {
+          await transcodeToMp3(audioUrl, variantPath, finalQuality);
+        }
+        if (fs.existsSync(variantPath) && fs.statSync(variantPath).size > 1000) {
+          logger.info(`Variante Audio lista: ${variantFilename}`);
+          return variantPath;
+        }
+      }
+    } catch (genErr) {
+      logger.warn(`Error al generar variante ${mutexKey}: ${genErr.message}`);
+      if (fs.existsSync(variantPath)) {
+        try { fs.unlinkSync(variantPath); } catch {}
+      }
+    }
+    return null;
+  })();
+
+  variantPromises.set(mutexKey, generationPromise);
+  try {
+    const resultPath = await generationPromise;
+    return resultPath;
+  } finally {
+    variantPromises.delete(mutexKey);
+  }
+}
+
 module.exports = {
   MEDIA_CACHE_DIR,
   SUPPORTED_PLATFORMS,
@@ -2577,6 +2765,7 @@ module.exports = {
   processConversion,
   processBatchConversion,
   getMediaById,
+  ensureMediaVariant,
   formatBytes,
   formatDurationSeconds,
   sanitizeFilename,

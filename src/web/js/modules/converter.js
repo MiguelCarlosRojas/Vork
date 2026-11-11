@@ -839,9 +839,13 @@
             try {
               videoPlayer.load();
               if (prevTime > 0) {
-                videoPlayer.currentTime = prevTime;
-              }
-              if (wasPlaying) {
+                const onMeta = () => {
+                  videoPlayer.removeEventListener("loadedmetadata", onMeta);
+                  try { videoPlayer.currentTime = prevTime; } catch {}
+                  if (wasPlaying) videoPlayer.play().catch(() => {});
+                };
+                videoPlayer.addEventListener("loadedmetadata", onMeta);
+              } else if (wasPlaying) {
                 videoPlayer.play().catch(() => {});
               }
             } catch {}
@@ -854,9 +858,13 @@
             try {
               audioPlayer.load();
               if (prevTime > 0) {
-                audioPlayer.currentTime = prevTime;
-              }
-              if (wasPlaying) {
+                const onMeta = () => {
+                  audioPlayer.removeEventListener("loadedmetadata", onMeta);
+                  try { audioPlayer.currentTime = prevTime; } catch {}
+                  if (wasPlaying) audioPlayer.play().catch(() => {});
+                };
+                audioPlayer.addEventListener("loadedmetadata", onMeta);
+              } else if (wasPlaying) {
                 audioPlayer.play().catch(() => {});
               }
             } catch {}
