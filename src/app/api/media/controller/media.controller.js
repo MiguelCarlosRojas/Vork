@@ -400,6 +400,16 @@ exports.streamMedia = async (req, res) => {
     const rawAudioUrl = selectedTrack ? selectedTrack.url : (item.mp3Url || item.remoteStreamUrl);
     const audioUrl = wrapStreamUrl(rawAudioUrl);
 
+    // 0. Si el archivo físico está siendo transcodificado en segundo plano, esperar hasta 8s a que esté listo
+    if ((!item.filePath || !fs.existsSync(item.filePath) || fs.statSync(item.filePath).size < 1000) && item.conversionPromise) {
+      try {
+        await Promise.race([
+          item.conversionPromise,
+          new Promise(resolve => setTimeout(resolve, 8000))
+        ]);
+      } catch {}
+    }
+
     // ==========================================
     // 1. STREAMING DE AUDIO (VISTA PREVIA MP3)
     // ==========================================
@@ -407,6 +417,19 @@ exports.streamMedia = async (req, res) => {
       // 1.1 Si el archivo físico ya existe en disco, servirlo inmediatamente con Range 206
       if (item.filePath && fs.existsSync(item.filePath) && fs.statSync(item.filePath).size > 1000) {
         return serveFileStream(res, req, item.filePath, item.mimeType || "audio/mpeg");
+      }
+
+      // Si la conversión física a MP3 está en curso, esperar hasta 8s a que esté listo en disco
+      if (item.conversionPromise) {
+        try {
+          await Promise.race([
+            item.conversionPromise,
+            new Promise(resolve => setTimeout(resolve, 8000))
+          ]);
+        } catch {}
+        if (item.filePath && fs.existsSync(item.filePath) && fs.statSync(item.filePath).size > 1000) {
+          return serveFileStream(res, req, item.filePath, item.mimeType || "audio/mpeg");
+        }
       }
 
       // 1.2 Proxy streaming directo con Range HTTP 206
@@ -419,6 +442,14 @@ exports.streamMedia = async (req, res) => {
           if (req.headers.range) {
             reqHeaders["Range"] = req.headers.range;
           }
+          if (/googlevideo|youtube/i.test(audioUrl)) {
+            reqHeaders["Referer"] = "https://www.youtube.com/";
+          } else if (/tiktok|byteoversea|ibytedtos/i.test(audioUrl)) {
+            reqHeaders["Referer"] = "https://www.tiktok.com/";
+          } else if (/twitter|twimg|x\.com/i.test(audioUrl)) {
+            reqHeaders["Referer"] = "https://twitter.com/";
+          }
+
           const remoteStream = await axios.get(audioUrl, {
             responseType: "stream",
             headers: reqHeaders,
@@ -445,8 +476,17 @@ exports.streamMedia = async (req, res) => {
           res.setHeader("Cache-Control", "no-cache");
           res.setHeader("Access-Control-Allow-Origin", "*");
 
+          const aHeaders = ["-user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"];
+          if (/googlevideo|youtube/i.test(audioUrl)) {
+            aHeaders.push("-headers", "Referer: https://www.youtube.com/\r\n");
+          } else if (/tiktok|byteoversea|ibytedtos/i.test(audioUrl)) {
+            aHeaders.push("-headers", "Referer: https://www.tiktok.com/\r\n");
+          } else if (/twitter|twimg|x\.com/i.test(audioUrl)) {
+            aHeaders.push("-headers", "Referer: https://twitter.com/\r\n");
+          }
+
           const ffArgs = [
-            "-user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+            ...aHeaders,
             "-i", audioUrl,
             "-vn",
             "-c:a", "libmp3lame",
@@ -478,12 +518,68 @@ exports.streamMedia = async (req, res) => {
     // 2. STREAMING DE VIDEO (VISTA PREVIA MP4)
     // ==========================================
     if (streamType === "video" || item.format === "mp4") {
-      const isDefaultTrack = !reqAudioTrack || (selectedTrack && selectedTrack.id === item.selectedAudioTrack);
-      const isDefaultQuality = !reqQuality || reqQuality === item.quality;
+      // 2.1 Comprobar si existe un archivo físico transcrito en disco
+      const specificPath = reqQuality ? path.join(MEDIA_CACHE_DIR, `${item.id}_${reqQuality}.mp4`) : null;
+      let targetFilePath = (specificPath && fs.existsSync(specificPath) && fs.statSync(specificPath).size > 1000)
+        ? specificPath
+        : (item.filePath && fs.existsSync(item.filePath) && fs.statSync(item.filePath).size > 1000 ? item.filePath : null);
 
-      // Si el archivo físico transcrito ya existe en disco Y coincide con la pista y calidad solicitada, servir directo
-      if (isDefaultTrack && isDefaultQuality && item.filePath && fs.existsSync(item.filePath) && fs.statSync(item.filePath).size > 1000) {
-        return serveFileStream(res, req, item.filePath, item.mimeType || "video/mp4");
+      // Si no existe en disco pero está transcodificándose, esperar hasta 10s
+      if (!targetFilePath && item.conversionPromise) {
+        try {
+          await Promise.race([
+            item.conversionPromise,
+            new Promise(resolve => setTimeout(resolve, 10000))
+          ]);
+        } catch {}
+
+        targetFilePath = (specificPath && fs.existsSync(specificPath) && fs.statSync(specificPath).size > 1000)
+          ? specificPath
+          : (item.filePath && fs.existsSync(item.filePath) && fs.statSync(item.filePath).size > 1000 ? item.filePath : null);
+      }
+
+      if (targetFilePath) {
+        return serveFileStream(res, req, targetFilePath, item.mimeType || "video/mp4");
+      }
+
+      // 2.2 Si disponemos del stream combinado de MP4 (H.264 + AAC integrado en un único archivo), servir con Range 206 nativo
+      const effectiveCombinedMp4 = item.combinedMp4Url || (item.format === "mp4" && !item.separateAudio ? (item.mp4Url || item.remoteStreamUrl) : null);
+      if (effectiveCombinedMp4) {
+        try {
+          const reqHeaders = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "Accept": "*/*"
+          };
+          if (req.headers.range) {
+            reqHeaders["Range"] = req.headers.range;
+          }
+          if (/googlevideo|youtube/i.test(effectiveCombinedMp4)) {
+            reqHeaders["Referer"] = "https://www.youtube.com/";
+          } else if (/tiktok|byteoversea|ibytedtos/i.test(effectiveCombinedMp4)) {
+            reqHeaders["Referer"] = "https://www.tiktok.com/";
+          } else if (/twitter|twimg|x\.com/i.test(effectiveCombinedMp4)) {
+            reqHeaders["Referer"] = "https://twitter.com/";
+          }
+
+          const remoteStream = await axios.get(effectiveCombinedMp4, {
+            responseType: "stream",
+            headers: reqHeaders,
+            timeout: 25000
+          });
+          res.status(remoteStream.status);
+          if (remoteStream.headers["content-range"]) {
+            res.setHeader("Content-Range", remoteStream.headers["content-range"]);
+          }
+          if (remoteStream.headers["content-length"]) {
+            res.setHeader("Content-Length", remoteStream.headers["content-length"]);
+          }
+          res.setHeader("Content-Type", remoteStream.headers["content-type"] || "video/mp4");
+          res.setHeader("Accept-Ranges", "bytes");
+          res.setHeader("Access-Control-Allow-Origin", "*");
+          return remoteStream.data.pipe(res);
+        } catch (combErr) {
+          logger.warn(`Proxy streaming de video combinado falló (${combErr.message})`);
+        }
       }
 
       // Si se especificó calidad y existe un stream para dicha resolución en videoStreamsByQuality, usarlo

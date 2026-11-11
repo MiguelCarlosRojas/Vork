@@ -104,7 +104,19 @@
 
   <script>
     (function(){try{var m=document.cookie.match(/(?:^|; )vork_lang=([^;]*)/);var l=m?decodeURIComponent(m[1]):null;if(l&&l!=="original"&&l!=="es"){document.documentElement.classList.add("ct-pending");setTimeout(function(){document.documentElement.classList.remove("ct-pending");},800);}}catch(e){}})();
+    (function(){
+      try {
+        var p = (window.location.pathname || "").toLowerCase();
+        if (p.endsWith("/mp4")) {
+          document.documentElement.classList.add("initial-mp4");
+        }
+      } catch(e) {}
+    })();
   </script>
+  <style>
+    html.initial-mp4 #btn-format-mp3 { background: transparent !important; color: var(--text-muted) !important; border-color: var(--border) !important; }
+    html.initial-mp4 #btn-format-mp4 { background: var(--surface-light) !important; color: var(--primary) !important; border-color: var(--primary) !important; }
+  </style>
   <script src="/js/spa-router.js" defer></script>
   <script src="/js/ui.js?v=1.0.0" defer></script>
 </head>
@@ -609,8 +621,8 @@ data = res.json()
           <h3>Separador de Stems</h3>
           <p>Aislamiento de voz (Acapella) y pista instrumental (Karaoke) mediante redes neuronales Demucs v4 y cancelación de fase.</p>
           <div class="card-foot">
-            <a href="/vocal-remover"><span>Abrir Separador</span></a>
-            <a href="/vocal-remover" class="card-arrow" aria-label="Ir a Separador de Stems"><svg class="icon" viewBox="0 0 24 24" width="16" height="16"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+            <a href="/vocal-remover/url"><span>Abrir Separador</span></a>
+            <a href="/vocal-remover/url" class="card-arrow" aria-label="Ir a Separador de Stems"><svg class="icon" viewBox="0 0 24 24" width="16" height="16"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
           </div>
         </article>
 

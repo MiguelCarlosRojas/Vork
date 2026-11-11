@@ -106,30 +106,92 @@ router.get("/cli/install.sh", (req, res) => {
   res.status(404).send("# Error: install.sh no encontrado\n");
 });
 
+// --- REDIRECCIONES CANÓNICAS DIRECTAS ---
+// Redirigir /converter y /media directamente a /converter/mp3
+router.get(["/converter", "/media"], (req, res) => {
+  return res.redirect(302, "/converter/mp3");
+});
+
+// Redirigir /vocal-remover, /separator y /stems directamente a /vocal-remover/url
+router.get(["/vocal-remover", "/separator", "/stems"], (req, res) => {
+  return res.redirect(302, "/vocal-remover/url");
+});
+
+function serveConverterHtml(req, res, format = "mp3") {
+  const filePath = path.join(webDir, "views/pillars/converter.html");
+  if (!fs.existsSync(filePath)) return res.status(404).send("Not found");
+  let html = fs.readFileSync(filePath, "utf8");
+  if (format === "mp4") {
+    html = html
+      .replace(
+        'id="btn-format-mp3" type="button" class="btn-icon-tooltip btn-format-tab active"',
+        'id="btn-format-mp3" type="button" class="btn-icon-tooltip btn-format-tab"'
+      )
+      .replace(
+        'id="btn-format-mp4" type="button" class="btn-icon-tooltip btn-format-tab"',
+        'id="btn-format-mp4" type="button" class="btn-icon-tooltip btn-format-tab active"'
+      )
+      .replace(
+        '<span id="format-badge" style="color: var(--primary); font-family: var(--f-mono); font-size: 0.75rem; font-weight: 700; text-transform: uppercase;">AUDIO MP3</span>',
+        '<span id="format-badge" style="color: var(--primary); font-family: var(--f-mono); font-size: 0.75rem; font-weight: 700; text-transform: uppercase;">VIDEO MP4</span>'
+      );
+  }
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  return res.send(html);
+}
+
+function serveVocalRemoverHtml(req, res, mode = "url") {
+  const filePath = path.join(webDir, "views/pillars/vocal-remover.html");
+  if (!fs.existsSync(filePath)) return res.status(404).send("Not found");
+  let html = fs.readFileSync(filePath, "utf8");
+  if (mode === "file") {
+    html = html
+      .replace(
+        'id="tab-mode-url" type="button" class="btn-icon-tooltip btn-format-tab active"',
+        'id="tab-mode-url" type="button" class="btn-icon-tooltip btn-format-tab"'
+      )
+      .replace(
+        'id="tab-mode-file" type="button" class="btn-icon-tooltip btn-format-tab"',
+        'id="tab-mode-file" type="button" class="btn-icon-tooltip btn-format-tab active"'
+      )
+      .replace(
+        '<span id="stem-mode-badge" style="color: var(--primary); font-family: var(--f-mono); font-size: 0.75rem; font-weight: 700; text-transform: uppercase;">ENLACE MULTIMEDIA</span>',
+        '<span id="stem-mode-badge" style="color: var(--primary); font-family: var(--f-mono); font-size: 0.75rem; font-weight: 700; text-transform: uppercase;">SUBIDA DE ARCHIVO</span>'
+      )
+      .replace(
+        'id="platforms-chips-row" class="platform-chips-container"',
+        'id="platforms-chips-row" class="platform-chips-container" style="display: none;"'
+      )
+      .replace(
+        'id="formats-chips-row" class="platform-chips-container" style="display: none;"',
+        'id="formats-chips-row" class="platform-chips-container"'
+      )
+      .replace(
+        '<div id="panel-url" style="margin-bottom: 24px;">',
+        '<div id="panel-url" style="display: none; margin-bottom: 24px;">'
+      )
+      .replace(
+        '<div id="panel-file" style="display: none; margin-bottom: 24px;">',
+        '<div id="panel-file" style="margin-bottom: 24px;">'
+      );
+  }
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  return res.send(html);
+}
+
+// Rutas de converter con SSR de pestañas activas
+router.get(["/converter/mp3", "/media/mp3"], (req, res) => serveConverterHtml(req, res, "mp3"));
+router.get(["/converter/mp4", "/media/mp4"], (req, res) => serveConverterHtml(req, res, "mp4"));
+
+// Rutas de vocal-remover con SSR de pestañas activas
+router.get(["/vocal-remover/url", "/separator/url", "/stems/url", "/vocal-remover/link", "/vocal-remover/enlace"], (req, res) => serveVocalRemoverHtml(req, res, "url"));
+router.get(["/vocal-remover/file", "/separator/file", "/stems/file", "/vocal-remover/upload", "/vocal-remover/archivo"], (req, res) => serveVocalRemoverHtml(req, res, "file"));
+
 // --- RUTAS Y VISTAS HTML DEL PORTAL ---
 const pageMap = [
   // Pilares
   { path: "/translator", file: "views/pillars/translator.html" },
   { path: "/tts", file: "views/pillars/tts.html" },
-  { path: "/converter", file: "views/pillars/converter.html" },
-  { path: "/converter/mp3", file: "views/pillars/converter.html" },
-  { path: "/converter/mp4", file: "views/pillars/converter.html" },
-  { path: "/media", file: "views/pillars/converter.html" },
-  { path: "/media/mp3", file: "views/pillars/converter.html" },
-  { path: "/media/mp4", file: "views/pillars/converter.html" },
-  { path: "/vocal-remover", file: "views/pillars/vocal-remover.html" },
-  { path: "/vocal-remover/url", file: "views/pillars/vocal-remover.html" },
-  { path: "/vocal-remover/file", file: "views/pillars/vocal-remover.html" },
-  { path: "/vocal-remover/link", file: "views/pillars/vocal-remover.html" },
-  { path: "/vocal-remover/upload", file: "views/pillars/vocal-remover.html" },
-  { path: "/vocal-remover/enlace", file: "views/pillars/vocal-remover.html" },
-  { path: "/vocal-remover/archivo", file: "views/pillars/vocal-remover.html" },
-  { path: "/separator", file: "views/pillars/vocal-remover.html" },
-  { path: "/separator/url", file: "views/pillars/vocal-remover.html" },
-  { path: "/separator/file", file: "views/pillars/vocal-remover.html" },
-  { path: "/stems", file: "views/pillars/vocal-remover.html" },
-  { path: "/stems/url", file: "views/pillars/vocal-remover.html" },
-  { path: "/stems/file", file: "views/pillars/vocal-remover.html" },
   { path: "/cli", file: "views/pillars/cli.html" },
   { path: "/terminal", file: "views/pillars/cli.html" },
   { path: "/image-converter", file: "views/pillars/image-converter.html" },
@@ -176,16 +238,15 @@ pageMap.forEach(({ path: routePath, file }) => {
 });
 
 // Soporte de sub-rutas dinámicas para formato en conversor y modo de entrada en vocal-remover
-router.get(["/converter/:format", "/media/:format"], (req, res, next) => {
-  const targetFile = path.join(webDir, "views/pillars/converter.html");
-  if (fs.existsSync(targetFile)) return res.sendFile(targetFile);
-  next();
+router.get(["/converter/:format", "/media/:format"], (req, res) => {
+  const fmt = (req.params.format || "").toLowerCase();
+  return serveConverterHtml(req, res, fmt === "mp4" ? "mp4" : "mp3");
 });
 
-router.get(["/vocal-remover/:mode", "/separator/:mode", "/stems/:mode"], (req, res, next) => {
-  const targetFile = path.join(webDir, "views/pillars/vocal-remover.html");
-  if (fs.existsSync(targetFile)) return res.sendFile(targetFile);
-  next();
+router.get(["/vocal-remover/:mode", "/separator/:mode", "/stems/:mode"], (req, res) => {
+  const m = (req.params.mode || "").toLowerCase();
+  const isFile = ["file", "upload", "archivo"].includes(m);
+  return serveVocalRemoverHtml(req, res, isFile ? "file" : "url");
 });
 
 router.get("/voice-clone", (req, res) => res.redirect(301, "/"));

@@ -208,9 +208,44 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       });
 
+      // Notificación visual flotante de silencio (Mute / Unmute Toast)
+      function showMuteToast(isMuted) {
+        let toast = document.getElementById("vork-mute-toast");
+        if (!toast) {
+          toast = document.createElement("div");
+          toast.id = "vork-mute-toast";
+          toast.style.position = "fixed";
+          toast.style.bottom = "32px";
+          toast.style.left = "50%";
+          toast.style.transform = "translateX(-50%)";
+          toast.style.padding = "8px 18px";
+          toast.style.background = "rgba(15, 17, 23, 0.94)";
+          toast.style.border = "1px solid var(--primary)";
+          toast.style.borderRadius = "24px";
+          toast.style.color = "#ffffff";
+          toast.style.fontFamily = "var(--f-mono, monospace)";
+          toast.style.fontSize = "0.82rem";
+          toast.style.fontWeight = "700";
+          toast.style.letterSpacing = "0.04em";
+          toast.style.boxShadow = "0 8px 24px rgba(0,0,0,0.5)";
+          toast.style.zIndex = "9999";
+          toast.style.pointerEvents = "none";
+          toast.style.transition = "opacity 0.25s ease";
+          document.body.appendChild(toast);
+        }
+        toast.innerHTML = isMuted
+          ? '🔇 AUDIO: SILENCIADO (M)'
+          : '🔊 AUDIO: SONIDO ACTIVO (M)';
+        toast.style.opacity = "1";
+        clearTimeout(toast._timer);
+        toast._timer = setTimeout(() => {
+          toast.style.opacity = "0";
+        }, 1200);
+      }
+
       // Atajo de teclado: 'M' o 'm' silencia o des-silencia los canales de audio
       window.addEventListener("keydown", (e) => {
-        if (e.key === "m" || e.key === "M") {
+        if (e.key === "m" || e.key === "M" || e.code === "KeyM") {
           const target = e.target;
           if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) {
             return;
@@ -219,6 +254,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const shouldMute = !audioInst.muted && !audioVoc.muted;
             if (btnMuteInst && audioInst.muted !== shouldMute) btnMuteInst.click();
             if (btnMuteVoc && audioVoc.muted !== shouldMute) btnMuteVoc.click();
+            showMuteToast(shouldMute);
           }
         }
       });

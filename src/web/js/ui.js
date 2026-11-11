@@ -130,8 +130,8 @@
       <ul class="drawer-menu">
         <li><a href="/translator" class="${active === "translator" ? "active" : ""}"><span class="nav-num">01</span> Traductor en la Nube</a></li>
         <li><a href="/tts" class="${active === "tts" ? "active" : ""}"><span class="nav-num">02</span> Texto a Voz (TTS)</a></li>
-        <li><a href="/converter" class="${active === "converter" ? "active" : ""}"><span class="nav-num">03</span> Conversor Multimedia</a></li>
-        <li><a href="/vocal-remover" class="${active === "vocal-remover" ? "active" : ""}"><span class="nav-num">04</span> Separador de Stems</a></li>
+        <li><a href="/converter/mp3" class="${active === "converter" ? "active" : ""}"><span class="nav-num">03</span> Conversor Multimedia</a></li>
+        <li><a href="/vocal-remover/url" class="${active === "vocal-remover" ? "active" : ""}"><span class="nav-num">04</span> Separador de Stems</a></li>
         <li><a href="/image-converter" class="${active === "image-converter" ? "active" : ""}"><span class="nav-num">05</span> Procesador de Imágenes</a></li>
         <li><a href="/background-remover" class="${active === "background-remover" ? "active" : ""}"><span class="nav-num">06</span> Estudio y Fondo IA</a></li>
         <li><a href="/draw" class="${active === "draw" || active === "image-generator" ? "active" : ""}"><span class="nav-num">07</span> Generador de Imágenes IA</a></li>
@@ -178,7 +178,8 @@
     <div class="footer-col">
       <h4>Servicios</h4>
       <ul>
-        <li><a href="/converter" class="${active === "converter" ? "active" : ""}">Conversor Multimedia</a></li>
+        <li><a href="/converter/mp3" class="${active === "converter" ? "active" : ""}">Conversor Multimedia</a></li>
+        <li><a href="/vocal-remover/url" class="${active === "vocal-remover" ? "active" : ""}">Separador de Stems</a></li>
         <li><a href="/image-converter" class="${active === "image-converter" ? "active" : ""}">Procesador de Imágenes</a></li>
         <li><a href="/background-remover" class="${active === "background-remover" ? "active" : ""}">Estudio de Fondo IA</a></li>
         <li><a href="/draw" class="${active === "draw" ? "active" : ""}">Generador de Imágenes IA</a></li>
