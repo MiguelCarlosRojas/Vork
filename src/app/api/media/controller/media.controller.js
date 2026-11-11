@@ -509,10 +509,28 @@ exports.streamMedia = async (req, res) => {
         res.setHeader("Cache-Control", "no-cache");
         res.setHeader("Access-Control-Allow-Origin", "*");
 
+        const vHeaders = ["-user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"];
+        if (/googlevideo|youtube/i.test(videoStreamUrl)) {
+          vHeaders.push("-headers", "Referer: https://www.youtube.com/\r\n");
+        } else if (/tiktok|byteoversea|ibytedtos/i.test(videoStreamUrl)) {
+          vHeaders.push("-headers", "Referer: https://www.tiktok.com/\r\n");
+        } else if (/twitter|twimg|x\.com/i.test(videoStreamUrl)) {
+          vHeaders.push("-headers", "Referer: https://twitter.com/\r\n");
+        }
+
+        const aHeaders = ["-user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"];
+        if (/googlevideo|youtube/i.test(effectiveAudioUrl)) {
+          aHeaders.push("-headers", "Referer: https://www.youtube.com/\r\n");
+        } else if (/tiktok|byteoversea|ibytedtos/i.test(effectiveAudioUrl)) {
+          aHeaders.push("-headers", "Referer: https://www.tiktok.com/\r\n");
+        } else if (/twitter|twimg|x\.com/i.test(effectiveAudioUrl)) {
+          aHeaders.push("-headers", "Referer: https://twitter.com/\r\n");
+        }
+
         const ffArgs = [
-          "-user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+          ...vHeaders,
           "-i", videoStreamUrl,
-          "-user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+          ...aHeaders,
           "-i", effectiveAudioUrl,
           "-map", "0:v:0",
           "-map", "1:a:0",

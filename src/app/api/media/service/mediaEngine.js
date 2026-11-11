@@ -23,18 +23,16 @@ const { validateSafeUrl } = require("../../../util/validator");
 const cheerio = require("cheerio");
 
 /**
- * Envuelve streams directos de YouTube/GoogleVideo con proxy transparente
- * para evitar el error HTTP 403 Forbidden provocado por el enlace de IP de Google CDN.
+ * Normaliza y limpia URLs de stream de medios asegurando acceso directo sin intermediarios defectuosos
  */
 function wrapStreamUrl(url) {
   if (!url || typeof url !== "string") return url;
-  const clean = url.trim();
-  if (
-    clean.includes("googlevideo.com") &&
-    !clean.includes("api.vidsnap.app/proxy") &&
-    !clean.includes("/proxy?u=")
-  ) {
-    return `https://api.vidsnap.app/proxy?u=${encodeURIComponent(clean)}`;
+  let clean = url.trim();
+  if (clean.includes("api.vidsnap.app/proxy?u=")) {
+    try {
+      const match = clean.match(/[?&]u=([^&]+)/);
+      if (match) clean = decodeURIComponent(match[1]);
+    } catch {}
   }
   return clean;
 }
@@ -182,6 +180,8 @@ async function extractThumbnailFrame(videoSource, targetThumbPath) {
           referer = "https://twitter.com/";
         } else if (/instagram|cdninstagram|fbcdn/i.test(videoSource)) {
           referer = "https://www.instagram.com/";
+        } else if (/googlevideo|youtube|youtu\.be/i.test(videoSource)) {
+          referer = "https://www.youtube.com/";
         }
 
         baseArgs.push(
@@ -356,7 +356,10 @@ async function fetchYouTubeStreams(normalizedUrl) {
         }
 
         // Mapear streams de video por resolución exacta (2160p, 1440p, 1080p, 720p, 480p, 360p, 240p, 144p)
+        // Priorizando H.264 (avc1) para compatibilidad nativa universal con reproductores de video HTML5 en navegadores
         const videoStreamsByQuality = {};
+        const qualityRank = {};
+
         videoFormats.forEach(vf => {
           if (!vf.url) return;
           const qText = (vf.qualityLabel || vf.resolution || vf.quality || "").toLowerCase();
@@ -374,8 +377,13 @@ async function fetchYouTubeStreams(normalizedUrl) {
           }
 
           if (matchedKey) {
+            const isH264 = vf.encoding === "h264" || (vf.type && vf.type.includes("avc1"));
             const isMp4 = vf.type?.includes("mp4") || vf.container === "mp4";
-            if (!videoStreamsByQuality[matchedKey] || isMp4) {
+            const currentScore = isH264 ? 3 : (isMp4 ? 2 : 1);
+            const prevScore = qualityRank[matchedKey] || 0;
+
+            if (currentScore >= prevScore) {
+              qualityRank[matchedKey] = currentScore;
               videoStreamsByQuality[matchedKey] = wrapStreamUrl(vf.url);
             }
           }
@@ -1790,17 +1798,31 @@ function transcodeToMp4(streamUrl, outputPath, quality = "1080p", audioStreamUrl
         }
       }
 
+      const vHeaders = ["-user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"];
+      if (/googlevideo|youtube/i.test(safeStreamUrl)) {
+        vHeaders.push("-headers", "Referer: https://www.youtube.com/\r\n");
+      } else if (/tiktok|byteoversea|ibytedtos/i.test(safeStreamUrl)) {
+        vHeaders.push("-headers", "Referer: https://www.tiktok.com/\r\n");
+      } else if (/twitter|twimg|x\.com/i.test(safeStreamUrl)) {
+        vHeaders.push("-headers", "Referer: https://twitter.com/\r\n");
+      }
+
       const args = [
         "-y",
-        "-user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+        ...vHeaders,
         "-i", safeStreamUrl
       ];
 
       if (hasSeparateAudio) {
-        args.push(
-          "-user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
-          "-i", safeAudioStreamUrl
-        );
+        const aHeaders = ["-user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"];
+        if (/googlevideo|youtube/i.test(safeAudioStreamUrl)) {
+          aHeaders.push("-headers", "Referer: https://www.youtube.com/\r\n");
+        } else if (/tiktok|byteoversea|ibytedtos/i.test(safeAudioStreamUrl)) {
+          aHeaders.push("-headers", "Referer: https://www.tiktok.com/\r\n");
+        } else if (/twitter|twimg|x\.com/i.test(safeAudioStreamUrl)) {
+          aHeaders.push("-headers", "Referer: https://twitter.com/\r\n");
+        }
+        args.push(...aHeaders, "-i", safeAudioStreamUrl);
       }
 
       if (scaleFilter) {

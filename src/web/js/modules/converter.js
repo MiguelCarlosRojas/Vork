@@ -300,30 +300,98 @@
       setTimeout(() => btn.classList.remove("format-tab-animated"), 360);
     }
 
+    // Aplicar formato de salida (MP3 / MP4) con sincronización de URL (/converter/mp3 o /converter/mp4)
+    function applyFormat(fmt, updateUrl = true) {
+      selectedFormat = (fmt || "mp3").toLowerCase() === "mp4" ? "mp4" : "mp3";
+      resetProgressBox();
+      const formatBadge = document.getElementById("format-badge");
+
+      if (selectedFormat === "mp4") {
+        if (btnFormatMp4) {
+          btnFormatMp4.classList.add("active");
+          if (updateUrl) animateTabClick(btnFormatMp4);
+        }
+        if (btnFormatMp3) btnFormatMp3.classList.remove("active");
+        if (formatBadge) formatBadge.textContent = "VIDEO MP4";
+        updateQualityOptions("mp4");
+      } else {
+        if (btnFormatMp3) {
+          btnFormatMp3.classList.add("active");
+          if (updateUrl) animateTabClick(btnFormatMp3);
+        }
+        if (btnFormatMp4) btnFormatMp4.classList.remove("active");
+        if (formatBadge) formatBadge.textContent = "AUDIO MP3";
+        updateQualityOptions("mp3");
+      }
+
+      if (updateUrl && window.history && window.history.pushState) {
+        const base = window.location.pathname.startsWith("/media") ? "/media" : "/converter";
+        const targetPath = `${base}/${selectedFormat}`;
+        if (window.location.pathname !== targetPath) {
+          window.history.pushState({ format: selectedFormat }, "", targetPath);
+        }
+      }
+    }
+
     // Conmutar Pestaña de Formato (Con animación y solo iconos con tooltips)
     if (btnFormatMp3 && !btnFormatMp3._bound) {
       btnFormatMp3._bound = true;
-      btnFormatMp3.addEventListener("click", () => {
-        animateTabClick(btnFormatMp3);
-        resetProgressBox();
-        selectedFormat = "mp3";
-        btnFormatMp3.classList.add("active");
-        btnFormatMp4.classList.remove("active");
-        const formatBadge = document.getElementById("format-badge"); if (formatBadge) formatBadge.textContent = "AUDIO MP3"; updateQualityOptions("mp3");
-      });
+      btnFormatMp3.addEventListener("click", () => applyFormat("mp3", true));
     }
 
     if (btnFormatMp4 && !btnFormatMp4._bound) {
       btnFormatMp4._bound = true;
-      btnFormatMp4.addEventListener("click", () => {
-        animateTabClick(btnFormatMp4);
-        resetProgressBox();
-        selectedFormat = "mp4";
-        btnFormatMp4.classList.add("active");
-        btnFormatMp3.classList.remove("active");
-        const formatBadge = document.getElementById("format-badge"); if (formatBadge) formatBadge.textContent = "VIDEO MP4"; updateQualityOptions("mp4");
-      });
+      btnFormatMp4.addEventListener("click", () => applyFormat("mp4", true));
     }
+
+    // Detección inicial de formato según la URL (/converter/mp3 o /converter/mp4)
+    const initialConvPath = (window.location.pathname || "").toLowerCase();
+    if (initialConvPath.endsWith("/mp4")) {
+      applyFormat("mp4", false);
+    } else if (initialConvPath.endsWith("/mp3")) {
+      applyFormat("mp3", false);
+    }
+
+    window.addEventListener("popstate", () => {
+      const p = (window.location.pathname || "").toLowerCase();
+      if (p.endsWith("/mp4")) {
+        applyFormat("mp4", false);
+      } else if (p.endsWith("/mp3")) {
+        applyFormat("mp3", false);
+      }
+    });
+
+    // Atajo de teclado: 'M' o 'm' silencia o des-silencia la vista previa de audio o video
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "m" || e.key === "M") {
+        const target = e.target;
+        if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) {
+          return;
+        }
+
+        let toggled = false;
+        if (videoWrapper && videoWrapper.style.display !== "none" && videoPlayer) {
+          videoPlayer.muted = !videoPlayer.muted;
+          toggled = true;
+        } else if (audioWrapper && audioWrapper.style.display !== "none" && audioPlayer) {
+          audioPlayer.muted = !audioPlayer.muted;
+          toggled = true;
+        }
+
+        // También contemplar reproductores en tarjetas individuales o de lote
+        document.querySelectorAll(".item-media-player").forEach(p => {
+          if (!p.paused || p.currentTime > 0) {
+            p.muted = !p.muted;
+            toggled = true;
+          }
+        });
+
+        if (!toggled) {
+          if (videoPlayer) videoPlayer.muted = !videoPlayer.muted;
+          if (audioPlayer) audioPlayer.muted = !audioPlayer.muted;
+        }
+      }
+    });
 
     // Si el usuario cambia la calidad en el select oculto
     if (selectQuality && !selectQuality._bound) {

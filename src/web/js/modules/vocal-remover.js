@@ -128,14 +128,14 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
 
-      // Conmutar Pestañas de Modo (MÉTODO DE ENTRADA en Cabecera)
-      function switchMode(mode) {
+      // Conmutar Pestañas de Modo (MÉTODO DE ENTRADA en Cabecera con soporte de URL)
+      function switchMode(mode, updateUrl = true) {
         resetProgressBox();
         hidePreviousResult();
         currentMode = mode;
 
         if (mode === "url") {
-          animateTabClick(tabUrl);
+          if (updateUrl) animateTabClick(tabUrl);
           if (tabUrl) tabUrl.classList.add("active");
           if (tabFile) tabFile.classList.remove("active");
           if (stemModeBadge) stemModeBadge.textContent = "ENLACE MULTIMEDIA";
@@ -154,7 +154,7 @@ document.addEventListener("DOMContentLoaded", () => {
             btnProcess.style.display = "inline-flex";
           }
         } else {
-          animateTabClick(tabFile);
+          if (updateUrl) animateTabClick(tabFile);
           if (tabFile) tabFile.classList.add("active");
           if (tabUrl) tabUrl.classList.remove("active");
           if (stemModeBadge) stemModeBadge.textContent = "SUBIDA DE ARCHIVO";
@@ -170,15 +170,58 @@ document.addEventListener("DOMContentLoaded", () => {
             btnProcess.style.display = selectedFileBase64 ? "inline-flex" : "none";
           }
         }
+
+        if (updateUrl && window.history && window.history.pushState) {
+          const path = (window.location.pathname || "").toLowerCase();
+          const base = path.startsWith("/separator") ? "/separator" :
+                       path.startsWith("/stems") ? "/stems" : "/vocal-remover";
+          const sub = mode === "file" ? "file" : "url";
+          const targetPath = `${base}/${sub}`;
+          if (window.location.pathname !== targetPath) {
+            window.history.pushState({ mode }, "", targetPath);
+          }
+        }
       }
 
       if (tabUrl) {
-        tabUrl.addEventListener("click", () => switchMode("url"));
+        tabUrl.addEventListener("click", () => switchMode("url", true));
       }
 
       if (tabFile) {
-        tabFile.addEventListener("click", () => switchMode("file"));
+        tabFile.addEventListener("click", () => switchMode("file", true));
       }
+
+      // Detección inicial de modo según la URL (/vocal-remover/file o /vocal-remover/url)
+      const initialVocalPath = (window.location.pathname || "").toLowerCase();
+      if (initialVocalPath.endsWith("/file") || initialVocalPath.endsWith("/archivo") || initialVocalPath.endsWith("/upload")) {
+        switchMode("file", false);
+      } else if (initialVocalPath.endsWith("/url") || initialVocalPath.endsWith("/enlace") || initialVocalPath.endsWith("/link")) {
+        switchMode("url", false);
+      }
+
+      window.addEventListener("popstate", () => {
+        const p = (window.location.pathname || "").toLowerCase();
+        if (p.endsWith("/file") || p.endsWith("/archivo") || p.endsWith("/upload")) {
+          switchMode("file", false);
+        } else if (p.endsWith("/url") || p.endsWith("/enlace") || p.endsWith("/link")) {
+          switchMode("url", false);
+        }
+      });
+
+      // Atajo de teclado: 'M' o 'm' silencia o des-silencia los canales de audio
+      window.addEventListener("keydown", (e) => {
+        if (e.key === "m" || e.key === "M") {
+          const target = e.target;
+          if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) {
+            return;
+          }
+          if (audioInst && audioVoc) {
+            const shouldMute = !audioInst.muted && !audioVoc.muted;
+            if (btnMuteInst && audioInst.muted !== shouldMute) btnMuteInst.click();
+            if (btnMuteVoc && audioVoc.muted !== shouldMute) btnMuteVoc.click();
+          }
+        }
+      });
 
       // Formateo de bytes para metadatos
       function formatBytes(bytes) {

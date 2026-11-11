@@ -112,10 +112,24 @@ const pageMap = [
   { path: "/translator", file: "views/pillars/translator.html" },
   { path: "/tts", file: "views/pillars/tts.html" },
   { path: "/converter", file: "views/pillars/converter.html" },
+  { path: "/converter/mp3", file: "views/pillars/converter.html" },
+  { path: "/converter/mp4", file: "views/pillars/converter.html" },
   { path: "/media", file: "views/pillars/converter.html" },
+  { path: "/media/mp3", file: "views/pillars/converter.html" },
+  { path: "/media/mp4", file: "views/pillars/converter.html" },
   { path: "/vocal-remover", file: "views/pillars/vocal-remover.html" },
+  { path: "/vocal-remover/url", file: "views/pillars/vocal-remover.html" },
+  { path: "/vocal-remover/file", file: "views/pillars/vocal-remover.html" },
+  { path: "/vocal-remover/link", file: "views/pillars/vocal-remover.html" },
+  { path: "/vocal-remover/upload", file: "views/pillars/vocal-remover.html" },
+  { path: "/vocal-remover/enlace", file: "views/pillars/vocal-remover.html" },
+  { path: "/vocal-remover/archivo", file: "views/pillars/vocal-remover.html" },
   { path: "/separator", file: "views/pillars/vocal-remover.html" },
+  { path: "/separator/url", file: "views/pillars/vocal-remover.html" },
+  { path: "/separator/file", file: "views/pillars/vocal-remover.html" },
   { path: "/stems", file: "views/pillars/vocal-remover.html" },
+  { path: "/stems/url", file: "views/pillars/vocal-remover.html" },
+  { path: "/stems/file", file: "views/pillars/vocal-remover.html" },
   { path: "/cli", file: "views/pillars/cli.html" },
   { path: "/terminal", file: "views/pillars/cli.html" },
   { path: "/image-converter", file: "views/pillars/image-converter.html" },
@@ -159,6 +173,19 @@ pageMap.forEach(({ path: routePath, file }) => {
 
   router.get(routePath, handler);
   router.get(`${routePath}.html`, handler);
+});
+
+// Soporte de sub-rutas dinámicas para formato en conversor y modo de entrada en vocal-remover
+router.get(["/converter/:format", "/media/:format"], (req, res, next) => {
+  const targetFile = path.join(webDir, "views/pillars/converter.html");
+  if (fs.existsSync(targetFile)) return res.sendFile(targetFile);
+  next();
+});
+
+router.get(["/vocal-remover/:mode", "/separator/:mode", "/stems/:mode"], (req, res, next) => {
+  const targetFile = path.join(webDir, "views/pillars/vocal-remover.html");
+  if (fs.existsSync(targetFile)) return res.sendFile(targetFile);
+  next();
 });
 
 router.get("/voice-clone", (req, res) => res.redirect(301, "/"));
