@@ -129,7 +129,7 @@ function isPrivateIP(ip) {
 }
 
 const TRUSTED_MEDIA_DOMAINS = [
-  "youtube.com", "youtu.be", "googlevideo.com", "ytimg.com",
+  "youtube.com", "youtu.be", "googlevideo.com", "ytimg.com", "chocolatemoo53.com", "nerdvpn.de", "f5.si",
   "facebook.com", "fbcdn.net", "fb.watch",
   "instagram.com", "cdninstagram.com",
   "tiktok.com", "tiktokcdn.com", "tiktokcdn-us.com", "byteoversea.com", "ibytedtos.com", "tikwm.com", "muscdn.com", "musical.ly",

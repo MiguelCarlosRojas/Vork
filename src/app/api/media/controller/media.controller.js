@@ -448,6 +448,8 @@ exports.streamMedia = async (req, res) => {
             reqHeaders["Referer"] = "https://www.tiktok.com/";
           } else if (/twitter|twimg|x\.com/i.test(audioUrl)) {
             reqHeaders["Referer"] = "https://twitter.com/";
+          } else if (/chocolatemoo53|invidious|nerdvpn/i.test(audioUrl)) {
+            reqHeaders["Referer"] = "https://yt.chocolatemoo53.com/";
           }
 
           const remoteStream = await axios.get(audioUrl, {
@@ -483,6 +485,8 @@ exports.streamMedia = async (req, res) => {
             aHeaders.push("-headers", "Referer: https://www.tiktok.com/\r\n");
           } else if (/twitter|twimg|x\.com/i.test(audioUrl)) {
             aHeaders.push("-headers", "Referer: https://twitter.com/\r\n");
+          } else if (/chocolatemoo53|invidious|nerdvpn/i.test(audioUrl)) {
+            aHeaders.push("-headers", "Referer: https://yt.chocolatemoo53.com/\r\n");
           }
 
           const ffArgs = [
@@ -559,6 +563,8 @@ exports.streamMedia = async (req, res) => {
             reqHeaders["Referer"] = "https://www.tiktok.com/";
           } else if (/twitter|twimg|x\.com/i.test(effectiveCombinedMp4)) {
             reqHeaders["Referer"] = "https://twitter.com/";
+          } else if (/chocolatemoo53|invidious|nerdvpn/i.test(effectiveCombinedMp4)) {
+            reqHeaders["Referer"] = "https://yt.chocolatemoo53.com/";
           }
 
           const remoteStream = await axios.get(effectiveCombinedMp4, {
@@ -612,6 +618,8 @@ exports.streamMedia = async (req, res) => {
           vHeaders.push("-headers", "Referer: https://www.tiktok.com/\r\n");
         } else if (/twitter|twimg|x\.com/i.test(videoStreamUrl)) {
           vHeaders.push("-headers", "Referer: https://twitter.com/\r\n");
+        } else if (/chocolatemoo53|invidious|nerdvpn/i.test(videoStreamUrl)) {
+          vHeaders.push("-headers", "Referer: https://yt.chocolatemoo53.com/\r\n");
         }
 
         const aHeaders = ["-user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"];
@@ -621,6 +629,8 @@ exports.streamMedia = async (req, res) => {
           aHeaders.push("-headers", "Referer: https://www.tiktok.com/\r\n");
         } else if (/twitter|twimg|x\.com/i.test(effectiveAudioUrl)) {
           aHeaders.push("-headers", "Referer: https://twitter.com/\r\n");
+        } else if (/chocolatemoo53|invidious|nerdvpn/i.test(effectiveAudioUrl)) {
+          aHeaders.push("-headers", "Referer: https://yt.chocolatemoo53.com/\r\n");
         }
 
         const ffArgs = [

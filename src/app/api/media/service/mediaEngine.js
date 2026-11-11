@@ -156,6 +156,50 @@ try {
 }
 
 /**
+ * Genera los argumentos de cabecera y agente de usuario óptimos para FFmpeg según el origen del medio
+ */
+function getFfmpegInputArgs(url) {
+  const args = [
+    "-user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
+  ];
+  if (!url || typeof url !== "string" || !url.startsWith("http")) return args;
+  try {
+    const u = new URL(url);
+    if (/googlevideo\.com|youtube\.com/i.test(u.hostname)) {
+      args.push("-headers", "Referer: https://www.youtube.com/\r\n");
+    } else if (/tiktok|byteoversea|ibytedtos/i.test(u.hostname)) {
+      args.push("-headers", "Referer: https://www.tiktok.com/\r\n");
+    } else if (/twitter|twimg|x\.com/i.test(u.hostname)) {
+      args.push("-headers", "Referer: https://twitter.com/\r\n");
+    } else if (/instagram|cdninstagram|fbcdn/i.test(u.hostname)) {
+      args.push("-headers", "Referer: https://www.instagram.com/\r\n");
+    } else if (/chocolatemoo53|invidious|nerdvpn/i.test(u.hostname)) {
+      args.push("-headers", `Referer: ${u.origin}/\r\n`);
+    }
+  } catch {}
+  return args;
+}
+
+/**
+ * Reescribe URLs directas de GoogleVideo a través del proxy inverso de la instancia de Invidious
+ * para eludir bloqueos de IP de datacenters (HTTP 403 Forbidden) en plataformas como Render.
+ */
+function toInvidiousProxyUrl(inst, streamUrl) {
+  if (!streamUrl || typeof streamUrl !== "string") return streamUrl;
+  try {
+    const parsed = new URL(streamUrl);
+    if (parsed.hostname.includes("googlevideo.com")) {
+      const instUrl = new URL(inst || "https://yt.chocolatemoo53.com");
+      parsed.protocol = instUrl.protocol;
+      parsed.host = instUrl.host;
+      parsed.port = instUrl.port;
+      return parsed.toString();
+    }
+  } catch {}
+  return streamUrl;
+}
+
+/**
  * Extrae un fotograma JPEG de alta fidelidad desde un archivo de video o flujo remoto con FFmpeg
  */
 async function extractThumbnailFrame(videoSource, targetThumbPath) {
@@ -182,6 +226,8 @@ async function extractThumbnailFrame(videoSource, targetThumbPath) {
           referer = "https://www.instagram.com/";
         } else if (/googlevideo|youtube|youtu\.be/i.test(videoSource)) {
           referer = "https://www.youtube.com/";
+        } else if (/chocolatemoo53|invidious|nerdvpn/i.test(videoSource)) {
+          referer = "https://yt.chocolatemoo53.com/";
         }
 
         baseArgs.push(
@@ -338,13 +384,14 @@ async function fetchYouTubeStreams(normalizedUrl) {
         const seenAudioLabels = new Set();
         audioFormats.forEach(af => {
           if (!af.url) return;
+          const proxyUrl = toInvidiousProxyUrl(inst, af.url);
           const label = parseAudioTrackLabel(af.url) || af.audioTrack || "Audio Estándar";
           if (seenAudioLabels.has(label)) return;
           seenAudioLabels.add(label);
           audioTracks.push({
             id: `audio_${audioTracks.length}`,
             label,
-            url: wrapStreamUrl(af.url),
+            url: wrapStreamUrl(proxyUrl),
             isDefault: label.toLowerCase().includes("original") || audioTracks.length === 0
           });
         });
@@ -368,7 +415,7 @@ async function fetchYouTubeStreams(normalizedUrl) {
           const qB = parseInt(b.qualityLabel || b.resolution || "0", 10) || 0;
           return qB - qA;
         });
-        const combinedMp4Url = combinedStreams[0]?.url ? wrapStreamUrl(combinedStreams[0].url) : null;
+        const combinedMp4Url = combinedStreams[0]?.url ? wrapStreamUrl(toInvidiousProxyUrl(inst, combinedStreams[0].url)) : null;
 
         // Mapear streams de video por resolución exacta (2160p, 1440p, 1080p, 720p, 480p, 360p, 240p, 144p)
         // Priorizando H.264 (avc1) para compatibilidad nativa universal con reproductores de video HTML5 en navegadores
@@ -399,13 +446,13 @@ async function fetchYouTubeStreams(normalizedUrl) {
 
             if (currentScore >= prevScore) {
               qualityRank[matchedKey] = currentScore;
-              videoStreamsByQuality[matchedKey] = wrapStreamUrl(vf.url);
+              videoStreamsByQuality[matchedKey] = wrapStreamUrl(toInvidiousProxyUrl(inst, vf.url));
             }
           }
         });
 
         const sortedQualityKeys = Object.keys(videoStreamsByQuality).sort((a, b) => (parseInt(b, 10) || 0) - (parseInt(a, 10) || 0));
-        const bestVideoUrl = wrapStreamUrl(videoStreamsByQuality["1080p"] || videoStreamsByQuality["720p"] || (sortedQualityKeys.length > 0 ? videoStreamsByQuality[sortedQualityKeys[0]] : videoFormats[0]?.url) || null);
+        const bestVideoUrl = wrapStreamUrl(videoStreamsByQuality["1080p"] || videoStreamsByQuality["720p"] || (sortedQualityKeys.length > 0 ? videoStreamsByQuality[sortedQualityKeys[0]] : toInvidiousProxyUrl(inst, videoFormats[0]?.url)) || null);
         const bestAudioUrl = wrapStreamUrl(audioTracks.find(t => t.isDefault)?.url || audioTracks[0]?.url || null);
 
         return {
@@ -568,10 +615,29 @@ async function fetchYouTubeStreams(normalizedUrl) {
       }
     });
 
-    const btchRes = valid.find(v => v.source === "btch" || (v.combinedMp4Url && !v.combinedMp4Url.includes("ip=")));
-    const primaryVideo = wrapStreamUrl(btchRes?.mp4 || videoStreamsByQuality["1080p"] || videoStreamsByQuality["720p"] || first.mp4 || valid.find(v => v.mp4)?.mp4 || null);
-    const primaryAudio = wrapStreamUrl(btchRes?.mp3 || audioTracks.find(t => t.isDefault)?.url || audioTracks[0]?.url || first.mp3 || null);
-    const combinedMp4Url = wrapStreamUrl(btchRes?.combinedMp4Url || valid.find(v => v.combinedMp4Url)?.combinedMp4Url || valid.find(v => v.mp4 && !v.separateAudio)?.mp4 || null);
+    const defaultInst = "https://yt.chocolatemoo53.com";
+    const sanitizeGv = (u) => (u ? toInvidiousProxyUrl(defaultInst, wrapStreamUrl(u)) : null);
+
+    const primaryVideo = sanitizeGv(invidiousRes?.mp4 || videoStreamsByQuality["1080p"] || videoStreamsByQuality["720p"] || first.mp4 || valid.find(v => v.mp4)?.mp4 || null);
+    const primaryAudio = sanitizeGv(invidiousRes?.mp3 || audioTracks.find(t => t.isDefault)?.url || audioTracks[0]?.url || first.mp3 || null);
+    const combinedMp4Url = sanitizeGv(invidiousRes?.combinedMp4Url || valid.find(v => v.combinedMp4Url)?.combinedMp4Url || valid.find(v => v.mp4 && !v.separateAudio)?.mp4 || null);
+
+    const safeVideoStreamsByQuality = {};
+    for (const [k, val] of Object.entries(videoStreamsByQuality)) {
+      if (typeof val === "object" && val !== null && val.videoUrl) {
+        safeVideoStreamsByQuality[k] = {
+          videoUrl: sanitizeGv(val.videoUrl),
+          audioUrl: sanitizeGv(val.audioUrl)
+        };
+      } else {
+        safeVideoStreamsByQuality[k] = sanitizeGv(val);
+      }
+    }
+
+    const safeAudioTracks = audioTracks.map(t => ({
+      ...t,
+      url: sanitizeGv(t.url)
+    }));
 
     return {
       title,
@@ -581,8 +647,8 @@ async function fetchYouTubeStreams(normalizedUrl) {
       mp4: primaryVideo,
       mp3: primaryAudio,
       combinedMp4Url,
-      videoStreamsByQuality,
-      audioTracks,
+      videoStreamsByQuality: safeVideoStreamsByQuality,
+      audioTracks: safeAudioTracks,
       separateAudio: Boolean(primaryVideo && primaryAudio && primaryVideo !== primaryAudio)
     };
   } catch (errAll) {
@@ -1809,10 +1875,57 @@ function transcodeToWav(streamUrl, outputPath) {
 function transcodeToMp4(streamUrl, outputPath, quality = "1080p", audioStreamUrl = null) {
   const safeStreamUrl = wrapStreamUrl(streamUrl);
   const safeAudioStreamUrl = wrapStreamUrl(audioStreamUrl);
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     try {
       const hasSeparateAudio = Boolean(safeAudioStreamUrl && safeAudioStreamUrl !== safeStreamUrl);
 
+      const vArgs = getFfmpegInputArgs(safeStreamUrl);
+      const aArgs = hasSeparateAudio ? getFfmpegInputArgs(safeAudioStreamUrl) : [];
+
+      const runFfmpegAttempt = (args) => new Promise((resAttempt, rejAttempt) => {
+        const ff = spawn(ffmpegPath, args);
+        let stderr = "";
+        ff.stderr.on("data", d => { stderr += d.toString(); });
+        ff.on("close", (code) => {
+          if (code === 0 && fs.existsSync(outputPath) && fs.statSync(outputPath).size > 1000) {
+            const stats = fs.statSync(outputPath);
+            let duration = null;
+            let durationSeconds = 0;
+            const durMatch = stderr.match(/Duration:\s*(\d{2}):(\d{2}):(\d{2})/);
+            if (durMatch) {
+              const h = parseInt(durMatch[1], 10);
+              const m = parseInt(durMatch[2], 10);
+              const s = parseInt(durMatch[3], 10);
+              durationSeconds = h * 3600 + m * 60 + s;
+              duration = h > 0 ? `${durMatch[1]}:${durMatch[2]}:${durMatch[3]}` : `${durMatch[2]}:${durMatch[3]}`;
+            }
+            return resAttempt({ sizeBytes: stats.size, duration, durationSeconds });
+          }
+          rejAttempt(new Error(`FFmpeg terminó con código ${code}: ${stderr.slice(-300)}`));
+        });
+        ff.on("error", rejAttempt);
+      });
+
+      // INTENTO 1: Fast Remux (Stream Copy) ultra veloz (< 2s, < 25MB RAM, sin transcodificar video)
+      try {
+        const fastArgs = ["-y", ...vArgs, "-i", safeStreamUrl];
+        if (hasSeparateAudio) {
+          fastArgs.push(...aArgs, "-i", safeAudioStreamUrl, "-map", "0:v:0", "-map", "1:a:0", "-c:v", "copy", "-c:a", "aac", "-b:a", "160k", "-shortest");
+        } else {
+          fastArgs.push("-c:v", "copy", "-c:a", "aac", "-b:a", "160k");
+        }
+        fastArgs.push("-movflags", "+faststart", "-f", "mp4", outputPath);
+
+        const fastResult = await runFfmpegAttempt(fastArgs);
+        return resolve(fastResult);
+      } catch (fastErr) {
+        logger.warn(`Fast remux no completado (${fastErr.message}), ejecutando transcodificación x264...`);
+        if (fs.existsSync(outputPath)) {
+          try { fs.unlinkSync(outputPath); } catch {}
+        }
+      }
+
+      // INTENTO 2: Transcodificación con libx264 con threads limitados para no superar la RAM de Render (512MB)
       let scaleFilter = "";
       const qNumMatch = quality && String(quality).match(/(\d{3,4})p?/);
       if (qNumMatch) {
@@ -1822,94 +1935,30 @@ function transcodeToMp4(streamUrl, outputPath, quality = "1080p", audioStreamUrl
         }
       }
 
-      const vHeaders = ["-user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"];
-      if (/googlevideo|youtube/i.test(safeStreamUrl)) {
-        vHeaders.push("-headers", "Referer: https://www.youtube.com/\r\n");
-      } else if (/tiktok|byteoversea|ibytedtos/i.test(safeStreamUrl)) {
-        vHeaders.push("-headers", "Referer: https://www.tiktok.com/\r\n");
-      } else if (/twitter|twimg|x\.com/i.test(safeStreamUrl)) {
-        vHeaders.push("-headers", "Referer: https://twitter.com/\r\n");
-      }
-
-      const args = [
-        "-y",
-        ...vHeaders,
-        "-i", safeStreamUrl
-      ];
-
+      const encodeArgs = ["-y", ...vArgs, "-i", safeStreamUrl];
       if (hasSeparateAudio) {
-        const aHeaders = ["-user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"];
-        if (/googlevideo|youtube/i.test(safeAudioStreamUrl)) {
-          aHeaders.push("-headers", "Referer: https://www.youtube.com/\r\n");
-        } else if (/tiktok|byteoversea|ibytedtos/i.test(safeAudioStreamUrl)) {
-          aHeaders.push("-headers", "Referer: https://www.tiktok.com/\r\n");
-        } else if (/twitter|twimg|x\.com/i.test(safeAudioStreamUrl)) {
-          aHeaders.push("-headers", "Referer: https://twitter.com/\r\n");
-        }
-        args.push(...aHeaders, "-i", safeAudioStreamUrl);
+        encodeArgs.push(...aArgs, "-i", safeAudioStreamUrl);
       }
-
       if (scaleFilter) {
-        args.push("-vf", scaleFilter);
+        encodeArgs.push("-vf", scaleFilter);
       }
-
-      args.push(
+      encodeArgs.push(
         "-c:v", "libx264",
         "-preset", "ultrafast",
-        "-threads", "0",
-        "-crf", "23",
+        "-threads", "1",
+        "-crf", "26",
         "-c:a", "aac",
-        "-b:a", "160k",
+        "-b:a", "128k",
         "-ar", "44100",
         "-pix_fmt", "yuv420p"
       );
-
       if (hasSeparateAudio) {
-        args.push("-map", "0:v:0?", "-map", "1:a:0?", "-shortest");
+        encodeArgs.push("-map", "0:v:0?", "-map", "1:a:0?", "-shortest");
       }
+      encodeArgs.push("-movflags", "+faststart", "-f", "mp4", outputPath);
 
-      args.push("-movflags", "+faststart", "-f", "mp4", outputPath);
-
-      const ff = spawn(ffmpegPath, args);
-
-      let stderr = "";
-      ff.stderr.on("data", d => { stderr += d.toString(); });
-
-      ff.on("close", (code) => {
-        if (code === 0 && fs.existsSync(outputPath) && fs.statSync(outputPath).size > 1000) {
-          const stats = fs.statSync(outputPath);
-          let duration = null;
-          let durationSeconds = 0;
-          const durMatch = stderr.match(/Duration:\s*(\d{2}):(\d{2}):(\d{2})/);
-          if (durMatch) {
-            const h = parseInt(durMatch[1], 10);
-            const m = parseInt(durMatch[2], 10);
-            const s = parseInt(durMatch[3], 10);
-            durationSeconds = h * 3600 + m * 60 + s;
-            duration = h > 0 ? `${durMatch[1]}:${durMatch[2]}:${durMatch[3]}` : `${durMatch[2]}:${durMatch[3]}`;
-          }
-          return resolve({ sizeBytes: stats.size, duration, durationSeconds });
-        }
-
-        // Fallback rápido: si falla libx264, probar remux directo con stream copy
-        logger.warn(`FFmpeg transcode terminó con código ${code}, probando remux directo...`);
-        const copyArgs = [
-          "-y",
-          "-user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-          "-i", streamUrl,
-          "-c", "copy",
-          "-movflags", "+faststart",
-          "-f", "mp4",
-          outputPath
-        ];
-        const ffCopy = spawn(ffmpegPath, copyArgs);
-        ffCopy.on("close", (cCode) => {
-          if (cCode === 0 && fs.existsSync(outputPath) && fs.statSync(outputPath).size > 1000) {
-            return resolve({ sizeBytes: fs.statSync(outputPath).size, duration: null, durationSeconds: 0 });
-          }
-          reject(new Error(`FFmpeg falló al codificar MP4 (código ${code})`));
-        });
-      });
+      const encodeResult = await runFfmpegAttempt(encodeArgs);
+      return resolve(encodeResult);
     } catch (err) {
       reject(err);
     }
@@ -2130,10 +2179,10 @@ async function processConversion(options = {}) {
     }
   }
 
-  // Si es formato MP3 / WAV y se descubrió una pista de audio directa en streams sin restricción de IP
+  // Si es formato MP3 / WAV y se descubrió una pista de audio directa en streams
   if ((selectedFormat === "mp3" || selectedFormat === "wav") && mediaInfo.videoStreamsByQuality) {
     for (const val of Object.values(mediaInfo.videoStreamsByQuality)) {
-      if (typeof val === "object" && val !== null && val.audioUrl && !val.audioUrl.includes("ip=")) {
+      if (typeof val === "object" && val !== null && val.audioUrl) {
         mediaInfo.mp3Url = val.audioUrl;
         mediaInfo.directMediaUrl = val.audioUrl;
         break;
@@ -2141,42 +2190,40 @@ async function processConversion(options = {}) {
     }
   }
 
-  // Construir lista de candidatos según formato y plataforma (priorizando streams no bloqueados por IP)
+  // Construir lista de candidatos según formato y plataforma
   const candidateStreams = [];
   if (selectedFormat === "mp3" || selectedFormat === "wav") {
-    if (mediaInfo.combinedMp4Url) candidateStreams.push(wrapStreamUrl(mediaInfo.combinedMp4Url));
-    if (mediaInfo.mp3Url && !mediaInfo.mp3Url.includes("ip=")) candidateStreams.push(wrapStreamUrl(mediaInfo.mp3Url));
-    if (mediaInfo.directMediaUrl && !mediaInfo.directMediaUrl.includes("ip=")) {
-      const wrapped = wrapStreamUrl(mediaInfo.directMediaUrl);
-      if (!candidateStreams.includes(wrapped)) candidateStreams.push(wrapped);
-    }
-    if (mediaInfo.mp4Url && !mediaInfo.mp4Url.includes("ip=")) {
-      const wrapped = wrapStreamUrl(mediaInfo.mp4Url);
-      if (!candidateStreams.includes(wrapped)) candidateStreams.push(wrapped);
-    }
-    // Fallback con el resto
     if (mediaInfo.mp3Url) {
       const wrapped = wrapStreamUrl(mediaInfo.mp3Url);
+      if (!candidateStreams.includes(wrapped)) candidateStreams.push(wrapped);
+    }
+    if (mediaInfo.combinedMp4Url) {
+      const wrapped = wrapStreamUrl(mediaInfo.combinedMp4Url);
       if (!candidateStreams.includes(wrapped)) candidateStreams.push(wrapped);
     }
     if (mediaInfo.directMediaUrl) {
       const wrapped = wrapStreamUrl(mediaInfo.directMediaUrl);
       if (!candidateStreams.includes(wrapped)) candidateStreams.push(wrapped);
     }
-  } else {
-    if (mediaInfo.combinedMp4Url) candidateStreams.push(wrapStreamUrl(mediaInfo.combinedMp4Url));
-    if (mediaInfo.mp4Url && !mediaInfo.mp4Url.includes("ip=")) candidateStreams.push(wrapStreamUrl(mediaInfo.mp4Url));
-    if (mediaInfo.directMediaUrl && !mediaInfo.directMediaUrl.includes("ip=")) {
-      const wrapped = wrapStreamUrl(mediaInfo.directMediaUrl);
+    if (mediaInfo.mp4Url) {
+      const wrapped = wrapStreamUrl(mediaInfo.mp4Url);
       if (!candidateStreams.includes(wrapped)) candidateStreams.push(wrapped);
     }
-    // Fallback con el resto
+  } else {
+    if (mediaInfo.combinedMp4Url) {
+      const wrapped = wrapStreamUrl(mediaInfo.combinedMp4Url);
+      if (!candidateStreams.includes(wrapped)) candidateStreams.push(wrapped);
+    }
     if (mediaInfo.mp4Url) {
       const wrapped = wrapStreamUrl(mediaInfo.mp4Url);
       if (!candidateStreams.includes(wrapped)) candidateStreams.push(wrapped);
     }
     if (mediaInfo.directMediaUrl) {
       const wrapped = wrapStreamUrl(mediaInfo.directMediaUrl);
+      if (!candidateStreams.includes(wrapped)) candidateStreams.push(wrapped);
+    }
+    if (mediaInfo.mp3Url) {
+      const wrapped = wrapStreamUrl(mediaInfo.mp3Url);
       if (!candidateStreams.includes(wrapped)) candidateStreams.push(wrapped);
     }
   }
