@@ -204,85 +204,99 @@ function toInvidiousProxyUrl(inst, streamUrl) {
  */
 async function extractThumbnailFrame(videoSource, targetThumbPath) {
   if (!videoSource || !targetThumbPath) return false;
-  return new Promise((resolve) => {
+  let localSource = videoSource;
+  let tempLocalFile = null;
+
+  // Si es URL remota, descargar los primeros 512KB vía Axios para eludir el fallo de TLS en FFmpeg estático en Linux
+  if (typeof videoSource === "string" && (videoSource.startsWith("http://") || videoSource.startsWith("https://"))) {
     try {
       const parentDir = path.dirname(targetThumbPath);
-      if (!fs.existsSync(parentDir)) {
-        fs.mkdirSync(parentDir, { recursive: true });
+      if (!fs.existsSync(parentDir)) fs.mkdirSync(parentDir, { recursive: true });
+      const tempPath = path.join(parentDir, `temp_thumb_${Date.now()}_${Math.random().toString(36).slice(2, 6)}.tmp`);
+      let referer = "https://www.google.com/";
+      if (/tiktok|byteoversea|ibytedtos|muscdn|musical\.ly/i.test(videoSource)) referer = "https://www.tiktok.com/";
+      else if (/tikwm\.com/i.test(videoSource)) referer = "https://www.tikwm.com/";
+      else if (/twitter|twimg|x\.com/i.test(videoSource)) referer = "https://twitter.com/";
+      else if (/instagram|cdninstagram|fbcdn/i.test(videoSource)) referer = "https://www.instagram.com/";
+      else if (/googlevideo|youtube|youtu\.be/i.test(videoSource)) referer = "https://www.youtube.com/";
+      else if (/chocolatemoo53|invidious|nerdvpn/i.test(videoSource)) referer = "https://yt.chocolatemoo53.com/";
+
+      const r = await axios.get(videoSource, {
+        headers: {
+          "Range": "bytes=0-524288",
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+          "Referer": referer
+        },
+        responseType: "arraybuffer",
+        timeout: 6000
+      });
+      if (r.data && r.data.length > 1000) {
+        fs.writeFileSync(tempPath, r.data);
+        localSource = tempPath;
+        tempLocalFile = tempPath;
       }
+    } catch {}
+  }
 
-      const isRemote = typeof videoSource === "string" && (videoSource.startsWith("http://") || videoSource.startsWith("https://"));
-      const baseArgs = ["-y"];
-
-      if (isRemote) {
-        let referer = "https://www.google.com/";
-        if (/tiktok|byteoversea|ibytedtos|muscdn|musical\.ly/i.test(videoSource)) {
-          referer = "https://www.tiktok.com/";
-        } else if (/tikwm\.com/i.test(videoSource)) {
-          referer = "https://www.tikwm.com/";
-        } else if (/twitter|twimg|x\.com/i.test(videoSource)) {
-          referer = "https://twitter.com/";
-        } else if (/instagram|cdninstagram|fbcdn/i.test(videoSource)) {
-          referer = "https://www.instagram.com/";
-        } else if (/googlevideo|youtube|youtu\.be/i.test(videoSource)) {
-          referer = "https://www.youtube.com/";
-        } else if (/chocolatemoo53|invidious|nerdvpn/i.test(videoSource)) {
-          referer = "https://yt.chocolatemoo53.com/";
+  try {
+    return await new Promise((resolve) => {
+      try {
+        const parentDir = path.dirname(targetThumbPath);
+        if (!fs.existsSync(parentDir)) {
+          fs.mkdirSync(parentDir, { recursive: true });
         }
 
-        baseArgs.push(
-          "-user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-          "-headers", `Referer: ${referer}\r\n`
-        );
-      }
-
-      const args1 = [
-        ...baseArgs,
-        "-ss", "00:00:01",
-        "-i", videoSource,
-        "-vframes", "1",
-        "-q:v", "2",
-        targetThumbPath
-      ];
-      const ff = spawn(ffmpegPath, args1);
-      const timer = setTimeout(() => {
-        try { ff.kill("SIGKILL"); } catch {}
-        resolve(false);
-      }, 7000);
-      ff.on("close", (code) => {
-        clearTimeout(timer);
-        if (code === 0 && fs.existsSync(targetThumbPath)) {
-          resolve(true);
-        } else {
-          // Si falló con -ss 00:00:01 (video de menos de 1 segundo o stream sin seek previo), intentar al segundo 0
-          try {
-            const args2 = [...baseArgs, "-i", videoSource, "-vframes", "1", "-q:v", "2", targetThumbPath];
-            const ff2 = spawn(ffmpegPath, args2);
-            const timer2 = setTimeout(() => {
-              try { ff2.kill("SIGKILL"); } catch {}
+        const args1 = [
+          "-y",
+          "-ss", "00:00:01",
+          "-i", localSource,
+          "-vframes", "1",
+          "-q:v", "2",
+          targetThumbPath
+        ];
+        const ff = spawn(ffmpegPath, args1);
+        const timer = setTimeout(() => {
+          try { ff.kill("SIGKILL"); } catch {}
+          resolve(false);
+        }, 7000);
+        ff.on("close", (code) => {
+          clearTimeout(timer);
+          if (code === 0 && fs.existsSync(targetThumbPath) && fs.statSync(targetThumbPath).size > 500) {
+            resolve(true);
+          } else {
+            try {
+              const args2 = ["-y", "-i", localSource, "-vframes", "1", "-q:v", "2", targetThumbPath];
+              const ff2 = spawn(ffmpegPath, args2);
+              const timer2 = setTimeout(() => {
+                try { ff2.kill("SIGKILL"); } catch {}
+                resolve(false);
+              }, 5000);
+              ff2.on("close", (c2) => {
+                clearTimeout(timer2);
+                resolve(c2 === 0 && fs.existsSync(targetThumbPath) && fs.statSync(targetThumbPath).size > 500);
+              });
+              ff2.on("error", () => {
+                clearTimeout(timer2);
+                resolve(false);
+              });
+            } catch {
               resolve(false);
-            }, 5000);
-            ff2.on("close", (c2) => {
-              clearTimeout(timer2);
-              resolve(c2 === 0 && fs.existsSync(targetThumbPath));
-            });
-            ff2.on("error", () => {
-              clearTimeout(timer2);
-              resolve(false);
-            });
-          } catch {
-            resolve(false);
+            }
           }
-        }
-      });
-      ff.on("error", () => {
-        clearTimeout(timer);
+        });
+        ff.on("error", () => {
+          clearTimeout(timer);
+          resolve(false);
+        });
+      } catch {
         resolve(false);
-      });
-    } catch {
-      resolve(false);
+      }
+    });
+  } finally {
+    if (tempLocalFile && fs.existsSync(tempLocalFile)) {
+      try { fs.unlinkSync(tempLocalFile); } catch {}
     }
-  });
+  }
 }
 
 /**
@@ -1632,14 +1646,30 @@ async function extractMediaInfo(url, requestedFormat = "mp3") {
  * Multiplica la velocidad hasta 4-6x en proxies y servidores con límite por conexión
  */
 async function downloadStreamFast(url, tempFilePath) {
+  const targetUrl = wrapStreamUrl(url);
+  if (!targetUrl || typeof targetUrl !== "string") return false;
+
+  let referer = "https://www.google.com/";
+  if (/tiktok|byteoversea|ibytedtos|muscdn|musical\.ly/i.test(targetUrl)) referer = "https://www.tiktok.com/";
+  else if (/tikwm\.com/i.test(targetUrl)) referer = "https://www.tikwm.com/";
+  else if (/twitter|twimg|x\.com/i.test(targetUrl)) referer = "https://twitter.com/";
+  else if (/instagram|cdninstagram|fbcdn/i.test(targetUrl)) referer = "https://www.instagram.com/";
+  else if (/googlevideo|youtube|youtu\.be/i.test(targetUrl)) referer = "https://www.youtube.com/";
+  else if (/chocolatemoo53|invidious|nerdvpn/i.test(targetUrl)) referer = "https://yt.chocolatemoo53.com/";
+
+  const commonHeaders = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+    "Referer": referer,
+    "Accept": "*/*"
+  };
+
   try {
-    const targetUrl = wrapStreamUrl(url);
     const headRes = await axios.get(targetUrl, {
       headers: {
-        "Range": "bytes=0-0",
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+        ...commonHeaders,
+        "Range": "bytes=0-0"
       },
-      timeout: 4500
+      timeout: 5000
     });
 
     const contentRange = headRes.headers["content-range"];
@@ -1662,9 +1692,8 @@ async function downloadStreamFast(url, tempFilePath) {
         promises.push(
           axios.get(targetUrl, {
             headers: {
-              "Range": `bytes=${start}-${end}`,
-              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-              "Accept": "*/*"
+              ...commonHeaders,
+              "Range": `bytes=${start}-${end}`
             },
             responseType: "arraybuffer",
             timeout: 25000
@@ -1679,7 +1708,26 @@ async function downloadStreamFast(url, tempFilePath) {
       return true;
     }
   } catch (err) {
-    logger.warn(`Descarga paralela acelerada omitida (${err.message}), usando streaming nativo`);
+    logger.warn(`Descarga paralela acelerada omitida (${err.message}), intentando descarga por flujo directo...`);
+  }
+
+  // Fallback: Descarga secuencial completa mediante stream directo
+  try {
+    const streamRes = await axios.get(targetUrl, {
+      responseType: "stream",
+      headers: commonHeaders,
+      timeout: 35000
+    });
+    await new Promise((resolve, reject) => {
+      const writer = fs.createWriteStream(tempFilePath);
+      streamRes.data.pipe(writer);
+      writer.on("finish", resolve);
+      writer.on("error", reject);
+      streamRes.data.on("error", reject);
+    });
+    return fs.existsSync(tempFilePath) && fs.statSync(tempFilePath).size > 1000;
+  } catch (streamErr) {
+    logger.warn(`Descarga directa por flujo falló: ${streamErr.message}`);
   }
   return false;
 }
@@ -1699,7 +1747,7 @@ async function transcodeToMp3(streamUrl, outputPath, quality = "320k") {
   };
   const bitrate = bitrateMap[quality] || (quality.endsWith("k") ? quality : `${quality}k`);
 
-  // Acelerador: Descargar chunks paralelos para eludir la tasa limitada de proxies
+  // Acelerador: Descargar localmente para eludir fallos de red en el binario estático de FFmpeg
   let localInput = safeStreamUrl;
   let tempDownloadedFile = null;
 
@@ -1714,10 +1762,9 @@ async function transcodeToMp3(streamUrl, outputPath, quality = "320k") {
 
   try {
     return await new Promise((resolve, reject) => {
-      // Ejecución nativa de FFmpeg
       const ffArgs = ["-y"];
       if (localInput.startsWith("http")) {
-        ffArgs.push("-user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36");
+        ffArgs.push(...getFfmpegInputArgs(localInput));
       }
       ffArgs.push(
         "-i", localInput,
@@ -1734,7 +1781,7 @@ async function transcodeToMp3(streamUrl, outputPath, quality = "320k") {
       let stderr = "";
       ff.stderr.on("data", d => { stderr += d.toString(); });
 
-      ff.on("close", (code) => {
+      ff.on("close", (code, signal) => {
         if (code === 0 && fs.existsSync(outputPath) && fs.statSync(outputPath).size > 1000) {
           const stats = fs.statSync(outputPath);
           let duration = null;
@@ -1750,9 +1797,8 @@ async function transcodeToMp3(streamUrl, outputPath, quality = "320k") {
           return resolve({ sizeBytes: stats.size, duration, durationSeconds });
         }
 
-        // Si ya teníamos archivo descargado y falló
         if (tempDownloadedFile) {
-          return reject(new Error(`FFmpeg MP3 transcode exited with code ${code}: ${stderr.slice(-300)}`));
+          return reject(new Error(`FFmpeg MP3 transcode exited with code ${code}${signal ? ' (señal ' + signal + ')' : ''}: ${stderr.slice(-300)}`));
         }
 
         // Fallback vía axios stream piping
@@ -1762,7 +1808,7 @@ async function transcodeToMp3(streamUrl, outputPath, quality = "320k") {
           url: safeStreamUrl,
           responseType: "stream",
           headers: {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
             "Accept": "*/*"
           },
           timeout: 45000
@@ -1781,12 +1827,12 @@ async function transcodeToMp3(streamUrl, outputPath, quality = "320k") {
           let pipeStderr = "";
           ffPipe.stderr.on("data", d => { pipeStderr += d.toString(); });
           response.data.pipe(ffPipe.stdin);
-          ffPipe.on("close", (pipeCode) => {
+          ffPipe.on("close", (pipeCode, pipeSig) => {
             if (pipeCode === 0 && fs.existsSync(outputPath) && fs.statSync(outputPath).size > 1000) {
               const stats = fs.statSync(outputPath);
               return resolve({ sizeBytes: stats.size, duration: null, durationSeconds: 0 });
             }
-            reject(new Error(`FFmpeg MP3 transcode exited with code ${pipeCode}: ${pipeStderr.slice(-300)}`));
+            reject(new Error(`FFmpeg MP3 transcode exited with code ${pipeCode}${pipeSig ? ' (señal ' + pipeSig + ')' : ''}: ${pipeStderr.slice(-300)}`));
           });
           response.data.on("error", reject);
         }).catch(reject);
@@ -1806,14 +1852,27 @@ async function transcodeToMp3(streamUrl, outputPath, quality = "320k") {
 /**
  * Transcodifica un stream remoto a WAV puro (Audio PCM 16-bit sin compresión)
  */
-function transcodeToWav(streamUrl, outputPath) {
+async function transcodeToWav(streamUrl, outputPath) {
   const safeStreamUrl = wrapStreamUrl(streamUrl);
-  return new Promise((resolve, reject) => {
-    try {
+  let localInput = safeStreamUrl;
+  let tempDownloadedFile = null;
+
+  if (safeStreamUrl && safeStreamUrl.startsWith("http")) {
+    const tempCandidate = path.join(MEDIA_CACHE_DIR, `temp_wav_${Date.now()}_${Math.random().toString(36).slice(2, 7)}.tmp`);
+    const isDownloaded = await downloadStreamFast(safeStreamUrl, tempCandidate);
+    if (isDownloaded && fs.existsSync(tempCandidate) && fs.statSync(tempCandidate).size > 1000) {
+      localInput = tempCandidate;
+      tempDownloadedFile = tempCandidate;
+    }
+  }
+
+  try {
+    return await new Promise((resolve, reject) => {
+      const inArgs = localInput.startsWith("http") ? getFfmpegInputArgs(localInput) : [];
       const ff = spawn(ffmpegPath, [
         "-y",
-        "-user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-        "-i", safeStreamUrl,
+        ...inArgs,
+        "-i", localInput,
         "-vn",
         "-c:a", "pcm_s16le",
         "-f", "wav",
@@ -1823,146 +1882,144 @@ function transcodeToWav(streamUrl, outputPath) {
       let stderr = "";
       ff.stderr.on("data", d => { stderr += d.toString(); });
 
-      ff.on("close", (code) => {
+      ff.on("close", (code, signal) => {
         if (code === 0 && fs.existsSync(outputPath) && fs.statSync(outputPath).size > 1000) {
           const stats = fs.statSync(outputPath);
           return resolve({ sizeBytes: stats.size, duration: null, durationSeconds: 0 });
         }
-
-        // Intento 2: Fallback vía Axios stream pipe
-        axios({
-          method: "get",
-          url: safeStreamUrl,
-          responseType: "stream",
-          headers: {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-            "Accept": "*/*"
-          },
-          timeout: 45000
-        }).then(response => {
-          const ffPipe = spawn(ffmpegPath, [
-            "-y",
-            "-i", "pipe:0",
-            "-vn",
-            "-c:a", "pcm_s16le",
-            "-f", "wav",
-            outputPath
-          ]);
-          let pipeStderr = "";
-          ffPipe.stderr.on("data", d => { pipeStderr += d.toString(); });
-          response.data.pipe(ffPipe.stdin);
-          ffPipe.on("close", (pipeCode) => {
-            if (pipeCode === 0 && fs.existsSync(outputPath) && fs.statSync(outputPath).size > 1000) {
-              const statsPipe = fs.statSync(outputPath);
-              return resolve({ sizeBytes: statsPipe.size, duration: null, durationSeconds: 0 });
-            }
-            reject(new Error(`FFmpeg WAV transcode failed with code ${pipeCode}: ${pipeStderr.slice(-250)}`));
-          });
-          response.data.on("error", reject);
-        }).catch(reject);
+        reject(new Error(`FFmpeg WAV falló con código ${code}${signal ? ' (señal ' + signal + ')' : ''}: ${stderr.slice(-250)}`));
       });
 
       ff.on("error", reject);
-    } catch (err) {
-      reject(err);
+    });
+  } finally {
+    if (tempDownloadedFile && fs.existsSync(tempDownloadedFile)) {
+      try { fs.unlinkSync(tempDownloadedFile); } catch {}
     }
-  });
+  }
 }
 
 /**
  * Remuxea o transcodifica un stream remoto a MP4 estándar para reproducción web instantánea
  */
-function transcodeToMp4(streamUrl, outputPath, quality = "1080p", audioStreamUrl = null) {
+async function transcodeToMp4(streamUrl, outputPath, quality = "1080p", audioStreamUrl = null) {
   const safeStreamUrl = wrapStreamUrl(streamUrl);
   const safeAudioStreamUrl = wrapStreamUrl(audioStreamUrl);
-  return new Promise(async (resolve, reject) => {
-    try {
-      const hasSeparateAudio = Boolean(safeAudioStreamUrl && safeAudioStreamUrl !== safeStreamUrl);
+  const hasSeparateAudio = Boolean(safeAudioStreamUrl && safeAudioStreamUrl !== safeStreamUrl);
 
-      const vArgs = getFfmpegInputArgs(safeStreamUrl);
-      const aArgs = hasSeparateAudio ? getFfmpegInputArgs(safeAudioStreamUrl) : [];
+  let localVideo = safeStreamUrl;
+  let localAudio = safeAudioStreamUrl;
+  let tempVideoFile = null;
+  let tempAudioFile = null;
 
-      const runFfmpegAttempt = (args) => new Promise((resAttempt, rejAttempt) => {
-        const ff = spawn(ffmpegPath, args);
-        let stderr = "";
-        ff.stderr.on("data", d => { stderr += d.toString(); });
-        ff.on("close", (code) => {
-          if (code === 0 && fs.existsSync(outputPath) && fs.statSync(outputPath).size > 1000) {
-            const stats = fs.statSync(outputPath);
-            let duration = null;
-            let durationSeconds = 0;
-            const durMatch = stderr.match(/Duration:\s*(\d{2}):(\d{2}):(\d{2})/);
-            if (durMatch) {
-              const h = parseInt(durMatch[1], 10);
-              const m = parseInt(durMatch[2], 10);
-              const s = parseInt(durMatch[3], 10);
-              durationSeconds = h * 3600 + m * 60 + s;
-              duration = h > 0 ? `${durMatch[1]}:${durMatch[2]}:${durMatch[3]}` : `${durMatch[2]}:${durMatch[3]}`;
-            }
-            return resAttempt({ sizeBytes: stats.size, duration, durationSeconds });
-          }
-          rejAttempt(new Error(`FFmpeg terminó con código ${code}: ${stderr.slice(-300)}`));
-        });
-        ff.on("error", rejAttempt);
-      });
-
-      // INTENTO 1: Fast Remux (Stream Copy) ultra veloz (< 2s, < 25MB RAM, sin transcodificar video)
-      try {
-        const fastArgs = ["-y", ...vArgs, "-i", safeStreamUrl];
-        if (hasSeparateAudio) {
-          fastArgs.push(...aArgs, "-i", safeAudioStreamUrl, "-map", "0:v:0", "-map", "1:a:0", "-c:v", "copy", "-c:a", "aac", "-b:a", "160k", "-shortest");
-        } else {
-          fastArgs.push("-c:v", "copy", "-c:a", "aac", "-b:a", "160k");
-        }
-        fastArgs.push("-movflags", "+faststart", "-f", "mp4", outputPath);
-
-        const fastResult = await runFfmpegAttempt(fastArgs);
-        return resolve(fastResult);
-      } catch (fastErr) {
-        logger.warn(`Fast remux no completado (${fastErr.message}), ejecutando transcodificación x264...`);
-        if (fs.existsSync(outputPath)) {
-          try { fs.unlinkSync(outputPath); } catch {}
-        }
-      }
-
-      // INTENTO 2: Transcodificación con libx264 con threads limitados para no superar la RAM de Render (512MB)
-      let scaleFilter = "";
-      const qNumMatch = quality && String(quality).match(/(\d{3,4})p?/);
-      if (qNumMatch) {
-        const h = parseInt(qNumMatch[1], 10);
-        if (h && h > 0) {
-          scaleFilter = `scale=-2:${h}:flags=fast_bilinear`;
-        }
-      }
-
-      const encodeArgs = ["-y", ...vArgs, "-i", safeStreamUrl];
-      if (hasSeparateAudio) {
-        encodeArgs.push(...aArgs, "-i", safeAudioStreamUrl);
-      }
-      if (scaleFilter) {
-        encodeArgs.push("-vf", scaleFilter);
-      }
-      encodeArgs.push(
-        "-c:v", "libx264",
-        "-preset", "ultrafast",
-        "-threads", "1",
-        "-crf", "26",
-        "-c:a", "aac",
-        "-b:a", "128k",
-        "-ar", "44100",
-        "-pix_fmt", "yuv420p"
-      );
-      if (hasSeparateAudio) {
-        encodeArgs.push("-map", "0:v:0?", "-map", "1:a:0?", "-shortest");
-      }
-      encodeArgs.push("-movflags", "+faststart", "-f", "mp4", outputPath);
-
-      const encodeResult = await runFfmpegAttempt(encodeArgs);
-      return resolve(encodeResult);
-    } catch (err) {
-      reject(err);
+  // Descarga local previa de streams remotos para eludir fallos de GnuTLS/HTTPS en el binario estático de FFmpeg en Linux
+  if (safeStreamUrl && safeStreamUrl.startsWith("http")) {
+    const tempVid = path.join(MEDIA_CACHE_DIR, `temp_v_${Date.now()}_${Math.random().toString(36).slice(2, 7)}.tmp`);
+    const isDownloaded = await downloadStreamFast(safeStreamUrl, tempVid);
+    if (isDownloaded && fs.existsSync(tempVid) && fs.statSync(tempVid).size > 1000) {
+      localVideo = tempVid;
+      tempVideoFile = tempVid;
     }
-  });
+  }
+
+  if (hasSeparateAudio && safeAudioStreamUrl && safeAudioStreamUrl.startsWith("http")) {
+    const tempAud = path.join(MEDIA_CACHE_DIR, `temp_a_${Date.now()}_${Math.random().toString(36).slice(2, 7)}.tmp`);
+    const isDownloaded = await downloadStreamFast(safeAudioStreamUrl, tempAud);
+    if (isDownloaded && fs.existsSync(tempAud) && fs.statSync(tempAud).size > 1000) {
+      localAudio = tempAud;
+      tempAudioFile = tempAud;
+    }
+  }
+
+  try {
+    const vArgs = localVideo.startsWith("http") ? getFfmpegInputArgs(localVideo) : [];
+    const aArgs = (hasSeparateAudio && localAudio.startsWith("http")) ? getFfmpegInputArgs(localAudio) : [];
+
+    const runFfmpegAttempt = (args) => new Promise((resAttempt, rejAttempt) => {
+      const ff = spawn(ffmpegPath, args);
+      let stderr = "";
+      ff.stderr.on("data", d => { stderr += d.toString(); });
+      ff.on("close", (code, signal) => {
+        if (code === 0 && fs.existsSync(outputPath) && fs.statSync(outputPath).size > 1000) {
+          const stats = fs.statSync(outputPath);
+          let duration = null;
+          let durationSeconds = 0;
+          const durMatch = stderr.match(/Duration:\s*(\d{2}):(\d{2}):(\d{2})/);
+          if (durMatch) {
+            const h = parseInt(durMatch[1], 10);
+            const m = parseInt(durMatch[2], 10);
+            const s = parseInt(durMatch[3], 10);
+            durationSeconds = h * 3600 + m * 60 + s;
+            duration = h > 0 ? `${durMatch[1]}:${durMatch[2]}:${durMatch[3]}` : `${durMatch[2]}:${durMatch[3]}`;
+          }
+          return resAttempt({ sizeBytes: stats.size, duration, durationSeconds });
+        }
+        rejAttempt(new Error(`FFmpeg terminó con código ${code}${signal ? ' (señal ' + signal + ')' : ''}: ${stderr.slice(-300)}`));
+      });
+      ff.on("error", rejAttempt);
+    });
+
+    // INTENTO 1: Fast Remux (Stream Copy) ultra veloz (< 1s, < 25MB RAM, sin transcodificar video)
+    try {
+      const fastArgs = ["-y", ...vArgs, "-i", localVideo];
+      if (hasSeparateAudio) {
+        fastArgs.push(...aArgs, "-i", localAudio, "-map", "0:v:0", "-map", "1:a:0", "-c:v", "copy", "-c:a", "aac", "-b:a", "160k", "-shortest");
+      } else {
+        fastArgs.push("-c:v", "copy", "-c:a", "aac", "-b:a", "160k");
+      }
+      fastArgs.push("-movflags", "+faststart", "-f", "mp4", outputPath);
+
+      const fastResult = await runFfmpegAttempt(fastArgs);
+      return fastResult;
+    } catch (fastErr) {
+      logger.warn(`Fast remux no completado (${fastErr.message}), ejecutando transcodificación x264...`);
+      if (fs.existsSync(outputPath)) {
+        try { fs.unlinkSync(outputPath); } catch {}
+      }
+    }
+
+    // INTENTO 2: Transcodificación con libx264 con threads limitados para no superar la RAM de Render (512MB)
+    let scaleFilter = "";
+    const qNumMatch = quality && String(quality).match(/(\d{3,4})p?/);
+    if (qNumMatch) {
+      const h = parseInt(qNumMatch[1], 10);
+      if (h && h > 0) {
+        scaleFilter = `scale=-2:${h}:flags=fast_bilinear`;
+      }
+    }
+
+    const encodeArgs = ["-y", ...vArgs, "-i", localVideo];
+    if (hasSeparateAudio) {
+      encodeArgs.push(...aArgs, "-i", localAudio);
+    }
+    if (scaleFilter) {
+      encodeArgs.push("-vf", scaleFilter);
+    }
+    encodeArgs.push(
+      "-c:v", "libx264",
+      "-preset", "ultrafast",
+      "-threads", "1",
+      "-crf", "26",
+      "-c:a", "aac",
+      "-b:a", "128k",
+      "-ar", "44100",
+      "-pix_fmt", "yuv420p"
+    );
+    if (hasSeparateAudio) {
+      encodeArgs.push("-map", "0:v:0?", "-map", "1:a:0?", "-shortest");
+    }
+    encodeArgs.push("-movflags", "+faststart", "-f", "mp4", outputPath);
+
+    const encodeResult = await runFfmpegAttempt(encodeArgs);
+    return encodeResult;
+  } finally {
+    if (tempVideoFile && fs.existsSync(tempVideoFile)) {
+      try { fs.unlinkSync(tempVideoFile); } catch {}
+    }
+    if (tempAudioFile && fs.existsSync(tempAudioFile)) {
+      try { fs.unlinkSync(tempAudioFile); } catch {}
+    }
+  }
 }
 
 /**
